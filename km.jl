@@ -82,7 +82,7 @@ cos_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
 
 
 """
-  kmedoids(X,K,dist)
+  kmedoids(X,K;dist)
 
 Compute K-Medoids algorithm to identify K clusters of X using distance definition `dist`
 
