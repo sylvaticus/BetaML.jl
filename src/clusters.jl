@@ -6,6 +6,16 @@ using Distributions
 sterling(n::BigInt,k::BigInt) = (1/factorial(k)) * sum((-1)^i * binomial(k,i)* (k-i)^n for i in 0:k)
 sterling(n::Int64,k::Int64) = sterling(BigInt(n),BigInt(k))
 
+# Some common distances
+"""L1 norm distance (aka "Manhattan Distance")"""
+l1_distance(x,y) = sum(abs.(x-y))
+"""Euclidean (L2) distance"""
+l2_distance(x,y) = norm(x-y)
+"""Squared Euclidean (L2) distance"""
+l2²_distance(x,y) = norm(x-y)^2
+"""Cosine distance"""
+cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
+
 """
   initRepresentatives(X,K;initStrategy,Z₀))
 
@@ -47,14 +57,10 @@ function initRepresentatives(X,K;initStrategy="grid",Z₀=nothing)
         end
     elseif initStrategy == "given"
         if isnothing(Z₀) error("With the `given` strategy you need to provide the initial set of representatives in the Z₀ parameter.") end
-        for d in 1:D
-                Z = Z₀
-        end
+        Z = Z₀
     elseif initStrategy == "shuffle"
-        for d in 1:D
-            zIdx = shuffle(1:size(X)[1])[1:K]
-            Z = X[zIdx, :]
-        end
+        zIdx = shuffle(1:size(X)[1])[1:K]
+        Z = X[zIdx, :]
     else
         error("initStrategy \"$initStrategy\" not implemented")
     end
@@ -65,13 +71,14 @@ end
 # Basic K-Means Algorithm (Lecture/segment 13.7 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
 
 """
-  kmeans(X,K,initStrategy,Z₀)
+  kmeans(X,K;dist,initStrategy,Z₀)
 
 Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 
 # Parameters:
 * `X`: a (N x D) data to clusterise
 * `K`: Number of cluster wonted
+* `dist`: Function to employ as distance (see notes). Default to Euclidean distance.
 * `initStrategy`: Wheter to select the initial representative vectors:
   * `random`: randomly in the X space
   * `grid`: using a grid approach [default]
@@ -84,13 +91,17 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 
 # Notes:
 * Some returned clusters could be empty
+* The `dist` parameter can be:
+  * Any user defined function accepting two vectors and returning a scalar
+  * An anonymous function with the same characteristics (e.g. `dist = (x,y) -> norm(x-y)^2`)
+  * One of the above predefined distances: `l1_distance`, `l2_distance`, `l2²_distance`, `cosine_distance`
 
 # Example:
 ```julia
 julia> (clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3)
 ```
 """
-function kmeans(X,K;initStrategy="grid",Z₀=nothing)
+function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing)
     (N,D) = size(X)
     # Random choice of initial representative vectors (any point, not just in X!)
     minX = minimum(X,dims=1)
@@ -106,18 +117,19 @@ function kmeans(X,K;initStrategy="grid",Z₀=nothing)
         for (i,x) in enumerate(eachrow(X))
             cost = Inf
             for (j,z) in enumerate(eachrow(Z))
-               if (norm(x-z)^2  < cost)
-                   cost    =  norm(x-z)^2
+               if (dist(x,z)  < cost)
+                   cost    =  dist(x,z)
                    cIdx[i] = j
                end
             end
         end
 
         # Determining the new representative by each cluster
-        #for (j,z) in enumerate(eachrow(Z))
+        # for (j,z) in enumerate(eachrow(Z))
         for j in  1:K
             Cⱼ = X[cIdx .== j,:] # Selecting the constituency by boolean selection
             Z[j,:] = sum(Cⱼ,dims=1) ./ size(Cⱼ)[1]
+            #Z[j,:] = median(Cⱼ,dims=1) # for l1 distance
         end
 
         # Checking termination condition: clusters didn't move any more
@@ -131,23 +143,54 @@ function kmeans(X,K;initStrategy="grid",Z₀=nothing)
 end
 
 # Basic K-Medoids Algorithm (Lecture/segment 14.3 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
-
-"""Square Euclidean distance"""
-square_euclidean(x,y) = norm(x-y)^2
-
-"""Cosine distance"""
-cos_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
-
-
 """
   kmedoids(X,K;dist,initStrategy,Z₀)
 
-Compute K-Medoids algorithm to identify K clusters of X using distance definition `dist`
+Compute K-Medoidsfunction kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing)
+    (N,D) = size(X)
+    # Random choice of initial representative vectors (any point, not just in X!)
+    minX = minimum(X,dims=1)
+    maxX = maximum(X,dims=1)
+    Z₀ = initRepresentatives(X,K,initStrategy=initStrategy,Z₀=Z₀)
+    Z  = Z₀
+    cIdx_prev = zeros(Int64,N)
+
+    # Looping
+    while true
+        # Determining the constituency of each cluster
+        cIdx      = zeros(Int64,N)
+        for (i,x) in enumerate(eachrow(X))
+            cost = Inf
+            for (j,z) in enumerate(eachrow(Z))
+               if (dist(x,z)  < cost)
+                   cost    =  norm(x-z)^2
+                   cIdx[i] = j
+               end
+            end
+        end
+
+        # Determining the new representative by each cluster
+        # for (j,z) in enumerate(eachrow(Z))
+        for j in  1:K
+            Cⱼ = X[cIdx .== j,:] # Selecting the constituency by boolean selection
+            #Z[j,:] = sum(Cⱼ,dims=1) ./ size(Cⱼ)[1]
+            Z[j,:] = median(Cⱼ,dims=1)
+        end
+
+        # Checking termination condition: clusters didn't move any more
+        if cIdx == cIdx_prev
+            return (cIdx,Z)
+        else
+            cIdx_prev = cIdx
+        end
+
+    end
+end algorithm to identify K clusters of X using distance definition `dist`
 
 # Parameters:
 * `X`: a (n x d) data to clusterise
 * `K`: Number of cluster wonted
-* `dist`: Function to employ as distance (must accept two vectors). Default to squared Euclidean.
+* `dist`: Function to employ as distance (see notes). Default to Euclidean distance.
 * `initStrategy`: Wheter to select the initial representative vectors:
   * `random`: randomly in the X space
   * `grid`: using a grid approach
@@ -160,13 +203,17 @@ Compute K-Medoids algorithm to identify K clusters of X using distance definitio
 
 # Notes:
 * Some returned clusters could be empty
+* The `dist` parameter can be:
+  * Any user defined function accepting two vectors and returning a scalar
+  * An anonymous function with the same characteristics (e.g. `dist = (x,y) -> norm(x-y)^2`)
+  * One of the above predefined distances: `l1_distance`, `l2_distance`, `l2²_distance`, `cosine_distance`
 
 # Example:
 ```julia
-julia> (clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,dist = (x,y) -> norm(x-y)^2,initStrategy="grid")
+julia> (clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initStrategy="grid")
 ```
 """
-function kmedoids(X,K;dist=(x,y) -> norm(x-y)^2,initStrategy="shuffle",Z₀=nothing)
+function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="shuffle",Z₀=nothing)
     (n,d) = size(X)
     # Random choice of initial representative vectors
     Z₀ = initRepresentatives(X,K,initStrategy=initStrategy,Z₀=Z₀)
