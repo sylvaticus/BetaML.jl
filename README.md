@@ -7,7 +7,7 @@ Theoretical notes are at the companion repository https://github.com/sylvaticus/
 
 This stuff most likely has value ony didactically, as the approaches are the "vanilla" ones, i.e. the simplest possible ones.
 
-Run the code in mybinder:
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/sylvaticus/lmlj/master)
+**Run the code by yourself (folder "notebooks") in myBinder, a temporary public online computational environment:
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/sylvaticus/lmlj.jl/master)**
 
-(note: the first time after a commit is made in this depo, it takes a looong time)
+(Note: every first time after a commit is made in this repository, it takes a looong time as the temporary environment need to be created.)
