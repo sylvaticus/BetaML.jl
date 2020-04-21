@@ -11,3 +11,5 @@ This stuff most likely has value ony didactically, as the approaches are the "va
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/sylvaticus/lmlj.jl/master)**
 
 (Note: every first time after a commit is made in this repository, it takes a looong time as the temporary environment need to be created.)
+
+By the way, if you are looking for an introductory book on Julia, have a look on my "[Julia Quick Syntax Reference](https://www.julia-book.com/)"(Apress,2019).
