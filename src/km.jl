@@ -6,8 +6,6 @@ using Distributions
 sterling(n::BigInt,k::BigInt) = (1/factorial(k)) * sum((-1)^i * binomial(k,i)* (k-i)^n for i in 0:k)
 sterling(n::Int64,k::Int64) = sterling(BigInt(n),BigInt(k))
 
-
-
 """
   initRepresentatives(X,K;initStrategy,Z₀))
 
@@ -89,7 +87,7 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 
 # Example:
 ```julia
-julia> clIdx = kmean([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2)
+julia> (clIdx,Z) = kmean([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2)
 ```
 """
 function kmean(X,K;initStrategy="grid",Z₀=nothing)
@@ -115,35 +113,24 @@ function kmean(X,K;initStrategy="grid",Z₀=nothing)
             end
         end
 
+        # Determining the new representative by each cluster
+        #for (j,z) in enumerate(eachrow(Z))
+        for j in  1:K
+            Cⱼ = X[cIdx .== j,:] # Selecting the constituency by boolean selection
+            Z[j,:] = sum(Cⱼ,dims=1) ./ size(Cⱼ)[1]
+        end
+
         # Checking termination condition: clusters didn't move any more
         if cIdx == cIdx_prev
-            return cIdx
+            return (cIdx,Z)
         else
             cIdx_prev = cIdx
         end
 
-        # Determining the new representative by each cluster
-        for (j,z) in enumerate(eachrow(Z))
-            Cⱼ = X[cIdx .== j,:] # Selecting the constituency by boolean selection
-            z = sum(Cⱼ,dims=1) ./ size(Cⱼ)[1]
-        end
     end
 end
 
-X = [1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38]
-K = 3
-(N,D) = size(X)
-# Random choice of initial representative vectors (any point, not just in X!)
-minX = minimum(X,dims=1)
-maxX = maximum(X,dims=1)
-Z₀ = zeros(K,D)
-for d in 1:D
-        Z₀[:,d] = collect(range(minX[d], stop=maxX[d], length=K))
-end
-
-
 # Basic K-Medoids Algorithm (Lecture/segment 14.3 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
-
 
 """Square Euclidean distance"""
 square_euclidean(x,y) = norm(x-y)^2
@@ -169,14 +156,14 @@ Compute K-Medoids algorithm to identify K clusters of X using distance definitio
  * `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initStrategy) [default: `nothing`]
 
 # Returns:
-* A vector of size n of ids of the clusters associated to each point
+* A tuple of two items, the first one being a vector of size N of ids of the clusters associated to each point and the second one the (K x D) matrix of representatives
 
 # Notes:
 * Some returned clusters could be empty
 
 # Example:
 ```julia
-julia> clIdx = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2,dist = (x,y) -> norm(x-y)^2)
+julia> (clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38],2,dist = (x,y) -> norm(x-y)^2,initStrategy="grid")
 ```
 """
 function kmedoids(X,K;dist=(x,y) -> norm(x-y)^2,initStrategy="shuffle",Z₀=nothing)
@@ -200,18 +187,11 @@ function kmedoids(X,K;dist=(x,y) -> norm(x-y)^2,initStrategy="shuffle",Z₀=noth
             end
         end
 
-        # Checking termination condition: clusters didn't move any more
-        if cIdx == cIdx_prev
-            return cIdx
-        else
-            cIdx_prev = cIdx
-        end
-
         # Determining the new representative by each cluster (within the points member)
-        for (j,z) in enumerate(eachrow(Z))
+        #for (j,z) in enumerate(eachrow(Z))
+        for j in  1:K
             Cⱼ = X[cIdx .== j,:] # Selecting the constituency by boolean selection
             nⱼ = size(Cⱼ)[1]     # Size of the cluster
-            println(nⱼ)
             if nⱼ == 0 continue end # empty continuency. Let's not do anything. Stil in the next batch other representatives could move away and points could enter this cluster
             bestCost = Inf
             bestCIdx = 0
@@ -225,9 +205,23 @@ function kmedoids(X,K;dist=(x,y) -> norm(x-y)^2,initStrategy="shuffle",Z₀=noth
                      bestCIdx = cIdx
                  end
             end
-            z = reshape(Cⱼ[bestCIdx,:],1,d)
+            Z[j,:] = reshape(Cⱼ[bestCIdx,:],1,d)
         end
+
+        # Checking termination condition: clusters didn't move any more
+        if cIdx == cIdx_prev
+            return (cIdx,Z)
+        else
+            cIdx_prev = cIdx
+        end
+
     end
 end
 
-clIdx = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2,initStrategy="grid",Z₀=[3.6 32; 3.6 38])
+(clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38],2,dist = (x,y) -> norm(x-y)^2,initStrategy="grid")
+
+# The EM algorithm (Lecture/segment 16.5 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
+
+
+""" PDF of a multidimensional normal with no covariance and shared variance across dimensions"""
+normalFixedSd(x,μ,σ²) = (1/(2π*σ²)^(length(x)/2)) * exp(-1/(2σ²)*norm(x-μ)^2)
