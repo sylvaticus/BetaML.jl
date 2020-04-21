@@ -65,7 +65,7 @@ end
 # Basic K-Means Algorithm (Lecture/segment 13.7 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
 
 """
-  kmean(X,K,initStrategy)
+  kmeans(X,K,initStrategy)
 
 Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 
@@ -87,10 +87,10 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 
 # Example:
 ```julia
-julia> (clIdx,Z) = kmean([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2)
+julia> (clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3)
 ```
 """
-function kmean(X,K;initStrategy="grid",Z₀=nothing)
+function kmeans(X,K;initStrategy="grid",Z₀=nothing)
     (N,D) = size(X)
     # Random choice of initial representative vectors (any point, not just in X!)
     minX = minimum(X,dims=1)
@@ -163,7 +163,7 @@ Compute K-Medoids algorithm to identify K clusters of X using distance definitio
 
 # Example:
 ```julia
-julia> (clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38],2,dist = (x,y) -> norm(x-y)^2,initStrategy="grid")
+julia> (clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,dist = (x,y) -> norm(x-y)^2,initStrategy="grid")
 ```
 """
 function kmedoids(X,K;dist=(x,y) -> norm(x-y)^2,initStrategy="shuffle",Z₀=nothing)
@@ -218,10 +218,87 @@ function kmedoids(X,K;dist=(x,y) -> norm(x-y)^2,initStrategy="shuffle",Z₀=noth
     end
 end
 
-(clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38],2,dist = (x,y) -> norm(x-y)^2,initStrategy="grid")
 
 # The EM algorithm (Lecture/segment 16.5 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
 
-
 """ PDF of a multidimensional normal with no covariance and shared variance across dimensions"""
 normalFixedSd(x,μ,σ²) = (1/(2π*σ²)^(length(x)/2)) * exp(-1/(2σ²)*norm(x-μ)^2)
+
+# 16.5 The E-M Algorithm
+"""
+  em(X,K;p₀,μ₀,σ²₀,tol)
+
+Compute Expectation-Maximisation algorithm to identify K clusters of X data assuming a Gaussian Mixture probabilistic Model.
+
+# Parameters:
+* `X`  :      A (n x d) data to clusterise
+* `K`  :      Number of cluster wanted
+* `p₀` :      Initial probabilities of the categorical distribution (K x 1) [default: `nothing`]
+* `μ₀` :      Initial means (K x d) of the Gaussian [default: `nothing`]
+* `σ²₀`:      Initial variance of the gaussian (K x 1). We assume here that the gaussian has the same variance across all the dimensions [default: `nothing`]
+* `tol`:      Initial tolerance to stop the algorithm [default: 0.0001]
+* `msgStep` : Iterations between update messages. Use 0 for no updates [default: 10]
+
+# Returns:
+* A named touple of:
+  * `pⱼₓ`: Matrix of size (N x K) of the probabilities of each point i to belong to cluster j
+  * `pⱼ`  : Probabilities of the categorical distribution (K x 1)
+  * `μ`  : Means (K x d) of the Gaussian
+  * `σ²` : Variance of the gaussian (K x 1). We assume here that the gaussian has the same variance across all the dimensions
+  * `ϵ`  : Vector of the discrepancy (matrix norm) between pⱼₓ and the lagged pⱼₓ at each iteration
+
+# Example:
+```julia
+julia> clusters = em([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,msgStep=3)
+```
+"""
+function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=0.0001,msgStep=10)
+    # debug:
+    #X = [1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4]
+    #K = 3
+    #p₀=nothing; μ₀=nothing; σ²₀=nothing; tol=0.0001
+    (N,D) = size(X)
+
+    # Initialisation of the parameters if not provided
+    minX = minimum(X,dims=1)
+    maxX = maximum(X,dims=1)
+    varX = mean(var(X,dims=1))/K^2
+    pⱼ = isnothing(p₀) ? fill(1/K,K) : p₀
+    if !isnothing(μ₀)
+        μ = μ₀σ²[1]
+    else
+        μ = zeros(Float64,K,D)
+        for d in 1:D
+                μ[:,d] = collect(range(minX[d], stop=maxX[d], length=K))
+        end
+    end
+    σ² = isnothing(σ²₀) ? fill(varX,K) : σ²₀
+    pⱼₓ = zeros(Float64,N,K)
+
+    ϵ = Float64[]
+    while(true)
+        # E Step: assigning the posterior prob p(j|xi)
+        pⱼₓlagged = copy(pⱼₓ)
+        for n in 1:N
+            px = sum([pⱼ[j]*normalFixedSd(X[n,:],μ[j,:],σ²[j]) for j in 1:K])
+            for k in 1:K
+                pⱼₓ[n,k] = pⱼ[k]*normalFixedSd(X[n,:],μ[k,:],σ²[k])/px
+            end
+        end
+        # M step: find parameters that maximise the likelihood
+        nⱼ = sum(pⱼₓ,dims=1)'
+        n = sum(nⱼ)
+        pⱼ = nⱼ ./ n
+        μ = (pⱼₓ' * X) ./ nⱼ
+        σ² = [sum([pⱼₓ[n,j] * norm(X[n,:]-μ[j,:])^2 for n in 1:N]) for j in 1:K ] ./ (nⱼ .* D)
+
+        push!(ϵ,norm(pⱼₓlagged - pⱼₓ))
+
+        if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
+           println("Iter. $(length(ϵ))\t: $(ϵ[end])")
+        end
+        if (ϵ[end] < tol)
+            return (pⱼₓ=pⱼₓ,pⱼ=pⱼ,μ=μ,σ²=σ²,ϵ=ϵ)
+        end
+    end
+end
