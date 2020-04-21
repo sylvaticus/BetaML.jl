@@ -65,7 +65,7 @@ end
 # Basic K-Means Algorithm (Lecture/segment 13.7 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
 
 """
-  kmeans(X,K,initStrategy)
+  kmeans(X,K,initStrategy,Z₀)
 
 Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 
@@ -77,7 +77,7 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
   * `grid`: using a grid approach [default]
   * `shuffle`: selecting randomly within the available points
   * `given`: using a provided set of initial representatives provided in the `Z₀` parameter
- * `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initStrategy) [default: `nothing`]
+* `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initStrategy) [default: `nothing`]
 
 # Returns:
 * A tuple of two items, the first one being a vector of size N of ids of the clusters associated to each point and the second one the (K x D) matrix of representatives
@@ -214,8 +214,8 @@ function kmedoids(X,K;dist=(x,y) -> norm(x-y)^2,initStrategy="shuffle",Z₀=noth
         else
             cIdx_prev = cIdx
         end
-
     end
+
 end
 
 
@@ -265,7 +265,7 @@ function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=0.0001,msgStep=10
     varX = mean(var(X,dims=1))/K^2
     pⱼ = isnothing(p₀) ? fill(1/K,K) : p₀
     if !isnothing(μ₀)
-        μ = μ₀σ²[1]
+        μ = μ₀
     else
         μ = zeros(Float64,K,D)
         for d in 1:D
