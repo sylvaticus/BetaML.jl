@@ -1,7 +1,9 @@
 using LinearAlgebra
 using Random
-using Distributions
+#using Distributions
 using Statistics
+
+## Helper functions
 
 """ Sterling number: number of partitions of a set of n elements in k sets """
 sterling(n::BigInt,k::BigInt) = (1/factorial(k)) * sum((-1)^i * binomial(k,i)* (k-i)^n for i in 0:k)
@@ -21,10 +23,17 @@ cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
   make_matrix(x)
 
 Transform an Array{T,1} in an Array{T,2} and leave unchanged Array{T,2}.
-
-
 """
 make_matrix(x::Array) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
+
+""" PDF of a multidimensional normal with no covariance and shared variance across dimensions"""
+normalFixedSd(x,μ,σ²) = (1/(2π*σ²)^(length(x)/2)) * exp(-1/(2σ²)*norm(x-μ)^2)
+
+""" log-PDF of a multidimensional normal with no covariance and shared variance across dimensions"""
+logNormalFixedSd(x,μ,σ²) = - (length(x)/2) * log(2π*σ²)  -  norm(x-μ)^2/(2σ²)
+
+""" LogSumExp for efficiently computing log(sum(exp.(x))) """
+myLSE(x) = maximum(x)+log(sum(exp.(x .- maximum(x))))
 
 """
   initRepresentatives(X,K;initStrategy,Z₀))
@@ -80,7 +89,7 @@ function initRepresentatives(X,K;initStrategy="grid",Z₀=nothing)
 end
 
 
-# Basic K-Means Algorithm (Lecture/segment 13.7 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
+## Basic K-Means Algorithm (Lecture/segment 13.7 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
 
 """
   kmeans(X,K;dist,initStrategy,Z₀)
@@ -155,7 +164,7 @@ function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing)
     end
 end
 
-# Basic K-Medoids Algorithm (Lecture/segment 14.3 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
+## Basic K-Medoids Algorithm (Lecture/segment 14.3 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
 """
   kmedoids(X,K;dist,initStrategy,Z₀)
 
@@ -241,112 +250,15 @@ function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="shuffle",Z₀=nothin
 end
 
 
-# The EM algorithm (Lecture/segment 16.5 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
-
-""" PDF of a multidimensional normal with no covariance and shared variance across dimensions"""
-normalFixedSd(x,μ,σ²) = (1/(2π*σ²)^(length(x)/2)) * exp(-1/(2σ²)*norm(x-μ)^2)
-
-# 16.5 The E-M Algorithm
-
-#=
-# Replaced with the one that manage missing values
-"""
-  em(X,K;p₀,μ₀,σ²₀,tol,msgStep)
-
-Compute Expectation-Maximisation algorithm to identify K clusters of X data assuming a Gaussian Mixture probabilistic Model.
-
-# Parameters:
-* `X`  :      A (n x d) data to clusterise
-* `K`  :      Number of cluster wanted
-* `p₀` :      Initial probabilities of the categorical distribution (K x 1) [default: `nothing`]
-* `μ₀` :      Initial means (K x d) of the Gaussian [default: `nothing`]
-* `σ²₀`:      Initial variance of the gaussian (K x 1). We assume here that the gaussian has the same variance across all the dimensions [default: `nothing`]
-* `tol`:      Initial tolerance to stop the algorithm [default: 0.0001]
-* `msgStep` : Iterations between update messages. Use 0 for no updates [default: 10]
-
-# Returns:
-* A named touple of:
-  * `pⱼₓ`: Matrix of size (N x K) of the probabilities of each point i to belong to cluster j
-  * `pⱼ`  : Probabilities of the categorical distribution (K x 1)
-  * `μ`  : Means (K x d) of the Gaussian
-  * `σ²` : Variance of the gaussian (K x 1). We assume here that the gaussian has the same variance across all the dimensions
-  * `ϵ`  : Vector of the discrepancy (matrix norm) between pⱼₓ and the lagged pⱼₓ at each iteration
-
-# Example:
-```julia
-julia> clusters = em([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,msgStep=3)
-```
-"""
-function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=0.0001,msgStep=10)
-    # debug:
-    #X = [1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4]
-    #K = 3
-    #p₀=nothing; μ₀=nothing; σ²₀=nothing; tol=0.0001
-    X     = make_matrix(X)
-    (N,D) = size(X)
-
-    # Initialisation of the parameters if not provided
-    minX = minimum(X,dims=1)
-    maxX = maximum(X,dims=1)
-    varX = mean(var(X,dims=1))/K^2
-    pⱼ = isnothing(p₀) ? fill(1/K,K) : p₀
-    if !isnothing(μ₀)
-        μ₀  = make_matrix(μ₀)
-        μ = μ₀
-    else
-        μ = zeros(Float64,K,D)
-        for d in 1:D
-                μ[:,d] = collect(range(minX[d], stop=maxX[d], length=K))
-        end
-    end
-    σ² = isnothing(σ²₀) ? fill(varX,K) : σ²₀
-    pⱼₓ = zeros(Float64,N,K)
-
-    ϵ = Float64[]
-    while(true)
-        # E Step: assigning the posterior prob p(j|xi)
-        pⱼₓlagged = copy(pⱼₓ)
-        for n in 1:N
-            px = sum([pⱼ[j]*normalFixedSd(X[n,:],μ[j,:],σ²[j]) for j in 1:K])
-            for k in 1:K
-                pⱼₓ[n,k] = pⱼ[k]*normalFixedSd(X[n,:],μ[k,:],σ²[k])/px
-            end
-        end
-
-        # Compute the log-Likelihood of the parameters given the set of data
-        # Just for informaticve purposes, not needed for the algorithm
-        lL = 0
-        for n in 1:N
-            lL += log(sum([pⱼ[j]*normalFixedSd(X[n,:],μ[j,:],σ²[j]) for j in 1:K]))
-        end
-
-        if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
-           println("Log likelihood on iter. $(length(ϵ))\t: $(lL)")
-        end
-
-        # M step: find parameters that maximise the likelihood
-        nⱼ = sum(pⱼₓ,dims=1)'
-        n  = sum(nⱼ)
-        pⱼ = nⱼ ./ n
-        μ  = (pⱼₓ' * X) ./ nⱼ
-        σ² = [sum([pⱼₓ[n,j] * norm(X[n,:]-μ[j,:])^2 for n in 1:N]) for j in 1:K ] ./ (nⱼ .* D)
-
-        push!(ϵ,norm(pⱼₓlagged - pⱼₓ))
-
-        if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
-           println("Iter. $(length(ϵ))\t: $(ϵ[end])")
-        end
-        if (ϵ[end] < tol)
-            return (pⱼₓ=pⱼₓ,pⱼ=pⱼ,μ=μ,σ²=σ²,ϵ=ϵ)
-        end
-    end
-end
-=#
+## The EM algorithm (Lecture/segment 16.5 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
 
 """
   em(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)
 
-Compute Expectation-Maximisation algorithm to identify K clusters of X data assuming a Gaussian Mixture probabilistic Model. X can contain missing values.
+Compute Expectation-Maximisation algorithm to identify K clusters of X data assuming a Gaussian Mixture probabilistic Model.
+
+X can contain missing values in some or all of its dimensions. In such case the learning is done only with the available data.
+Implemented in the log-domain for better numerical accuracy with many dimensions.
 
 # Parameters:
 * `X`  :          A (n x d) data to clusterise
@@ -403,45 +315,38 @@ function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=1
         end
     end
     σ² = isnothing(σ²₀) ? fill(varX,K) : σ²₀
-    pⱼₓ = zeros(Float64,N,K)
+    pⱼₓ = zeros(Float64,N,K) # The posteriors, i.e. the prob that item n belong to cluster k
     ϵ = Float64[]
 
     # finding empty/non_empty values
-    #XNull  = Array{Array{Int64,1},1}(undef,N)
-    XNNull = Array{Array{Int64,1},1}(undef,N)
-
-    if(ismissing(missingValue))
-        for n in 1:N
-            #XNull[n]  = [d  for d in 1:D if ismissing(X[n,d])]
-            XNNull[n] = [d  for d in 1:D if ! ismissing(X[n,d])]
-        end
-        XMask     =  .! ismissing.(X)
-    else
-        for n in 1:N
-            #XNull[n]  = [d  for d in 1:D if X[n,d] == missingValue]
-            XNNull[n] = [d  for d in 1:D if X[n,d] != missingValue]
-        end
-        XMask     =  (X .!= missingValue)
-    end
+    XMask = ismissing(missingValue) ?  .! ismissing.(X)  : (X .!= missingValue)
     XdimCount = sum(XMask, dims=2)
+
     lL = -Inf
 
     while(true)
         oldlL = lL
-        # E Step: assigning the posterior prob p(j|xi)
+        # E Step: assigning the posterior prob p(j|xi) and computing the log-Likelihood of the parameters given the set of data
+        # (this last one for informative purposes and terminating the algorithm)
         pⱼₓlagged = copy(pⱼₓ)
+        logpⱼₓ = log.(pⱼₓ)
+        lL = 0
         for n in 1:N
-            if(XdimCount[n] > 0)
-                Xu = X[n,XNNull[n]]
-                px = sum([pⱼ[k]*normalFixedSd(Xu,μ[k,XNNull[n]],σ²[k]) for k in 1:K])
+            if any(XMask[n,:]) # if at least one true
+                Xu = X[n,XMask[n,:]]
+                logpx = myLSE([log(pⱼ[k] + 1e-16) + logNormalFixedSd(Xu,μ[k,XMask[n,:]],σ²[k]) for k in 1:K])
+                lL += logpx
+                #px = sum([pⱼ[k]*normalFixedSd(Xu,μ[k,XMask[n,:]],σ²[k]) for k in 1:K])
                 for k in 1:K
-                    pⱼₓ[n,k] = pⱼ[k]*normalFixedSd(Xu,μ[k,XNNull[n]],σ²[k])/px
+                    logpⱼₓ[n,k] = log(pⱼ[k] + 1e-16)+logNormalFixedSd(Xu,μ[k,XMask[n,:]],σ²[k])-logpx
                 end
             else
-                pⱼₓ[n,:] = pⱼ
+                logpⱼₓ[n,:] = log.(pⱼ)
             end
         end
+        pⱼₓ = exp.(logpⱼₓ)
 
+        push!(ϵ,norm(pⱼₓlagged - pⱼₓ))
 
         # M step: find parameters that maximise the likelihood
         nⱼ = sum(pⱼₓ,dims=1)'
@@ -451,12 +356,9 @@ function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=1
         #μ  = (pⱼₓ' * X) ./ nⱼ
         for d in 1:D
             for k in 1:K
-                nᵢⱼ = dot(pⱼₓ[:,k],XMask[:,d])
+                nᵢⱼ = sum(pⱼₓ[XMask[:,d],k])
                 if nᵢⱼ > 1
-                    Xd = X[:,d]
-                    Xd[ismissing.(Xd)] .= 0
-                    muNom = sum(pⱼₓ[:,k] .* XMask[:,d] .* Xd)
-                    μ[k,d] = muNom/nᵢⱼ
+                    μ[k,d] = sum(pⱼₓ[XMask[:,d],k] .* X[XMask[:,d],d])/nᵢⱼ
                 end
             end
         end
@@ -466,8 +368,8 @@ function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=1
             den = dot(XdimCount,pⱼₓ[:,k])
             nom = 0.0
             for n in 1:N
-                if(XdimCount[n] > 0)
-                    nom += pⱼₓ[n,k] * norm(X[n,XNNull[n]]-μ[k,XNNull[n]])^2
+                if any(XMask[n,:])
+                    nom += pⱼₓ[n,k] * norm(X[n,XMask[n,:]]-μ[k,XMask[n,:]])^2
                 end
             end
             if(den> 0 && (nom/den) > minVariance)
@@ -477,19 +379,7 @@ function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=1
             end
         end
 
-        push!(ϵ,norm(pⱼₓlagged - pⱼₓ))
-
-        # Compute the log-Likelihood of the parameters given the set of data
-        # Just for informaticve purposes, not needed for the algorithm
-        lL = 0.0
-        for n in 1:N
-            if(XdimCount[n] > 0)
-                #global lL
-                Xu = X[n,XNNull[n]]
-                lL += log(sum([pⱼ[k]*normalFixedSd(Xu,μ[k,XNNull[n]],σ²[k]) for k in 1:K]))
-            end
-        end
-
+        # Information. Note the likelihood is whitout accounting for the new mu, sigma
         if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
            println("Log likelihood on iter. $(length(ϵ))\t: $(lL)")
         end
@@ -498,6 +388,7 @@ function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=1
            println("Iter. $(length(ϵ))\t: $(ϵ[end])")
         end
 
+        # Closing conditions. Note that the logLikelihood is those without considering the new mu,sigma
         if (lL - oldlL) <= (tol * abs(lL))
         #if (ϵ[end] < tol)
            return (pⱼₓ=pⱼₓ,pⱼ=pⱼ,μ=μ,σ²=σ²,ϵ=ϵ,lL=lL)
@@ -505,7 +396,9 @@ function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=1
     end # end while loop
 end # end function
 
-using BenchmarkTools
+#using BenchmarkTools
 #@benchmark clusters = em([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,msgStep=0)
 #@benchmark clusters = em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
+#@benchmark clusters = em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
+#@benchmark clusters = em([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3,msgStep=0)
 #@code_warntype em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
