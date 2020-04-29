@@ -12,18 +12,17 @@ sterling(n::Int64,k::Int64) = sterling(BigInt(n),BigInt(k))
 # Some common distances
 """L1 norm distance (aka "Manhattan Distance")"""
 l1_distance(x,y) = sum(abs.(x-y))
+
 """Euclidean (L2) distance"""
 l2_distance(x,y) = norm(x-y)
+
 """Squared Euclidean (L2) distance"""
 l2²_distance(x,y) = norm(x-y)^2
+
 """Cosine distance"""
 cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
 
-"""
-  make_matrix(x)
-
-Transform an Array{T,1} in an Array{T,2} and leave unchanged Array{T,2}.
-"""
+"""Transform an Array{T,1} in an Array{T,2} and leave unchanged Array{T,2}."""
 make_matrix(x::Array) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
 
 """ PDF of a multidimensional normal with no covariance and shared variance across dimensions"""
@@ -381,11 +380,7 @@ function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=1
 
         # Information. Note the likelihood is whitout accounting for the new mu, sigma
         if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
-           println("Log likelihood on iter. $(length(ϵ))\t: $(lL)")
-        end
-
-        if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
-           println("Iter. $(length(ϵ))\t: $(ϵ[end])")
+            println("Iter. $(length(ϵ)):\tVariation of the posteriors  $(ϵ[end]) \t  Log-likelihood $(lL)")
         end
 
         # Closing conditions. Note that the logLikelihood is those without considering the new mu,sigma
