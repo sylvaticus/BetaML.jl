@@ -1,6 +1,7 @@
 using LinearAlgebra
 using Random
 using Distributions
+using Statistics
 
 """ Sterling number: number of partitions of a set of n elements in k sets """
 sterling(n::BigInt,k::BigInt) = (1/factorial(k)) * sum((-1)^i * binomial(k,i)* (k-i)^n for i in 0:k)
@@ -24,7 +25,6 @@ Transform an Array{T,1} in an Array{T,2} and leave unchanged Array{T,2}.
 
 """
 make_matrix(x::Array) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
-
 
 """
   initRepresentatives(X,K;initStrategy,Z₀))
@@ -247,6 +247,9 @@ end
 normalFixedSd(x,μ,σ²) = (1/(2π*σ²)^(length(x)/2)) * exp(-1/(2σ²)*norm(x-μ)^2)
 
 # 16.5 The E-M Algorithm
+
+#=
+# Replaced with the one that manage missing values
 """
   em(X,K;p₀,μ₀,σ²₀,tol,msgStep)
 
@@ -338,3 +341,171 @@ function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=0.0001,msgStep=10
         end
     end
 end
+=#
+
+"""
+  em(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)
+
+Compute Expectation-Maximisation algorithm to identify K clusters of X data assuming a Gaussian Mixture probabilistic Model. X can contain missing values.
+
+# Parameters:
+* `X`  :          A (n x d) data to clusterise
+* `K`  :          Number of cluster wanted
+* `p₀` :          Initial probabilities of the categorical distribution (K x 1) [default: `nothing`]
+* `μ₀` :          Initial means (K x d) of the Gaussian [default: `nothing`]
+* `σ²₀`:          Initial variance of the gaussian (K x 1). We assume here that the gaussian has the same variance across all the dimensions [default: `nothing`]
+* `tol`:          Tolerance to stop the algorithm [default: 10^(-6)]
+* `msgStep` :     Iterations between update messages. Use 0 for no updates [default: 10]
+* `minVariance`:  Minimum variance for the mixtures [default: 0.25]
+* `missingValue`: Value to be considered as missing in the X [default: 0]`
+
+# Returns:
+* A named touple of:
+  * `pⱼₓ`: Matrix of size (N x K) of the probabilities of each point i to belong to cluster j
+  * `pⱼ` : Probabilities of the categorical distribution (K x 1)
+  * `μ`  : Means (K x d) of the Gaussian
+  * `σ²` : Variance of the gaussian (K x 1). We assume here that the gaussian has the same variance across all the dimensions
+  * `ϵ`  : Vector of the discrepancy (matrix norm) between pⱼₓ and the lagged pⱼₓ at each iteration
+
+# Example:
+```julia
+julia> clusters = em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=1,missingValue=0)
+```
+"""
+function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=10,minVariance=0.25,missingValue=missing)
+    # debug:
+    #X = [1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4]
+    #K = 3
+    #p₀=nothing; μ₀=nothing; σ²₀=nothing; tol=0.0001; msgStep=1; minVariance=0.25; missingValue = 0
+
+    X     = make_matrix(X)
+    (N,D) = size(X)
+
+    # Initialisation of the parameters if not provided
+    minX = fill(-Inf,D)
+    maxX = fill(Inf,D)
+    varX_byD = fill(0,D)
+    for d in 1:D
+      minX[d]  = minimum(skipmissing(X[:,d]))
+      maxX[d]  = maximum(skipmissing(X[:,d]))
+      varX_byD = max(minVariance, var(skipmissing(X[:,d])))
+    end
+    varX = mean(varX_byD)/K^2
+
+    pⱼ = isnothing(p₀) ? fill(1/K,K) : p₀
+    if !isnothing(μ₀)
+        μ₀  = make_matrix(μ₀)
+        μ = μ₀
+    else
+        μ = zeros(Float64,K,D)
+        for d in 1:D
+                μ[:,d] = collect(range(minX[d], stop=maxX[d], length=K))
+        end
+    end
+    σ² = isnothing(σ²₀) ? fill(varX,K) : σ²₀
+    pⱼₓ = zeros(Float64,N,K)
+    ϵ = Float64[]
+
+    # finding empty/non_empty values
+    #XNull  = Array{Array{Int64,1},1}(undef,N)
+    XNNull = Array{Array{Int64,1},1}(undef,N)
+
+    if(ismissing(missingValue))
+        for n in 1:N
+            #XNull[n]  = [d  for d in 1:D if ismissing(X[n,d])]
+            XNNull[n] = [d  for d in 1:D if ! ismissing(X[n,d])]
+        end
+        XMask     =  .! ismissing.(X)
+    else
+        for n in 1:N
+            #XNull[n]  = [d  for d in 1:D if X[n,d] == missingValue]
+            XNNull[n] = [d  for d in 1:D if X[n,d] != missingValue]
+        end
+        XMask     =  (X .!= missingValue)
+    end
+    XdimCount = sum(XMask, dims=2)
+    lL = -Inf
+
+    while(true)
+        oldlL = lL
+        # E Step: assigning the posterior prob p(j|xi)
+        pⱼₓlagged = copy(pⱼₓ)
+        for n in 1:N
+            if(XdimCount[n] > 0)
+                Xu = X[n,XNNull[n]]
+                px = sum([pⱼ[k]*normalFixedSd(Xu,μ[k,XNNull[n]],σ²[k]) for k in 1:K])
+                for k in 1:K
+                    pⱼₓ[n,k] = pⱼ[k]*normalFixedSd(Xu,μ[k,XNNull[n]],σ²[k])/px
+                end
+            else
+                pⱼₓ[n,:] = pⱼ
+            end
+        end
+
+
+        # M step: find parameters that maximise the likelihood
+        nⱼ = sum(pⱼₓ,dims=1)'
+        n  = sum(nⱼ)
+        pⱼ = nⱼ ./ n
+
+        #μ  = (pⱼₓ' * X) ./ nⱼ
+        for d in 1:D
+            for k in 1:K
+                nᵢⱼ = dot(pⱼₓ[:,k],XMask[:,d])
+                if nᵢⱼ > 1
+                    Xd = X[:,d]
+                    Xd[ismissing.(Xd)] .= 0
+                    muNom = sum(pⱼₓ[:,k] .* XMask[:,d] .* Xd)
+                    μ[k,d] = muNom/nᵢⱼ
+                end
+            end
+        end
+
+        #σ² = [sum([pⱼₓ[n,j] * norm(X[n,:]-μ[j,:])^2 for n in 1:N]) for j in 1:K ] ./ (nⱼ .* D)
+        for k in 1:K
+            den = dot(XdimCount,pⱼₓ[:,k])
+            nom = 0.0
+            for n in 1:N
+                if(XdimCount[n] > 0)
+                    nom += pⱼₓ[n,k] * norm(X[n,XNNull[n]]-μ[k,XNNull[n]])^2
+                end
+            end
+            if(den> 0 && (nom/den) > minVariance)
+                σ²[k] = nom/den
+            else
+                σ²[k] = minVariance
+            end
+        end
+
+        push!(ϵ,norm(pⱼₓlagged - pⱼₓ))
+
+        # Compute the log-Likelihood of the parameters given the set of data
+        # Just for informaticve purposes, not needed for the algorithm
+        lL = 0.0
+        for n in 1:N
+            if(XdimCount[n] > 0)
+                #global lL
+                Xu = X[n,XNNull[n]]
+                lL += log(sum([pⱼ[k]*normalFixedSd(Xu,μ[k,XNNull[n]],σ²[k]) for k in 1:K]))
+            end
+        end
+
+        if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
+           println("Log likelihood on iter. $(length(ϵ))\t: $(lL)")
+        end
+
+        if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
+           println("Iter. $(length(ϵ))\t: $(ϵ[end])")
+        end
+
+        if (lL - oldlL) <= (tol * abs(lL))
+        #if (ϵ[end] < tol)
+           return (pⱼₓ=pⱼₓ,pⱼ=pⱼ,μ=μ,σ²=σ²,ϵ=ϵ,lL=lL)
+        end
+    end # end while loop
+end # end function
+
+using BenchmarkTools
+#@benchmark clusters = em([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,msgStep=0)
+#@benchmark clusters = em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
+#@code_warntype em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
