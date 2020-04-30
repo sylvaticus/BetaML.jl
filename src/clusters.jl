@@ -268,7 +268,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 * `tol`:          Tolerance to stop the algorithm [default: 10^(-6)]
 * `msgStep` :     Iterations between update messages. Use 0 for no updates [default: 10]
 * `minVariance`:  Minimum variance for the mixtures [default: 0.25]
-* `missingValue`: Value to be considered as missing in the X [default: 0]`
+* `missingValue`: Value to be considered as missing in the X [default: `missing`]
 
 # Returns:
 * A named touple of:
@@ -277,6 +277,8 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
   * `μ`  : Means (K x d) of the Gaussian
   * `σ²` : Variance of the gaussian (K x 1). We assume here that the gaussian has the same variance across all the dimensions
   * `ϵ`  : Vector of the discrepancy (matrix norm) between pⱼₓ and the lagged pⱼₓ at each iteration
+  * `lL` : The log-likelihood (without considering the last mixture optimisation)
+  * `BIC` : The Bayesian Information Criterion
 
 # Example:
 ```julia
@@ -297,8 +299,8 @@ function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=1
     maxX = fill(Inf,D)
     varX_byD = fill(0,D)
     for d in 1:D
-      minX[d]  = minimum(skipmissing(X[:,d]))
-      maxX[d]  = maximum(skipmissing(X[:,d]))
+      @inbounds minX[d]  = minimum(skipmissing(X[:,d]))
+      @inbounds maxX[d]  = maximum(skipmissing(X[:,d]))
       varX_byD = max(minVariance, var(skipmissing(X[:,d])))
     end
     varX = mean(varX_byD)/K^2
@@ -317,12 +319,17 @@ function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=1
     pⱼₓ = zeros(Float64,N,K) # The posteriors, i.e. the prob that item n belong to cluster k
     ϵ = Float64[]
 
+    # Checking dimensions only once (but adding then inbounds doesn't change anything. Still good
+    # to provide a nice informative message)
+    if size(pⱼ) != (K,) || size(μ) != (K,D) || size(σ²) != (K,)
+        error("Error in the dimensions of the inputs. Please check them.")
+    end
+
     # finding empty/non_empty values
     XMask = ismissing(missingValue) ?  .! ismissing.(X)  : (X .!= missingValue)
     XdimCount = sum(XMask, dims=2)
 
     lL = -Inf
-
     while(true)
         oldlL = lL
         # E Step: assigning the posterior prob p(j|xi) and computing the log-Likelihood of the parameters given the set of data
@@ -385,8 +392,10 @@ function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=1
 
         # Closing conditions. Note that the logLikelihood is those without considering the new mu,sigma
         if (lL - oldlL) <= (tol * abs(lL))
+            npar = K * D + K + (K-1)
+            BIC  = lL - (1/2) * npar * log(N)
         #if (ϵ[end] < tol)
-           return (pⱼₓ=pⱼₓ,pⱼ=pⱼ,μ=μ,σ²=σ²,ϵ=ϵ,lL=lL)
+           return (pⱼₓ=pⱼₓ,pⱼ=pⱼ,μ=μ,σ²=σ²,ϵ=ϵ,lL=lL,BIC=BIC)
         end
     end # end while loop
 end # end function
@@ -397,3 +406,59 @@ end # end function
 #@benchmark clusters = em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
 #@benchmark clusters = em([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3,msgStep=0)
 #@code_warntype em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
+#using Profile
+#Juno.@profiler (for i = 1:1000 em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0) end)
+#Profile.clear()
+#Profile.print()
+
+"""
+  collFilteringGMM(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)
+
+Fill missing entries in a sparse matrix assuming an underlying Gaussian Mixture probabilistic Model and implementing
+an Expectation-Maximisation algorithm.
+
+Implemented in the log-domain for better numerical accuracy with many dimensions.
+
+# Parameters:
+* `X`  :          A (N x D) sparse matrix of data to fill according to a GMM model
+* `K`  :          Number of mixtures desired
+* `p₀` :          Initial probabilities of the categorical distribution (K x 1) [default: `nothing`]
+* `μ₀` :          Initial means (K x D) of the Gaussian [default: `nothing`]
+* `σ²₀`:          Initial variance of the gaussian (K x 1). We assume here that the gaussian has the same variance across all the dimensions [default: `nothing`]
+* `tol`:          Tolerance to stop the algorithm [default: 10^(-6)]
+* `msgStep` :     Iterations between update messages. Use 0 for no updates [default: 10]
+* `minVariance`:  Minimum variance for the mixtures [default: 0.25]
+* `missingValue`: Value to be considered as missing in the X [default: `missing`]
+
+# Returns:
+* A named touple of:
+  * `̂X̂`    : The Filled Matrix of size (N x D)
+  * `nFill`: The number of items filled
+  * `lL`   : The log-likelihood (without considering the last mixture optimisation)
+  * `BIC`  : The Bayesian Information Criterion
+
+# Example:
+```julia
+julia>  cFOut = collFilteringGMM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=1,missingValue=0)
+```
+"""
+function collFilteringGMM(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=10,minVariance=0.25,missingValue=missing)
+    emOut = em(X,K;p₀=p₀,μ₀=μ₀,σ²₀=σ²₀,tol=tol,msgStep=msgStep,minVariance=minVariance,missingValue=missingValue)
+    (N,D) = size(X)
+    #K = size(emOut.μ)[1]
+    XMask = ismissing(missingValue) ?  .! ismissing.(X)  : (X .!= missingValue)
+    nFill = (N * D) - sum(XMask)
+    X̂ = copy(X)
+
+    for n in 1:N
+        for d in 1:D
+            if !XMask[n,d]
+                 X̂[n,d] = dot(emOut.μ[:,d],emOut.pⱼₓ[n,:])
+            end
+        end
+    end
+    return (X̂=X̂,nFill=nFill,lL=emOut.lL,BIC=emOut.BIC)
+end
+
+#X = [1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4]
+#cFOut = collFilteringGMM(X,3,msgStep=1,missingValue=0)
