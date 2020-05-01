@@ -1,3 +1,15 @@
+"""
+  clusters.jl
+
+Clustering and collaborative filtering (via clustering) algorithms
+
+- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/lmlj.jl/blob/master/src/clusters.jl) - [Julia Package](https://github.com/sylvaticus/lmlj.jl)
+- [Demonstrative static notebook](https://github.com/sylvaticus/lmlj.jl/blob/master/notebooks/clusters.ipynb)
+- [Demonstrative live notebook](https://mybinder.org/v2/gh/sylvaticus/lmlj.jl/master?filepath=notebooks%2Fclusters.ipynb) (temporary personal online computational environment on myBinder) - it can takes minutes to start with!
+- Theory based on [MITx 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://github.com/sylvaticus/MITx_6.86x) ([Unit 4](https://github.com/sylvaticus/MITx_6.86x/blob/master/Unit%2004%20-%20Unsupervised%20Learning/Unit%2004%20-%20Unsupervised%20Learning.md))
+- New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
+"""
+
 using LinearAlgebra
 using Random
 #using Distributions
@@ -387,7 +399,7 @@ function em(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=1
 
         # Information. Note the likelihood is whitout accounting for the new mu, sigma
         if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
-            println("Iter. $(length(ϵ)):\tVariation of the posteriors  $(ϵ[end]) \t  Log-likelihood $(lL)")
+            println("Iter. $(length(ϵ)):\tVar. of the post  $(ϵ[end]) \t  Log-likelihood $(lL)")
         end
 
         # Closing conditions. Note that the logLikelihood is those without considering the new mu,sigma
@@ -414,7 +426,7 @@ end # end function
 """
   collFilteringGMM(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)
 
-Fill missing entries in a sparse matrix assuming an underlying Gaussian Mixture probabilistic Model and implementing
+Fill missing entries in a sparse matrix assuming an underlying Gaussian Mixture probabilistic Model (GMM) and implementing
 an Expectation-Maximisation algorithm.
 
 Implemented in the log-domain for better numerical accuracy with many dimensions.
