@@ -430,7 +430,7 @@ Train a fnn with the given x,y data
 * `η`:        Learning rate. If not provided 1/(1+epoch) is used [def = `nothing`]
 * `rshuffle`: Whether to random shuffle the training set at each epoch [def = `true`]
 """
-function train!(nn,x,y;maxepochs=1000, η=nothing, rshuffle=true, nMsgs=10, tol=10^(-6))
+function train!(nn,x,y;maxepochs=1000, η=nothing, rshuffle=true, nMsgs=10, tol=0)
     x = makeMatrix(x)
     y = makeMatrix(y)
     if nMsgs != 0
@@ -465,7 +465,7 @@ function train!(nn,x,y;maxepochs=1000, η=nothing, rshuffle=true, nMsgs=10, tol=
           println("Avg. error after epoch $t : $(ϵ/size(x)[1])")
         end
 
-        if (ϵl/size(x)[1] - ϵ/size(x)[1]) < (tol * abs(ϵl/size(x)[1]))
+        if abs(ϵl/size(x)[1] - ϵ/size(x)[1]) < (tol * abs(ϵl/size(x)[1]))
             if nMsgs != 0
                 println((tol * abs(ϵl/size(x)[1])))
                 println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (convergence reached")
@@ -583,7 +583,7 @@ ytest = [(0.1*x[1]+0.2*x[2]+0.3)*rand(0.9:0.001:1.1) for x in eachrow(xtest)]
 l1 = FullyConnectedLayer(linearf,2,3,w=ones(3,2), wb=zeros(3))
 l2 = FullyConnectedLayer(linearf,3,1, w=ones(1,3), wb=zeros(1))
 mynn = buildNetwork([l1,l2],squaredCost,name="Feed-forward Neural Network Model 1")
-train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01,rshuffle=false,nMsgs=10,tol=10^-10)
+train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01,rshuffle=false,nMsgs=10)
 errors(mynn,xtest,ytest) # 0.000196
 for (i,r) in enumerate(eachrow(xtest))
   println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
@@ -591,12 +591,41 @@ end
 
 ----------------------------------
 
-l1 = FullyConnectedLayer(linearf,2,2,w=zeros(2,2), wb=zeros(2))
-l2 = FullyConnectedLayer(tanh,2,2, w=zeros(2,2), wb=zeros(2))
-l3 = FullyConnectedLayer(linearf,2,1, w=zeros(1,2), wb=zeros(1))
+l1 = FullyConnectedLayer(linearf,2,3,w=ones(3,2), wb=ones(3))
+l2 = FullyConnectedLayer(tanh,3,2, w=ones(2,3), wb=ones(2))
+l3 = FullyConnectedLayer(linearf,2,1, w=rand(1,2), wb=rand(1))
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1")
 train!(mynn,xtrain,ytrain,maxepochs=1000,η=0.01,rshuffle=true,nMsgs=1000)
-errors(mynn,xtest,ytest) # 0.000196
 for (i,r) in enumerate(eachrow(xtest))
   println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
 end
+errors(mynn,xtest,ytest) # 0.000196
+
+--------------------------------
+
+l1 = FullyConnectedLayer(linearf,2,2,w=ones(2,2), wb=zeros(2))
+l2 = FullyConnectedLayer(linearf,2,1, w=ones(1,2), wb=zeros(1))
+mynn = buildNetwork([l1,l2],squaredCost,name="Feed-forward Neural Network Model 1")
+train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01,rshuffle=false,nMsgs=10,tol=0)
+
+for (i,r) in enumerate(eachrow(xtest))
+  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
+end
+errors(mynn,xtest,ytest) # 0.000196
+
+---------------------------------
+
+xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1; 0.4 0.2; 0.3 0.3; 0.6 0.9; 0.3 0.4; 0.9 0.8]
+ytrain = [(0.1*x[1]^2+0.2*x[2]+0.3)*rand(0.95:0.001:1.05) for x in eachrow(xtrain)]
+xtest = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
+ytest = [(0.1*x[1]^2+0.2*x[2]+0.3)*rand(0.95:0.001:1.05) for x in eachrow(xtest)]
+
+l1 = FullyConnectedLayer(linearf,2,3,w=ones(3,2), wb=zeros(3),df=dlinearf)
+l2 = FullyConnectedLayer(tanh,3,2, w=ones(2,3), wb=zeros(2))
+l3 = FullyConnectedLayer(linearf,2,1, w=ones(1,2), wb=zeros(1))
+mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1")
+train!(mynn,xtrain,ytrain,maxepochs=1000,η=0.01,rshuffle=true,nMsgs=1000)
+for (i,r) in enumerate(eachrow(xtest))
+  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
+end
+errors(mynn,xtest,ytest)
