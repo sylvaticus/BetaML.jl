@@ -33,6 +33,11 @@ error with respect to the input of the next layer and (b) the input to this laye
 setW!(layer, tuple)
 - update the weights of the layer with the new values given
 
+size(layer)
+- return a tuple (number of dimensions in input, number of dimensions in output)
+- not needed if your layer has a `w` weigth matrix defined as member in the standard (to,from) shape
+- it would require `import Base.size` in your code
+
 """
 
 # ==================================
@@ -230,6 +235,11 @@ function setW!(layer::NoBiasLayer,w)
    layer.w = w[1]
 end
 
+""" size(Layer) - Return a touple (n dim in input, n dim in oputput)"""
+import Base.size
+function size(layer::Layer)
+    return size(layer.w')
+end
 
 # ------------------------------------------------------------------------------
 # NN-related functions
@@ -482,6 +492,19 @@ function train!(nn,x,y;maxepochs=1000, η=nothing, rshuffle=true, nMsgs=10, tol=
     nn.trained = true
 end
 
+import Base.print
+
+function print(io::IO, nn::NN)
+  trainedString = nn.trained == true ? "trained" : "non trained"
+  println("*** $(nn.name) ($(length(nn.layers)) layers, $(trainedString))\n")
+  println("#\t # In \t # Out \t Type")
+  for (i,l) in enumerate(nn.layers)
+    shapes = size(l)
+    println("$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
+  end
+end
+
+
 # ==================================
 # Specific implementation - FNN definition
 # ==================================
@@ -490,6 +513,7 @@ l1 = FullyConnectedLayer(tanh,2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], df=dtanh)
 l2 = FullyConnectedLayer(tanh,3,2, w=[1 1 1; 1 1 1], wb=[0 0])
 l3 = FullyConnectedLayer(linearf,2,1, w=[1 1], wb=[0])
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1")
+println(mynn)
 
 # ==================================
 # Usage of the FNN
@@ -507,10 +531,39 @@ for (i,r) in enumerate(eachrow(xtest))
   println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
 end
 
+
+# ==================================
+# Harder case
+# ==================================
+
+import Random:seed!
+seed!(1234)
+
+xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1; 0.4 0.2; 0.3 0.3; 0.6 0.9; 0.3 0.4; 0.9 0.8]
+ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*rand(0.9:0.001:1.1) for x in eachrow(xtrain)]
+xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
+ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*rand(0.9:0.001:1.1) for x in eachrow(xtest)]
+
+l1   = FullyConnectedLayer(linearf,2,3,w=ones(3,2), wb=zeros(3))
+l2   = FullyConnectedLayer(linearf,3,1, w=ones(1,3), wb=zeros(1))
+mynn = buildNetwork([l1,l2],squaredCost,name="Feed-forward Neural Network Model 1")
+train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01,rshuffle=false,nMsgs=10)
+errors(mynn,xtest,ytest) # 0.000196
+for (i,r) in enumerate(eachrow(xtest))
+  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
+end
+
+# Challenging dataset with nonlinear relationship:
+xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1; 0.4 0.2; 0.3 0.3; 0.6 0.9; 0.3 0.4; 0.9 0.8]
+ytrain = [(0.1*x[1]^2+0.2*x[2]+0.3)*rand(0.95:0.001:1.05) for x in eachrow(xtrain)]
+xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
+ytest  = [(0.1*x[1]^2+0.2*x[2]+0.3)*rand(0.95:0.001:1.05) for x in eachrow(xtest)]
+
+
+
 # ==================================
 # Individual components debugging stuff
 # ==================================
-
 l1 = FullyConnectedLayer(relu,drelu,2,3,w=[1 2; -1 -2; 3 -3],wb=[1,-1,0])
 l2 = NoBiasLayer(linearf,dlinearf,3,2,w=[1 2 3; -1 -2 -3])
 X = [3,1]
@@ -530,102 +583,3 @@ setW!(l2,l2w)
 mynn = buildNetwork([l1,l2],squaredCost,dSquaredCost)
 predict(mynn,X)
 ϵ2 = error(mynn,X,Y)
-
-
-l1 = FullyConnectedLayer(tanh,2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], df=dtanh)
-l2 = FullyConnectedLayer(tanh,3,2, w=[1 1 1; 1 1 1], wb=[0 0])
-l3 = FullyConnectedLayer(linearf,2,1, w=[1 1], wb=[0])
-mynn = buildNetwork([l1,l2,l3],squaredCost)
-xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1]
-ytrain = [0.3; 0.8; 0.5; 0.9; 1.6; 0.3]
-xtest = [0.5 0.6; 0.14 0.2; 0.3 0.7]
-ytest = [1.1; 0.36; 1.0]
-train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01, rshuffle=false)
-errors(mynn,xtest,ytest) # 0.000196
-for (i,r) in enumerate(eachrow(xtest))
-  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
-end
-
-
-
-
-l1 = FullyConnectedLayer(tanh,2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], df=dtanh)
-l2 = FullyConnectedLayer(tanh,3,2, w=[1 1 1; 1 1 1], wb=[0 0])
-l3 = FullyConnectedLayer(linearf,2,1, w=[1 1], wb=[0])
-mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1")
-
-import Random:seed!
-seed!(1234)
-xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1]
-ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*rand(0.9:0.001:1.1) for x in eachrow(xtrain)]
-#ytrain = [(x[1]+x[2]) for x in eachrow(xtrain)]
-xtest = [0.5 0.6; 0.14 0.2; 0.3 0.7; 2.0 4.0]
-ytest = [(0.1*x[1]+0.2*x[2]+0.3)*rand(0.9:0.001:1.1) for x in eachrow(xtest)]
-#ytest = [(x[1]+x[2]) for x in eachrow(xtest)]
-
-
-train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01,rshuffle=false,nMsgs=10)
-errors(mynn,xtest,ytest) # 0.000196
-for (i,r) in enumerate(eachrow(xtest))
-  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
-end
-
-# --------------------------------------------
-
-import Random:seed!
-seed!(1234)
-
-xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1; 0.4 0.2; 0.3 0.3; 0.6 0.9; 0.3 0.4; 0.9 0.8]
-ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*rand(0.9:0.001:1.1) for x in eachrow(xtrain)]
-xtest = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
-ytest = [(0.1*x[1]+0.2*x[2]+0.3)*rand(0.9:0.001:1.1) for x in eachrow(xtest)]
-
-l1 = FullyConnectedLayer(linearf,2,3,w=ones(3,2), wb=zeros(3))
-l2 = FullyConnectedLayer(linearf,3,1, w=ones(1,3), wb=zeros(1))
-mynn = buildNetwork([l1,l2],squaredCost,name="Feed-forward Neural Network Model 1")
-train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01,rshuffle=false,nMsgs=10)
-errors(mynn,xtest,ytest) # 0.000196
-for (i,r) in enumerate(eachrow(xtest))
-  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
-end
-
-----------------------------------
-
-l1 = FullyConnectedLayer(linearf,2,3,w=ones(3,2), wb=ones(3))
-l2 = FullyConnectedLayer(tanh,3,2, w=ones(2,3), wb=ones(2))
-l3 = FullyConnectedLayer(linearf,2,1, w=rand(1,2), wb=rand(1))
-mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1")
-train!(mynn,xtrain,ytrain,maxepochs=1000,η=0.01,rshuffle=true,nMsgs=1000)
-for (i,r) in enumerate(eachrow(xtest))
-  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
-end
-errors(mynn,xtest,ytest) # 0.000196
-
---------------------------------
-
-l1 = FullyConnectedLayer(linearf,2,2,w=ones(2,2), wb=zeros(2))
-l2 = FullyConnectedLayer(linearf,2,1, w=ones(1,2), wb=zeros(1))
-mynn = buildNetwork([l1,l2],squaredCost,name="Feed-forward Neural Network Model 1")
-train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01,rshuffle=false,nMsgs=10,tol=0)
-
-for (i,r) in enumerate(eachrow(xtest))
-  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
-end
-errors(mynn,xtest,ytest) # 0.000196
-
----------------------------------
-
-xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1; 0.4 0.2; 0.3 0.3; 0.6 0.9; 0.3 0.4; 0.9 0.8]
-ytrain = [(0.1*x[1]^2+0.2*x[2]+0.3)*rand(0.95:0.001:1.05) for x in eachrow(xtrain)]
-xtest = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
-ytest = [(0.1*x[1]^2+0.2*x[2]+0.3)*rand(0.95:0.001:1.05) for x in eachrow(xtest)]
-
-l1 = FullyConnectedLayer(linearf,2,3,w=ones(3,2), wb=zeros(3),df=dlinearf)
-l2 = FullyConnectedLayer(tanh,3,2, w=ones(2,3), wb=zeros(2))
-l3 = FullyConnectedLayer(linearf,2,1, w=ones(1,2), wb=zeros(1))
-mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1")
-train!(mynn,xtrain,ytrain,maxepochs=1000,η=0.01,rshuffle=true,nMsgs=1000)
-for (i,r) in enumerate(eachrow(xtest))
-  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
-end
-errors(mynn,xtest,ytest)
