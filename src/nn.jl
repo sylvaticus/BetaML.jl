@@ -10,7 +10,7 @@ Neural Network algorithms
 - New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
 
 FullyConnectedLayer and NoBiasLayer are already implemented and one can choose
-them with predefined activation functions or provide your own (including its derivative!)
+them with predefined activation functions or provide your own (optionally including its derivative)
 
 Alternativly you can implement your own layers.
 Each user-implemented layer must define the following methods:
@@ -43,7 +43,7 @@ include(joinpath(@__DIR__,"utilities.jl"))
 
 
 
-using Random
+using Random, Zygote
 
 ## Some utility functions..
 
@@ -68,22 +68,23 @@ mutable struct FullyConnectedLayer <: Layer
      w::Array{Float64,2}
      wb::Array{Float64,1}
      f::Function
-     df::Function
+     df::Union{Function,Nothing}
      """
-        FullyConnectedLayer(f,df,n,nₗ;w,wb)
+        FullyConnectedLayer(f,n,nₗ;w,wb,df)
 
      Instantiate a new FullyConnectedLayer
 
-     Parameters:
+     Positional arguments:
      * `f`:  Activation function
-     * `df`: Derivative of the activation function
      * `nₗ`: Number of nodes of the previous layer
      * `n`:  Number of nodes
+     Keyword arguments:
      * `w`:  Initial weigths with respect to input [default: `rand(n,nₗ)`]
      * `wb`: Initial weigths with respect to bias [default: `rand(n)`]
+     * `df`: Derivative of the activation function [default: `nothing` (i.e. use AD)]
 
      """
-     function FullyConnectedLayer(f,df,nₗ,n;w=rand(n,nₗ),wb=rand(n))
+     function FullyConnectedLayer(f,nₗ,n;w=rand(n,nₗ),wb=rand(n),df=nothing)
          # To be sure w is a matrix and wb a column vector..
          w  = reshape(w,n,nₗ)
          wb = reshape(wb,n)
@@ -104,21 +105,21 @@ Representation of a layer without bias in the network
 mutable struct NoBiasLayer <: Layer
      w::Array{Float64,2}
      f::Function
-     df::Function
+     df::Union{Function,Nothing}
      """
-        NoBiasLayer(f,df,nₗ,n;w)
+        NoBiasLayer(f,nₗ,n;w,df)
 
      Instantiate a new NoBiasLayer
 
-     Parameters:
-     *
+     Positional arguments:
      * `f`:  Activation function
-     * `df`: Derivative of the activation function
      * `nₗ`: Number of nodes of the previous layer
      * `n`:  Number of nodes
+     Keyword arguments:
      * `w`:  Initial weigths with respect to input [default: `rand(n,nₗ)`]
+     * `df`: Derivative of the activation function [default: `nothing` (i.e. use AD)]
      """
-     function NoBiasLayer(f,df,nₗ,n;w=rand(n,nₗ))
+     function NoBiasLayer(f,nₗ,n;w=rand(n,nₗ),df=nothing)
          # To be sure w is a matrix and wb a column vector..
          w  = reshape(w,n,nₗ)
          return new(w,f,df)
@@ -153,13 +154,21 @@ end
 
 function backward(layer::FullyConnectedLayer,nextGradient,x)
    z = layer.w * x + layer.wb
-   dϵ_dz = layer.df.(z) .* nextGradient
+   if layer.df != nothing
+       dϵ_dz = layer.df.(z) .* nextGradient
+    else
+       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
+    end
    dϵ_dI = layer.w' * dϵ_dz
 end
 
 function backward(layer::NoBiasLayer,nextGradient,x)
    z = layer.w * x
-   dϵ_dz = layer.df.(z) .* nextGradient
+   if layer.df != nothing
+       dϵ_dz = layer.df.(z) .* nextGradient
+    else
+       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
+    end
    dϵ_dI = layer.w' * dϵ_dz
 end
 
@@ -183,7 +192,11 @@ end
 
 function getDw(layer::FullyConnectedLayer,nextGradient,x)
    z      = layer.w * x + layer.wb
-   dϵ_dz  = layer.df.(z) .* nextGradient
+   if layer.df != nothing
+       dϵ_dz = layer.df.(z) .* nextGradient
+    else
+       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
+    end
    dϵ_dw  = dϵ_dz * x'
    dϵ_dwb = dϵ_dz
    return (dϵ_dw,dϵ_dwb)
@@ -191,7 +204,11 @@ end
 
 function getDw(layer::NoBiasLayer,nextGradient,x)
    z      = layer.w * x
-   dϵ_dz  = layer.df.(z) .* nextGradient
+   if layer.df != nothing
+       dϵ_dz = layer.df.(z) .* nextGradient
+    else
+       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
+    end
    dϵ_dw  = dϵ_dz * x'
    return (dϵ_dw,)
 end
@@ -230,8 +247,9 @@ Representation of a Neural Network
 mutable struct NN
     layers::Array{Layer,1}
     cf::Function
-    dcf::Function
+    dcf::Union{Function,Nothing}
     trained::Bool
+    name::String
 end
 
 """
@@ -248,8 +266,8 @@ Parameters:
 * Even if the network ends with a single output note, the cost function and its
 derivative should always expect y and ŷ as column vectors.
 """
-function buildNetwork(layers,cf,dcf)
-    return NN(layers,cf,dcf,false)
+function buildNetwork(layers,cf;dcf=nothing,name="Neural Network")
+    return NN(layers,cf,dcf,false,name)
 end
 
 
@@ -360,7 +378,11 @@ function getDw(nn,x,y)
 
   # Step 2: Backpropagation pass
   backwardStack = Array{Float64,1}[]
-  push!(backwardStack,nn.dcf(forwardStack[end],y)) # adding d€_dHatY
+  if nn.dcf != nothing
+    push!(backwardStack,nn.dcf(forwardStack[end],y)) # adding d€_dHatY
+  else
+    push!(backwardStack,gradient(nn.cf,forwardStack[end],y)[1]) # using AD from Zygote
+  end
   for lidx in nLayers:-1:1
      l = nn.layers[lidx]
      d€_do = backward(l,backwardStack[end],forwardStack[lidx])
@@ -408,12 +430,16 @@ Train a fnn with the given x,y data
 * `η`:        Learning rate. If not provided 1/(1+epoch) is used [def = `nothing`]
 * `rshuffle`: Whether to random shuffle the training set at each epoch [def = `true`]
 """
-function train!(nn,x,y;epochs=1000, η=nothing, rshuffle=true)
+function train!(nn,x,y;maxepochs=1000, η=nothing, rshuffle=true, nMsgs=10, tol=10^(-6))
     x = makeMatrix(x)
     y = makeMatrix(y)
-    logStep = Int64(ceil(epochs/100))
+    if nMsgs != 0
+        println("***\n*** Training $(nn.name) for maximum $maxepochs epochs. Random shuffle: $rshuffle")
+    end
     dyn_η = η == nothing ? true : false
-    for t in 1:epochs
+    (ϵ,ϵl) = (0,Inf)
+    converged = false
+    for t in 1:maxepochs
         if rshuffle
            # random shuffle x and y
            ridx = shuffle(1:size(x)[1])
@@ -435,7 +461,23 @@ function train!(nn,x,y;epochs=1000, η=nothing, rshuffle=true)
             end
             ϵ += error(nn,xᵢ,yᵢ)
         end
-        (t % logStep == 0) || t == 1 || t == epochs ? println("Avg. error after epoch $t : $(ϵ/size(x)[1])") : ""
+        if nMsgs != 0 && (t % ceil(maxepochs/nMsgs) == 0 || t == 1 || t == maxepochs)
+          println("Avg. error after epoch $t : $(ϵ/size(x)[1])")
+        end
+
+        if (ϵl/size(x)[1] - ϵ/size(x)[1]) < (tol * abs(ϵl/size(x)[1]))
+            if nMsgs != 0
+                println((tol * abs(ϵl/size(x)[1])))
+                println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (convergence reached")
+            end
+            converged = true
+            break
+        else
+            ϵl = ϵ
+        end
+    end
+    if nMsgs != 0 && converged == false
+        println("*** Avg. error after epoch $maxepochs : $(ϵ/size(x)[1]) (convergence not reached)")
     end
     nn.trained = true
 end
@@ -444,10 +486,10 @@ end
 # Specific implementation - FNN definition
 # ==================================
 
-l1 = FullyConnectedLayer(tanh,dtanh,2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0])
-l2 = FullyConnectedLayer(tanh,dtanh,3,2, w=[1 1 1; 1 1 1], wb=[0 0])
-l3 = FullyConnectedLayer(linearf,dlinearf,2,1, w=[1 1], wb=[0])
-mynn = buildNetwork([l1,l2,l3],squaredCost,dSquaredCost)
+l1 = FullyConnectedLayer(tanh,2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], df=dtanh)
+l2 = FullyConnectedLayer(tanh,3,2, w=[1 1 1; 1 1 1], wb=[0 0])
+l3 = FullyConnectedLayer(linearf,2,1, w=[1 1], wb=[0])
+mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1")
 
 # ==================================
 # Usage of the FNN
@@ -456,10 +498,10 @@ mynn = buildNetwork([l1,l2,l3],squaredCost,dSquaredCost)
 # ------------------
 xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1]
 ytrain = [0.3; 0.8; 0.5; 0.9; 1.6; 0.3]
-xtest = [0.5 0.6; 0.14 0.2; 0.3 0.7]
-ytest = [1.1; 0.36; 1.0]
+xtest = [0.5 0.6; 0.14 0.2; 0.3 0.7; 2.0 4.0]
+ytest = [1.1; 0.36; 1.0; 6.0]
 
-train!(mynn,xtrain,ytrain,epochs=10000,η=0.01, rshuffle=false)
+train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01,rshuffle=false,nMsgs=10)
 errors(mynn,xtest,ytest) # 0.000196
 for (i,r) in enumerate(eachrow(xtest))
   println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
@@ -488,3 +530,73 @@ setW!(l2,l2w)
 mynn = buildNetwork([l1,l2],squaredCost,dSquaredCost)
 predict(mynn,X)
 ϵ2 = error(mynn,X,Y)
+
+
+l1 = FullyConnectedLayer(tanh,2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], df=dtanh)
+l2 = FullyConnectedLayer(tanh,3,2, w=[1 1 1; 1 1 1], wb=[0 0])
+l3 = FullyConnectedLayer(linearf,2,1, w=[1 1], wb=[0])
+mynn = buildNetwork([l1,l2,l3],squaredCost)
+xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1]
+ytrain = [0.3; 0.8; 0.5; 0.9; 1.6; 0.3]
+xtest = [0.5 0.6; 0.14 0.2; 0.3 0.7]
+ytest = [1.1; 0.36; 1.0]
+train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01, rshuffle=false)
+errors(mynn,xtest,ytest) # 0.000196
+for (i,r) in enumerate(eachrow(xtest))
+  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
+end
+
+
+
+
+l1 = FullyConnectedLayer(tanh,2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], df=dtanh)
+l2 = FullyConnectedLayer(tanh,3,2, w=[1 1 1; 1 1 1], wb=[0 0])
+l3 = FullyConnectedLayer(linearf,2,1, w=[1 1], wb=[0])
+mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1")
+
+import Random:seed!
+seed!(1234)
+xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1]
+ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*rand(0.9:0.001:1.1) for x in eachrow(xtrain)]
+#ytrain = [(x[1]+x[2]) for x in eachrow(xtrain)]
+xtest = [0.5 0.6; 0.14 0.2; 0.3 0.7; 2.0 4.0]
+ytest = [(0.1*x[1]+0.2*x[2]+0.3)*rand(0.9:0.001:1.1) for x in eachrow(xtest)]
+#ytest = [(x[1]+x[2]) for x in eachrow(xtest)]
+
+
+train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01,rshuffle=false,nMsgs=10)
+errors(mynn,xtest,ytest) # 0.000196
+for (i,r) in enumerate(eachrow(xtest))
+  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
+end
+
+# --------------------------------------------
+
+import Random:seed!
+seed!(1234)
+
+xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1; 0.4 0.2; 0.3 0.3; 0.6 0.9; 0.3 0.4; 0.9 0.8]
+ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*rand(0.9:0.001:1.1) for x in eachrow(xtrain)]
+xtest = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
+ytest = [(0.1*x[1]+0.2*x[2]+0.3)*rand(0.9:0.001:1.1) for x in eachrow(xtest)]
+
+l1 = FullyConnectedLayer(linearf,2,3,w=ones(3,2), wb=zeros(3))
+l2 = FullyConnectedLayer(linearf,3,1, w=ones(1,3), wb=zeros(1))
+mynn = buildNetwork([l1,l2],squaredCost,name="Feed-forward Neural Network Model 1")
+train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01,rshuffle=false,nMsgs=10,tol=10^-10)
+errors(mynn,xtest,ytest) # 0.000196
+for (i,r) in enumerate(eachrow(xtest))
+  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
+end
+
+----------------------------------
+
+l1 = FullyConnectedLayer(linearf,2,2,w=zeros(2,2), wb=zeros(2))
+l2 = FullyConnectedLayer(tanh,2,2, w=zeros(2,2), wb=zeros(2))
+l3 = FullyConnectedLayer(linearf,2,1, w=zeros(1,2), wb=zeros(1))
+mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1")
+train!(mynn,xtrain,ytrain,maxepochs=1000,η=0.01,rshuffle=true,nMsgs=1000)
+errors(mynn,xtest,ytest) # 0.000196
+for (i,r) in enumerate(eachrow(xtest))
+  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
+end
