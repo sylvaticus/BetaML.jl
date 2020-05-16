@@ -235,8 +235,8 @@ function setW!(layer::NoBiasLayer,w)
    layer.w = w[1]
 end
 
-""" size(Layer) - Return a touple (n dim in input, n dim in oputput)"""
 import Base.size
+""" size(Layer) - Return a touple (n dim in input, n dim in oputput)"""
 function size(layer::Layer)
     return size(layer.w')
 end
@@ -564,8 +564,8 @@ ytest  = [(0.1*x[1]^2+0.2*x[2]+0.3)*rand(0.95:0.001:1.05) for x in eachrow(xtest
 # ==================================
 # Individual components debugging stuff
 # ==================================
-l1 = FullyConnectedLayer(relu,drelu,2,3,w=[1 2; -1 -2; 3 -3],wb=[1,-1,0])
-l2 = NoBiasLayer(linearf,dlinearf,3,2,w=[1 2 3; -1 -2 -3])
+l1 = FullyConnectedLayer(relu,2,3,w=[1 2; -1 -2; 3 -3],wb=[1,-1,0],df=drelu)
+l2 = NoBiasLayer(linearf,3,2,w=[1 2 3; -1 -2 -3],df=dlinearf)
 X = [3,1]
 Y = [10,0]
 o1 = forward(l1,X)
@@ -580,6 +580,6 @@ l2dw = getDw(l2,d€_do2,o1)
 l1dw = getDw(l1,d€_do1,X)
 setW!(l1,l1w)
 setW!(l2,l2w)
-mynn = buildNetwork([l1,l2],squaredCost,dSquaredCost)
+mynn = buildNetwork([l1,l2],squaredCost,dcf=dSquaredCost)
 predict(mynn,X)
 ϵ2 = error(mynn,X,Y)
