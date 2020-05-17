@@ -9,34 +9,20 @@ Neural Network algorithms
 - Theory based on [MITx 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://github.com/sylvaticus/MITx_6.86x) ([Unit 3](https://github.com/sylvaticus/MITx_6.86x/blob/master/Unit%2003%20-%20Neural%20networks/Unit%2003%20-%20Neural%20networks.md))
 - New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
 
-FullyConnectedLayer and NoBiasLayer are already implemented and one can choose
-them with predefined activation functions or provide your own (optionally including its derivative)
+Dense and DenseNoBias are already implemented and one can choose them with
+predefined activation functions or provide your own (optionally including its derivative)
 
 Alternativly you can implement your own layers.
 Each user-implemented layer must define the following methods:
 
-forward(layer,I) --> O
-- Predict the output of the layer given the input
+* forward(layer,x)
+* backward(layer,x,nextGradient)
+* getParams(layer)
+* getGradient(layer,x,nextGradient)
+* setParams!(layer,w)
+* size(layer)
 
-backward(layer,dϵ/dI^(l+1),I^l) --> dϵ/dI^l
-- return the evaluated derivative of the error for the input given (a) the derivative of the
-error with respect to the input of the next layer and (b) the input to this layer
-
-getW(layer) --> tuple
-- return the current weigths as tuple of matrices. Is is up to you to decide how
-to organise this tuple, as long you are consistent with the getDW() and setW() functions
-
-getDW(layer,dϵ/dI^(l+1),I^l) --> tuple
-- return the evaluated current weigths as tuple of matrices given (a) the derivative of the
-error with respect to the input of the next layer and (b) the input to this layer
-
-setW!(layer, tuple)
-- update the weights of the layer with the new values given
-
-size(layer)
-- return a tuple (number of dimensions in input, number of dimensions in output)
-- not needed if your layer has a `w` weigth matrix defined as member in the standard (to,from) shape
-- it would require `import Base.size` in your code
+Use the help system to get more info about these methods.
 
 """
 
@@ -46,200 +32,113 @@ size(layer)
 
 include(joinpath(@__DIR__,"utilities.jl"))
 
-
-
 using Random, Zygote
 
-## Some utility functions..
-
+## Sckeleton for the layer functionality.
+# See nn_default_layers.jl for actual implementations
 
 abstract type Layer end
 
-# ------------------------------------------------------------------------------
-# Provide default FullyConnectedLayer and NoBiasLayer
-
-"""
-   FullyConnectedLayer
-
-Representation of a layer in the network
-
-# Fields:
-* `w`:  Weigths matrix with respect to the input from previous layer or data (n x n pr. layer)
-* `wb`: Biases (n)
-* `f`:  Activation function
-* `df`: Derivative of the activation function
-"""
-mutable struct FullyConnectedLayer <: Layer
-     w::Array{Float64,2}
-     wb::Array{Float64,1}
-     f::Function
-     df::Union{Function,Nothing}
-     """
-        FullyConnectedLayer(f,n,nₗ;w,wb,df)
-
-     Instantiate a new FullyConnectedLayer
-
-     Positional arguments:
-     * `f`:  Activation function
-     * `nₗ`: Number of nodes of the previous layer
-     * `n`:  Number of nodes
-     Keyword arguments:
-     * `w`:  Initial weigths with respect to input [default: `rand(n,nₗ)`]
-     * `wb`: Initial weigths with respect to bias [default: `rand(n)`]
-     * `df`: Derivative of the activation function [default: `nothing` (i.e. use AD)]
-
-     """
-     function FullyConnectedLayer(f,nₗ,n;w=rand(n,nₗ),wb=rand(n),df=nothing)
-         # To be sure w is a matrix and wb a column vector..
-         w  = reshape(w,n,nₗ)
-         wb = reshape(wb,n)
-         return new(w,wb,f,df)
-     end
-end
-
-"""
-   NoBiasLayer
-
-Representation of a layer without bias in the network
-
-# Fields:
-* `w`:  Weigths matrix with respect to the input from previous layer or data (n x n pr. layer)
-* `f`:  Activation function
-* `df`: Derivative of the activation function
-"""
-mutable struct NoBiasLayer <: Layer
-     w::Array{Float64,2}
-     f::Function
-     df::Union{Function,Nothing}
-     """
-        NoBiasLayer(f,nₗ,n;w,df)
-
-     Instantiate a new NoBiasLayer
-
-     Positional arguments:
-     * `f`:  Activation function
-     * `nₗ`: Number of nodes of the previous layer
-     * `n`:  Number of nodes
-     Keyword arguments:
-     * `w`:  Initial weigths with respect to input [default: `rand(n,nₗ)`]
-     * `df`: Derivative of the activation function [default: `nothing` (i.e. use AD)]
-     """
-     function NoBiasLayer(f,nₗ,n;w=rand(n,nₗ),df=nothing)
-         # To be sure w is a matrix and wb a column vector..
-         w  = reshape(w,n,nₗ)
-         return new(w,f,df)
-     end
-end
-
 """
    forward(layer,x)
 
-Layer prediction
+Predict the output of the layer given the input
 
 # Parameters:
 * `layer`:  Worker layer
 * `x`:      Input to the layer
-"""
-function forward(layer::FullyConnectedLayer,x)
-  return layer.f.(layer.w * x + layer.wb)
-end
-"""
-   forward(layer,x)
-
-Layer prediction of a single data point
-
-# Parameters:
-* `layer`:  Worker layer
-* `x`:      Input to the layer
-"""
-function forward(layer::NoBiasLayer,x)
-  return layer.f.(layer.w * x)
-end
-
-
-function backward(layer::FullyConnectedLayer,nextGradient,x)
-   z = layer.w * x + layer.wb
-   if layer.df != nothing
-       dϵ_dz = layer.df.(z) .* nextGradient
-    else
-       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
-    end
-   dϵ_dI = layer.w' * dϵ_dz
-end
-
-function backward(layer::NoBiasLayer,nextGradient,x)
-   z = layer.w * x
-   if layer.df != nothing
-       dϵ_dz = layer.df.(z) .* nextGradient
-    else
-       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
-    end
-   dϵ_dI = layer.w' * dϵ_dz
-end
-
-"""
-   getW(layer)
-
-Retrieve current weigthts
-
-# Parameters:
-* `layer`: Worker layer
 
 # Return:
-* The output is a tuples of the layer's input weigths and bias weigths
+- An Array{T,1} of the prediction (even for a scalar)
 """
-function getW(layer::FullyConnectedLayer)
-  return (layer.w,layer.wb)
-end
-function getW(layer::NoBiasLayer)
-  return (layer.w,)
-end
-
-function getDw(layer::FullyConnectedLayer,nextGradient,x)
-   z      = layer.w * x + layer.wb
-   if layer.df != nothing
-       dϵ_dz = layer.df.(z) .* nextGradient
-    else
-       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
-    end
-   dϵ_dw  = dϵ_dz * x'
-   dϵ_dwb = dϵ_dz
-   return (dϵ_dw,dϵ_dwb)
-end
-
-function getDw(layer::NoBiasLayer,nextGradient,x)
-   z      = layer.w * x
-   if layer.df != nothing
-       dϵ_dz = layer.df.(z) .* nextGradient
-    else
-       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
-    end
-   dϵ_dw  = dϵ_dz * x'
-   return (dϵ_dw,)
+function forward(layer::Layer,x)
+ error("Not implemented for this kind of layer. Please implement `forward(layer,x)`.")
 end
 
 """
-   setW!(layer,w)
+   backward(layer,x,nextGradient)
 
-Set weigths of the layer
+Compute backpropagation for this layer
+
+# Parameters:
+* `layer`:        Worker layer
+* `x`:            Input to the layer
+* `nextGradient`: Derivative of the overaall loss with respect to the input of the next layer (output of this layer)
+
+# Return:
+* The evaluated gradient of the loss with respect to this layer inputs
+
+"""
+function backward(layer::Layer,x,nextGradient)
+    error("Not implemented for this kind of layer. Please implement `backward(layer,x,nextGradient)`.")
+end
+
+"""
+   getParams(layer)
+
+Get the layers current value of its trainable parameters
+
+# Parameters:
+* `layer`:  Worker layer
+
+# Return:
+* The current value of the layer's trainable parameters as tuple of matrices.
+It is up to you to decide how to organise this tuple, as long you are consistent
+with the getGradient() and setParams() functions.
+"""
+function getParams(layer::Layer)
+  error("Not implemented for this kind of layer. Please implement `getParams(layer)`.")
+end
+
+"""
+   getGradient(layer,x,nextGradient)
+
+Compute backpropagation for this layer
+
+# Parameters:
+* `layer`:        Worker layer
+* `x`:            Input to the layer
+* `nextGradient`: Derivative of the overaall loss with respect to the input of the next layer (output of this layer)
+
+# Return:
+* The evaluated gradient of the loss with respect to this layer's trainable parameters
+as tuple of matrices. It is up to you to decide how to organise this tuple, as long you are consistent
+with the getParams() and setParams() functions.
+"""
+function getGradient(layer::Layer,x,nextGradient)
+    error("Not implemented for this kind of layer. Please implement `getGradient(layer,x,nextGradient)`.")
+  end
+
+"""
+     setParams!(layer,w)
+
+Set the trainable parameters of the layer with the given values
 
 # Parameters:
 * `layer`: Worker layer
-* `w`:   The new weights to set (tuple)
+* `w`:   The new parameters to set (tuple)
+
+# Notes:
+*  The format of the tuple with the parameters must be consistent with those of
+the getParams() and getGradient() functions.
 """
-function setW!(layer::FullyConnectedLayer,w)
-   layer.w = w[1]
-   layer.wb = w[2]
-end
-function setW!(layer::NoBiasLayer,w)
-   layer.w = w[1]
+function setParams!(layer::Layer,w)
+    error("Not implemented for this kind of layer. Please implement `setParams!(layer,w)`.")
 end
 
 import Base.size
-""" size(Layer) - Return a touple (n dim in input, n dim in oputput)"""
+"""
+    size(layer)
+
+SGet the dimensions of the layers in terms of (dimensions in input , dimensions in output)
+
+# Notes:
+* You need to use `import Base.size` before defining this function for your layer
+"""
 function size(layer::Layer)
-    return size(layer.w')
+    error("Not implemented for this kind of layer. Please implement `size(layer)`.")
 end
+
 
 # ------------------------------------------------------------------------------
 # NN-related functions
@@ -299,8 +198,19 @@ function predict(nn::NN,x)
     return values
 end
 
+function predictSet(nn::NN,x)
+    # get the output dimensions
+    n = size(x)[1]
+    d = size(nn.layers[end])[2]
+    out = zeros(n,d)
+    for i in 1:size(x)[1]
+        out[i,:] = predict(nn,x[i,:])
+    end
+    return out
+end
+
 """
-   error(nn,x,y)
+   loss(nn,x,y)
 
 Compute network loss on a single data point
 
@@ -309,7 +219,7 @@ Compute network loss on a single data point
 * `x`:   Input to the network
 * `y`:   Label input
 """
-function error(nn::NN,x,y)
+function loss(nn::NN,x,y)
     x = makeColVector(x)
     y = makeColVector(y)
     ŷ = predict(nn,x)
@@ -317,7 +227,7 @@ function error(nn::NN,x,y)
 end
 
 """
-   errors(fnn,x,y)
+   losses(fnn,x,y)
 
 Compute avg. network loss on a test set
 
@@ -326,7 +236,7 @@ Compute avg. network loss on a test set
 * `x`:   Input to the network (n) or (n x d)
 * `y`:   Label input (n) or (n x d)
 """
-function errors(nn::NN,x,y)
+function losses(nn::NN,x,y)
     x = makeMatrix(x)
     y = makeMatrix(y)
     nn.trained ? "" : @warn "Seems you are trying to test a neural network that has not been tested. Use first `train!(nn,x,y)`"
@@ -334,13 +244,13 @@ function errors(nn::NN,x,y)
     for i in 1:size(x)[1]
         xᵢ = x[i,:]'
         yᵢ = y[i,:]'
-        ϵ += error(nn,xᵢ,yᵢ)
+        ϵ += loss(nn,xᵢ,yᵢ)
     end
     return ϵ/size(x)[1]
 end
 
 """
-   getW(nn)
+   getParams(nn)
 
 Retrieve current weigthts
 
@@ -350,17 +260,17 @@ Retrieve current weigthts
 # Notes:
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
-function getW(fnn)
+function getParams(nn::NN)
   w = Tuple[]
-  for l in fnn.layers
-      push!(w,getW(l))
+  for l in nn.layers
+      push!(w,getParams(l))
   end
   return w
 end
 
 
 """
-   getDw(nn,x,y)
+   getGradient(nn,x,y)
 
 Retrieve the current gradient of the weigthts (i.e. derivative of the cost with respect to the weigths)
 
@@ -372,7 +282,7 @@ Retrieve the current gradient of the weigthts (i.e. derivative of the cost with 
 #Notes:
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
-function getDw(nn,x,y)
+function getGradient(nn::NN,x,y)
 
   x = makeColVector(x)
   y = makeColVector(y)
@@ -395,7 +305,7 @@ function getDw(nn,x,y)
   end
   for lidx in nLayers:-1:1
      l = nn.layers[lidx]
-     d€_do = backward(l,backwardStack[end],forwardStack[lidx])
+     d€_do = backward(l,forwardStack[lidx],backwardStack[end])
      push!(backwardStack,d€_do)
   end
   backwardStack = backwardStack[end:-1:1] # reversing it,
@@ -404,7 +314,7 @@ function getDw(nn,x,y)
   dWs = Tuple[]
   for lidx in 1:nLayers
      l = nn.layers[lidx]
-     dW = getDw(l,backwardStack[lidx+1],forwardStack[lidx])
+     dW = getGradient(l,forwardStack[lidx],backwardStack[lidx+1])
      push!(dWs,dW)
   end
 
@@ -412,7 +322,7 @@ function getDw(nn,x,y)
 end
 
 """
-   setW!(nn,w)
+   setParams!(nn,w)
 
 Update weigths of the network
 
@@ -420,9 +330,9 @@ Update weigths of the network
 * `nn`: Worker network
 * `w`:  The new weights to set
 """
-function setW!(nn,w)
+function setParams!(nn::NN,w)
     for lidx in 1:length(nn.layers)
-        setW!(nn.layers[lidx],w[lidx])
+        setParams!(nn.layers[lidx],w[lidx])
     end
 end
 
@@ -440,7 +350,7 @@ Train a fnn with the given x,y data
 * `η`:        Learning rate. If not provided 1/(1+epoch) is used [def = `nothing`]
 * `rshuffle`: Whether to random shuffle the training set at each epoch [def = `true`]
 """
-function train!(nn,x,y;maxepochs=1000, η=nothing, rshuffle=true, nMsgs=10, tol=0)
+function train!(nn::NN,x,y;maxepochs=1000, η=nothing, rshuffle=true, nMsgs=10, tol=0)
     x = makeMatrix(x)
     y = makeMatrix(y)
     if nMsgs != 0
@@ -461,15 +371,15 @@ function train!(nn,x,y;maxepochs=1000, η=nothing, rshuffle=true, nMsgs=10, tol=
         for i in 1:size(x)[1]
             xᵢ = x[i,:]'
             yᵢ = y[i,:]'
-            W  = getW(nn)
-            dW = getDw(nn,xᵢ,yᵢ)
+            W  = getParams(nn)
+            dW = getGradient(nn,xᵢ,yᵢ)
             for (lidx,l) in enumerate(nn.layers)
                 oldW = W[lidx]
                 dw = dW[lidx]
                 newW = oldW .- η .* dw
-                setW!(l,newW)
+                setParams!(l,newW)
             end
-            ϵ += error(nn,xᵢ,yᵢ)
+            ϵ += loss(nn,xᵢ,yᵢ)
         end
         if nMsgs != 0 && (t % ceil(maxepochs/nMsgs) == 0 || t == 1 || t == maxepochs)
           println("Avg. error after epoch $t : $(ϵ/size(x)[1])")
@@ -492,9 +402,7 @@ function train!(nn,x,y;maxepochs=1000, η=nothing, rshuffle=true, nMsgs=10, tol=
     nn.trained = true
 end
 
-import Base.print
-
-function print(io::IO, nn::NN)
+function show(nn::NN)
   trainedString = nn.trained == true ? "trained" : "non trained"
   println("*** $(nn.name) ($(length(nn.layers)) layers, $(trainedString))\n")
   println("#\t # In \t # Out \t Type")
@@ -504,82 +412,4 @@ function print(io::IO, nn::NN)
   end
 end
 
-
-# ==================================
-# Specific implementation - FNN definition
-# ==================================
-
-l1 = FullyConnectedLayer(tanh,2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], df=dtanh)
-l2 = FullyConnectedLayer(tanh,3,2, w=[1 1 1; 1 1 1], wb=[0 0])
-l3 = FullyConnectedLayer(linearf,2,1, w=[1 1], wb=[0])
-mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1")
-println(mynn)
-
-# ==================================
-# Usage of the FNN
-# ==================================
-
-# ------------------
-xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1]
-ytrain = [0.3; 0.8; 0.5; 0.9; 1.6; 0.3]
-xtest = [0.5 0.6; 0.14 0.2; 0.3 0.7; 2.0 4.0]
-ytest = [1.1; 0.36; 1.0; 6.0]
-
-train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01,rshuffle=false,nMsgs=10)
-errors(mynn,xtest,ytest) # 0.000196
-for (i,r) in enumerate(eachrow(xtest))
-  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
-end
-
-
-# ==================================
-# Harder case
-# ==================================
-
-import Random:seed!
-seed!(1234)
-
-xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1; 0.4 0.2; 0.3 0.3; 0.6 0.9; 0.3 0.4; 0.9 0.8]
-ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*rand(0.9:0.001:1.1) for x in eachrow(xtrain)]
-xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
-ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*rand(0.9:0.001:1.1) for x in eachrow(xtest)]
-
-l1   = FullyConnectedLayer(linearf,2,3,w=ones(3,2), wb=zeros(3))
-l2   = FullyConnectedLayer(linearf,3,1, w=ones(1,3), wb=zeros(1))
-mynn = buildNetwork([l1,l2],squaredCost,name="Feed-forward Neural Network Model 1")
-train!(mynn,xtrain,ytrain,maxepochs=10000,η=0.01,rshuffle=false,nMsgs=10)
-errors(mynn,xtest,ytest) # 0.000196
-for (i,r) in enumerate(eachrow(xtest))
-  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")
-end
-
-# Challenging dataset with nonlinear relationship:
-xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1; 0.4 0.2; 0.3 0.3; 0.6 0.9; 0.3 0.4; 0.9 0.8]
-ytrain = [(0.1*x[1]^2+0.2*x[2]+0.3)*rand(0.95:0.001:1.05) for x in eachrow(xtrain)]
-xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
-ytest  = [(0.1*x[1]^2+0.2*x[2]+0.3)*rand(0.95:0.001:1.05) for x in eachrow(xtest)]
-
-
-
-# ==================================
-# Individual components debugging stuff
-# ==================================
-l1 = FullyConnectedLayer(relu,2,3,w=[1 2; -1 -2; 3 -3],wb=[1,-1,0],df=drelu)
-l2 = NoBiasLayer(linearf,3,2,w=[1 2 3; -1 -2 -3],df=dlinearf)
-X = [3,1]
-Y = [10,0]
-o1 = forward(l1,X)
-o2 = forward(l2,o1)
-ϵ = squaredCost(o2,Y)
-d€_do2 = dSquaredCost(o2,Y)
-d€_do1 = backward(l2,d€_do2,o1)
-d€_dX = backward(l1,d€_do1,X)
-l1w = getW(l1)
-l2w = getW(l2)
-l2dw = getDw(l2,d€_do2,o1)
-l1dw = getDw(l1,d€_do1,X)
-setW!(l1,l1w)
-setW!(l2,l2w)
-mynn = buildNetwork([l1,l2],squaredCost,dcf=dSquaredCost)
-predict(mynn,X)
-ϵ2 = error(mynn,X,Y)
+Base.getindex(n::NN, i::AbstractArray) = NN(n.layers[i]...)
