@@ -9,7 +9,7 @@ Theoretical notes describing most of these algorithms are at the companion repos
 This stuff most likely has value only didactically, as the approaches are the "vanilla" ones, i.e. the simplest possible ones, and GPU is not supported here.
 For "serious" machine learning work in Julia I suggest to use either [Flux](https://fluxml.ai/) or [Knet](https://github.com/denizyuret/Knet.jl).
 
-That said, Julia is a relatively fast language and most hard job is done in matrix operations whose underlying libraries are multithreaded, so it is reasonably fast for small explanatory tasks.
+That said, Julia is a relatively fast language and most hard job is done in matrix operations whose underlying libraries are multithreaded, so it is reasonably fast for small exploratory tasks.
 
 **You can run the code by yourself (folder "notebooks") in myBinder, a temporary public online computational environment:
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/sylvaticus/bmlt.jl/master)**
