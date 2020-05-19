@@ -19,5 +19,5 @@ matrix:
 after_success:
   - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
 
-script:
-  - $TESTCMD -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true)'
+#script:
+#  - $TESTCMD -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true)'
