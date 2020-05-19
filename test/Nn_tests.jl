@@ -3,9 +3,9 @@ using Test
 import Random:seed!
 seed!(1234)
 
-include(joinpath(@__DIR__,"../src/utilities.jl"))
-include(joinpath(@__DIR__,"../src/nn.jl"))
-include(joinpath(@__DIR__,"../src/nn_default_layers.jl"))
+using Bmlt.Utilities
+using Bmlt.Nn
+using Bmlt.NnDefaultLayers
 
 println("*** Testing Neural Network...")
 # ==================================
