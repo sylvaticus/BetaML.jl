@@ -44,7 +44,7 @@ normalFixedSd(x,μ,σ²) = (1/(2π*σ²)^(length(x)/2)) * exp(-1/(2σ²)*norm(x-
 logNormalFixedSd(x,μ,σ²) = - (length(x)/2) * log(2π*σ²)  -  norm(x-μ)^2/(2σ²)
 
 """ LogSumExp for efficiently computing log(sum(exp.(x))) """
-myLSE(x) = maximum(x)+log(sum(exp.(x .- maximum(x))))
+lse(x) = maximum(x)+log(sum(exp.(x .- maximum(x))))
 
 """
   initRepresentatives(X,K;initStrategy,Z₀))
@@ -352,7 +352,7 @@ function emGMM(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgSte
         for n in 1:N
             if any(XMask[n,:]) # if at least one true
                 Xu = X[n,XMask[n,:]]
-                logpx = myLSE([log(pⱼ[k] + 1e-16) + logNormalFixedSd(Xu,μ[k,XMask[n,:]],σ²[k]) for k in 1:K])
+                logpx = lse([log(pⱼ[k] + 1e-16) + logNormalFixedSd(Xu,μ[k,XMask[n,:]],σ²[k]) for k in 1:K])
                 lL += logpx
                 #px = sum([pⱼ[k]*normalFixedSd(Xu,μ[k,XMask[n,:]],σ²[k]) for k in 1:K])
                 for k in 1:K

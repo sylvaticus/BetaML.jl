@@ -1,9 +1,7 @@
 module Bmlt
 
-using .Nn .NnDefaultLayouts .Utilities
+include("Utils.jl")
+include("Nn.jl")
 
-export test
-
-test() = println("HelloWorld!")
 
 end # module

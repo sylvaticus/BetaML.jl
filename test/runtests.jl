@@ -1,3 +1,3 @@
 using Test
 
-include("nn_tests.jl")
+include("Nn_tests.jl")

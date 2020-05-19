@@ -3,12 +3,13 @@
 # Shared utilities functions ##
 ###############################
 
-module Utilities
-
-
+module Utils
 
 using LinearAlgebra
 
+export reshape, makeColVector, makeRowVector, makeMatrix, relu, drelu, linearf,
+       dlinearf, dtanh, sigmoid, dsigmoid, squaredCost, dSquaredCost, l1_distance,
+       l2_distance, l2²_distance, cosine_distance, normalFixedSd, lse, sterling
 
 # ------------------------------------------------------------------------------
 # Various reshaping functions
@@ -65,7 +66,7 @@ logNormalFixedSd(x,μ,σ²) = - (length(x)/2) * log(2π*σ²)  -  norm(x-μ)^2/(
 # Other mathematical/computational functions
 
 """ LogSumExp for efficiently computing log(sum(exp.(x))) """
-myLSE(x) = maximum(x)+log(sum(exp.(x .- maximum(x))))
+lse(x) = maximum(x)+log(sum(exp.(x .- maximum(x))))
 """ Sterling number: number of partitions of a set of n elements in k sets """
 sterling(n::BigInt,k::BigInt) = (1/factorial(k)) * sum((-1)^i * binomial(k,i)* (k-i)^n for i in 0:k)
 sterling(n::Int64,k::Int64)   = sterling(BigInt(n),BigInt(k))

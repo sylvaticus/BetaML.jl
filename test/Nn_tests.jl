@@ -3,9 +3,7 @@ using Test
 import Random:seed!
 seed!(1234)
 
-using Bmlt.Utilities
 using Bmlt.Nn
-using Bmlt.NnDefaultLayers
 
 println("*** Testing Neural Network...")
 # ==================================

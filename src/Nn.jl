@@ -25,7 +25,6 @@ Each user-implemented layer must define the following methods:
 Use the help system to get more info about these methods.
 
 """
-
 module Nn
 
 
@@ -35,12 +34,23 @@ module Nn
 
 
 using Random, Zygote
-using ..Utilities
+using ..Utils
+import Base.size
+
+export Layer, forward, backward, getParams, getGradient, setParams!, size, NN,
+       buildNetwork, predict, predictSet, loss, losses, train!, getindex,
+       DenseLayer, DenseNoBiasLayer,
+       relu, drelu, linearf,dlinearf, dtanh, sigmoid, dsigmoid, squaredCost,
+       dSquaredCost
+
+
 
 ## Sckeleton for the layer functionality.
 # See nn_default_layers.jl for actual implementations
 
 abstract type Layer end
+
+include("Nn_default_layers.jl")
 
 """
    forward(layer,x)
@@ -129,7 +139,7 @@ function setParams!(layer::Layer,w)
     error("Not implemented for this kind of layer. Please implement `setParams!(layer,w)`.")
 end
 
-import Base.size
+
 """
     size(layer)
 

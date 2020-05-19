@@ -6,14 +6,10 @@ Provided layers
 - DenseNoBiasLayer
 """
 
-module NnDefaultLayers
+#using Random, Zygote
+#import ..Utils
+#import Base.size
 
-
-using Random, Zygote
-using ..Nn, ..Utilities
-import Base.size
-
-abstract type Layer end
 
 # ------------------------------------------------------------------------------
 # DenseLayer layer
@@ -169,5 +165,3 @@ end
 function size(layer::DenseNoBiasLayer)
     return size(layer.w')
 end
-
-end # End module
