@@ -26,13 +26,16 @@ Use the help system to get more info about these methods.
 
 """
 
+module Nn
+
+
 # ==================================
-# Neural Network Library
+# Neural Network Module
 # ==================================
 
-include(joinpath(@__DIR__,"utilities.jl"))
 
 using Random, Zygote
+using ..Utilities
 
 ## Sckeleton for the layer functionality.
 # See nn_default_layers.jl for actual implementations
@@ -413,3 +416,5 @@ function show(nn::NN)
 end
 
 Base.getindex(n::NN, i::AbstractArray) = NN(n.layers[i]...)
+
+end # end module

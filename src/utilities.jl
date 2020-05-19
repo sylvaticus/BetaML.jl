@@ -3,7 +3,13 @@
 # Shared utilities functions ##
 ###############################
 
+module Utilities
+
+
+
 using LinearAlgebra
+
+
 # ------------------------------------------------------------------------------
 # Various reshaping functions
 
@@ -63,3 +69,6 @@ myLSE(x) = maximum(x)+log(sum(exp.(x .- maximum(x))))
 """ Sterling number: number of partitions of a set of n elements in k sets """
 sterling(n::BigInt,k::BigInt) = (1/factorial(k)) * sum((-1)^i * binomial(k,i)* (k-i)^n for i in 0:k)
 sterling(n::Int64,k::Int64)   = sterling(BigInt(n),BigInt(k))
+
+
+end # end module

@@ -6,10 +6,11 @@ Provided layers
 - DenseNoBiasLayer
 """
 
-include(joinpath(@__DIR__,"utilities.jl"))
+module NnDefaultLayers
 
 
 using Random, Zygote
+using ..Nn, ..Utilities
 import Base.size
 
 abstract type Layer end
@@ -168,3 +169,5 @@ end
 function size(layer::DenseNoBiasLayer)
     return size(layer.w')
 end
+
+end # End module
