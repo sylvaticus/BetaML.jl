@@ -33,15 +33,17 @@ module Nn
 # ==================================
 
 
-using Random, Zygote
-using ..Utils
+using Random, Zygote, ProgressMeter
+#using ..Utils
+import ..Utils: relu, drelu, linearf,dlinearf, dtanh, sigmoid, dsigmoid, squaredCost,
+dSquaredCost, makeMatrix, makeColVector
 import Base.size
 
 export Layer, forward, backward, getParams, getGradient, setParams!, size, NN,
        buildNetwork, predict, predictSet, loss, losses, train!, getindex,
        DenseLayer, DenseNoBiasLayer,
        relu, drelu, linearf,dlinearf, dtanh, sigmoid, dsigmoid, squaredCost,
-       dSquaredCost
+       dSquaredCost, makeMatrix, makeColVector
 
 
 
@@ -351,29 +353,31 @@ end
 
 
 """
-   train!(nn,x,y;epochs,η,rshuffle)
+   train!(nn,x,y;epochs,η,rshuffle,nMsg,tol)
 
-Train a fnn with the given x,y data
+Train a neural network with the given x,y data
 
 # Parameters:
-* `nn`:      Worker network
+* `nn`:       Worker network
 * `x`:        Training input to the network (records x dimensions)
 * `y`:        Label input (records x dimensions)
-* `epochs`:   Number of passages over the training set [def = `1000`]
-* `η`:        Learning rate. If not provided 1/(1+epoch) is used [def = `nothing`]
-* `rshuffle`: Whether to random shuffle the training set at each epoch [def = `true`]
+* `epochs`:   Number of passages over the training set [def: `1000`]
+* `η`:        Learning rate. If not provided 1/(1+epoch) is used [def: `nothing`]
+* `rShuffle`: Whether to random shuffle the training set at each epoch [def: `true`]
+* `nMsg`:     Maximum number of messages to show if all epochs are done [def: `10`]
+* `tol`:      A tollerance to stop when the losses stop decreasing [def: `0`]
 """
-function train!(nn::NN,x,y;maxepochs=1000, η=nothing, rshuffle=true, nMsgs=10, tol=0)
+function train!(nn::NN,x,y;maxEpochs=1000, η=nothing, rShuffle=true, nMsgs=10, tol=0)
     x = makeMatrix(x)
     y = makeMatrix(y)
     if nMsgs != 0
-        println("***\n*** Training $(nn.name) for maximum $maxepochs epochs. Random shuffle: $rshuffle")
+        println("***\n*** Training $(nn.name) for maximum $maxEpochs epochs. Random shuffle: $rShuffle")
     end
     dyn_η = η == nothing ? true : false
     (ϵ,ϵl) = (0,Inf)
     converged = false
-    for t in 1:maxepochs
-        if rshuffle
+    @showprogress 1 "Training the Neural Network..." for t in 1:maxEpochs
+        if rShuffle
            # random shuffle x and y
            ridx = shuffle(1:size(x)[1])
            x = x[ridx, :]
@@ -394,7 +398,7 @@ function train!(nn::NN,x,y;maxepochs=1000, η=nothing, rshuffle=true, nMsgs=10, 
             end
             ϵ += loss(nn,xᵢ,yᵢ)
         end
-        if nMsgs != 0 && (t % ceil(maxepochs/nMsgs) == 0 || t == 1 || t == maxepochs)
+        if nMsgs != 0 && (t % ceil(maxEpochs/nMsgs) == 0 || t == 1 || t == maxEpochs)
           println("Avg. error after epoch $t : $(ϵ/size(x)[1])")
         end
 
@@ -410,7 +414,7 @@ function train!(nn::NN,x,y;maxepochs=1000, η=nothing, rshuffle=true, nMsgs=10, 
         end
     end
     if nMsgs != 0 && converged == false
-        println("*** Avg. error after epoch $maxepochs : $(ϵ/size(x)[1]) (convergence not reached)")
+        println("*** Avg. error after epoch $maxEpochs : $(ϵ/size(x)[1]) (convergence not reached)")
     end
     nn.trained = true
 end

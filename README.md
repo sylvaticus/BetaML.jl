@@ -13,6 +13,8 @@ Theoretical notes describing most of these algorithms are at the companion repos
 This stuff most likely has value only didactically, as the approaches are the "vanilla" ones, i.e. the simplest possible ones, and GPU is not supported here.
 For "serious" machine learning work in Julia I suggest to use either [Flux](https://fluxml.ai/) or [Knet](https://github.com/denizyuret/Knet.jl).
 
+As the focus is mainly didactic, functions have pretty longer but more explicit names than usual.. for example the `Dense` layer is a `DenseLayer`, the `RBF` kernel is `radialKernel`, etc.
+
 That said, Julia is a relatively fast language and most hard job is done in matrix operations whose underlying libraries are multithreaded, so it is reasonably fast for small exploratory tasks.
 
 **You can run the code by yourself (folder "notebooks") in myBinder, a temporary public online computational environment clicking [here](https://mybinder.org/v2/gh/sylvaticus/Bmlt.jl/master).**

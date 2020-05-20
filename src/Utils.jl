@@ -9,7 +9,8 @@ using LinearAlgebra
 
 export reshape, makeColVector, makeRowVector, makeMatrix, relu, drelu, linearf,
        dlinearf, dtanh, sigmoid, dsigmoid, squaredCost, dSquaredCost, l1_distance,
-       l2_distance, l2²_distance, cosine_distance, normalFixedSd, lse, sterling
+       l2_distance, l2²_distance, cosine_distance, normalFixedSd, lse, sterling,
+       radialKernel,polynomialKernel
 
 # ------------------------------------------------------------------------------
 # Various reshaping functions
@@ -36,15 +37,31 @@ dtanh(x)    = 1-tanh(x)^2
 sigmoid(x)  = 1/(1+exp(-x))
 dsigmoid(x) = exp(-x)*sigmoid(x)^2
 
+
+# ------------------------------------------------------------------------------
+# Various error measures
+import Base.error
+error(x::Array{Int64,1},y::Array{Int64,1}) = sum(x .!= y)/length(x)
+
 # ------------------------------------------------------------------------------
 # Various neural network loss functions as well their derivatives
 squaredCost(ŷ,y)   = (1/2)*norm(y - ŷ)^2
 dSquaredCost(ŷ,y)  = .- (y .- ŷ)
 
 # ------------------------------------------------------------------------------
+# Various kernel functions (e.g. for Perceptron)
+"""Radial Kernel (aka _RBF kernel_) parametrised with γ=1/2. For other gammas γᵢ use
+`K = (x,y) -> radialKernel(x,y,γ=γᵢ)` as kernel function in the supporting algorithms"""
+radialKernel(x,y;γ=1/2) = exp(-γ*norm(x-y)^2)
+"""Polynomial kernel parametrised with `c=0` and `d=2` (i.e. a quadratic kernel).
+For other `cᵢ` and `dᵢ` use `K = (x,y) -> polynomialKernel(x,y,c=cᵢ,d=dᵢ)` as
+kernel function in the supporting algorithms"""
+polynomialKernel(x,y;c=0,d=2) = (dot(x,y)+c)^d
+
+# ------------------------------------------------------------------------------
 # Some common distance measures
 
-"""L1 norm distance (aka "Manhattan Distance")"""
+"""L1 norm distance (aka _Manhattan Distance_)"""
 l1_distance(x,y)     = sum(abs.(x-y))
 """Euclidean (L2) distance"""
 l2_distance(x,y)     = norm(x-y)
