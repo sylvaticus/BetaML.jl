@@ -39,9 +39,11 @@ dsigmoid(x) = exp(-x)*sigmoid(x)^2
 
 
 # ------------------------------------------------------------------------------
-# Various error measures
+# Various error/accuracy measures
 import Base.error
 error(x::Array{Int64,1},y::Array{Int64,1}) = sum(x .!= y)/length(x)
+accuracy(x::Array{Int64,1},y::Array{Int64,1}) = sum(x .== y)/length(x)
+
 
 # ------------------------------------------------------------------------------
 # Various neural network loss functions as well their derivatives

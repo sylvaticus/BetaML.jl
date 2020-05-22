@@ -1,5 +1,6 @@
 using Statistics
 using Test
+using DelimitedFiles
 
 import Random:seed!
 seed!(1234)
@@ -11,6 +12,20 @@ println("*** Testing Perceptron algorithms...")
 # ==================================
 # TEST 1: Normal perceptron
 println("Going through Test1 (normal Perceptron)...")
+
+perceptronData     = readdlm(joinpath(@__DIR__,"data/binary2DData.csv"),'\t')
+x = copy(perceptronData[:,[2,3]])
+y = convert(Array{Int64,1},copy(perceptronData[:,1]))
+xtrain = x[1:160,:]
+ytrain = y[1:160]
+xtest = x[161:end,:]
+ytest = y[161:end]
+
+out   = perceptron(xtrain, ytrain, rShuffle=false,nMsgs=1000)
+ŷtest = Perceptron.predict(xtest,out.θ,out.θ₀)
+ŷavgtest = Perceptron.predict(xtest,out.avgθ,out.avgθ₀)
+ϵ = error(ytest, ŷtest)
+ϵavg = error(ytest, ŷavgtest)
 
 
 
