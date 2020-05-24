@@ -90,5 +90,23 @@ lse(x) = maximum(x)+log(sum(exp.(x .- maximum(x))))
 sterling(n::BigInt,k::BigInt) = (1/factorial(k)) * sum((-1)^i * binomial(k,i)* (k-i)^n for i in 0:k)
 sterling(n::Int64,k::Int64)   = sterling(BigInt(n),BigInt(k))
 
+"""
+    gradientDescentSingleUpdate(θ,▽,η)
+
+Perform a single update of parameter θ using the gradient descent method with gradient ▽ and learning rate η.
+
+# Notes:
+- The parameter and the gradient can be either numbers, arrays or tuple of arrays.
+"""
+#- For Arrays and tuple of floats it is available also as inplace modification as
+#  `gradientDescentSingleUpdate!(θ,▽,η)`
+gradientDescentSingleUpdate(θ::Number,▽::Number,η) = θ .- (η .* ▽)
+gradientDescentSingleUpdate(θ::AbstractArray,▽::AbstractArray,η) = gradientDescentSingleUpdate.(θ,▽,Ref(η))
+gradientDescentSingleUpdate(θ::Tuple,▽::Tuple,η) = gradientDescentSingleUpdate.(θ,▽,Ref(η))
+#gradientDescentSingleUpdate!(θ::AbstractArray{AbstractFloat},▽::AbstractArray{AbstractFloat},η) = (θ .= θ .- (η .* ▽))
+#gradientDescentSingleUpdate!(θ::AbstractArray{AbstractFloat},▽::AbstractArray{Number},η) = (θ .= θ .- (η .* ▽))
+#gradientDescentSingleUpdate!(θ::Tuple,▽::Tuple,η) = gradientDescentSingleUpdate!.(θ,▽,Ref(η))
+
+
 
 end # end module

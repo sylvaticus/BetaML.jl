@@ -21,7 +21,7 @@ ytrain = y[1:160]
 xtest = x[161:end,:]
 ytest = y[161:end]
 
-out   = perceptron(xtrain, ytrain, rShuffle=false,nMsgs=1000)
+out   = perceptron(xtrain, ytrain, rShuffle=false,nMsgs=0)
 ŷtest = Perceptron.predict(xtest,out.θ,out.θ₀)
 ŷavgtest = Perceptron.predict(xtest,out.avgθ,out.avgθ₀)
 ϵ = error(ytest, ŷtest)
@@ -51,3 +51,24 @@ ŷtestExpected = [-1,-1,-1,-1,1]
 @test ϵ ≈ 0.2
 #@test any(isapprox(ŷtestExpected,ŷtest))
 @test any(ŷtestExpected == ŷtest )
+
+
+# ==================================
+# Test 3: Pegasus
+# ==================================
+println("Going through Test3 (Pegasus)...")
+
+
+perceptronData     = readdlm(joinpath(@__DIR__,"data/binary2DData.csv"),'\t')
+x = copy(perceptronData[:,[2,3]])
+y = convert(Array{Int64,1},copy(perceptronData[:,1]))
+xtrain = x[1:160,:]
+ytrain = y[1:160]
+xtest = x[161:end,:]
+ytest = y[161:end]
+
+out   = pegasus(xtrain, ytrain, rShuffle=false,nMsgs=0)
+ŷtest = Perceptron.predict(xtest,out.θ,out.θ₀)
+ŷavgtest = Perceptron.predict(xtest,out.avgθ,out.avgθ₀)
+ϵ = error(ytest, ŷtest)
+ϵavg = error(ytest, ŷavgtest)

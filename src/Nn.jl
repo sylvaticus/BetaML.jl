@@ -36,7 +36,7 @@ module Nn
 using Random, Zygote, ProgressMeter
 #using ..Utils
 import ..Utils: relu, drelu, linearf,dlinearf, dtanh, sigmoid, dsigmoid, squaredCost,
-dSquaredCost, makeMatrix, makeColVector
+dSquaredCost, makeMatrix, makeColVector, gradientDescentSingleUpdate
 import Base.size
 
 export Layer, forward, backward, getParams, getGradient, setParams!, size, NN,
@@ -393,7 +393,8 @@ function train!(nn::NN,x,y;maxEpochs=1000, η=nothing, rShuffle=true, nMsgs=10, 
             for (lidx,l) in enumerate(nn.layers)
                 oldW = W[lidx]
                 dw = dW[lidx]
-                newW = oldW .- η .* dw
+                #newW = oldW .- η .* dw
+                newW = gradientDescentSingleUpdate(oldW,dw,η)
                 setParams!(l,newW)
             end
             ϵ += loss(nn,xᵢ,yᵢ)
