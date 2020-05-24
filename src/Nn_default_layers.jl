@@ -165,3 +165,81 @@ end
 function size(layer::DenseNoBiasLayer)
     return size(layer.w')
 end
+
+# ------------------------------------------------------------------------------
+# VectorFunction layer
+
+"""
+   VectorFunctionLayer
+
+Representation of a (weightless) VectorFunction layer in the network. Vector
+function layer expects a vector activation function, i.e. a function taking the
+whole output of the previous layer in input rather than working on a single node
+as "normal" activation functions.
+Useful for example for the SoftMax function.
+
+# Fields:
+* `nₗ`: Number of nodes of the previous layer
+* `n`:  Number of nodes in output
+* `f`:  Activation function (vector)
+* `df`: Derivative of the (vector) activation function
+"""
+mutable struct VectorFunctionLayer <: Layer
+     nₗ::Int64
+     n::Int64
+     f::Function
+     df::Union{Function,Nothing}
+     """
+        VectorFunctionLayer(f,n;df)
+
+     Instantiate a new VectorFunctionLayer
+
+     # Positional arguments:
+     * `f`:  Activation function
+     * `nₗ`: Number of nodes of the previous layer
+     * `n`:  Number of nodes [default: `n`]
+     # Keyword arguments:
+     * `df`: Derivative of the activation function [default: `nothing` (i.e. use AD)]
+
+     # Notes:
+     - If the derivative is provided, it should return the gradient as a (nₗ,n) matrix (i.e. the Jacobian)
+
+     """
+     function VectorFunctionLayer(f,nₗ,n=nₗ;df=nothing)
+         return new(nₗ,n,f,df)
+     end
+end
+
+function forward(layer::VectorFunctionLayer,x)
+  return layer.f(layer.x)
+end
+
+function backward(layer::VectorFunctionLayer,x,nextGradient)
+
+   if layer.df != nothing
+       dϵ_dI = layer.df(x) * nextGradient
+    else  # using AD
+      T = eltype(nextGradient)
+      j = Array{T, 2}(undef, nₗ, n)
+      for i in 1:n
+          j[:, i] .= gradient(x -> layer.f(x)[i], x)[1]
+      end
+       dϵ_dI = j * nextGradient
+    end
+   return dϵ_dI
+end
+
+function getParams(layer::VectorFunctionLayer)
+  return ()
+end
+
+function getGradient(layer::VectorFunctionLayer,x,nextGradient)
+   return () # parameterless layer
+end
+
+function setParams!(layer::VectorFunctionLayer,w)
+   return nothing
+end
+function size(layer::VectorFunctionLayer)
+    return (nₗ,n)
+end

@@ -25,6 +25,8 @@ makeRowVector(x::T) where {T <: AbstractArray} =  reshape(x,1,length(x))
 """Transform an Array{T,1} in an Array{T,2} and leave unchanged Array{T,2}."""
 makeMatrix(x::Array) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
 
+#oneHotEncoder(y) = ... TODO
+
 # ------------------------------------------------------------------------------
 # Various neural network activation functions as well their derivatives
 
@@ -36,6 +38,7 @@ dlinearf(x) = 1
 dtanh(x)    = 1-tanh(x)^2
 sigmoid(x)  = 1/(1+exp(-x))
 dsigmoid(x) = exp(-x)*sigmoid(x)^2
+softMax(x,β=1) = exp.((β .* x) .- lse(β .* x)) # efficient implementation of softMax(x)  = exp.(x) ./  sum(exp.(x))
 
 
 # ------------------------------------------------------------------------------
