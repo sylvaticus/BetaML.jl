@@ -5,12 +5,17 @@
 
 module Utils
 
-using LinearAlgebra
+using LinearAlgebra, Zygote
 
-export reshape, makeColVector, makeRowVector, makeMatrix, relu, drelu, linearf,
-       dlinearf, dtanh, sigmoid, dsigmoid, squaredCost, dSquaredCost, l1_distance,
+export reshape, makeColVector, makeRowVector, makeMatrix,
+       oneHotEncoder,
+       relu, drelu, linearf,
+       dlinearf, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
+       autoJacobian,
+       squaredCost, dSquaredCost, l1_distance,
        l2_distance, l2²_distance, cosine_distance, normalFixedSd, lse, sterling,
        radialKernel,polynomialKernel
+
 
 # ------------------------------------------------------------------------------
 # Various reshaping functions
@@ -25,7 +30,37 @@ makeRowVector(x::T) where {T <: AbstractArray} =  reshape(x,1,length(x))
 """Transform an Array{T,1} in an Array{T,2} and leave unchanged Array{T,2}."""
 makeMatrix(x::Array) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
 
-#oneHotEncoder(y) = ... TODO
+
+function oneHotEncoderRow(y,d;count = false)
+    y = makeColVector(y)
+    out = zeros(Int64,d)
+    for j in y
+        out[j] = count ? out[j] + 1 : 1
+    end
+    return out
+end
+"""
+    oneHotEncoder(y,d;count)
+
+Encode arrays (or arrays of arrays) of integer data as 0/1 matrices
+
+# Parameters:
+- `y`: The data to convert (integer, array or array of arrays of integers)
+- `d`: The number of dimensions in the output matrik. [def: `maximum(maximum.(Y))`]
+- `count`: Wether to count multiple instances on the same dimension/record or indicate just presence. [def: `false`]
+
+"""
+function oneHotEncoder(Y,d=maximum(maximum.(Y));count=false)
+    n   = length(Y)
+    if d < maximum(maximum.(Y))
+        error("Trying to encode elements with indexes greater than the provided number of dimensions. Please increase d.")
+    end
+    out = zeros(Int64,n,d)
+    for (i,y) in enumerate(Y)
+        out[i,:] = oneHotEncoderRow(y,d;count = count)
+    end
+    return out
+end
 
 # ------------------------------------------------------------------------------
 # Various neural network activation functions as well their derivatives
@@ -38,7 +73,49 @@ dlinearf(x) = 1
 dtanh(x)    = 1-tanh(x)^2
 sigmoid(x)  = 1/(1+exp(-x))
 dsigmoid(x) = exp(-x)*sigmoid(x)^2
-softMax(x,β=1) = exp.((β .* x) .- lse(β .* x)) # efficient implementation of softMax(x)  = exp.(x) ./  sum(exp.(x))
+softMax(x;β=1) = exp.((β .* x) .- lse(β .* x)) # efficient implementation of softMax(x)  = exp.(x) ./  sum(exp.(x))
+""" dSoftMax(x;β) - Derivative of the softMax function """
+function dSoftMax(x;β=1)
+    x = makeColVector(x)
+    d = length(x)
+    out = zeros(d,d)
+    for i in 1:d
+        smi = softMax(x,β=β)[i]
+        for j in 1:d
+            if j == i
+                out[i,j] = β*(smi-smi^2)
+            else
+                out[i,j] = - β*softMax(x,β=β)[j]*smi
+            end
+        end
+    end
+    return out
+end
+
+"""
+   autoJacobian(f,x;nY)
+
+Evaluate the Jacobian using AD in the form of a (nY,nX) madrix of first derivatives
+
+# Parameters:
+- `f`: The function to compute the Jacobian
+- `x`: The input to the function where the jacobian has to be computed
+- `nY`: The number of outputs of the function `f` [def: `length(f(x))`]
+
+# Return values:
+- An `Array{Float64,2}` of the locally evaluated Jacobian
+
+# Notes:
+- The `nY` parameter is optional. If provided it avoids having to compute `f(x)`
+"""
+function autoJacobian(f,x;nY=length(f(x)))
+    x = convert(Array{Float64,1},x)
+    j = Array{Float64, 2}(undef, size(x,1), nY)
+    for i in 1:nY
+        j[:, i] .= gradient(x -> f(x)[i], x)[1]
+    end
+    return j'
+end
 
 
 # ------------------------------------------------------------------------------

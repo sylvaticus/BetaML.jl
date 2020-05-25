@@ -202,7 +202,7 @@ mutable struct VectorFunctionLayer <: Layer
      * `df`: Derivative of the activation function [default: `nothing` (i.e. use AD)]
 
      # Notes:
-     - If the derivative is provided, it should return the gradient as a (nₗ,n) matrix (i.e. the Jacobian)
+     - If the derivative is provided, it should return the gradient as a (n,nₗ) matrix (i.e. the Jacobian)
 
      """
      function VectorFunctionLayer(f,nₗ,n=nₗ;df=nothing)
@@ -211,20 +211,16 @@ mutable struct VectorFunctionLayer <: Layer
 end
 
 function forward(layer::VectorFunctionLayer,x)
-  return layer.f(layer.x)
+  return layer.f(x)
 end
 
 function backward(layer::VectorFunctionLayer,x,nextGradient)
 
    if layer.df != nothing
-       dϵ_dI = layer.df(x) * nextGradient
+       dϵ_dI = layer.df(x)' * nextGradient
     else  # using AD
-      T = eltype(nextGradient)
-      j = Array{T, 2}(undef, nₗ, n)
-      for i in 1:n
-          j[:, i] .= gradient(x -> layer.f(x)[i], x)[1]
-      end
-       dϵ_dI = j * nextGradient
+      j = autoJacobian(layer.f,x;nY=layer.n)
+      dϵ_dI = j' * nextGradient
     end
    return dϵ_dI
 end
@@ -241,5 +237,5 @@ function setParams!(layer::VectorFunctionLayer,w)
    return nothing
 end
 function size(layer::VectorFunctionLayer)
-    return (nₗ,n)
+    return (layer.nₗ,layer.n)
 end

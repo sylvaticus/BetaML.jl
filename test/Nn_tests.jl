@@ -1,4 +1,5 @@
 using Test
+using DelimitedFiles
 
 import Random:seed!
 seed!(1234)
@@ -50,6 +51,49 @@ expectedOutput = [0.4676699631752518,0.3448383593117405,0.4500863419692639,9.908
 predicted = dropdims(predictSet(mynn,xtest),dims=2)
 @test any(isapprox(expectedOutput,predicted))
 
+
+# ==================================
+# Test 3: Multinomial logistic regression (using softMax)
+# ==================================
+println("Going through Test3 (Multinomial logistic regression)...")
+
+categoricalData     = readdlm(joinpath(@__DIR__,"data/categoricalData_glass.csv"),',',skipstart=1)
+#=
+import Random: shuffle
+ridx = shuffle(1:size(categoricalData)[1])
+open(joinpath(@__DIR__,"data/categoricalData_glass_ridx.csv"),"w") do f
+    for r in ridx
+        write(f, "$(r)\n")
+    end
+end
+=#
+ridx = dropdims(convert(Array{Int64,2},readdlm(joinpath(@__DIR__,"data/categoricalData_glass_ridx.csv"))),dims=2)
+categoricalData = categoricalData[ridx, :]
+x = copy(categoricalData[:,1:9])
+y = convert(Array{Int64,1},copy(categoricalData[:,10]))
+y = oneHotEncoder(y)
+
+ntrain = Int64(round(size(x,1)*0.8))
+xtrain = x[1:ntrain,:]
+ytrain = y[1:ntrain,:]
+xtest = x[ntrain+1:end,:]
+ytest = y[ntrain+1:end,:]
+
+l1   = DenseLayer(linearf,9,7,w=ones(7,9), wb=zeros(7))
+l2   = VectorFunctionLayer(softMax,7,7)
+mynn = buildNetwork([l1,l2],squaredCost,name="Multinomial logistic regression Model 1")
+train!(mynn,xtrain,ytrain,maxEpochs=100,η=0.01,rShuffle=true,nMsgs=0)
+
+#=
+predictSet(mynn,xtest)
+ytest[2,:]
+
+avgLoss = losses(mynn,xtest,ytest)
+
+@test  avgLoss ≈ 0.0032018998005211886
+expectedOutput = [0.4676699631752518,0.3448383593117405,0.4500863419692639,9.908883999376018]
+predicted = dropdims(predictSet(mynn,xtest),dims=2)
+=#
 
 #for (i,r) in enumerate(eachrow(xtest))
 #  println("x: $r ŷ: $(predict(mynn,r)[1]) y: $(ytest[i])")

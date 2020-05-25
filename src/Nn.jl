@@ -35,15 +35,18 @@ module Nn
 
 using Random, Zygote, ProgressMeter
 #using ..Utils
-import ..Utils: relu, drelu, linearf,dlinearf, dtanh, sigmoid, dsigmoid, squaredCost,
-dSquaredCost, makeMatrix, makeColVector, gradientDescentSingleUpdate
+import ..Utils: relu, drelu, linearf,dlinearf, dtanh, sigmoid, dsigmoid, softMax,
+      dSoftMax, autoJacobian,
+      squaredCost,dSquaredCost,
+      makeMatrix, makeColVector, gradientDescentSingleUpdate, oneHotEncoder
 import Base.size
 
 export Layer, forward, backward, getParams, getGradient, setParams!, size, NN,
        buildNetwork, predict, predictSet, loss, losses, train!, getindex,
-       DenseLayer, DenseNoBiasLayer,
-       relu, drelu, linearf,dlinearf, dtanh, sigmoid, dsigmoid, squaredCost,
-       dSquaredCost, makeMatrix, makeColVector
+       DenseLayer, DenseNoBiasLayer, VectorFunctionLayer,
+       relu, drelu, linearf,dlinearf, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
+       autoJacobian,
+       squaredCost, dSquaredCost, makeMatrix, makeColVector, oneHotEncoder
 
 
 

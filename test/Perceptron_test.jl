@@ -16,10 +16,11 @@ println("Going through Test1 (normal Perceptron)...")
 perceptronData     = readdlm(joinpath(@__DIR__,"data/binary2DData.csv"),'\t')
 x = copy(perceptronData[:,[2,3]])
 y = convert(Array{Int64,1},copy(perceptronData[:,1]))
-xtrain = x[1:160,:]
-ytrain = y[1:160]
-xtest = x[161:end,:]
-ytest = y[161:end]
+ntrain = Int64(round(length(y)*0.8))
+xtrain = x[1:ntrain,:]
+ytrain = y[1:ntrain]
+xtest = x[ntrain+1:end,:]
+ytest = y[ntrain+1:end]
 
 out   = perceptron(xtrain, ytrain, rShuffle=false,nMsgs=0)
 ŷtest = Perceptron.predict(xtest,out.θ,out.θ₀)
