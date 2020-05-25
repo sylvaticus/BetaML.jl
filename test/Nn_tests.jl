@@ -20,7 +20,7 @@ l1 = DenseLayer(tanh,2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], df=dtanh)
 l2 = DenseNoBiasLayer(relu,3,2, w=[1 1 1; 1 1 1], df=drelu)
 l3 = DenseLayer(linearf,2,1, w=[1 1], wb=[0], df=dlinearf)
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1",dcf=dSquaredCost)
-train!(mynn,xtrain,ytrain,maxEpochs=100,η=nothing,rShuffle=false,nMsgs=0)
+train!(mynn,xtrain,ytrain,maxEpochs=100,rShuffle=false,nMsgs=0)
 avgLoss = losses(mynn,xtest,ytest)
 @test  avgLoss ≈ 1.599729991966362
 expectedOutput = [0.7360644412052633, 0.7360644412052633, 0.7360644412052633, 2.47093434438514]
@@ -44,7 +44,7 @@ ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest
 l1   = DenseLayer(linearf,2,3,w=ones(3,2), wb=zeros(3))
 l2   = DenseLayer(linearf,3,1, w=ones(1,3), wb=zeros(1))
 mynn = buildNetwork([l1,l2],squaredCost,name="Feed-forward Neural Network Model 1")
-train!(mynn,xtrain,ytrain,maxEpochs=1000,η=0.01,rShuffle=false,nMsgs=0)
+train!(mynn,xtrain,ytrain,maxEpochs=1000,η=t->0.01,rShuffle=false,nMsgs=0)
 avgLoss = losses(mynn,xtest,ytest)
 @test  avgLoss ≈ 0.0032018998005211886
 expectedOutput = [0.4676699631752518,0.3448383593117405,0.4500863419692639,9.908883999376018]
@@ -58,6 +58,8 @@ predicted = dropdims(predictSet(mynn,xtest),dims=2)
 println("Going through Test3 (Multinomial logistic regression)...")
 
 categoricalData     = readdlm(joinpath(@__DIR__,"data/categoricalData_glass.csv"),',',skipstart=1)
+# https://www.kaggle.com/uciml/glass
+
 #=
 import Random: shuffle
 ridx = shuffle(1:size(categoricalData)[1])
@@ -79,11 +81,15 @@ ytrain = y[1:ntrain,:]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end,:]
 
-l1   = DenseLayer(linearf,9,7,w=ones(7,9), wb=zeros(7))
-l2   = VectorFunctionLayer(softMax,7,7)
-mynn = buildNetwork([l1,l2],squaredCost,name="Multinomial logistic regression Model 1")
-train!(mynn,xtrain,ytrain,maxEpochs=100,η=0.01,rShuffle=true,nMsgs=0)
+l1   = DenseLayer(linearf,9,5,w=ones(5,9), wb=zeros(5))
+l2   = DenseLayer(linearf,5,7,w=ones(7,5), wb=zeros(7))
+l3   = VectorFunctionLayer(softMax,7,7)
+mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model 1")
+train!(mynn,xtrain,ytrain,maxEpochs=200,η=t->0.0001,λ=1,rShuffle=false,nMsgs=10)
 
+predictSet(mynn,xtrain)
+
+a= 1
 #=
 predictSet(mynn,xtest)
 ytest[2,:]

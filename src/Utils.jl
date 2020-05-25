@@ -75,7 +75,7 @@ sigmoid(x)  = 1/(1+exp(-x))
 dsigmoid(x) = exp(-x)*sigmoid(x)^2
 softMax(x;β=1) = exp.((β .* x) .- lse(β .* x)) # efficient implementation of softMax(x)  = exp.(x) ./  sum(exp.(x))
 """ dSoftMax(x;β) - Derivative of the softMax function """
-function dSoftMax(x;β=1)
+function dSoftMax(x;β=1) # https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/
     x = makeColVector(x)
     d = length(x)
     out = zeros(d,d)

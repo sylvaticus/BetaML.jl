@@ -365,18 +365,22 @@ Train a neural network with the given x,y data
 * `x`:        Training input to the network (records x dimensions)
 * `y`:        Label input (records x dimensions)
 * `epochs`:   Number of passages over the training set [def: `1000`]
-* `η`:        Learning rate. If not provided 1/(1+epoch) is used [def: `nothing`]
+* `η`:        Learning rate as a function of the epoch [def: `t -> 1/(1+t)`]
+* `λ`:        Multiplicative term of the learning rate
 * `rShuffle`: Whether to random shuffle the training set at each epoch [def: `true`]
 * `nMsg`:     Maximum number of messages to show if all epochs are done [def: `10`]
 * `tol`:      A tollerance to stop when the losses stop decreasing [def: `0`]
+
+# Notes:
+- use `η = t->k` if you want a learning rate constant to `k`
 """
-function train!(nn::NN,x,y;maxEpochs=1000, η=nothing, rShuffle=true, nMsgs=10, tol=0)
+function train!(nn::NN,x,y;maxEpochs=1000, η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0)
     x = makeMatrix(x)
     y = makeMatrix(y)
     if nMsgs != 0
         println("***\n*** Training $(nn.name) for maximum $maxEpochs epochs. Random shuffle: $rShuffle")
     end
-    dyn_η = η == nothing ? true : false
+    #dyn_η = η == nothing ? true : false
     (ϵ,ϵl) = (0,Inf)
     converged = false
     @showprogress 1 "Training the Neural Network..." for t in 1:maxEpochs
@@ -387,7 +391,8 @@ function train!(nn::NN,x,y;maxEpochs=1000, η=nothing, rShuffle=true, nMsgs=10, 
            y = y[ridx , :]
         end
         ϵ = 0
-        η = dyn_η ? 1/(1+t) : η
+        #η = dyn_η ? 1/(1+t) : η
+        ηₜ = η(t)*λ
         for i in 1:size(x)[1]
             xᵢ = x[i,:]'
             yᵢ = y[i,:]'
@@ -397,7 +402,7 @@ function train!(nn::NN,x,y;maxEpochs=1000, η=nothing, rShuffle=true, nMsgs=10, 
                 oldW = W[lidx]
                 dw = dW[lidx]
                 #newW = oldW .- η .* dw
-                newW = gradientDescentSingleUpdate(oldW,dw,η)
+                newW = gradientDescentSingleUpdate(oldW,dw,ηₜ)
                 setParams!(l,newW)
             end
             ϵ += loss(nn,xᵢ,yᵢ)

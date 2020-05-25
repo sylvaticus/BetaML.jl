@@ -176,7 +176,8 @@ Train the peagasus algorithm based on x and y (labels)
 * `θ`:           Initial value of the weights (parameter) [def: `zeros(d)`]
 * `θ₀`:          Initial value of the weight (parameter) associated to the constant
                 term [def: `0`]
-* `λ`:
+* `λ`:           Multiplicative term of the learning rate
+* `η`:           Learning rate [def: (t -> 1/sqrt(t))]
 * `T`:           Maximum number of iterations across the whole set (if the set
                 is not fully classified earlier) [def: 1000]
 * `nMsg`:        Maximum number of messages to show if all iterations are done
