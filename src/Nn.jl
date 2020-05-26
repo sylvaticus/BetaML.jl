@@ -38,6 +38,7 @@ using Random, Zygote, ProgressMeter
 import ..Utils: relu, drelu, linearf,dlinearf, dtanh, sigmoid, dsigmoid, softMax,
       dSoftMax, autoJacobian,
       squaredCost,dSquaredCost,
+      accuracy,
       makeMatrix, makeColVector, gradientDescentSingleUpdate, oneHotEncoder
 import Base.size
 
@@ -46,6 +47,7 @@ export Layer, forward, backward, getParams, getGradient, setParams!, size, NN,
        DenseLayer, DenseNoBiasLayer, VectorFunctionLayer,
        relu, drelu, linearf,dlinearf, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
        autoJacobian,
+       accuracy,
        squaredCost, dSquaredCost, makeMatrix, makeColVector, oneHotEncoder
 
 

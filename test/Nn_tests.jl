@@ -2,9 +2,10 @@ using Test
 using DelimitedFiles
 
 import Random:seed!
-seed!(1234)
+seed!(123)
 
 using Bmlt.Nn
+import Bmlt.Utils: gradientDescentSingleUpdate
 
 println("*** Testing Neural Network...")
 
@@ -21,6 +22,7 @@ l2 = DenseNoBiasLayer(relu,3,2, w=[1 1 1; 1 1 1], df=drelu)
 l3 = DenseLayer(linearf,2,1, w=[1 1], wb=[0], df=dlinearf)
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1",dcf=dSquaredCost)
 train!(mynn,xtrain,ytrain,maxEpochs=100,rShuffle=false,nMsgs=0)
+
 avgLoss = losses(mynn,xtest,ytest)
 @test  avgLoss ≈ 1.599729991966362
 expectedOutput = [0.7360644412052633, 0.7360644412052633, 0.7360644412052633, 2.47093434438514]
@@ -55,41 +57,98 @@ predicted = dropdims(predictSet(mynn,xtest),dims=2)
 # ==================================
 # Test 3: Multinomial logistic regression (using softMax)
 # ==================================
-println("Going through Test3 (Multinomial logistic regression)...")
-
-categoricalData     = readdlm(joinpath(@__DIR__,"data/categoricalData_glass.csv"),',',skipstart=1)
-# https://www.kaggle.com/uciml/glass
-
+println("Going through Multinomial logistic regression...")
 #=
-import Random: shuffle
-ridx = shuffle(1:size(categoricalData)[1])
-open(joinpath(@__DIR__,"data/categoricalData_glass_ridx.csv"),"w") do f
-    for r in ridx
-        write(f, "$(r)\n")
-    end
-end
+using RDatasets
+using Random
+using DataFrames: DataFrame
+using CSV
+Random.seed!(123);
+iris = dataset("datasets", "iris")
+iris = iris[shuffle(axes(iris, 1)), :]
+CSV.write(joinpath(@__DIR__,"data","iris_shuffled.csv"),iris)
 =#
-ridx = dropdims(convert(Array{Int64,2},readdlm(joinpath(@__DIR__,"data/categoricalData_glass_ridx.csv"))),dims=2)
-categoricalData = categoricalData[ridx, :]
-x = copy(categoricalData[:,1:9])
-y = convert(Array{Int64,1},copy(categoricalData[:,10]))
-y = oneHotEncoder(y)
+
+iris     = readdlm(joinpath(@__DIR__,"data","iris_shuffled.csv"),',',skipstart=1)
+x = convert(Array{Float64,2}, iris[:,1:4])
+y = map(x -> x == "setosa" ? 1 : x == "versicolor" ? 2 : 3, iris[:, 5])
+y_oh = oneHotEncoder(y)
 
 ntrain = Int64(round(size(x,1)*0.8))
 xtrain = x[1:ntrain,:]
-ytrain = y[1:ntrain,:]
+ytrain = y[1:ntrain]
+ytrain_oh = y_oh[1:ntrain,:]
 xtest = x[ntrain+1:end,:]
-ytest = y[ntrain+1:end,:]
+ytest = y[ntrain+1:end]
 
-l1   = DenseLayer(linearf,9,5,w=ones(5,9), wb=zeros(5))
-l2   = DenseLayer(linearf,5,7,w=ones(7,5), wb=zeros(7))
-l3   = VectorFunctionLayer(softMax,7,7)
-mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model 1")
-train!(mynn,xtrain,ytrain,maxEpochs=200,η=t->0.0001,λ=1,rShuffle=false,nMsgs=10)
+l1   = DenseLayer(relu,4,10, w=ones(10,4), wb=zeros(10))
+l2   = DenseLayer(linearf,10,3, w=ones(3,10), wb=zeros(3))
+l3   = VectorFunctionLayer(softMax,3,3)
+mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal")
+train!(mynn,xtrain,ytrain_oh,maxEpochs=500,rShuffle=false,nMsgs=10,η=t->0.001)
 
-predictSet(mynn,xtrain)
+ŷtrain = predictSet(mynn,xtrain)
+ŷtest  = predictSet(mynn,xtest)
+trainAccuracy = accuracy(ŷtrain,ytrain,tol=1)
+testAccuracy  = accuracy(ŷtest,ytest,tol=1)
+@test testAccuracy >= 0.6
 
-a= 1
+
+
+# ==================================
+# New test
+# ==================================
+println("Testing basic NN behaviour...")
+x = [0.1,1]
+y = [1,0]
+l1   = DenseNoBiasLayer(linearf,2,2,w=[2 1;1 1])
+l2   = VectorFunctionLayer(softMax,2,2)
+mynn = buildNetwork([l1,l2],squaredCost,name="Simple Multinomial logistic regression")
+o1 = forward(l1,x)
+o2 = forward(l2,o1)
+orig = predict(mynn,x)
+ϵ = squaredCost(o2,y)
+lossOrig = loss(mynn,x,y)
+dϵ_do2 = dSquaredCost(o2,y)
+dϵ_do1 = backward(l2,o1,dϵ_do2)
+dϵ_dX = backward(l1,x,dϵ_do1)
+l1w = getParams(l1)
+l2w = getParams(l2)
+w = getParams(mynn)
+origW = deepcopy(w)
+l2dw = getGradient(l2,o1,dϵ_do2)
+l1dw = getGradient(l1,x,dϵ_do1)
+dw = getGradient(mynn,x,y)
+y_deltax1 = predict(mynn,[x[1]+0.001,x[2]])
+lossDeltax1 = loss(mynn,[x[1]+0.001,x[2]],y)
+deltaloss = dot(dϵ_dX,[0.001,0])
+@test isapprox(lossDeltax1-lossOrig,deltaloss,atol=0.0000001)
+l1wNew = l1w
+l1wNew[1][1,1] += 0.001
+setParams!(l1,l1wNew)
+lossDelPar = loss(mynn,x,y)
+deltaLossPar = 0.001*l1dw[1][1,1]
+lossDelPar - lossOrig
+@test isapprox(lossDelPar - lossOrig,deltaLossPar,atol=0.00000001)
+η = 0.01
+w = gradientDescentSingleUpdate(w,dw,η)
+setParams!(mynn,w)
+loss2 = loss(mynn,x,y)
+@test loss2 < lossOrig
+for i in 1:10000
+    w  = getParams(mynn)
+    dw = getGradient(mynn,x,y)
+    w  = gradientDescentSingleUpdate(w,dw,η)
+    setParams!(mynn,w)
+end
+lossFinal = loss(mynn,x,y)
+@test predict(mynn,x)[1]>0.96
+setParams!(mynn,origW)
+train!(mynn,x',y',maxEpochs=10000,η=t->η,rShuffle=false)
+lossTraining = loss(mynn,x,y)
+@test isapprox(lossFinal,lossTraining,atol=0.00001)
+
+
 #=
 predictSet(mynn,xtest)
 ytest[2,:]

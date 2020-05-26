@@ -38,3 +38,16 @@ realG2 = [(c[1]-b[1])*10000000,(c[2]-b[2])*10000000,(c[3]-b[3])*10000000]
 @test isapprox(autoGrad[:,2],realG2,atol=0.000001)
 manualGrad = dSoftMax([2,3,4],β=1/2)
 @test isapprox(manualGrad[:,2],realG2,atol=0.000001)
+
+# Manual way is hundred of times faster
+#@benchmark autoJacobian(softMax2,[2,3,4])
+#@benchmark dSoftMax([2,3,4],β=1/2)
+
+# ==================================
+# TEST 4: probabilistic accuracy
+println("Going through Test4 (accuracy)...")
+
+x = [0.01 0.02 0.1 0.05 0.2 0.1  0.05 0.27  0.2;
+     0.05 0.01 0.2 0.02 0.1 0.27 0.1  0.05  0.2]
+y = [3,3]
+@test [accuracy(x,y,tol=i) for i in 1:10] == [0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]

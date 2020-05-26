@@ -13,6 +13,7 @@ export reshape, makeColVector, makeRowVector, makeMatrix,
        dlinearf, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
        autoJacobian,
        squaredCost, dSquaredCost, l1_distance,
+       error, accuracy,
        l2_distance, l2²_distance, cosine_distance, normalFixedSd, lse, sterling,
        radialKernel,polynomialKernel
 
@@ -28,7 +29,7 @@ makeColVector(x::T) where {T <: AbstractArray} =  reshape(x,length(x))
 makeRowVector(x::T) where {T <: Number} = return [x]'
 makeRowVector(x::T) where {T <: AbstractArray} =  reshape(x,1,length(x))
 """Transform an Array{T,1} in an Array{T,2} and leave unchanged Array{T,2}."""
-makeMatrix(x::Array) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
+makeMatrix(x::AbstractArray) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
 
 
 function oneHotEncoderRow(y,d;count = false)
@@ -79,13 +80,14 @@ function dSoftMax(x;β=1) # https://eli.thegreenplace.net/2016/the-softmax-funct
     x = makeColVector(x)
     d = length(x)
     out = zeros(d,d)
+    y = softMax(x,β=β)
     for i in 1:d
-        smi = softMax(x,β=β)[i]
+        smi = y[i]
         for j in 1:d
             if j == i
                 out[i,j] = β*(smi-smi^2)
             else
-                out[i,j] = - β*softMax(x,β=β)[j]*smi
+                out[i,j] = - β*y[j]*smi
             end
         end
     end
@@ -110,25 +112,50 @@ Evaluate the Jacobian using AD in the form of a (nY,nX) madrix of first derivati
 """
 function autoJacobian(f,x;nY=length(f(x)))
     x = convert(Array{Float64,1},x)
-    j = Array{Float64, 2}(undef, size(x,1), nY)
+    #j = Array{Float64, 2}(undef, size(x,1), nY)
+    #for i in 1:nY
+    #    j[:, i] .= gradient(x -> f(x)[i], x)[1]
+    #end
+    #return j'
+    j = Array{Float64, 2}(undef, nY, size(x,1))
     for i in 1:nY
-        j[:, i] .= gradient(x -> f(x)[i], x)[1]
+        j[i,:] = gradient(x -> f(x)[i], x)[1]'
     end
-    return j'
+    return j
 end
 
 
 # ------------------------------------------------------------------------------
 # Various error/accuracy measures
 import Base.error
+""" Categorical error """
 error(x::Array{Int64,1},y::Array{Int64,1}) = sum(x .!= y)/length(x)
+""" Categorical accuracy """
 accuracy(x::Array{Int64,1},y::Array{Int64,1}) = sum(x .== y)/length(x)
+""" Categorical accuracy with probabilistic prediction of a single datapoint. """
+function accuracy(x::Array{T,1},y::Int64;tol=1) where {T <: Number}
+    sIdx = sortperm(x)[end:-1:1]
+    if x[y] in x[sIdx[1:min(tol,length(sIdx))]]
+        return 1
+    else
+        return 0
+    end
+end
+""" Categorical accuracy with probabilistic predictions of a dataset. """
+function accuracy(x::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number}
+    n = size(x,1)
+    acc = sum([accuracy(x[i,:],y[i],tol=tol) for i in 1:n])/n
+end
+""" Categorical error with probabilistic prediction of a single datapoint. """
+error(x::Array{T,1},y::Int64;tol=1) where {T <: Number} = 1 - accuracy(x,y;tol=tol)
+""" Categorical error with probabilistic predictions of a dataset. """
+error(x::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number} = 1 - accuracy(x,y;tol=tol)
 
 
 # ------------------------------------------------------------------------------
 # Various neural network loss functions as well their derivatives
 squaredCost(ŷ,y)   = (1/2)*norm(y - ŷ)^2
-dSquaredCost(ŷ,y)  = .- (y .- ŷ)
+dSquaredCost(ŷ,y)  = ( ŷ - y)
 
 # ------------------------------------------------------------------------------
 # Various kernel functions (e.g. for Perceptron)
@@ -186,6 +213,10 @@ gradientDescentSingleUpdate(θ::Tuple,▽::Tuple,η) = gradientDescentSingleUpda
 #gradientDescentSingleUpdate!(θ::AbstractArray{AbstractFloat},▽::AbstractArray{AbstractFloat},η) = (θ .= θ .- (η .* ▽))
 #gradientDescentSingleUpdate!(θ::AbstractArray{AbstractFloat},▽::AbstractArray{Number},η) = (θ .= θ .- (η .* ▽))
 #gradientDescentSingleUpdate!(θ::Tuple,▽::Tuple,η) = gradientDescentSingleUpdate!.(θ,▽,Ref(η))
+
+
+
+
 
 
 
