@@ -24,6 +24,8 @@ Each user-implemented layer must define the following methods:
 
 Use the help system to get more info about these methods.
 
+All high-level functions (except the low-level ones) expect x and y as (nRecords × nDimensions) matrices.
+
 """
 module Nn
 
@@ -35,20 +37,22 @@ module Nn
 
 using Random, Zygote, ProgressMeter
 #using ..Utils
-import ..Utils: relu, drelu, linearf,dlinearf, dtanh, sigmoid, dsigmoid, softMax,
+import ..Utils: relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax,
       dSoftMax, autoJacobian,
       squaredCost,dSquaredCost,
       accuracy,
-      makeMatrix, makeColVector, gradientDescentSingleUpdate, oneHotEncoder
+      makeMatrix, makeColVector, gradientDescentSingleUpdate, oneHotEncoder,
+      getScaleFactors, scale
 import Base.size
 
 export Layer, forward, backward, getParams, getGradient, setParams!, size, NN,
-       buildNetwork, predict, predictSet, loss, losses, train!, getindex,
+       buildNetwork, predict, loss, train!, getindex,
        DenseLayer, DenseNoBiasLayer, VectorFunctionLayer,
-       relu, drelu, linearf,dlinearf, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
+       relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
        autoJacobian,
        accuracy,
-       squaredCost, dSquaredCost, makeMatrix, makeColVector, oneHotEncoder
+       squaredCost, dSquaredCost, makeMatrix, makeColVector, oneHotEncoder,
+       getScaleFactors, scale
 
 
 
@@ -203,12 +207,13 @@ end
 """
    predict(nn,x)
 
-Network prediction of a single data point
+Network predictions
 
 # Parameters:
 * `nn`:  Worker network
-* `x`:   Input to the network
+* `x`:   Input to the network (n × d)
 """
+#=
 function predict(nn::NN,x)
     makeColVector(x)
     values = x
@@ -217,56 +222,45 @@ function predict(nn::NN,x)
     end
     return values
 end
+=#
 
-function predictSet(nn::NN,x)
+function predict(nn::NN,x)
+    x = makeMatrix(x)
     # get the output dimensions
     n = size(x)[1]
     d = size(nn.layers[end])[2]
     out = zeros(n,d)
     for i in 1:size(x)[1]
-        out[i,:] = predict(nn,x[i,:])
+        values = x[i,:]
+        for l in nn.layers
+            values = forward(l,values)
+        end
+        out[i,:] = values
     end
     return out
 end
 
 """
-   loss(nn,x,y)
+   loss(fnn,x,y)
 
-Compute network loss on a single data point
-
-# Parameters:
-* `nn`: Worker network
-* `x`:   Input to the network
-* `y`:   Label input
-"""
-function loss(nn::NN,x,y)
-    x = makeColVector(x)
-    y = makeColVector(y)
-    ŷ = predict(nn,x)
-    return nn.cf(ŷ,y)
-end
-
-"""
-   losses(fnn,x,y)
-
-Compute avg. network loss on a test set
+Compute avg. network loss on a test set (or a single (1 × d) data point)
 
 # Parameters:
 * `fnn`: Worker network
 * `x`:   Input to the network (n) or (n x d)
 * `y`:   Label input (n) or (n x d)
 """
-function losses(nn::NN,x,y)
+function loss(nn::NN,x,y)
     x = makeMatrix(x)
     y = makeMatrix(y)
-    nn.trained ? "" : @warn "Seems you are trying to test a neural network that has not been tested. Use first `train!(nn,x,y)`"
+    (n,d) = size(x)
+    (nn.trained || n == 1) ? "" : @warn "Seems you are trying to test a neural network that has not been tested. Use first `train!(nn,x,y)`"
     ϵ = 0
-    for i in 1:size(x)[1]
-        xᵢ = x[i,:]'
-        yᵢ = y[i,:]'
-        ϵ += loss(nn,xᵢ,yᵢ)
+    for i in 1:n
+        ŷ = predict(nn,x[i,:]')[1,:]
+        ϵ += nn.cf(ŷ,y[i,:])
     end
-    return ϵ/size(x)[1]
+    return ϵ/n
 end
 
 """
@@ -319,14 +313,14 @@ function getGradient(nn::NN,x,y)
   # Step 2: Backpropagation pass
   backwardStack = Array{Float64,1}[]
   if nn.dcf != nothing
-    push!(backwardStack,nn.dcf(forwardStack[end],y)) # adding d€_dHatY
+    push!(backwardStack,nn.dcf(forwardStack[end],y)) # adding dϵ_dHatY
   else
     push!(backwardStack,gradient(nn.cf,forwardStack[end],y)[1]) # using AD from Zygote
   end
   for lidx in nLayers:-1:1
      l = nn.layers[lidx]
-     d€_do = backward(l,forwardStack[lidx],backwardStack[end])
-     push!(backwardStack,d€_do)
+     dϵ_do = backward(l,forwardStack[lidx],backwardStack[end])
+     push!(backwardStack,dϵ_do)
   end
   backwardStack = backwardStack[end:-1:1] # reversing it,
 
@@ -376,59 +370,7 @@ Train a neural network with the given x,y data
 # Notes:
 - use `η = t->k` if you want a learning rate constant to `k`
 """
-function train!(nn::NN,x,y;maxEpochs=1000, η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0)
-    x = makeMatrix(x)
-    y = makeMatrix(y)
-    if nMsgs != 0
-        println("***\n*** Training $(nn.name) for maximum $maxEpochs epochs. Random shuffle: $rShuffle")
-    end
-    #dyn_η = η == nothing ? true : false
-    (ϵ,ϵl) = (0,Inf)
-    converged = false
-    @showprogress 1 "Training the Neural Network..." for t in 1:maxEpochs
-        if rShuffle
-           # random shuffle x and y
-           ridx = shuffle(1:size(x)[1])
-           x = x[ridx, :]
-           y = y[ridx , :]
-        end
-        ϵ = 0
-        #η = dyn_η ? 1/(1+t) : η
-        ηₜ = η(t)*λ
-        for i in 1:size(x)[1]
-            xᵢ = x[i,:]'
-            yᵢ = y[i,:]'
-            W  = getParams(nn)
-            dW = getGradient(nn,xᵢ,yᵢ)
-            for (lidx,l) in enumerate(nn.layers)
-                oldW = W[lidx]
-                dw = dW[lidx]
-                #newW = oldW .- η .* dw
-                newW = gradientDescentSingleUpdate(oldW,dw,ηₜ)
-                setParams!(l,newW)
-            end
-            ϵ += loss(nn,xᵢ,yᵢ)
-        end
-        if nMsgs != 0 && (t % ceil(maxEpochs/nMsgs) == 0 || t == 1 || t == maxEpochs)
-          println("Avg. error after epoch $t : $(ϵ/size(x)[1])")
-        end
 
-        if abs(ϵl/size(x)[1] - ϵ/size(x)[1]) < (tol * abs(ϵl/size(x)[1]))
-            if nMsgs != 0
-                println((tol * abs(ϵl/size(x)[1])))
-                println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (convergence reached")
-            end
-            converged = true
-            break
-        else
-            ϵl = ϵ
-        end
-    end
-    if nMsgs != 0 && converged == false
-        println("*** Avg. error after epoch $maxEpochs : $(ϵ/size(x)[1]) (convergence not reached)")
-    end
-    nn.trained = true
-end
 
 function show(nn::NN)
   trainedString = nn.trained == true ? "trained" : "non trained"
@@ -441,5 +383,17 @@ function show(nn::NN)
 end
 
 Base.getindex(n::NN, i::AbstractArray) = NN(n.layers[i]...)
+
+# ------------------------------------------------------------------------------
+# Optimisation-related functions
+abstract type OptimisationAlgorithm end
+
+include("Nn_default_optalgs.jl")
+
+
+function train!(nn::NN,x,y,optAlg::OptimisationAlgorithm)
+   error("Not implemented for this kind of optimisation algorithm. Please implement `train!(NN,x,y,optAlg)`.")
+end
+
 
 end # end module

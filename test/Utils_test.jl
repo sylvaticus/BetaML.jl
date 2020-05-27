@@ -1,4 +1,4 @@
-using Test
+using Test, Statistics
 
 using Bmlt.Utils
 
@@ -18,13 +18,13 @@ ce = oneHotEncoder(c,6)
 
 # ==================================
 # TEST 2: softMax
-println("Going through Test2 (softMax)...")
+println("** Going through Test2 (softMax)...")
 @test isapprox(softMax([2,3,4],β=0.1),[0.3006096053557272,0.3322249935333472,0.36716540111092544])
 
 
 # ==================================
 # TEST 3: autoJacobian
-println("Going through Test3 (softMax, dSoftMax and autoJacobian)...")
+println("** Going through Test3 (softMax, dSoftMax and autoJacobian)...")
 @test isapprox(softMax([2,3,4],β=0.1),[0.3006096053557272,0.3322249935333472,0.36716540111092544])
 
 #import Bmlt.Utils: autoJacobian
@@ -44,10 +44,23 @@ manualGrad = dSoftMax([2,3,4],β=1/2)
 #@benchmark dSoftMax([2,3,4],β=1/2)
 
 # ==================================
-# TEST 4: probabilistic accuracy
-println("Going through Test4 (accuracy)...")
+# New test
+println("** Going through testing accuracy...")
 
 x = [0.01 0.02 0.1 0.05 0.2 0.1  0.05 0.27  0.2;
      0.05 0.01 0.2 0.02 0.1 0.27 0.1  0.05  0.2]
 y = [3,3]
 @test [accuracy(x,y,tol=i) for i in 1:10] == [0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+# ==================================
+# New test
+println("** Going through testing scaling...")
+
+skip = [1,4,5]
+x = [1.1 4.1 8.1 3 8; 2 4 9 7 2; 7 2 9 3 1]
+scaleFactors = getScaleFactors(x,skip=skip)
+y  = scale(x,scaleFactors)
+y2 = scale(x)
+scale!(x)
+
+@test all((sum(mean(y,dims=1)), sum(var(y,corrected=false,dims=1)) ) .≈ (11.366666666666667, 21.846666666666668))

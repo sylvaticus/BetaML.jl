@@ -5,12 +5,11 @@
 
 module Utils
 
-using LinearAlgebra, Zygote
+using LinearAlgebra,  Statistics, Zygote
 
 export reshape, makeColVector, makeRowVector, makeMatrix,
-       oneHotEncoder,
-       relu, drelu, linearf,
-       dlinearf, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
+       oneHotEncoder, getScaleFactors, scale,
+       relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
        autoJacobian,
        squaredCost, dSquaredCost, l1_distance,
        error, accuracy,
@@ -63,13 +62,64 @@ function oneHotEncoder(Y,d=maximum(maximum.(Y));count=false)
     return out
 end
 
+"""
+    getScaleFactors(x;skip)
+
+Return the scale factors (for each dimensions) in order to scale a matrix X (n,d)
+such that each dimension has mean 0 and variance 1.
+
+# Parameters
+- `x`: the (n × d) dimension matrix to scale on each dimension d
+- `skip`: an array of dimension index to skip the scaling [def: `[]`]
+
+# Return
+- A touple whose first elmement is the shift and the second the multiplicative
+term to make the scale.
+"""
+function getScaleFactors(x;skip=[])
+    μ  = mean(x,dims=1)
+    σ² = var(x,corrected=false,dims=1)
+    sfμ = - μ
+    sfσ² = 1 ./ sqrt.(σ²)
+    for i in skip
+        sfμ[i] = 0
+        sfσ²[i] = 1
+    end
+    return (sfμ,sfσ²)
+end
+
+"""
+    scale(x;scalingFactors)
+
+Perform a linear scaling of x using scaling factors `scalingFactors`.
+
+# Parameters
+- `x`: the (n × d) dimension matrix to scale on each dimension d
+- `scalingFactors`: an tuple of the constant and multiplicative scaling factor
+respectively [def: the scaling factors needed to scale x to mean 0 and variance 1]
+
+# Return
+- The scaled matrix
+
+# Notes:
+- also available `scale!(x;scalingFactors)` for in-place scaling.
+"""
+function scale(x,scaleFactors=(-mean(x,dims=1),1 ./ sqrt.(var(x,corrected=false,dims=1)) ))
+    y = (x .+ scaleFactors[1]) .* scaleFactors[2]
+    return y
+end
+function scale!(x,scaleFactors=(-mean(x,dims=1),1 ./ sqrt.(var(x,corrected=false,dims=1))))
+    x .= (x .+ scaleFactors[1]) .* scaleFactors[2]
+    return nothing
+end
+
 # ------------------------------------------------------------------------------
 # Various neural network activation functions as well their derivatives
 
 relu(x)     = max(0,x)
 drelu(x)    = x <= 0 ? 0 : 1
-linearf(x)  = x
-dlinearf(x) = 1
+#identity(x)  = x already in Julia base
+didentity(x) = 1
 #tanh(x) already in Julia base
 dtanh(x)    = 1-tanh(x)^2
 sigmoid(x)  = 1/(1+exp(-x))
@@ -213,9 +263,6 @@ gradientDescentSingleUpdate(θ::Tuple,▽::Tuple,η) = gradientDescentSingleUpda
 #gradientDescentSingleUpdate!(θ::AbstractArray{AbstractFloat},▽::AbstractArray{AbstractFloat},η) = (θ .= θ .- (η .* ▽))
 #gradientDescentSingleUpdate!(θ::AbstractArray{AbstractFloat},▽::AbstractArray{Number},η) = (θ .= θ .- (η .* ▽))
 #gradientDescentSingleUpdate!(θ::Tuple,▽::Tuple,η) = gradientDescentSingleUpdate!.(θ,▽,Ref(η))
-
-
-
 
 
 

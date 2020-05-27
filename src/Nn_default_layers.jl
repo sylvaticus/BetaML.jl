@@ -36,16 +36,16 @@ mutable struct DenseLayer <: Layer
      Instantiate a new DenseLayer
 
      Positional arguments:
-     * `f`:  Activation function
      * `nₗ`: Number of nodes of the previous layer
      * `n`:  Number of nodes
      Keyword arguments:
      * `w`:  Initial weigths with respect to input [default: `rand(n,nₗ)`]
      * `wb`: Initial weigths with respect to bias [default: `rand(n)`]
+     * `f`:  Activation function [def: `identity`]
      * `df`: Derivative of the activation function [default: `nothing` (i.e. use AD)]
 
      """
-     function DenseLayer(f,nₗ,n;w=rand(n,nₗ),wb=rand(n),df=nothing)
+     function DenseLayer(nₗ,n;w=rand(n,nₗ),wb=rand(n),f=identity,df=nothing)
          # To be sure w is a matrix and wb a column vector..
          w  = reshape(w,n,nₗ)
          wb = reshape(wb,n)
@@ -115,14 +115,14 @@ mutable struct DenseNoBiasLayer <: Layer
      Instantiate a new DenseNoBiasLayer
 
      Positional arguments:
-     * `f`:  Activation function
      * `nₗ`: Number of nodes of the previous layer
      * `n`:  Number of nodes
      Keyword arguments:
-     * `w`:  Initial weigths with respect to input [default: `rand(n,nₗ)`]
-     * `df`: Derivative of the activation function [default: `nothing` (i.e. use AD)]
+     * `w`:  Initial weigths with respect to input [def: `rand(n,nₗ)`]
+     * `f`:  Activation function [def: `identity`]
+     * `df`: Derivative of the activation function [def: `nothing` (i.e. use AD)]
      """
-     function DenseNoBiasLayer(f,nₗ,n;w=rand(n,nₗ),df=nothing)
+     function DenseNoBiasLayer(nₗ,n;w=rand(n,nₗ),f=identity,df=nothing)
          # To be sure w is a matrix and wb a column vector..
          w  = reshape(w,n,nₗ)
          return new(w,f,df)
@@ -195,17 +195,17 @@ mutable struct VectorFunctionLayer <: Layer
      Instantiate a new VectorFunctionLayer
 
      # Positional arguments:
-     * `f`:  Activation function
      * `nₗ`: Number of nodes of the previous layer
      * `n`:  Number of nodes [default: `n`]
      # Keyword arguments:
+     * `f`:  Activation function [def: `softMax`]
      * `df`: Derivative of the activation function [default: `nothing` (i.e. use AD)]
 
      # Notes:
      - If the derivative is provided, it should return the gradient as a (n,nₗ) matrix (i.e. the Jacobian)
 
      """
-     function VectorFunctionLayer(f,nₗ,n=nₗ;df=nothing)
+     function VectorFunctionLayer(nₗ,n=nₗ;f=softMax,df=nothing)
          return new(nₗ,n,f,df)
      end
 end
