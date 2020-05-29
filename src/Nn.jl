@@ -397,8 +397,18 @@ abstract type OptimisationAlgorithm end
 include("Nn_default_optalgs.jl")
 
 
-function train!(nn::NN,x,y,optAlg::OptimisationAlgorithm)
-   error("Not implemented for this kind of optimisation algorithm. Please implement `train!(NN,x,y,optAlg)`.")
+function trainingInfo(nn,x,y;n,batchSize,epochs,verbosity,nEpoch,nBatch)
+   if verbosity == NONE
+       return
+   end
+
+   nMsgDict = Dict(STD => 10,HIGH => 100, FULL => n)
+   nMsgs = nMsgDict[verbosity]
+
+   if (verbosity == FULL || nEpoch == batchSize) && (nEpoch == 1 || nEpoch % ceil(epochs/nMsgs) == 0)
+      ϵ = loss(nn,x,y)
+      println("Training.. \t ϵ on (Epoch $nEpoch Batch $nBatch): \t $ϵ")
+   end
 end
 
 """
@@ -421,7 +431,7 @@ Train a neural network with the given x,y data
 - use `η = t->k` if you want a learning rate constant to `k`
 """
 
-function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), verbosity::Verbosity=STD, sequential=false, optAlg::OptimisationAlgorithm=SGD()) #,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0optAlg::SD=SD())
+function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=false, verbosity::Verbosity=STD, cb=trainingInfo, optAlg::OptimisationAlgorithm=SGD()) #,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0optAlg::SD=SD())
 
     x = makeMatrix(x)
     y = makeMatrix(y)
@@ -449,12 +459,10 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), verbosity::
            xbatch = x[batch, :]
            ybatch = y[batch, :]
            θ   = getParams(nn)
-           #println(xbatch)
-           #temp = [getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]
-           #println(temp)
            ▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)
            res = singleUpdate(θ,▽;nEpoch=t,nBatch=i,batchSize=batchSize,ϵ_epoch=ϵ_epoch,ϵ_epoch_l=ϵ_epoch_l,optAlg=optAlg)
            setParams!(nn,res.θ)
+           cb(nn,xbatch,ybatch,n=d,batchSize=batchSize,epochs=epochs,verbosity=verbosity,nEpoch=t,nBatch=i)
            if(res.stop==true)
                nn.trained = true
                return (t,ϵ_epochs,θ_epochs)
