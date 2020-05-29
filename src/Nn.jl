@@ -426,7 +426,7 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), verbosity::
     x = makeMatrix(x)
     y = makeMatrix(y)
     (n,d)     = size(x)
-    batchSize = min(size(x,1),32)
+    batchSize = min(size(x,1),batchSize)
     if verbosity > NONE # Note that are two "Verbosity type" objects. To compare with numbers use Int(NONE) > 1
         println("***\n*** Training $(nn.name) for $epochs epochs with algorithm $(typeof(optAlg)).")
     end
@@ -451,6 +451,7 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), verbosity::
            θ   = getParams(nn)
            #println(xbatch)
            #temp = [getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]
+           #println(temp)
            ▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)
            res = singleUpdate(θ,▽;nEpoch=t,nBatch=i,batchSize=batchSize,ϵ_epoch=ϵ_epoch,ϵ_epoch_l=ϵ_epoch_l,optAlg=optAlg)
            setParams!(nn,res.θ)
