@@ -5,17 +5,20 @@
 
 module Utils
 
-using LinearAlgebra,  Statistics, Zygote
+using LinearAlgebra, Random, Statistics, Zygote
 
 export reshape, makeColVector, makeRowVector, makeMatrix,
-       oneHotEncoder, getScaleFactors, scale,
+       oneHotEncoder, getScaleFactors, scale, batch,
        relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
        autoJacobian,
        squaredCost, dSquaredCost, l1_distance,
        error, accuracy,
        l2_distance, l2²_distance, cosine_distance, normalFixedSd, lse, sterling,
-       radialKernel,polynomialKernel
+       radialKernel,polynomialKernel,
+       Verbosity, NONE, LOW, STD, HIGH, FULL
 
+
+@enum Verbosity NONE=0 LOW=10 STD=20 HIGH=30 FULL=40
 
 # ------------------------------------------------------------------------------
 # Various reshaping functions
@@ -60,6 +63,25 @@ function oneHotEncoder(Y,d=maximum(maximum.(Y));count=false)
         out[i,:] = oneHotEncoderRow(y,d;count = count)
     end
     return out
+end
+
+"""
+  batch(n,bSize;sequential=false)
+
+Return a vector of `bSize` indeces from `1` to `n`.
+Randomly unless the optional parameter `sequential` is used.
+"""
+function batch(n::Integer,bSize::Integer;sequential=false)
+    ridx = sequential ? collect(1:n) : shuffle(1:n)
+    if bSize > n
+        return [ridx]
+    end
+    nBatches = Int64(floor(n/bSize))
+    batches = Array{Int64,1}[]
+    for b in 1:nBatches
+        push!(batches,ridx[b*bSize-bSize+1:b*bSize])
+    end
+    return batches
 end
 
 """
@@ -247,6 +269,8 @@ lse(x) = maximum(x)+log(sum(exp.(x .- maximum(x))))
 sterling(n::BigInt,k::BigInt) = (1/factorial(k)) * sum((-1)^i * binomial(k,i)* (k-i)^n for i in 0:k)
 sterling(n::Int64,k::Int64)   = sterling(BigInt(n),BigInt(k))
 
+#=
+
 """
     gradientDescentSingleUpdate(θ,▽,η)
 
@@ -263,8 +287,6 @@ gradientDescentSingleUpdate(θ::Tuple,▽::Tuple,η) = gradientDescentSingleUpda
 #gradientDescentSingleUpdate!(θ::AbstractArray{AbstractFloat},▽::AbstractArray{AbstractFloat},η) = (θ .= θ .- (η .* ▽))
 #gradientDescentSingleUpdate!(θ::AbstractArray{AbstractFloat},▽::AbstractArray{Number},η) = (θ .= θ .- (η .* ▽))
 #gradientDescentSingleUpdate!(θ::Tuple,▽::Tuple,η) = gradientDescentSingleUpdate!.(θ,▽,Ref(η))
-
-
-
+=#
 
 end # end module

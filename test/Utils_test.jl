@@ -64,3 +64,11 @@ y2 = scale(x)
 scale!(x)
 
 @test all((sum(mean(y,dims=1)), sum(var(y,corrected=false,dims=1)) ) .≈ (11.366666666666667, 21.846666666666668))
+
+
+# ==================================
+# New test
+println("** Testing batch()...")
+
+@test size.(batch(10,3),1) == [3,3,3]
+@test size.(batch(10,12),1) == [10]

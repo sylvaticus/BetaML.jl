@@ -41,9 +41,13 @@ import ..Utils: relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax,
       dSoftMax, autoJacobian,
       squaredCost,dSquaredCost,
       accuracy,
-      makeMatrix, makeColVector, gradientDescentSingleUpdate, oneHotEncoder,
-      getScaleFactors, scale
+      makeMatrix, makeColVector,
+      #gradientDescentSingleUpdate,
+      oneHotEncoder,
+      getScaleFactors, scale, batch,
+      Verbosity, NONE, LOW, STD, HIGH, FULL
 import Base.size
+
 
 export Layer, forward, backward, getParams, getGradient, setParams!, size, NN,
        buildNetwork, predict, loss, train!, getindex,
@@ -52,9 +56,29 @@ export Layer, forward, backward, getParams, getGradient, setParams!, size, NN,
        autoJacobian,
        accuracy,
        squaredCost, dSquaredCost, makeMatrix, makeColVector, oneHotEncoder,
-       getScaleFactors, scale
+       getScaleFactors, scale, batch,
+       Verbosity, NONE, LOW, STD, HIGH, FULL,
+       gradSum,gradSub,gradMul,gradDiv
 
-
+# for working on gradient as e.g [([1.0 2.0; 3.0 4.0], [1.0,2.0,3.0]),([1.0,2.0,3.0],1.0)]
+# Renamed to avoid "type pyracy"
+#import Base.+
+#import Base.-
+#import Base.*
+#import Base./
+gradSum(a::Tuple,b::Tuple) = a .+ b
+gradSum(a::Tuple) = a
+gradSub(a::Tuple,b::Tuple) = a .- b
+gradMul(a::Tuple,b::Number) = a .* b
+gradDiv(a::Tuple,b::Number) = a ./ b
+# For summing more than two I had to resort to this function:
+function gradSum(▽ₛ)
+    o = ▽ₛ[1]
+    for i in 2:length(▽ₛ)
+        o = gradSum.(o,▽ₛ[i])
+    end
+    return o
+end
 
 ## Sckeleton for the layer functionality.
 # See nn_default_layers.jl for actual implementations
@@ -254,7 +278,7 @@ function loss(nn::NN,x,y)
     x = makeMatrix(x)
     y = makeMatrix(y)
     (n,d) = size(x)
-    (nn.trained || n == 1) ? "" : @warn "Seems you are trying to test a neural network that has not been tested. Use first `train!(nn,x,y)`"
+    #(nn.trained || n == 1) ? "" : @warn "Seems you are trying to test a neural network that has not been tested. Use first `train!(nn,x,y)`"
     ϵ = 0
     for i in 1:n
         ŷ = predict(nn,x[i,:]')[1,:]
@@ -351,25 +375,7 @@ function setParams!(nn::NN,w)
 end
 
 
-"""
-   train!(nn,x,y;epochs,η,rshuffle,nMsg,tol)
 
-Train a neural network with the given x,y data
-
-# Parameters:
-* `nn`:       Worker network
-* `x`:        Training input to the network (records x dimensions)
-* `y`:        Label input (records x dimensions)
-* `epochs`:   Number of passages over the training set [def: `1000`]
-* `η`:        Learning rate as a function of the epoch [def: `t -> 1/(1+t)`]
-* `λ`:        Multiplicative term of the learning rate
-* `rShuffle`: Whether to random shuffle the training set at each epoch [def: `true`]
-* `nMsg`:     Maximum number of messages to show if all epochs are done [def: `10`]
-* `tol`:      A tollerance to stop when the losses stop decreasing [def: `0`]
-
-# Notes:
-- use `η = t->k` if you want a learning rate constant to `k`
-"""
 
 
 function show(nn::NN)
@@ -395,5 +401,127 @@ function train!(nn::NN,x,y,optAlg::OptimisationAlgorithm)
    error("Not implemented for this kind of optimisation algorithm. Please implement `train!(NN,x,y,optAlg)`.")
 end
 
+"""
+   train!(nn,x,y;epochs,η,rshuffle,nMsg,tol)
+
+Train a neural network with the given x,y data
+
+# Parameters:
+* `nn`:       Worker network
+* `x`:        Training input to the network (records x dimensions)
+* `y`:        Label input (records x dimensions)
+* `epochs`:   Number of passages over the training set [def: `1000`]
+* `η`:        Learning rate as a function of the epoch [def: `t -> 1/(1+t)`]
+* `λ`:        Multiplicative term of the learning rate
+* `rShuffle`: Whether to random shuffle the training set at each epoch [def: `true`]
+* `nMsg`:     Maximum number of messages to show if all epochs are done [def: `10`]
+* `tol`:      A tollerance to stop when the losses stop decreasing [def: `0`]
+
+# Notes:
+- use `η = t->k` if you want a learning rate constant to `k`
+"""
+
+function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), verbosity::Verbosity=STD, sequential=false, optAlg::OptimisationAlgorithm=SGD()) #,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0optAlg::SD=SD())
+
+    x = makeMatrix(x)
+    y = makeMatrix(y)
+    (n,d)     = size(x)
+    batchSize = min(size(x,1),32)
+    if verbosity > NONE # Note that are two "Verbosity type" objects. To compare with numbers use Int(NONE) > 1
+        println("***\n*** Training $(nn.name) for $epochs epochs with algorithm $(typeof(optAlg)).")
+    end
+    ϵ_epoch_l = Inf
+    θ_epoch_l = getParams(nn)
+    ϵ_epoch   = loss(nn,x,y)
+    θ_epoch   = getParams(nn)
+    ϵ_epochs  = []
+    θ_epochs  = []
+
+    timetoShowProgress = verbosity > NONE ? 1 : typemax(Int64)
+    @showprogress timetoShowProgress "Training the Neural Network..." for t in 1:epochs
+       batches = batch(n,batchSize,sequential=sequential)
+       if t == 1
+           if (verbosity >= STD) push!(ϵ_epochs,ϵ_epoch); end
+           if (verbosity > STD) push!(θ_epochs,θ_epoch); end
+       end
+
+       for (i,batch) in enumerate(batches)
+           xbatch = x[batch, :]
+           ybatch = y[batch, :]
+           θ   = getParams(nn)
+           #println(xbatch)
+           #temp = [getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]
+           ▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)
+           res = singleUpdate(θ,▽;nEpoch=t,nBatch=i,batchSize=batchSize,ϵ_epoch=ϵ_epoch,ϵ_epoch_l=ϵ_epoch_l,optAlg=optAlg)
+           setParams!(nn,res.θ)
+           if(res.stop==true)
+               nn.trained = true
+               return (t,ϵ_epochs,θ_epochs)
+           end
+       end
+       ϵ_epoch_l = ϵ_epoch
+       θ_epoch_l = θ_epoch
+       ϵ_epoch = loss(nn,x,y)
+       θ_epoch = getParams(nn)
+       if (verbosity >= STD) push!(ϵ_epochs,ϵ_epoch); end
+       if (verbosity > STD) push!(θ_epochs,θ_epoch); end
+    end
+
+    if (verbosity > NONE) println("Training of $epochs epoch completed. Final epoch error: $(ϵ_epoch)."); end
+    nn.trained = true
+    return (epochs,ϵ_epochs,θ_epochs)
+end
+
+function singleUpdate(θ,▽;nEpoch,nBatch,batchSize,ϵ_epoch,ϵ_epoch_l,optAlg::OptimisationAlgorithm=SGD())
+   return singleUpdate(θ,▽,optAlg;nEpoch=nEpoch,nBatch=nBatch,batchSize=batchSize,ϵ_epoch=ϵ_epoch,ϵ_epoch_l=ϵ_epoch_l)
+end
+
+function singleUpdate(θ,▽,optAlg::OptimisationAlgorithm;nEpoch,nBatch,batchSize,ϵ_epoch,ϵ_epoch_l)
+    error("singleUpdate() not implemented for this optimisation algorithm")
+end
+
+
+
+#=
+        if rShuffle
+           # random shuffle x and y
+           ridx = shuffle(1:size(x)[1])
+           x = x[ridx, :]
+           y = y[ridx , :]
+        end
+        ϵ = 0
+        #η = dyn_η ? 1/(1+t) : η
+        ηₜ = η(t)*λ
+        for i in 1:size(x)[1]
+            xᵢ = x[i,:]'
+            yᵢ = y[i,:]'
+            W  = getParams(nn)
+            dW = getGradient(nn,xᵢ,yᵢ)
+            newW = gradientDescentSingleUpdate(W,dW,ηₜ)
+            setParams!(nn,newW)
+            ϵ += loss(nn,xᵢ,yᵢ)
+        end
+        if nMsgs != 0 && (t % ceil(maxEpochs/nMsgs) == 0 || t == 1 || t == maxEpochs)
+          println("Avg. error after epoch $t : $(ϵ/size(x)[1])")
+        end
+
+        if abs(ϵl/size(x)[1] - ϵ/size(x)[1]) < (tol * abs(ϵl/size(x)[1]))
+            if nMsgs != 0
+                println((tol * abs(ϵl/size(x)[1])))
+                println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (convergence reached")
+            end
+            converged = true
+            break
+        else
+            ϵl = ϵ
+        end
+    end
+    if nMsgs != 0 && converged == false
+        println("*** Avg. error after epoch $maxEpochs : $(ϵ/size(x)[1]) (convergence not reached)")
+    end
+    nn.trained = true
+end
+
+ =#
 
 end # end module
