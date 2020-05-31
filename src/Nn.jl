@@ -58,7 +58,8 @@ export Layer, forward, backward, getParams, getGradient, setParams!, size, NN,
        squaredCost, dSquaredCost, makeMatrix, makeColVector, oneHotEncoder,
        getScaleFactors, scale, batch,
        Verbosity, NONE, LOW, STD, HIGH, FULL,
-       gradSum,gradSub,gradMul,gradDiv
+       gradSum,gradSub,gradMul,gradDiv,
+       show
 
 # for working on gradient as e.g [([1.0 2.0; 3.0 4.0], [1.0,2.0,3.0]),([1.0,2.0,3.0],1.0)]
 # Renamed to avoid "type pyracy"
@@ -466,7 +467,7 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
            cb(nn,xbatch,ybatch,n=d,batchSize=batchSize,epochs=epochs,verbosity=verbosity,nEpoch=t,nBatch=i)
            if(res.stop==true)
                nn.trained = true
-               return (t,ϵ_epochs,θ_epochs)
+               return (epochs=t,ϵ_epochs=ϵ_epochs,θ_epochs=θ_epochs)
            end
        end
        ϵ_epoch_l = ϵ_epoch
@@ -479,7 +480,7 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
 
     if (verbosity > NONE) println("Training of $epochs epoch completed. Final epoch error: $(ϵ_epoch)."); end
     nn.trained = true
-    return (epochs,ϵ_epochs,θ_epochs)
+    return (epochs=epochs,ϵ_epochs=ϵ_epochs,θ_epochs=θ_epochs)
 end
 
 function singleUpdate(θ,▽;nEpoch,nBatch,batchSize,ϵ_epoch,ϵ_epoch_l,optAlg::OptimisationAlgorithm=SGD())
