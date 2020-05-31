@@ -405,7 +405,8 @@ function trainingInfo(nn,x,y;n,batchSize,epochs,verbosity,nEpoch,nBatch)
    nMsgDict = Dict(STD => 10,HIGH => 100, FULL => n)
    nMsgs = nMsgDict[verbosity]
 
-   if (verbosity == FULL || nEpoch == batchSize) && (nEpoch == 1 || nEpoch % ceil(epochs/nMsgs) == 0)
+   if verbosity == FULL || ( nBatch == batchSize && ( nEpoch == 1  || nEpoch % ceil(epochs/nMsgs) == 0))
+
       ϵ = loss(nn,x,y)
       println("Training.. \t ϵ on (Epoch $nEpoch Batch $nBatch): \t $ϵ")
    end
