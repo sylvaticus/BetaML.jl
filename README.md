@@ -80,8 +80,7 @@ groupedbar([ytest ŷtestChosen], label=["ytest" "ŷtest (est)"]) # All records
 plot(0:res.epochs,res.ϵ_epochs, ylabel="epochs",xlabel="error",legend=nothing,title="Avg. error per epoch on the Sepal dataset")
 ```
 
-<img src="assets/sepalOutput_results.png" width="400"/>
-<img src="assets/sepalOutput_errors.png" width="400"/>
+<img src="assets/sepalOutput_results.png" width="400"/> <img src="assets/sepalOutput_errors.png" width="400"/>
 
 
 ## Acknowledgements
