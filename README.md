@@ -40,7 +40,7 @@ A proper documentation is work in progress.
 
 ```julia
 # Load Modules
-using Bmlt.Nn, DelimitedFiles, Random, Plots # Load the main module and ausiliary modules
+using Bmlt.Nn, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
 Random.seed!(123); # Fix the random seed (to obtain reproducible results)
 
 # Load the data
@@ -76,7 +76,7 @@ testAccuracy  = accuracy(ŷtest,ytest,tol=1)   # 1.0
 # Visualise results
 testSize = size(ŷtest,1)
 ŷtestChosen =  [argmax(ŷtest[i,:]) for i in 1:testSize]
-groupedbar([ytest ŷtestChosen], label=["ytest" "ŷtest (est)"]) # All records correctly labelled !
+groupedbar([ytest ŷtestChosen], label=["ytest" "ŷtest (est)"], title="True vs estimated categories") # All records correctly labelled !
 plot(0:res.epochs,res.ϵ_epochs, ylabel="epochs",xlabel="error",legend=nothing,title="Avg. error per epoch on the Sepal dataset")
 ```
 
