@@ -21,6 +21,7 @@ struct SGD <: OptimisationAlgorithm
     end
 end
 
+
 function singleUpdate(θ,▽,optAlg::SGD;nEpoch,nBatch,batchSize,xbatch,ybatch)
     η    = optAlg.η(nEpoch)*optAlg.λ
     newθ = gradSub.(θ,gradMul.(▽,η))
