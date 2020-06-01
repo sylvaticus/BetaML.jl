@@ -23,7 +23,8 @@ l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], f=tanh, df=dtanh)
 l2 = DenseNoBiasLayer(3,2, w=[1 1 1; 1 1 1], f=relu, df=drelu)
 l3 = DenseLayer(2,1, w=[1 1], wb=[0], f=identity,df=didentity)
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1",dcf=dSquaredCost)
-train!(mynn,xtrain,ytrain,batchSize=1,sequential=true,epochs=100,optAlg=SGD(η=t -> 1/(1+t),λ=1))
+train!(mynn,xtrain,ytrain,batchSize=1,sequential=true,epochs=100,verbosity=FULL,optAlg=SGD(η=t -> 1/(1+t),λ=1))
+avgTrainLoss = loss(mynn,xtrain,ytrain)
 avgLoss = loss(mynn,xtest,ytest)
 @test  avgLoss ≈ 1.599729991966362
 expectedOutput = [0.7360644412052633, 0.7360644412052633, 0.7360644412052633, 2.47093434438514]

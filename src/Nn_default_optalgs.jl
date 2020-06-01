@@ -4,7 +4,15 @@ export SGD,DebugOptAlg,singleUpdate
 
 # ------------------------------------------------------------------------------
 # DebugOptAlg
+"""
+  SGD
 
+Stochastic Gradient Descent algorithm (default)
+
+#Fields
+- `η`: Learning rate, as a function of the current epoch [def: t -> 1/(1+t)]
+- `λ`: Multiplicative constant to the learning rate [def: 2]
+"""
 struct SGD <: OptimisationAlgorithm
     η::Function
     λ::Float64
@@ -13,7 +21,7 @@ struct SGD <: OptimisationAlgorithm
     end
 end
 
-function singleUpdate(θ,▽,optAlg::SGD;nEpoch,nBatch,batchSize,ϵ_epoch,ϵ_epoch_l)
+function singleUpdate(θ,▽,optAlg::SGD;nEpoch,nBatch,batchSize,xbatch,ybatch)
     η    = optAlg.η(nEpoch)*optAlg.λ
     newθ = gradSub.(θ,gradMul.(▽,η))
     #newθ = θ - ▽ * η

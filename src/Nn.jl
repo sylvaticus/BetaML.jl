@@ -378,7 +378,14 @@ end
 
 
 
+"""
+  show(nn)
 
+Print a representation of the Neural Network (layers, dimensions..)
+
+# Parameters:
+* `nn`: Worker network
+"""
 function show(nn::NN)
   trainedString = nn.trained == true ? "trained" : "non trained"
   println("*** $(nn.name) ($(length(nn.layers)) layers, $(trainedString))\n")
@@ -393,46 +400,96 @@ Base.getindex(n::NN, i::AbstractArray) = NN(n.layers[i]...)
 
 # ------------------------------------------------------------------------------
 # Optimisation-related functions
+
+"""
+    OptimisationAlgorithm
+
+Abstract type representing an Optimisation algorithm.
+
+Currently supported algorithms:
+- `SGD` (Stochastic) Gradient Descent
+
+See `?[Name OF THE ALGORITHM]` for their details
+
+You can implement your own optimisation algorithm using a subtype of OptimisationAlgorithm
+and implementing its constructor and the update function `singleUpdate(⋅)`
+(type `?singleUpdate` for details).
+
+"""
 abstract type OptimisationAlgorithm end
 
 include("Nn_default_optalgs.jl")
 
+"""
+   trainingInfo(nn,x,y;n,batchSize,epochs,verbosity,nEpoch,nBatch)
 
+Default callback funtion to display information during training, depending on the
+verbosity level
+
+# Parameters:
+* `nn`: Worker network
+* `x`:  Batch input to the network (batchSize,d)
+* `y`:  Batch label input (batchSize,d)
+* `n`: Size of the full training set
+* `batchSize` : size of the specific batch just ran
+* `epochs`: Number of epochs defined for the training
+* `verbosity`: Verbosity level defined for the training (NONE,LOW,STD,HIGH,FULL)
+* `nEpoch`: Counter of the current epoch
+* `nBatch`: Counter of the current batch
+
+#Notes:
+* Reporting of the error (loss of the network) is expensive. Use verbosity=NONE
+for better performances
+"""
 function trainingInfo(nn,x,y;n,batchSize,epochs,verbosity,nEpoch,nBatch)
    if verbosity == NONE
-       return
+       return nothing
    end
 
-   nMsgDict = Dict(STD => 10,HIGH => 100, FULL => n)
+   nMsgDict = Dict(LOW => 0, STD => 10,HIGH => 100, FULL => n)
    nMsgs = nMsgDict[verbosity]
 
    if verbosity == FULL || ( nBatch == batchSize && ( nEpoch == 1  || nEpoch % ceil(epochs/nMsgs) == 0))
 
       ϵ = loss(nn,x,y)
-      println("Training.. \t ϵ on (Epoch $nEpoch Batch $nBatch): \t $ϵ")
+      println("Training.. \t avg ϵ on (Epoch $nEpoch Batch $nBatch): \t $(ϵ)")
    end
+   return nothing
 end
 
 """
-   train!(nn,x,y;epochs,η,rshuffle,nMsg,tol)
+   train!(nn,x,y;epochs,batchSize,sequential,optAlg,verbosity,cb)
 
 Train a neural network with the given x,y data
 
 # Parameters:
-* `nn`:       Worker network
-* `x`:        Training input to the network (records x dimensions)
-* `y`:        Label input (records x dimensions)
-* `epochs`:   Number of passages over the training set [def: `1000`]
-* `η`:        Learning rate as a function of the epoch [def: `t -> 1/(1+t)`]
-* `λ`:        Multiplicative term of the learning rate
-* `rShuffle`: Whether to random shuffle the training set at each epoch [def: `true`]
-* `nMsg`:     Maximum number of messages to show if all epochs are done [def: `10`]
-* `tol`:      A tollerance to stop when the losses stop decreasing [def: `0`]
+* `nn`:         Worker network
+* `x`:          Training input to the network (records x dimensions)
+* `y`:          Label input (records x dimensions)
+* `epochs`:     Number of passages over the training set [def: `100`]
+* `batchSize`:  Size of each individual batch [def: `min(size(x,1),32)`]
+* `sequential`: Wether to run all data sequentially instead of random [def: `false`]
+* `optAlg`:     The optimisation algorithm to update the gradient at each batch [def: `SGD`]
+* `verbosity`:  A verbosity parameter for the trade off information / efficiency [def: `STD`]
+* `cb`:         A callback to provide information. [def: `trainingInfo`]
+
+# Return:
+- A named tuple with the following information
+  - `epochs`: Number of epochs actually ran
+  - `ϵ_epochs`: The average error on each epoch (if `verbosity > LOW`)
+  - `θ_epochs`: The parameters at each epoch (if `verbosity > STD`)
 
 # Notes:
-- use `η = t->k` if you want a learning rate constant to `k`
+- Currently supported algorithms:
+    - `SGD` (Stochastic) Gradient Descent
+- Look at the individual optimisation algorithm (`?[Name OF THE ALGORITHM]`) for
+info on its parameter, e.g. `?SGD` for the default Stochastic Gradient Descent.
+- You can implement your own optimisation algorithm using a subtype of `OptimisationAlgorithm`
+and implementing its constructor and the update function `singleUpdate(⋅)`
+(type `?singleUpdate` for details).
+- The update is done computing the average gradient for each batch and then calling
+`singleUpdate` to let the optimisation algorithm perform the parameters update
 """
-
 function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=false, verbosity::Verbosity=STD, cb=trainingInfo, optAlg::OptimisationAlgorithm=SGD()) #,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0optAlg::SD=SD())
 
     x = makeMatrix(x)
@@ -456,13 +513,12 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
            if (verbosity >= STD) push!(ϵ_epochs,ϵ_epoch); end
            if (verbosity > STD) push!(θ_epochs,θ_epoch); end
        end
-
        for (i,batch) in enumerate(batches)
            xbatch = x[batch, :]
            ybatch = y[batch, :]
            θ   = getParams(nn)
            ▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)
-           res = singleUpdate(θ,▽;nEpoch=t,nBatch=i,batchSize=batchSize,ϵ_epoch=ϵ_epoch,ϵ_epoch_l=ϵ_epoch_l,optAlg=optAlg)
+           res = singleUpdate(θ,▽;nEpoch=t,nBatch=i,batchSize=batchSize,xbatch=xbatch,ybatch=ybatch,optAlg=optAlg)
            setParams!(nn,res.θ)
            cb(nn,xbatch,ybatch,n=d,batchSize=batchSize,epochs=epochs,verbosity=verbosity,nEpoch=t,nBatch=i)
            if(res.stop==true)
@@ -470,24 +526,53 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
                return (epochs=t,ϵ_epochs=ϵ_epochs,θ_epochs=θ_epochs)
            end
        end
-       ϵ_epoch_l = ϵ_epoch
-       θ_epoch_l = θ_epoch
-       ϵ_epoch = loss(nn,x,y)
-       θ_epoch = getParams(nn)
-       if (verbosity >= STD) push!(ϵ_epochs,ϵ_epoch); end
-       if (verbosity > STD) push!(θ_epochs,θ_epoch); end
+       if (verbosity >= STD)
+           ϵ_epoch_l = ϵ_epoch
+           ϵ_epoch = loss(nn,x,y)
+           push!(ϵ_epochs,ϵ_epoch);
+       end
+       if (verbosity > STD)
+           θ_epoch_l = θ_epoch
+           θ_epoch = getParams(nn)
+           push!(θ_epochs,θ_epoch); end
     end
 
-    if (verbosity > NONE) println("Training of $epochs epoch completed. Final epoch error: $(ϵ_epoch)."); end
+    if (verbosity > NONE)
+        if verbosity == LOW
+            ϵ_epoch = loss(nn,x,y)
+        end
+        println("Training of $epochs epoch completed. Final epoch error: $(ϵ_epoch).");
+     end
     nn.trained = true
     return (epochs=epochs,ϵ_epochs=ϵ_epochs,θ_epochs=θ_epochs)
 end
 
-function singleUpdate(θ,▽;nEpoch,nBatch,batchSize,ϵ_epoch,ϵ_epoch_l,optAlg::OptimisationAlgorithm=SGD())
-   return singleUpdate(θ,▽,optAlg;nEpoch=nEpoch,nBatch=nBatch,batchSize=batchSize,ϵ_epoch=ϵ_epoch,ϵ_epoch_l=ϵ_epoch_l)
+"""
+   singleUpdate(θ,▽;nEpoch,nBatch,batchSize,xbatch,ybatch,optAlg)
+
+Perform the parameters update based on the average batch gradient.
+
+# Parameters:
+- `θ`:         Current parameters
+- `▽`:         Average gradient of the bbatch
+- `nEpoch`:    Numer of epochs
+- `nBatch`:    Number of batches
+- `batchSize`: Size of each batch
+- `xbatch`:    Data associated to the current batch
+- `ybatch`:    Labels associated to the current batch
+- `optAlg`:    The Optimisation algorithm to use for the update
+
+# Notes:
+- This function is overridden so that each optimisation algorithm implement their
+own version
+- Most parameters are not used by any optimisation algorithm. They are provided
+to support the largest possible class of optimisation algorithms
+"""
+function singleUpdate(θ,▽;nEpoch,nBatch,batchSize,xbatch,ybatch,optAlg::OptimisationAlgorithm=SGD())
+   return singleUpdate(θ,▽,optAlg;nEpoch=nEpoch,nBatch=nBatch,batchSize=batchSize,xbatch=xbatch,ybatch=ybatch)
 end
 
-function singleUpdate(θ,▽,optAlg::OptimisationAlgorithm;nEpoch,nBatch,batchSize,ϵ_epoch,ϵ_epoch_l)
+function singleUpdate(θ,▽,optAlg::OptimisationAlgorithm;nEpoch,nBatch,batchSize,xbatch,ybatch)
     error("singleUpdate() not implemented for this optimisation algorithm")
 end
 
