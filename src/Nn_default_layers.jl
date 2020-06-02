@@ -114,6 +114,10 @@ mutable struct DenseNoBiasLayer <: Layer
 
      Instantiate a new DenseNoBiasLayer
 
+        DenseNoBiasLayer(f,nₗ,n;w,df)
+
+     Instantiate a new DenseNoBiasLayer
+
      Positional arguments:
      * `nₗ`: Number of nodes of the previous layer
      * `n`:  Number of nodes

@@ -1,7 +1,55 @@
+"""
+  Utils.jl File
 
-###############################
-# Shared utilities functions ##
-###############################
+Machine Learning shared utility functions (Module Bmlt.Utils)
+
+`?Bmlt.Nn` for documentation
+
+- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/Bmlt.jl/blob/master/src/Utils.jl) - [Julia Package](https://github.com/sylvaticus/Utils.jl)
+- New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
+
+"""
+
+
+"""
+    Utils module
+
+Provide shared utility functions for various machine learning algorithms. You don't usually need to import from this module, as each other module (Nn, Perceptron, Clusters,...) reexport it.
+
+This is a list of the available functions. Please use `?[function]` to access their detailed signature and documentation:
+
+- `reshape(x, dims...)`
+- `makeColVector(x) `
+- `makeRowVector(x)`
+- `makeMatrix(x)`
+- `oneHotEncoder(y,d;count)`
+- `batch(n,bSize;sequential=false)`
+- `getScaleFactors(x;skip)`
+- `scale(x;scalingFactors)`
+- `scale!(x;scalingFactors)`
+- `relu(x)`
+- `relu(x)`
+- `dtanh(x)`
+- `sigmoid(x)`
+- `dsigmoid(x)`
+- `softMax(x;β=1)`
+- `dSoftMax(x;β=1)`
+- `autoJacobian(f,x;nY)`
+- `error(x,y;tol) `: Categorical error
+- `accuracy(x,y;tol)`
+- `squaredCost(ŷ,y)`
+- `dSquaredCost(ŷ,y)`
+- `radialKernel(x,y;γ=1/2)`
+- `polynomialKernel(x,y;c=0,d=2)`
+- `l1_distance(x,y) `
+- `l2_distance(x,y)`
+- `l2²_distance(x,y)`
+- `cosine_distance(x,y)`
+- `normalFixedSd(x,μ,σ²)`
+- `logNormalFixedSd(x,μ,σ²)`
+- `lse(x)`
+- `sterling(n,k)`
+"""
 
 module Utils
 
@@ -13,7 +61,7 @@ export reshape, makeColVector, makeRowVector, makeMatrix,
        autoJacobian,
        squaredCost, dSquaredCost, l1_distance,
        error, accuracy,
-       l2_distance, l2²_distance, cosine_distance, normalFixedSd, lse, sterling,
+       l2_distance, l2²_distance, cosine_distance, normalFixedSd, lse, sterling, logNormalFixedSd,
        radialKernel,polynomialKernel,
        Verbosity, NONE, LOW, STD, HIGH, FULL
 

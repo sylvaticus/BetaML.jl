@@ -37,5 +37,7 @@ include("Nn.jl")
 using .Nn
 include("Perceptron.jl")
 using .Perceptron
+include("Clustering.jl")
+using .Clustering
 
 end # module

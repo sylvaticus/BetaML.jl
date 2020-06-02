@@ -9,7 +9,7 @@ export SGD,DebugOptAlg,singleUpdate
 
 Stochastic Gradient Descent algorithm (default)
 
-#Fields
+# Fields:
 - `η`: Learning rate, as a function of the current epoch [def: t -> 1/(1+t)]
 - `λ`: Multiplicative constant to the learning rate [def: 2]
 """

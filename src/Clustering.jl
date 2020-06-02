@@ -1,60 +1,44 @@
 """
-  Clusters.jl file
+  Clustering.jl file
 
 Clustering and collaborative filtering (via clustering) algorithms
 
-- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/lmlj.jl/blob/master/src/clusters.jl) - [Julia Package](https://github.com/sylvaticus/lmlj.jl)
-- [Demonstrative static notebook](https://github.com/sylvaticus/lmlj.jl/blob/master/notebooks/clusters.ipynb)
-- [Demonstrative live notebook](https://mybinder.org/v2/gh/sylvaticus/lmlj.jl/master?filepath=notebooks%2Fclusters.ipynb) (temporary personal online computational environment on myBinder) - it can takes minutes to start with!
+- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/Bmlt.jl/blob/master/src/Clustering.jl) - [Julia Package](https://github.com/sylvaticus/Bmlt.jl)
+- [Demonstrative static notebook](https://github.com/sylvaticus/Bmlt.jl/blob/master/notebooks/Clustering.ipynb)
+- [Demonstrative live notebook](https://mybinder.org/v2/gh/sylvaticus/Bmlt.jl/master?filepath=notebooks%2FClustering.ipynb) (temporary personal online computational environment on myBinder) - it can takes minutes to start with!
 - Theory based on [MITx 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://github.com/sylvaticus/MITx_6.86x) ([Unit 4](https://github.com/sylvaticus/MITx_6.86x/blob/master/Unit%2004%20-%20Unsupervised%20Learning/Unit%2004%20-%20Unsupervised%20Learning.md))
 - New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
 """
 
 """
-    Clusters module (WIP)
+    Clustering module (WIP)
 
+Provide clustering methods and collaborative filtering using clustering methods as backend.
+
+The em algorithm is work in progress, as the API will likely change to account for different type of mixtures.
+
+The module provide the following functions. Use `?[function]` to access their full signature and detailed documentation:
+
+- `initRepresentatives(X,K;initStrategy,Z₀)`: Initialisation strategies for Kmean and Kmedoids
+- `kmeans(X,K;dist,initStrategy,Z₀)`: Classical KMean algorithm
+- `kmedoids(X,K;dist,initStrategy,Z₀)`: Kmedoids algorithm
+- `emGMM(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)`: EM algorithm over GMM with fixed variance
+- `collFilteringGMM(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)`: Collaborative filtering using GMM
 """
 
-module Clusters
+module Clustering
 
-using LinearAlgebra
-using Random
+using LinearAlgebra, Random, Statistics, Reexport
 #using Distributions
-using Statistics
+
+@reexport using ..Utils
+
+export initRepresentatives, kmeans, kmedoids, emGMM, collFilteringGMM
 
 ## Helper functions
 
-""" Sterling number: number of partitions of a set of n elements in k sets """
-sterling(n::BigInt,k::BigInt) = (1/factorial(k)) * sum((-1)^i * binomial(k,i)* (k-i)^n for i in 0:k)
-sterling(n::Int64,k::Int64) = sterling(BigInt(n),BigInt(k))
-
-# Some common distances
-"""L1 norm distance (aka "Manhattan Distance")"""
-l1_distance(x,y) = sum(abs.(x-y))
-
-"""Euclidean (L2) distance"""
-l2_distance(x,y) = norm(x-y)
-
-"""Squared Euclidean (L2) distance"""
-l2²_distance(x,y) = norm(x-y)^2
-
-"""Cosine distance"""
-cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
-
-"""Transform an Array{T,1} in an Array{T,2} and leave unchanged Array{T,2}."""
-make_matrix(x::Array) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
-
-""" PDF of a multidimensional normal with no covariance and shared variance across dimensions"""
-normalFixedSd(x,μ,σ²) = (1/(2π*σ²)^(length(x)/2)) * exp(-1/(2σ²)*norm(x-μ)^2)
-
-""" log-PDF of a multidimensional normal with no covariance and shared variance across dimensions"""
-logNormalFixedSd(x,μ,σ²) = - (length(x)/2) * log(2π*σ²)  -  norm(x-μ)^2/(2σ²)
-
-""" LogSumExp for efficiently computing log(sum(exp.(x))) """
-lse(x) = maximum(x)+log(sum(exp.(x .- maximum(x))))
-
 """
-  initRepresentatives(X,K;initStrategy,Z₀))
+  initRepresentatives(X,K;initStrategy,Z₀)
 
 Initialisate the representatives for a K-Mean or K-Medoids algorithm
 
@@ -77,7 +61,7 @@ julia> Z₀ = initRepresentatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 3
 ```
 """
 function initRepresentatives(X,K;initStrategy="grid",Z₀=nothing)
-    X  = make_matrix(X)
+    X  = makeMatrix(X)
     (N,D) = size(X)
     # Random choice of initial representative vectors (any point, not just in X!)
     minX = minimum(X,dims=1)
@@ -95,7 +79,7 @@ function initRepresentatives(X,K;initStrategy="grid",Z₀=nothing)
         end
     elseif initStrategy == "given"
         if isnothing(Z₀) error("With the `given` strategy you need to provide the initial set of representatives in the Z₀ parameter.") end
-        Z₀ = make_matrix(Z₀)
+        Z₀ = makeMatrix(Z₀)
         Z = Z₀
     elseif initStrategy == "shuffle"
         zIdx = shuffle(1:size(X)[1])[1:K]
@@ -141,7 +125,7 @@ julia> (clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 3
 ```
 """
 function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing)
-    X  = make_matrix(X)
+    X  = makeMatrix(X)
     (N,D) = size(X)
     # Random choice of initial representative vectors (any point, not just in X!)
     minX = minimum(X,dims=1)
@@ -215,7 +199,7 @@ julia> (clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3
 ```
 """
 function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="shuffle",Z₀=nothing)
-    X  = make_matrix(X)
+    X  = makeMatrix(X)
     (n,d) = size(X)
     # Random choice of initial representative vectors
     Z₀ = initRepresentatives(X,K,initStrategy=initStrategy,Z₀=Z₀)
@@ -310,7 +294,7 @@ function emGMM(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgSte
     #K = 3
     #p₀=nothing; μ₀=nothing; σ²₀=nothing; tol=0.0001; msgStep=1; minVariance=0.25; missingValue = 0
 
-    X     = make_matrix(X)
+    X     = makeMatrix(X)
     (N,D) = size(X)
 
     # Initialisation of the parameters if not provided
@@ -326,7 +310,7 @@ function emGMM(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgSte
 
     pⱼ = isnothing(p₀) ? fill(1/K,K) : p₀
     if !isnothing(μ₀)
-        μ₀  = make_matrix(μ₀)
+        μ₀  = makeMatrix(μ₀)
         μ = μ₀
     else
         μ = zeros(Float64,K,D)
@@ -462,7 +446,7 @@ julia>  cFOut = collFilteringGMM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 
 ```
 """
 function collFilteringGMM(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=10,minVariance=0.25,missingValue=missing)
-    emOut = em(X,K;p₀=p₀,μ₀=μ₀,σ²₀=σ²₀,tol=tol,msgStep=msgStep,minVariance=minVariance,missingValue=missingValue)
+    emOut = emGMM(X,K;p₀=p₀,μ₀=μ₀,σ²₀=σ²₀,tol=tol,msgStep=msgStep,minVariance=minVariance,missingValue=missingValue)
     (N,D) = size(X)
     #K = size(emOut.μ)[1]
     XMask = ismissing(missingValue) ?  .! ismissing.(X)  : (X .!= missingValue)

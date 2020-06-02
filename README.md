@@ -15,7 +15,7 @@ For "serious" machine learning work in Julia I suggest to use either [Flux](http
 
 As the focus is mainly didactic, functions have pretty longer but more explicit names than usual.. for example the `Dense` layer is a `DenseLayer`, the `RBF` kernel is `radialKernel`, etc.
 
-That said, Julia is a relatively fast language and most hard job is done in multithreaded functions or using matrix operations whose underlying libraries are multithreaded, so it is reasonably fast for small exploratory tasks.
+That said, Julia is a relatively fast language and most hard job is done in multithreaded functions or using matrix operations whose underlying libraries are multithreaded, so it is reasonably fast for small exploratory tasks. Also it is already very flexible. For example, one can implement its own layer as a subtype of the abstract type `Layer` or its own optimisation algorithm as a subtype of `OptimisationAlgorithm`.
 
 **You can run the code by yourself (folder "notebooks") in myBinder, a temporary public online computational environment clicking [here](https://mybinder.org/v2/gh/sylvaticus/Bmlt.jl/master).**
 Note: every first time after a commit is made on this repository it takes a (very) long time to load such environment for the (unlucky) user that triggers the process, as the temporary environment need to be created. Subsequent users should find a cached version of the computational environment and the load time should be much smaller.
@@ -55,10 +55,8 @@ For documentation, please look at the individual modules:
 
 - `?Bmlt.Perceptron`: Linear and kernel classifiers
 - `?Bmlt.Nn`:         Artificial Neural networks
-- `?Bmlt.Clusters`:   Clustering algorithms and collaborative filtering using clusters
+- `?Bmlt.Clustering`: Clustering algorithms and collaborative filtering using clusters
 - `?Bmlt.Utils`:      Various utility functions (scale, one-hot, distances, kernels,..)
-
-
 
 ### Examples
 
@@ -108,6 +106,18 @@ plot(0:res.epochs,res.ϵ_epochs, ylabel="epochs",xlabel="error",legend=nothing,t
 
 <img src="assets/sepalOutput_results.png" width="400"/> <img src="assets/sepalOutput_errors.png" width="400"/>
 
+
+## TODO
+
+### Short term
+
+- adding other optimisation algorithms to NN
+- sorting out cluster API (EM for generic mixtures)
+
+### Long term
+
+- Support Vector Machine (if anyone request it)
+- Add convolutional layers and RNN support
 
 ## Acknowledgements
 

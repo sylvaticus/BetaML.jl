@@ -3,35 +3,62 @@
 
 Neural Network implementation (Module Bmlt.Nn)
 
-- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/lmlj.jl/blob/master/src/nn.jl) - [Julia Package](https://github.com/sylvaticus/lmlj.jl)
-- [Demonstrative static notebook](https://github.com/sylvaticus/lmlj.jl/blob/master/notebooks/nn.ipynb)
-- [Demonstrative live notebook](https://mybinder.org/v2/gh/sylvaticus/lmlj.jl/master?filepath=notebooks%2Fnn.ipynb) (temporary personal online computational environment on myBinder) - it can takes minutes to start with!
+`?Bmlt.Nn` for documentation
+
+- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/Bmlt.jl/blob/master/src/Nn.jl) - [Julia Package](https://github.com/sylvaticus/Bmlt.jl)
+- [Demonstrative static notebook](https://github.com/sylvaticus/Bmlt.jl/blob/master/notebooks/Nn.ipynb)
+- [Demonstrative live notebook](https://mybinder.org/v2/gh/sylvaticus/Bmlt.jl/master?filepath=notebooks%2FNn.ipynb) (temporary personal online computational environment on myBinder) - it can takes minutes to start with!
 - Theory based on [MITx 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://github.com/sylvaticus/MITx_6.86x) ([Unit 3](https://github.com/sylvaticus/MITx_6.86x/blob/master/Unit%2003%20-%20Neural%20networks/Unit%2003%20-%20Neural%20networks.md))
 - New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
 
 """
 
 
-
-
-
 """
     Bmlt.Nn module
 
-Dense and DenseNoBias are already implemented and one can choose them with
-predefined activation functions or provide your own (optionally including its derivative)
+Implement the functionality required to define an artificial Neural Network, train it with data, forecast data and assess its performances.
 
-Alternativly you can implement your own layers.
-Each user-implemented layer must define the following methods:
+Common type of layers and optimisation algorithms are already provided, but you can define your own ones subclassing respectively the `Layer` and `OptimisationAlgorithm` abstract types.
 
-* forward(layer,x)
-* backward(layer,x,nextGradient)
-* getParams(layer)
-* getGradient(layer,x,nextGradient)
-* setParams!(layer,w)
-* size(layer)
+The module provide the following type or functions. Use `?[type or function]` to access their full signature and detailed documentation:
 
-Use the help system to get more info about these methods.
+# Model definition:
+
+- `DenseLayer`: Classical feed-forward layer with user-defined activation function
+- `DenseNoBiasLayer`: Classical layer without the bias parameter
+- `VectorFunctionLayer`: Parameterless layer whose activation function run over the ensable of its nodes rather than on each one individually
+- `buildNetwork`: Build the chained network and define a cost function
+- `getParams(nn)`: Retrieve current weigthts
+- `getGradient(nn)`: Retrieve the current gradient of the weights
+- `setParams!(nn)`: Update the weigths of the network
+- `show(nn)`: Print a representation of the Neural Network
+
+Each layer can use a default activation function or you can specify your own. The derivative of the activation function can be optionally be provided, in such case training will be quicker, altought this difference tends to vanish with bigger datasets.
+You can alternativly implement your own layers defining a new type as subtype of the abstract type `Layer`. Each user-implemented layer must define the following methods:
+
+- A suitable constructor
+- `forward(layer,x)`
+- `backward(layer,x,nextGradient)`
+- `getParams(layer)`
+- `getGradient(layer,x,nextGradient)`
+- `setParams!(layer,w)`
+- `size(layer)`
+
+# Model training:
+
+- `trainingInfo(nn)`: Default callback function during training
+- `train!(nn)`:  Training function
+- `singleUpdate(θ,▽;optAlg)`: The parameter update made by the specific optimisation algorithm
+- `SGD`: The default optimisation algorithm
+
+To define your own optimisation algorithm define a subtype of `OptimisationAlgorithm` and implement the function `singleUpdate(θ,▽;optAlg)` specific for it. You can use `gradSum`, `gradSub`, `gradDiv` and `gradMul` functions to operate on the gradient structure at once.
+
+# Model predictions and assessment:
+
+- `predict(nn)`: Return the output given the data
+- `loss(nn)`: Compute avg. network loss on a test set
+- `Utils.accuracy(nn)`: Categorical output accuracy
 
 All high-level functions (except the low-level ones) expect x and y as (nRecords × nDimensions) matrices.
 
