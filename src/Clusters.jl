@@ -1,5 +1,5 @@
 """
-  clusters.jl
+  Clusters.jl file
 
 Clustering and collaborative filtering (via clustering) algorithms
 
@@ -9,6 +9,13 @@ Clustering and collaborative filtering (via clustering) algorithms
 - Theory based on [MITx 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://github.com/sylvaticus/MITx_6.86x) ([Unit 4](https://github.com/sylvaticus/MITx_6.86x/blob/master/Unit%2004%20-%20Unsupervised%20Learning/Unit%2004%20-%20Unsupervised%20Learning.md))
 - New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
 """
+
+"""
+    Clusters module (WIP)
+
+"""
+
+module Clusters
 
 using LinearAlgebra
 using Random
@@ -474,3 +481,5 @@ end
 
 #X = [1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4]
 #cFOut = collFilteringGMM(X,3,msgStep=1,missingValue=0)
+
+end

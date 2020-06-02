@@ -1,13 +1,22 @@
 """
-  nn.jl
+  nn.jl File
 
-Neural Network algorithms
+Neural Network implementation (Module Bmlt.Nn)
 
 - [Importable source code (most up-to-date version)](https://github.com/sylvaticus/lmlj.jl/blob/master/src/nn.jl) - [Julia Package](https://github.com/sylvaticus/lmlj.jl)
 - [Demonstrative static notebook](https://github.com/sylvaticus/lmlj.jl/blob/master/notebooks/nn.ipynb)
 - [Demonstrative live notebook](https://mybinder.org/v2/gh/sylvaticus/lmlj.jl/master?filepath=notebooks%2Fnn.ipynb) (temporary personal online computational environment on myBinder) - it can takes minutes to start with!
 - Theory based on [MITx 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://github.com/sylvaticus/MITx_6.86x) ([Unit 3](https://github.com/sylvaticus/MITx_6.86x/blob/master/Unit%2003%20-%20Neural%20networks/Unit%2003%20-%20Neural%20networks.md))
 - New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
+
+"""
+
+
+
+
+
+"""
+    Bmlt.Nn module
 
 Dense and DenseNoBias are already implemented and one can choose them with
 predefined activation functions or provide your own (optionally including its derivative)
@@ -29,15 +38,15 @@ All high-level functions (except the low-level ones) expect x and y as (nRecords
 """
 module Nn
 
+import Base.Threads.@spawn
 
-# ==================================
-# Neural Network Module
-# ==================================
+using Random, Zygote, ProgressMeter, Reexport
 
 
-using Random, Zygote, ProgressMeter
-#using ..Utils
-import ..Utils: relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax,
+@reexport using ..Utils
+
+#=
+@reexport import ..Utils: relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax,
       dSoftMax, autoJacobian,
       squaredCost,dSquaredCost,
       accuracy,
@@ -46,20 +55,25 @@ import ..Utils: relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax,
       oneHotEncoder,
       getScaleFactors, scale, batch,
       Verbosity, NONE, LOW, STD, HIGH, FULL
+=#
 import Base.size
 
-
+# module own functions
 export Layer, forward, backward, getParams, getGradient, setParams!, size, NN,
        buildNetwork, predict, loss, train!, getindex,
        DenseLayer, DenseNoBiasLayer, VectorFunctionLayer,
-       relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
+       gradSum,gradSub,gradMul,gradDiv,
+       show
+
+#=
+#reexport from utils   :
+export relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
        autoJacobian,
        accuracy,
        squaredCost, dSquaredCost, makeMatrix, makeColVector, oneHotEncoder,
        getScaleFactors, scale, batch,
        Verbosity, NONE, LOW, STD, HIGH, FULL,
-       gradSum,gradSub,gradMul,gradDiv,
-       show
+=#
 
 # for working on gradient as e.g [([1.0 2.0; 3.0 4.0], [1.0,2.0,3.0]),([1.0,2.0,3.0],1.0)]
 # Renamed to avoid "type pyracy"
@@ -321,7 +335,7 @@ Retrieve the current gradient of the weigthts (i.e. derivative of the cost with 
 #Notes:
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
-function getGradient(nn::NN,x,y)
+function getGradient(nn::NN,x::Union{T,AbstractArray{T,1}},y::Union{T2,AbstractArray{T2,1}}) where { T <: Number, T2 <: Number}
 
   x = makeColVector(x)
   y = makeColVector(y)
@@ -358,6 +372,29 @@ function getGradient(nn::NN,x,y)
   end
 
   return dWs
+end
+
+"""
+   getGradient(nn,xbatch,ybatch)
+
+Retrieve the current gradient of the weigthts (i.e. derivative of the cost with respect to the weigths)
+
+# Parameters:
+* `nn`:      Worker network
+* `xbatch`:  Input to the network (n,d)
+* `ybatch`:  Label input (n,d)
+
+#Notes:
+* The output is a vector of tuples of each layer's input weigths and bias weigths
+"""
+function getGradient(nn,xbatch::AbstractArray{T,2},ybatch::AbstractArray{T2,2}) where {T <: Number, T2 <: Number}
+    gradients = Array{Vector{Tuple},1}(undef,size(xbatch,1))
+    #gradients = Vector{Tuple}[]
+    for j in 1:size(xbatch,1)
+       gradients[j] =  getGradient(nn,xbatch[j,:],ybatch[j,:])
+       #push!(gradients,getGradient(nn,xbatch[j,:],ybatch[j,:]))
+    end
+    return gradients
 end
 
 """
@@ -490,7 +527,7 @@ and implementing its constructor and the update function `singleUpdate(⋅)`
 - The update is done computing the average gradient for each batch and then calling
 `singleUpdate` to let the optimisation algorithm perform the parameters update
 """
-function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=false, verbosity::Verbosity=STD, cb=trainingInfo, optAlg::OptimisationAlgorithm=SGD()) #,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0optAlg::SD=SD())
+function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=false, verbosity::Verbosity=STD, cb=trainingInfo, optAlg::OptimisationAlgorithm=SGD())#,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0optAlg::SD=SD())
 
     x = makeMatrix(x)
     y = makeMatrix(y)
@@ -503,11 +540,11 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
     θ_epoch_l = getParams(nn)
     ϵ_epoch   = loss(nn,x,y)
     θ_epoch   = getParams(nn)
-    ϵ_epochs  = []
+    ϵ_epochs  = Float64[]
     θ_epochs  = []
 
     timetoShowProgress = verbosity > NONE ? 1 : typemax(Int64)
-    @showprogress timetoShowProgress "Training the Neural Network..." for t in 1:epochs
+    @showprogress timetoShowProgress "Training the Neural Network..."  for t in 1:epochs
        batches = batch(n,batchSize,sequential=sequential)
        if t == 1
            if (verbosity >= STD) push!(ϵ_epochs,ϵ_epoch); end
@@ -517,7 +554,10 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
            xbatch = x[batch, :]
            ybatch = y[batch, :]
            θ   = getParams(nn)
-           ▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)
+           gradients   = @spawn getGradient(nn,xbatch,ybatch) # remove @spawn and fetch (on next row) to get single thread code
+           sumGradient = gradSum(fetch(gradients))
+           ▽   = gradDiv.(sumGradient, batchSize)
+           #▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)
            res = singleUpdate(θ,▽;nEpoch=t,nBatch=i,batchSize=batchSize,xbatch=xbatch,ybatch=ybatch,optAlg=optAlg)
            setParams!(nn,res.θ)
            cb(nn,xbatch,ybatch,n=d,batchSize=batchSize,epochs=epochs,verbosity=verbosity,nEpoch=t,nBatch=i)

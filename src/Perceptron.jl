@@ -1,13 +1,35 @@
+"""
+    Perceptron.jl file
+
+Implement the Bmlt.Perceptron module
+
+`?Bmlt.Perceptron` for info
+"""
 
 
+"""
+    Perceptron module
+
+Provide linear and kernel classifiers.
+
+Please use the following for informations:
+
+- `?perceptron`: Train data using the classical perceptron
+- `?kernelPerceptron`: Train data using the kernel perceptron
+- `?pegasus`: Train data using the pegasus algorithm
+- `?predict`: Predict data using parameters from one of the above algorithms
+
+"""
 module Perceptron
 
-using LinearAlgebra, Random, ProgressMeter
+using LinearAlgebra, Random, ProgressMeter, Reexport
 import ..Utils: radialKernel, polynomialKernel, makeMatrix, makeColVector, error, accuracy
 
-export perceptron, kernelPerceptron, pegasus, predict, radialKernel, polynomialKernel,
-       makeMatrix, error, accuracy
+@reexport using ..Utils
 
+export perceptron, kernelPerceptron, pegasus, predict
+
+#export radialKernel, polynomialKernel, makeMatrix, error, accuracy
 
 
 """

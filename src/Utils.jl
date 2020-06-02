@@ -8,7 +8,7 @@ module Utils
 using LinearAlgebra, Random, Statistics, Zygote
 
 export reshape, makeColVector, makeRowVector, makeMatrix,
-       oneHotEncoder, getScaleFactors, scale, batch,
+       oneHotEncoder, getScaleFactors, scale, scale!,batch,
        relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
        autoJacobian,
        squaredCost, dSquaredCost, l1_distance,
@@ -16,6 +16,9 @@ export reshape, makeColVector, makeRowVector, makeMatrix,
        l2_distance, l2²_distance, cosine_distance, normalFixedSd, lse, sterling,
        radialKernel,polynomialKernel,
        Verbosity, NONE, LOW, STD, HIGH, FULL
+
+#export @reexport
+
 
 
 @enum Verbosity NONE=0 LOW=10 STD=20 HIGH=30 FULL=40
@@ -268,6 +271,32 @@ lse(x) = maximum(x)+log(sum(exp.(x .- maximum(x))))
 """ Sterling number: number of partitions of a set of n elements in k sets """
 sterling(n::BigInt,k::BigInt) = (1/factorial(k)) * sum((-1)^i * binomial(k,i)* (k-i)^n for i in 0:k)
 sterling(n::Int64,k::Int64)   = sterling(BigInt(n),BigInt(k))
+
+#=
+# https://github.com/simonster/Reexport.jl/blob/master/src/Reexport.jl
+macro reexport(ex)
+    isa(ex, Expr) && (ex.head == :module ||
+                      ex.head == :using ||
+                      (ex.head == :toplevel &&
+                       all(e->isa(e, Expr) && e.head == :using, ex.args))) ||
+        error("@reexport: syntax error")
+
+    if ex.head == :module
+        modules = Any[ex.args[2]]
+        ex = Expr(:toplevel, ex, :(using .$(ex.args[2])))
+    elseif ex.head == :using && all(e->isa(e, Symbol), ex.args)
+        modules = Any[ex.args[end]]
+    elseif ex.head == :using && ex.args[1].head == :(:)
+        symbols = [e.args[end] for e in ex.args[1].args[2:end]]
+        return esc(Expr(:toplevel, ex, :(eval(Expr(:export, $symbols...)))))
+    else
+        modules = Any[e.args[end] for e in ex.args]
+    end
+
+    esc(Expr(:toplevel, ex,
+             [:(eval(Expr(:export, names($mod)...))) for mod in modules]...))
+end
+=#
 
 #=
 

@@ -1,5 +1,6 @@
 
 # WIP
+#=
 risk(x,y,θ,λ) = ((y - dot(x,θ))^2 )/2
 
 function risk(x,y,θ,λ)
@@ -19,6 +20,8 @@ function dRrisk(x,y,θ,λ)
     y = makeColVector(y)
 
 end
+=#
+
 #=
 η = 0.1
 θ = [1.1 2; 3 4]
