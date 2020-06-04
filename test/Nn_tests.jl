@@ -19,29 +19,46 @@ l1   = DenseNoBiasLayer(2,2,w=[2 1;1 1],f=identity)
 l2   = VectorFunctionLayer(2,2,f=softMax)
 mynn = buildNetwork([l1,l2],squaredCost,name="Simple Multinomial logistic regression")
 o1 = forward(l1,x)
+#@code_warntype forward(l1,x)
 o2 = forward(l2,o1)
 orig = predict(mynn,x')[1,:]
+#@code_warntype predict(mynn,x')[1,:]
 ϵ = squaredCost(o2,y)
+#@code_warntype  squaredCost(o2,y)
 lossOrig = loss(mynn,x',y')
+#@code_warntype  loss(mynn,x',y')
 dϵ_do2 = dSquaredCost(o2,y)
+#@code_warntype dSquaredCost(o2,y)
 dϵ_do1 = backward(l2,o1,dϵ_do2)
+#@code_warntype backward(l2,o1,dϵ_do2)
 dϵ_dX = backward(l1,x,dϵ_do1)
+#@code_warntype backward(l1,x,dϵ_do1)
 l1w = getParams(l1)
+#@code_warntype
 l2w = getParams(l2)
+#@code_warntype
 w = getParams(mynn)
-typeof(w)
+#@code_warntype getParams(mynn)
+#typeof(w)
 origW = deepcopy(w)
 l2dw = getGradient(l2,o1,dϵ_do2)
+#@code_warntype getGradient(l2,o1,dϵ_do2)
 l1dw = getGradient(l1,x,dϵ_do1)
+#@code_warntype
 dw = getGradient(mynn,x,y)
+#@code_warntype getGradient(mynn,x,y)
 y_deltax1 = predict(mynn,[x[1]+0.001 x[2]])[1,:]
+#@code_warntype predict(mynn,[x[1]+0.001 x[2]])[1,:]
 lossDeltax1 = loss(mynn,[x[1]+0.001 x[2]],y')
+#@code_warntype
 deltaloss = dot(dϵ_dX,[0.001,0])
+#@code_warntype
 @test isapprox(lossDeltax1-lossOrig,deltaloss,atol=0.0000001)
 l1wNew = l1w
 l1wNew[1][1,1] += 0.001
 setParams!(l1,l1wNew)
 lossDelPar = loss(mynn,x',y')
+#@code_warntype
 deltaLossPar = 0.001*l1dw[1][1,1]
 lossDelPar - lossOrig
 @test isapprox(lossDelPar - lossOrig,deltaLossPar,atol=0.00000001)
@@ -49,8 +66,11 @@ lossDelPar - lossOrig
 #w = gradientDescentSingleUpdate(w,dw,η)
 #w = w - dw * η
 w = gradSub.(w, gradMul.(dw,η))
+#@code_warntype gradSub.(w, gradMul.(dw,η))
+#@code_warntype
 setParams!(mynn,w)
 loss2 = loss(mynn,x',y')
+#@code_warntype
 @test loss2 < lossOrig
 for i in 1:10000
     w  = getParams(mynn)
@@ -62,7 +82,9 @@ lossFinal = loss(mynn,x',y')
 @test predict(mynn,x')[1,1]>0.96
 setParams!(mynn,origW)
 train!(mynn,x',y',epochs=10000,batchSize=1,sequential=true,verbosity=NONE,optAlg=SGD(η=t->η,λ=1))
+#@code_warntype train!(mynn,x',y',epochs=10000,batchSize=1,sequential=true,verbosity=NONE,optAlg=SGD(η=t->η,λ=1))
 lossTraining = loss(mynn,x',y')
+#@code_warntype
 @test isapprox(lossFinal,lossTraining,atol=0.00001)
 
 
