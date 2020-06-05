@@ -9,7 +9,8 @@ makedocs(sitename="Beta Machine Learning Toolkit Documentation",
             "Index" => "index.md",
             "Perceptron" => "Perceptron.md",
             "Nn"   => "Nn.md",
-            "Clustering" => "Clustering.md"
+            "Clustering" => "Clustering.md",
+            "Utils" => "Utils.md"
          ],
          format = Documenter.HTML(prettyurls = false)
 )

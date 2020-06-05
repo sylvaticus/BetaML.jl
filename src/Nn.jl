@@ -172,9 +172,7 @@ Get the layers current value of its trainable parameters
 * `layer`:  Worker layer
 
 # Return:
-* The current value of the layer's trainable parameters as tuple of matrices.
-It is up to you to decide how to organise this tuple, as long you are consistent
-with the getGradient() and setParams() functions.
+* The current value of the layer's trainable parameters as tuple of matrices. It is up to you to decide how to organise this tuple, as long you are consistent with the `getGradient()` and `setParams()` functions.
 """
 function getParams(layer::Layer)
   error("Not implemented for this kind of layer. Please implement `getParams(layer)`.")
@@ -191,9 +189,7 @@ Compute backpropagation for this layer
 * `nextGradient`: Derivative of the overaall loss with respect to the input of the next layer (output of this layer)
 
 # Return:
-* The evaluated gradient of the loss with respect to this layer's trainable parameters
-as tuple of matrices. It is up to you to decide how to organise this tuple, as long you are consistent
-with the getParams() and setParams() functions.
+* The evaluated gradient of the loss with respect to this layer's trainable parameters as tuple of matrices. It is up to you to decide how to organise this tuple, as long you are consistent with the `getParams()` and `setParams()` functions.
 """
 function getGradient(layer::Layer,x,nextGradient)
     error("Not implemented for this kind of layer. Please implement `getGradient(layer,x,nextGradient)`.")
@@ -209,8 +205,7 @@ Set the trainable parameters of the layer with the given values
 * `w`:   The new parameters to set (tuple)
 
 # Notes:
-*  The format of the tuple with the parameters must be consistent with those of
-the getParams() and getGradient() functions.
+*  The format of the tuple with the parameters must be consistent with those of the `getParams()` and `getGradient()` functions.
 """
 function setParams!(layer::Layer,w)
     error("Not implemented for this kind of layer. Please implement `setParams!(layer,w)`.")
@@ -262,8 +257,7 @@ Parameters:
 * `dcf`:     Derivative of the cost function
 
 # Notes:
-* Even if the network ends with a single output note, the cost function and its
-derivative should always expect y and ŷ as column vectors.
+* Even if the network ends with a single output note, the cost function and its derivative should always expect y and ŷ as column vectors.
 """
 function buildNetwork(layers,cf;dcf=nothing,name="Neural Network")
     return NN(layers,cf,dcf,false,name)
@@ -475,9 +469,7 @@ Currently supported algorithms:
 
 See `?[Name OF THE ALGORITHM]` for their details
 
-You can implement your own optimisation algorithm using a subtype of OptimisationAlgorithm
-and implementing its constructor and the update function `singleUpdate(⋅)`
-(type `?singleUpdate` for details).
+You can implement your own optimisation algorithm using a subtype of `OptimisationAlgorithm` and implementing its constructor and the update function `singleUpdate(⋅)` (type `?singleUpdate` for details).
 
 """
 abstract type OptimisationAlgorithm end
@@ -487,8 +479,7 @@ include("Nn_default_optalgs.jl")
 """
    trainingInfo(nn,x,y;n,batchSize,epochs,verbosity,nEpoch,nBatch)
 
-Default callback funtion to display information during training, depending on the
-verbosity level
+Default callback funtion to display information during training, depending on the verbosity level
 
 # Parameters:
 * `nn`: Worker network
@@ -502,12 +493,11 @@ verbosity level
 * `nBatch`: Counter of the current batch
 
 #Notes:
-* Reporting of the error (loss of the network) is expensive. Use verbosity=NONE
-for better performances
+* Reporting of the error (loss of the network) is expensive. Use `verbosity=NONE` for better performances
 """
 function trainingInfo(nn,x,y;n,batchSize,epochs,verbosity,nEpoch,nBatch)
    if verbosity == NONE
-       return nothing
+       return false # doesn't stop the training
    end
 
    nMsgDict = Dict(LOW => 0, STD => 10,HIGH => 100, FULL => n)
@@ -518,7 +508,7 @@ function trainingInfo(nn,x,y;n,batchSize,epochs,verbosity,nEpoch,nBatch)
       ϵ = loss(nn,x,y)
       println("Training.. \t avg ϵ on (Epoch $nEpoch Batch $nBatch): \t $(ϵ)")
    end
-   return nothing
+   return false
 end
 
 """
@@ -546,13 +536,12 @@ Train a neural network with the given x,y data
 # Notes:
 - Currently supported algorithms:
     - `SGD` (Stochastic) Gradient Descent
-- Look at the individual optimisation algorithm (`?[Name OF THE ALGORITHM]`) for
-info on its parameter, e.g. `?SGD` for the default Stochastic Gradient Descent.
-- You can implement your own optimisation algorithm using a subtype of `OptimisationAlgorithm`
-and implementing its constructor and the update function `singleUpdate(⋅)`
-(type `?singleUpdate` for details).
-- The update is done computing the average gradient for each batch and then calling
-`singleUpdate` to let the optimisation algorithm perform the parameters update
+- Look at the individual optimisation algorithm (`?[Name OF THE ALGORITHM]`) for info on its parameter, e.g. [`?SGD`](@ref SGD) for the default Stochastic Gradient Descent.
+- You can implement your own optimisation algorithm using a subtype of `OptimisationAlgorithm` and implementing its constructor and the update function `singleUpdate(⋅)` (type `?singleUpdate` for details).
+- You can implement your own callback function, altought the one provided by default is already pretty generic (its output depends on the `verbosity` parameter). @see [`trainingInfo`](@ref) for informations on the cb parameters.
+- Both the callback function and the [`singleUpdate`](@ref) function of the optimisation algorithm can be used to stop the training algorithm, respectively returning `true` or returning `.stop` `true`.
+- The verbosity can be set to any of `NONE`,`LOW`,`STD`,`HIGH`,`FULL`.
+- The update is done computing the average gradient for each batch and then calling `singleUpdate` to let the optimisation algorithm perform the parameters update
 """
 function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=false, verbosity::Verbosity=STD, cb=trainingInfo, optAlg::OptimisationAlgorithm=SGD())#,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0optAlg::SD=SD())
 
@@ -587,8 +576,8 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
            #▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)
            res = singleUpdate(θ,▽;nEpoch=t,nBatch=i,batchSize=batchSize,xbatch=xbatch,ybatch=ybatch,optAlg=optAlg)
            setParams!(nn,res.θ)
-           cb(nn,xbatch,ybatch,n=d,batchSize=batchSize,epochs=epochs,verbosity=verbosity,nEpoch=t,nBatch=i)
-           if(res.stop==true)
+           cbOut = cb(nn,xbatch,ybatch,n=d,batchSize=batchSize,epochs=epochs,verbosity=verbosity,nEpoch=t,nBatch=i)
+           if(res.stop==true || cbOut==true)
                nn.trained = true
                return (epochs=t,ϵ_epochs=ϵ_epochs,θ_epochs=θ_epochs)
            end

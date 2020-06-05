@@ -19,12 +19,7 @@ Implement the Bmlt.Perceptron module
 
 Provide linear and kernel classifiers.
 
-Please use the following for informations:
-
-- `?perceptron`: Train data using the classical perceptron
-- `?kernelPerceptron`: Train data using the kernel perceptron
-- `?pegasus`: Train data using the pegasus algorithm
-- `?predict`: Predict data using parameters from one of the above algorithms
+See a [runnable example on myBinder](https://mybinder.org/v2/gh/sylvaticus/Bmlt.jl/master?filepath=notebooks%2FPerceptron.ipynb)
 
 """
 module Perceptron

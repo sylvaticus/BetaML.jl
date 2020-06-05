@@ -1,5 +1,16 @@
-## Bmlt.Utils Module
+# The Bmlt.Utils Module
 
+```@docs
+Utils
+
+```
+## Module Index
+
+```@index
+Modules = [Utils]
+Order   = [:constant, :type, :function, :macro]
+```
+## Detailed API
 
 ```@autodocs
 Modules = [Utils]

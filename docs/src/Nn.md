@@ -1,8 +1,16 @@
+# The Bmlt.Nn Module
 
+```@docs
+Nn
+```
 
-## Bmlt.Nn Module(@Nn_module)
-# [Bmlt.Nn Module](@Nn_module)
+## Module Index
 
+```@index
+Modules = [Nn]
+Order   = [:constant, :type, :function, :macro]
+```
+## Detailed API
 
 ```@autodocs
 Modules = [Nn]
