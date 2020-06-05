@@ -4,7 +4,7 @@
 
 The **Beta Machine Learning Toolkit** is a repository with several basic Machine Learning algorithms, started from implementing in the Julia language the concepts taught in the [MITX 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://www.edx.org/course/machine-learning-with-python-from-linear-models-to) course.
 
-[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://sylvaticus.github.io/Bmlt.jl/stable)
+<!--[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://sylvaticus.github.io/Bmlt.jl/stable) -->
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sylvaticus.github.io/Bmlt.jl/dev)
 [![Build Status](https://travis-ci.org/sylvaticus/Bmlt.jl.svg?branch=master)](https://travis-ci.org/sylvaticus/Bmlt.jl)
 [![codecov.io](http://codecov.io/github/sylvaticus/Bmlt.jl/coverage.svg?branch=master)](http://codecov.io/github/sylvaticus/Bmlt.jl?branch=master)
@@ -19,46 +19,17 @@ As the focus is mainly didactic, functions have pretty longer but more explicit 
 
 That said, Julia is a relatively fast language and most hard job is done in multithreaded functions or using matrix operations whose underlying libraries are multithreaded, so it is reasonably fast for small exploratory tasks. Also it is already very flexible. For example, one can implement its own layer as a subtype of the abstract type `Layer` or its own optimisation algorithm as a subtype of `OptimisationAlgorithm` or even specify its own distance metric in the Kmedoids algorithm..
 
-**You can run the code by yourself (folder "notebooks") in myBinder, a temporary public online computational environment clicking [here](https://mybinder.org/v2/gh/sylvaticus/Bmlt.jl/master).**
-Note: every first time after a commit is made on this repository it takes a (very) long time to load such environment for the (unlucky) user that triggers the process, as the temporary environment need to be created. Subsequent users should find a cached version of the computational environment and the load time should be much smaller.
-
-By the way, if you are looking for an introductory book on Julia, have a look on my "[Julia Quick Syntax Reference](https://www.julia-book.com/)"(Apress,2019).
-
 ## Documentation
 
-### Installation
+Please refer to the package documentation ([dev](https://sylvaticus.github.io/Bmlt.jl/dev)) or use the Julia inline package system (just press the question mark `?` and then, on the special help prompt `help?>`, type the module or function name).
 
-This is NOT YET a Julia registered package:
-* install it with `] add https://github.com/sylvaticus/Bmlt.jl.git`
+Module currently implemented are [Perceptron](https://sylvaticus.github.io/Bmlt.jl/dev/Perceptron.html), [Nn](https://sylvaticus.github.io/Bmlt.jl/dev/Nn.html), [Clustering](https://sylvaticus.github.io/Bmlt.jl/dev/Clustering.html) and [Utils](https://sylvaticus.github.io/Bmlt.jl/dev/Utils.html).
 
-### Import
+We also provide some [notebooks](https://sylvaticus.github.io/Bmlt.jl/dev/Notebooks.html/Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
 
-You can access the functionality of this package either by using the submodule and
-then directly the provided functionality (utilities are re-exported by each of the
-other submodules) or using this root module and then using it to prefix each object
-provided by it, e.g.:
+If you are looking for an introductory book on Julia, have a look on "[Julia Quick Syntax Reference](https://www.julia-book.com/)"(Apress,2019).
 
-```
-using Bmlt.Nn
-myLayer = DenseLayer(2,3)
-```
 
-or
-
-```
-using Bmlt
-res = Bmlt.kernelPerceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
-```
-
-### Usage
-Documentation for most functions can be retrieved using the inline Julia help system (just press the question mark and then on the special prompt type the function name).
-
-For documentation, please look at the individual modules:
-
-- `?Bmlt.Perceptron`: Linear and kernel classifiers
-- `?Bmlt.Nn`:         Artificial Neural networks
-- `?Bmlt.Clustering`: Clustering algorithms and collaborative filtering using clusters
-- `?Bmlt.Utils`:      Various utility functions (scale, one-hot, distances, kernels,..)
 
 ### Examples
 

@@ -1,35 +1,34 @@
-# Bmlt.jl Documentation
-
+# ![BLogos](assets/bmlt_logo_30x30.png) Bmlt.jl Documentation
 
 Welcome to the documentation of the [_Beta Machine Learning Toolkit_](https://github.com/sylvaticus/Bmlt.jl).
 
 
 ## Installation
 
-This is NOT YET a Julia registered package:
-* install it with `] add https://github.com/sylvaticus/Bmlt.jl.git`
+Until the package is not yet registered, install it with:
+* `] add https://github.com/sylvaticus/Bmlt.jl.git`
 
 ## Loading the module(s)
 
 This package is split in several submodules. You can access its functionality either by `using` the specific submodule of interest and then directly the provided functionality (utilities are re-exported by each of the other submodules, so normally you don't need to implicitly import them) or by `using` the root module `Bmlt` and then prefix with `Bmlt.` each object/function you want to use, e.g.:
 
-```
+```julia
 using Bmlt.Nn
 myLayer = DenseLayer(2,3)
 ```
 
-or, equivalently,:
+or, equivalently,
 
-```
+```julia
 using Bmlt
 res = Bmlt.kernelPerceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 
 ## Usage
 
-Documentation for most functions can be retrieved using the inline Julia help system (just press the question mark `?` and then, on the special help prompt `help?>`, type the function name).
+Documentation for most algorithms can be retrieved using the inline Julia help system (just press the question mark `?` and then, on the special help prompt `help?>`, type the function name).
 
-For documentation, please look at the individual modules:
+For a list of supported algorithms please look at the individual modules:
 
 - [**`Bmlt.Perceptron`**](Perceptron.html): Perform classification tasks using the Perceptron, Kernel Perceptron or Pegasus algorithms
 - [**`Bmlt.Nn`**](Nn.html): Implementation of Artificial Neural networks
@@ -85,6 +84,10 @@ plot(0:res.epochs,res.ϵ_epochs, ylabel="epochs",xlabel="error",legend=nothing,t
 ![results](assets/sepalOutput_results.png)
 
 ![results](assets/sepalOutput_errors.png)
+
+### Notebooks
+
+We also provide [some notebooks](Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
 
 ## Acknowledgements
 

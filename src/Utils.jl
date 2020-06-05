@@ -221,7 +221,12 @@ import Base.error
 error(x::Array{Int64,1},y::Array{Int64,1}) = sum(x .!= y)/length(x)
 """ Categorical accuracy """
 accuracy(x::Array{Int64,1},y::Array{Int64,1}) = sum(x .== y)/length(x)
-""" Categorical accuracy with probabilistic prediction of a single datapoint. """
+"""
+    accuracy(x,y;tol)
+Categorical accuracy with probabilistic prediction of a single datapoint.
+
+Use the parameter tol [def: `1`] to determine the tollerance of the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values.
+"""
 function accuracy(x::Array{T,1},y::Int64;tol=1) where {T <: Number}
     sIdx = sortperm(x)[end:-1:1]
     if x[y] in x[sIdx[1:min(tol,length(sIdx))]]
@@ -230,7 +235,13 @@ function accuracy(x::Array{T,1},y::Int64;tol=1) where {T <: Number}
         return 0
     end
 end
-""" Categorical accuracy with probabilistic predictions of a dataset. """
+"""
+   accuracy(x,y;tol)
+
+Categorical accuracy with probabilistic predictions of a dataset.
+
+Use the parameter tol [def: `1`] to determine the tollerance of the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values.
+"""
 function accuracy(x::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number}
     n = size(x,1)
     acc = sum([accuracy(x[i,:],y[i],tol=tol) for i in 1:n])/n

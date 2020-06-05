@@ -1,7 +1,7 @@
 using Documenter, Bmlt.Utils, Bmlt.Nn, Bmlt.Perceptron, Bmlt.Clustering
 
 push!(LOAD_PATH,"../src/")
-makedocs(sitename="Beta Machine Learning Toolkit Documentation",
+makedocs(sitename="Bmlt.jl Documentation",
          #root = "../",
          #source = "src",
          #build = "build",
