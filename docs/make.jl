@@ -10,7 +10,11 @@ makedocs(sitename="Beta Machine Learning Toolkit Documentation",
             "Perceptron" => "Perceptron.md",
             "Nn"   => "Nn.md",
             "Clustering" => "Clustering.md",
-            "Utils" => "Utils.md"
+            "Utils" => "Utils.md",
+            "Notebooks" => "Notebooks.md"
          ],
          format = Documenter.HTML(prettyurls = false)
+)
+deploydocs(
+    repo = "github.com/sylvaticus/Bmlt.jl.git",
 )

@@ -15,17 +15,16 @@ Clustering and collaborative filtering (via clustering) algorithms
 
 Provide clustering methods and collaborative filtering using clustering methods as backend.
 
-The em algorithm is work in progress, as the API will likely change to account for different type of mixtures.
+The em algorithm is work in progress, as its API will likely change to account for different type of mixtures.
 
 The module provide the following functions. Use `?[function]` to access their full signature and detailed documentation:
 
-- `initRepresentatives(X,K;initStrategy,Z₀)`: Initialisation strategies for Kmean and Kmedoids
-- `kmeans(X,K;dist,initStrategy,Z₀)`: Classical KMean algorithm
-- `kmedoids(X,K;dist,initStrategy,Z₀)`: Kmedoids algorithm
-- `emGMM(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)`: EM algorithm over GMM with fixed variance
-- `collFilteringGMM(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)`: Collaborative filtering using GMM
+- [`initRepresentatives(X,K;initStrategy,Z₀)`](@ref initRepresentatives): Initialisation strategies for Kmean and Kmedoids
+- [`kmeans(X,K;dist,initStrategy,Z₀)](@ref kmeans)`: Classical KMean algorithm
+- [`kmedoids(X,K;dist,initStrategy,Z₀)](@ref kmedoids)`: Kmedoids algorithm
+- [`emGMM(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)](@ref emGMM)`: EM algorithm over GMM with fixed variance
+- [`collFilteringGMM(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)](@ref collFilteringGMM)`: Collaborative filtering using GMM
 """
-
 module Clustering
 
 using LinearAlgebra, Random, Statistics, Reexport

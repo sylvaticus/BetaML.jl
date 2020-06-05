@@ -13,13 +13,17 @@ Implement the Bmlt.Perceptron module
 
 """
 
-
 """
     Perceptron module
 
 Provide linear and kernel classifiers.
 
 See a [runnable example on myBinder](https://mybinder.org/v2/gh/sylvaticus/Bmlt.jl/master?filepath=notebooks%2FPerceptron.ipynb)
+
+- [`perceptron`](@ref): Train data using the classical perceptron
+- [`kernelPerceptron`](@ref): Train data using the kernel perceptron
+- [`pegasus`](@ref): Train data using the pegasus algorithm
+- [`predict`](@ref): Predict data using parameters from one of the above algorithms
 
 """
 module Perceptron
@@ -63,13 +67,12 @@ Train a perceptron algorithm based on x and y (labels)
 
 
 # Notes:
-* The trained data can then be used to make predictions using the function
- `predict()`. **If the option `randomShuffle` has been used, it is important to
-  use there the returned (x,y,α) as these would have been shuffle compared with
-  the original (x,y)**.
+* The trained parameters can then be used to make predictions using the function `predict()`.
 
 # Example:
+```jldoctest
 julia> perceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
+```
 """
 function perceptron(x, y; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=10, rShuffle=false, forceOrigin=false)
    if nMsgs != 0
@@ -122,11 +125,8 @@ Train a Kernel Perceptron algorithm based on x and y
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
 * `y`:        Associated labels of the training data, in the format of ⨦ 1
-* `K`:        Kernel function to emplpy. See `?radialKernel` or `?polynomialKernel`
-              for details or check `?Bmlt.Utils` to verify if other kernels are
-              defined (you  can alsways define your own kernel) [def: `radialKernel`]
-* `T`:        Maximum number of iterations across the whole set (if the set is
-              not fully classified earlier) [def: 1000]
+* `K`:        Kernel function to emplpy. See `?radialKernel` or `?polynomialKernel`for details or check `?Bmlt.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]
+* `T`:        Maximum number of iterations across the whole set (if the set is not fully classified earlier) [def: 1000]
 * `α`:        Initial distribution of the errors [def: `zeros(length(y))`]
 * `nMsg`:     Maximum number of messages to show if all iterations are done
 * `rShuffle`: Wheter to randomly shuffle the data at each iteration [def: `false`]
@@ -141,13 +141,12 @@ Train a Kernel Perceptron algorithm based on x and y
 * `separated`: a flag if the data has been successfully separated
 
 # Notes:
-* The trained data can then be used to make predictions using the function
-  `predict()`. **If the option `randomShuffle` has been used, it is important to
-   use there the returned (x,y,α) as these would have been shuffle compared with
-   the original (x,y)**.
+* The trained data can then be used to make predictions using the function `predict()`. **If the option `randomShuffle` has been used, it is important to use there the returned (x,y,α) as these would have been shuffle compared with the original (x,y)**.
 
 # Example:
+```jldoctest
 julia> kernelPerceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
+```
 """
 function kernelPerceptron(x, y; K=radialKernel, T=1000, α=zeros(length(y)), nMsgs=10, rShuffle=false)
     if nMsgs != 0
@@ -198,12 +197,10 @@ Train the peagasus algorithm based on x and y (labels)
 * `x`:           Feature matrix of the training data (n × d)
 * `y`:           Associated labels of the training data, in the format of ⨦ 1
 * `θ`:           Initial value of the weights (parameter) [def: `zeros(d)`]
-* `θ₀`:          Initial value of the weight (parameter) associated to the constant
-                 term [def: `0`]
+* `θ₀`:          Initial value of the weight (parameter) associated to the constant term [def: `0`]
 * `λ`:           Multiplicative term of the learning rate
 * `η`:           Learning rate [def: (t -> 1/sqrt(t))]
-* `T`:           Maximum number of iterations across the whole set (if the set
-                 is not fully classified earlier) [def: 1000]
+* `T`:           Maximum number of iterations across the whole set (if the set is not fully classified earlier) [def: 1000]
 * `nMsg`:        Maximum number of messages to show if all iterations are done
 * `rShuffle`:    Wheter to randomly shuffle the data at each iteration [def: `false`]
 * `forceOrigin`: Wheter to force `θ₀` to remain zero [def: `false`]
@@ -220,14 +217,12 @@ Train the peagasus algorithm based on x and y (labels)
 
 
 # Notes:
-* The trained data can then be used to make predictions using the function
-`predict()`. **If the option `randomShuffle` has been used, it is important to
- use there the returned (x,y,α) a
- s these would have been shuffle compared with
- the original (x,y)**.
+* The trained parameters can then be used to make predictions using the function `predict()`.
 
 # Example:
+```jldoctest
 julia> pegasus([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
+```
 """
 function pegasus(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, rShuffle=false, forceOrigin=false)
   if nMsgs != 0
@@ -281,39 +276,22 @@ end
 
 
 """
-  predict(x,θ,θ₀=0.0)
+  predict(x,θ,θ₀)
 
 Predict a binary label {-1,1} given the feature vector and the linear coefficients
 
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
-* `y`:        Associated labels of the training data, in the format of ⨦ 1
-* `K`:        Kernel function to emplo]y. See `?radialKernel` or `?polynomialKernel`
-              for details or check `?Bmlt.Utils` to verify if other kernels are
-              defined (you  can alsways define your own kernel) [def: `radialKernel`]
-* `T`:        Maximum number of iterations across the whole set (if the set is
-              not fully classified earlier) [def: 1000]
-* `α`:        Initial distribution of the errors [def: `zeros(length(y))`]
-* `nMsg`:     Maximum number of messages to show if all iterations are done
-* `rShuffle`: Wheter to randomly shuffle the data at each iteration [def: `false`]
+* `θ`:        The trained parameters
+* `θ₀`:       The trained bias barameter [def: `0`]
 
-# Return a named tuple with:
-* `x`: the x data (eventually shuffled if `rShuffle=true`)
-* `y`: the label
-* `α`: the errors associated to each record
-* `errors`: the number of errors in the last iteration
-* `besterrors`: the minimum number of errors in classifying the data ever reached
-* `iterations`: the actual number of iterations performed
-* `separated`: a flag if the data has been successfully separated
-
-# Notes:
-* The trained data can then be used to make predictions using the function
-  `predict()`. **If the option `randomShuffle` has been used, it is important to
-   use there the returned (x,y,α) as these would have been shuffle compared with
-   the original (x,y)**.
+# Return :
+* `y`: Vector of the predicted labels
 
 # Example:
-julia> kernelPerceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
+```julia
+julia> predict([1.1 2.1; 5.3 4.2; 1.8 1.7], [3.2,1.2])
+```
 """
 function predict(x,θ,θ₀=0.0)
     x = makeMatrix(x)
@@ -328,6 +306,26 @@ function predict(x,θ,θ₀=0.0)
     return y
 end
 
+"""
+  predict(x,xtrain,ytrain,α;K)
+
+Predict a binary label {-1,1} given the feature vector and the training data together with their errors (as trained by a kenrnel perceptron algorithm)
+
+# Parameters:
+* `x`:      Feature matrix of the training data (n × d)
+* `xtrain`: The feature vectors used for the training
+* `ytrain`: The labels of the training set
+* `α`:      The errors associated to each record
+* `K`:      The kernel function used for the training and to be used for the prediction [def: [`radialKernel`](@ref)]
+
+# Return :
+* `y`: Vector of the predicted labels
+
+# Example:
+```julia
+julia> predict([1.1 2.1; 5.3 4.2; 1.8 1.7], [3.2,1.2])
+```
+"""
 function predict(x,xtrain,ytrain,α;K=radialKernel)
     x = makeMatrix(x)
     xtrain = makeMatrix(xtrain)

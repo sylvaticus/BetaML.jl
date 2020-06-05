@@ -4,6 +4,8 @@
 
 The **Beta Machine Learning Toolkit** is a repository with several basic Machine Learning algorithms, started from implementing in the Julia language the concepts taught in the [MITX 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://www.edx.org/course/machine-learning-with-python-from-linear-models-to) course.
 
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://sylvaticus.github.io/Bmlt.jl/stable)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sylvaticus.github.io/Bmlt.jl/dev)
 [![Build Status](https://travis-ci.org/sylvaticus/Bmlt.jl.svg?branch=master)](https://travis-ci.org/sylvaticus/Bmlt.jl)
 [![codecov.io](http://codecov.io/github/sylvaticus/Bmlt.jl/coverage.svg?branch=master)](http://codecov.io/github/sylvaticus/Bmlt.jl?branch=master)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/sylvaticus/Bmlt.jl/master)

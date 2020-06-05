@@ -1,8 +1,5 @@
 # The Bmlt.Clustering Module
 
-
-# The Bmlt.Nn Module
-
 ```@docs
 Clustering
 
