@@ -25,7 +25,7 @@ Please refer to the package documentation ([dev](https://sylvaticus.github.io/Bm
 
 Module currently implemented are [Perceptron](https://sylvaticus.github.io/Bmlt.jl/dev/Perceptron.html), [Nn](https://sylvaticus.github.io/Bmlt.jl/dev/Nn.html), [Clustering](https://sylvaticus.github.io/Bmlt.jl/dev/Clustering.html) and [Utils](https://sylvaticus.github.io/Bmlt.jl/dev/Utils.html).
 
-We also provide some [notebooks](https://sylvaticus.github.io/Bmlt.jl/dev/Notebooks.html/Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
+We also provide some [notebooks](https://sylvaticus.github.io/Bmlt.jl/dev/Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
 
 If you are looking for an introductory book on Julia, have a look on "[Julia Quick Syntax Reference](https://www.julia-book.com/)"(Apress,2019).
 
