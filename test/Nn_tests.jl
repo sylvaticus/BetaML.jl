@@ -4,7 +4,7 @@ using DelimitedFiles, LinearAlgebra
 import Random:seed!
 seed!(123)
 
-using Bmlt.Nn
+using BetaML.Nn
 
 
 println("*** Testing Neural Network...")

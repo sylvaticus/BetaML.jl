@@ -1,7 +1,7 @@
-using Documenter, Bmlt.Utils, Bmlt.Nn, Bmlt.Perceptron, Bmlt.Clustering
+using Documenter, BetaML.Utils, BetaML.Nn, BetaML.Perceptron, BetaML.Clustering
 
 push!(LOAD_PATH,"../src/")
-makedocs(sitename="Bmlt.jl Documentation",
+makedocs(sitename="BetaML.jl Documentation",
          #root = "../",
          #source = "src",
          #build = "build",
@@ -16,5 +16,5 @@ makedocs(sitename="Bmlt.jl Documentation",
          format = Documenter.HTML(prettyurls = false)
 )
 deploydocs(
-    repo = "github.com/sylvaticus/Bmlt.jl.git",
+    repo = "github.com/sylvaticus/BetaML.jl.git",
 )

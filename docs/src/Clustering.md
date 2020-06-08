@@ -1,4 +1,4 @@
-# The Bmlt.Clustering Module
+# The BetaML.Clustering Module
 
 ```@docs
 Clustering

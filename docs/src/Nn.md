@@ -1,4 +1,4 @@
-# The Bmlt.Nn Module
+# The BetaML.Nn Module
 
 ```@docs
 Nn

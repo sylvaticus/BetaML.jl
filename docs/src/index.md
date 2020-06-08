@@ -1,27 +1,27 @@
-# ![BLogos](assets/bmlt_logo_30x30.png) Bmlt.jl Documentation
+# ![BLogos](assets/BetaML_logo_30x30.png) BetaML.jl Documentation
 
-Welcome to the documentation of the [_Beta Machine Learning Toolkit_](https://github.com/sylvaticus/Bmlt.jl).
+Welcome to the documentation of the [_Beta Machine Learning Toolkit_](https://github.com/sylvaticus/BetaML.jl).
 
 
 ## Installation
 
 Until the package is not yet registered, install it with:
-* `] add https://github.com/sylvaticus/Bmlt.jl.git`
+* `] add https://github.com/sylvaticus/BetaML.jl.git`
 
 ## Loading the module(s)
 
-This package is split in several submodules. You can access its functionality either by `using` the specific submodule of interest and then directly the provided functionality (utilities are re-exported by each of the other submodules, so normally you don't need to implicitly import them) or by `using` the root module `Bmlt` and then prefix with `Bmlt.` each object/function you want to use, e.g.:
+This package is split in several submodules. You can access its functionality either by `using` the specific submodule of interest and then directly the provided functionality (utilities are re-exported by each of the other submodules, so normally you don't need to implicitly import them) or by `using` the root module `BetaML` and then prefix with `BetaML.` each object/function you want to use, e.g.:
 
 ```julia
-using Bmlt.Nn
+using BetaML.Nn
 myLayer = DenseLayer(2,3)
 ```
 
 or, equivalently,
 
 ```julia
-using Bmlt
-res = Bmlt.kernelPerceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
+using BetaML
+res = BetaML.kernelPerceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 
 ## Usage
@@ -30,10 +30,10 @@ Documentation for most algorithms can be retrieved using the inline Julia help s
 
 For a list of supported algorithms please look at the individual modules:
 
-- [**`Bmlt.Perceptron`**](Perceptron.html): Perform classification tasks using the Perceptron, Kernel Perceptron or Pegasus algorithms
-- [**`Bmlt.Nn`**](Nn.html): Implementation of Artificial Neural networks
-- [**`Bmlt.Clustering``**](Clustering.html): Clustering algorithms (Kmeans, Mdedoids, GMM) and collaborative filtering /recommandation systems using clusters
-- [**`Bmlt.Utils``**](Utils.html): Various utility functions (scale, one-hot, distances, kernels,..)
+- [**`BetaML.Perceptron`**](Perceptron.html): Perform classification tasks using the Perceptron, Kernel Perceptron or Pegasus algorithms
+- [**`BetaML.Nn`**](Nn.html): Implementation of Artificial Neural networks
+- [**`BetaML.Clustering``**](Clustering.html): Clustering algorithms (Kmeans, Mdedoids, GMM) and collaborative filtering /recommandation systems using clusters
+- [**`BetaML.Utils``**](Utils.html): Various utility functions (scale, one-hot, distances, kernels,..)
 
 ## Examples
 
@@ -41,11 +41,11 @@ For a list of supported algorithms please look at the individual modules:
 
 ```julia
 # Load Modules
-using Bmlt.Nn, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
+using BetaML.Nn, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
 Random.seed!(123); # Fix the random seed (to obtain reproducible results)
 
 # Load the data
-iris     = readdlm(joinpath(dirname(Base.find_package("Bmlt")),"..","test","data","iris.csv"),',',skipstart=1)
+iris     = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
 iris     = iris[shuffle(axes(iris, 1)), :] # Shuffle the records, as they aren't by default
 x        = convert(Array{Float64,2}, iris[:,1:4])
 y        = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iris[:, 5]) # Convert the target column to numbers

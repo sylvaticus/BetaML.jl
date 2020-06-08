@@ -3,9 +3,9 @@
 
 Clustering and collaborative filtering (via clustering) algorithms
 
-- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/Bmlt.jl/blob/master/src/Clustering.jl) - [Julia Package](https://github.com/sylvaticus/Bmlt.jl)
-- [Demonstrative static notebook](https://github.com/sylvaticus/Bmlt.jl/blob/master/notebooks/Clustering.ipynb)
-- [Demonstrative live notebook](https://mybinder.org/v2/gh/sylvaticus/Bmlt.jl/master?filepath=notebooks%2FClustering.ipynb) (temporary personal online computational environment on myBinder) - it can takes minutes to start with!
+- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/BetaML.jl/blob/master/src/Clustering.jl) - [Julia Package](https://github.com/sylvaticus/BetaML.jl)
+- [Demonstrative static notebook](https://github.com/sylvaticus/BetaML.jl/blob/master/notebooks/Clustering.ipynb)
+- [Demonstrative live notebook](https://mybinder.org/v2/gh/sylvaticus/BetaML.jl/master?filepath=notebooks%2FClustering.ipynb) (temporary personal online computational environment on myBinder) - it can takes minutes to start with!
 - Theory based on [MITx 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://github.com/sylvaticus/MITx_6.86x) ([Unit 4](https://github.com/sylvaticus/MITx_6.86x/blob/master/Unit%2004%20-%20Unsupervised%20Learning/Unit%2004%20-%20Unsupervised%20Learning.md))
 - New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
 """

@@ -1,6 +1,6 @@
 using Test, Statistics
 
-using Bmlt.Utils
+using BetaML.Utils
 
 println("*** Testing individual utility functions (module `Utils`)...")
 
@@ -27,7 +27,7 @@ println("** Going through Test2 (softMax)...")
 println("** Going through Test3 (softMax, dSoftMax and autoJacobian)...")
 @test isapprox(softMax([2,3,4],β=0.1),[0.3006096053557272,0.3322249935333472,0.36716540111092544])
 
-#import Bmlt.Utils: autoJacobian
+#import BetaML.Utils: autoJacobian
 @test autoJacobian(x -> (x[1]*2,x[2]*x[3]),[1,2,3]) == [2.0 0.0 0.0; 0.0 3.0 2.0]
 
 b = softMax([2,3,4],β=1/2)

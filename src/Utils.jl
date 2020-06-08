@@ -1,11 +1,11 @@
 """
   Utils.jl File
 
-Machine Learning shared utility functions (Module Bmlt.Utils)
+Machine Learning shared utility functions (Module BetaML.Utils)
 
-`?Bmlt.Utils` for documentation
+`?BetaML.Utils` for documentation
 
-- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/Bmlt.jl/blob/master/src/Utils.jl) - [Julia Package](https://github.com/sylvaticus/Utils.jl)
+- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/BetaML.jl/blob/master/src/Utils.jl) - [Julia Package](https://github.com/sylvaticus/Utils.jl)
 - New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
 
 """

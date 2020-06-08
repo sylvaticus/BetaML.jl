@@ -1,4 +1,4 @@
-# The Bmlt.Perceptron Module
+# The BetaML.Perceptron Module
 
 ```@docs
 Perceptron

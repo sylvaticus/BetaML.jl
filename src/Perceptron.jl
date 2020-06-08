@@ -1,13 +1,13 @@
 """
     Perceptron.jl file
 
-Implement the Bmlt.Perceptron module
+Implement the BetaML.Perceptron module
 
-`?Bmlt.Perceptron` for documentation
+`?BetaML.Perceptron` for documentation
 
-- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/Bmlt.jl/blob/master/src/Perceptron.jl) - [Julia Package](https://github.com/sylvaticus/Bmlt.jl)
+- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/BetaML.jl/blob/master/src/Perceptron.jl) - [Julia Package](https://github.com/sylvaticus/BetaML.jl)
 - [Demonstrative static notebook](https://github.com/sylvaticus/lmlj.jl/blob/master/notebooks/Perceptron.ipynb)
-- [Demonstrative live notebook](https://mybinder.org/v2/gh/sylvaticus/Bmlt.jl/master?filepath=notebooks%2FPerceptron.ipynb) (temporary personal online computational environment on myBinder) - it can takes minutes to start with!
+- [Demonstrative live notebook](https://mybinder.org/v2/gh/sylvaticus/BetaML.jl/master?filepath=notebooks%2FPerceptron.ipynb) (temporary personal online computational environment on myBinder) - it can takes minutes to start with!
 - Theory based on [MITx 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://github.com/sylvaticus/MITx_6.86x) ([Unit 3](https://github.com/sylvaticus/MITx_6.86x/blob/master/Unit%2003%20-%20Neural%20networks/Unit%2003%20-%20Neural%20networks.md))
 - New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
 
@@ -18,7 +18,7 @@ Implement the Bmlt.Perceptron module
 
 Provide linear and kernel classifiers.
 
-See a [runnable example on myBinder](https://mybinder.org/v2/gh/sylvaticus/Bmlt.jl/master?filepath=notebooks%2FPerceptron.ipynb)
+See a [runnable example on myBinder](https://mybinder.org/v2/gh/sylvaticus/BetaML.jl/master?filepath=notebooks%2FPerceptron.ipynb)
 
 - [`perceptron`](@ref): Train data using the classical perceptron
 - [`kernelPerceptron`](@ref): Train data using the kernel perceptron
@@ -125,7 +125,7 @@ Train a Kernel Perceptron algorithm based on x and y
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
 * `y`:        Associated labels of the training data, in the format of ⨦ 1
-* `K`:        Kernel function to emplpy. See `?radialKernel` or `?polynomialKernel`for details or check `?Bmlt.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]
+* `K`:        Kernel function to emplpy. See `?radialKernel` or `?polynomialKernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]
 * `T`:        Maximum number of iterations across the whole set (if the set is not fully classified earlier) [def: 1000]
 * `α`:        Initial distribution of the errors [def: `zeros(length(y))`]
 * `nMsg`:     Maximum number of messages to show if all iterations are done

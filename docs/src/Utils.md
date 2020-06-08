@@ -1,4 +1,4 @@
-# The Bmlt.Utils Module
+# The BetaML.Utils Module
 
 ```@docs
 Utils

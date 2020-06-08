@@ -5,7 +5,7 @@ using DelimitedFiles
 import Random:seed!
 seed!(1234)
 
-using Bmlt.Perceptron
+using BetaML.Perceptron
 
 println("*** Testing Perceptron algorithms...")
 

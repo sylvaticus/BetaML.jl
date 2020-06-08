@@ -1,13 +1,13 @@
 """
   nn.jl File
 
-Neural Network implementation (Module Bmlt.Nn)
+Neural Network implementation (Module BetaML.Nn)
 
-`?Bmlt.Nn` for documentation
+`?BetaML.Nn` for documentation
 
-- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/Bmlt.jl/blob/master/src/Nn.jl) - [Julia Package](https://github.com/sylvaticus/Bmlt.jl)
-- [Demonstrative static notebook](https://github.com/sylvaticus/Bmlt.jl/blob/master/notebooks/Nn.ipynb)
-- [Demonstrative live notebook](https://mybinder.org/v2/gh/sylvaticus/Bmlt.jl/master?filepath=notebooks%2FNn.ipynb) (temporary personal online computational environment on myBinder) - it can takes minutes to start with!
+- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/BetaML.jl/blob/master/src/Nn.jl) - [Julia Package](https://github.com/sylvaticus/BetaML.jl)
+- [Demonstrative static notebook](https://github.com/sylvaticus/BetaML.jl/blob/master/notebooks/Nn.ipynb)
+- [Demonstrative live notebook](https://mybinder.org/v2/gh/sylvaticus/BetaML.jl/master?filepath=notebooks%2FNn.ipynb) (temporary personal online computational environment on myBinder) - it can takes minutes to start with!
 - Theory based on [MITx 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://github.com/sylvaticus/MITx_6.86x) ([Unit 3](https://github.com/sylvaticus/MITx_6.86x/blob/master/Unit%2003%20-%20Neural%20networks/Unit%2003%20-%20Neural%20networks.md))
 - New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
 
@@ -15,7 +15,7 @@ Neural Network implementation (Module Bmlt.Nn)
 
 
 """
-    Bmlt.Nn module
+    BetaML.Nn module
 
 Implement the functionality required to define an artificial Neural Network, train it with data, forecast data and assess its performances.
 

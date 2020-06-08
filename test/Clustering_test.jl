@@ -4,7 +4,7 @@ using Test
 import Random:seed!
 seed!(123)
 
-using Bmlt.Clustering
+using BetaML.Clustering
 
 
 println("*** Testing Clustering...")
