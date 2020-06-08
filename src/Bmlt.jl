@@ -1,15 +1,15 @@
 """
-    Bmlt
+    BetaML
 
-The Beta Machine Toolkit
-https://github.com/sylvaticus/Bmlt.jl
+The Beta Machine Learning toolkit
+https://github.com/sylvaticus/BetaML.jl
 
 For documentation, please look at the individual modules:
 
-- `?Bmlt.Perceptron`: Linear and kernel classifiers
-- `?Bmlt.Nn`: Neural networks
-- `?Bmlt.Clusters`: Clustering algorithms and collaborative filering using clusters
-- `?Bmlt.Utils`: Various utility functions (scale, one-hot, distances, kernels,..)
+- `?BetaML.Perceptron`: Linear and kernel classifiers
+- `?BetaML.Nn`: Neural networks
+- `?BetaML.Clusters`: Clustering algorithms and collaborative filering using clusters
+- `?BetaML.Utils`: Various utility functions (scale, one-hot, distances, kernels,..)
 
 You can access the functionality of this package either by using the submodule and
 then directly the provided functionality (utilities are reexported by each of the
@@ -17,19 +17,19 @@ other submodule) or using this root module and then using it to prefix each obje
 provided by it, e.g.:
 
 ```
-using Bmlt.Nn
+using BetaML.Nn
 myLayer = DenseLayer(2,3)
 ```
 
 or
 
 ```
-using Bmlt
-myLayer = Bmlt.DenseLayer(2,3)
+using BetaML
+myLayer = BetaML.DenseLayer(2,3)
 ```
 
 """
-module Bmlt
+module BetaML
 
 include("Utils.jl")
 using .Utils
