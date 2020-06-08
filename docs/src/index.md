@@ -1,12 +1,12 @@
 # ![BLogos](assets/BetaML_logo_30x30.png) BetaML.jl Documentation
 
-Welcome to the documentation of the [_Beta Machine Learning Toolkit_](https://github.com/sylvaticus/BetaML.jl).
+Welcome to the documentation of the [_Beta Machine Learning toolkit_](https://github.com/sylvaticus/BetaML.jl).
 
 
 ## Installation
 
-Until the package is not yet registered, install it with:
-* `] add https://github.com/sylvaticus/BetaML.jl.git`
+The BetaML package is now included in the standard Julia register, install it with:
+* `] add BetaML`
 
 ## Loading the module(s)
 
