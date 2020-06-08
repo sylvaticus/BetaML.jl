@@ -6,7 +6,7 @@ The **Beta Machine Learning Toolkit** is a repository with several basic Machine
 
 <!--[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://sylvaticus.github.io/BetaML.jl/stable) -->
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sylvaticus.github.io/BetaML.jl/dev)
-[![Build Status](https://travis-ci.org/sylvaticus/BetaML.jl.svg?branch=master)](https://travis-ci.org/sylvaticus/BetaML.jl)
+[![Build Status](https://travis-ci.com/sylvaticus/BetaML.jl.svg?branch=master)](https://travis-ci.com/sylvaticus/BetaML.jl)
 [![codecov.io](http://codecov.io/github/sylvaticus/BetaML.jl/coverage.svg?branch=master)](http://codecov.io/github/sylvaticus/BetaML.jl?branch=master)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/sylvaticus/BetaML.jl/master)
 
