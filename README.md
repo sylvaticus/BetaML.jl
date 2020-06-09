@@ -1,10 +1,10 @@
 # Beta Machine Learning Toolkit
 
-<img src="assets/BetaML_logo.png" width="300" valign="middle"/> &nbsp;&nbsp;&nbsp;<img src="assets/microExample.png" width="500" valign="middle"/>
+<img src="assets/BetaML_logo.png" width="300" valign="middle"/> &nbsp;&nbsp;&nbsp;<img src="assets/microExample_white.png" width="500" valign="middle"/>
 
 The **Beta Machine Learning Toolkit** is a repository with several basic Machine Learning algorithms, started from implementing in the Julia language the concepts taught in the [MITX 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://www.edx.org/course/machine-learning-with-python-from-linear-models-to) course.
 
-<!--[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://sylvaticus.github.io/BetaML.jl/stable) -->
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://sylvaticus.github.io/BetaML.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sylvaticus.github.io/BetaML.jl/dev)
 [![Build Status](https://travis-ci.com/sylvaticus/BetaML.jl.svg?branch=master)](https://travis-ci.com/sylvaticus/BetaML.jl)
 [![codecov.io](http://codecov.io/github/sylvaticus/BetaML.jl/coverage.svg?branch=master)](http://codecov.io/github/sylvaticus/BetaML.jl?branch=master)
@@ -17,18 +17,17 @@ For "serious" machine learning work in Julia I suggest to use either [Flux](http
 
 As the focus is mainly didactic, functions have pretty longer but more explicit names than usual.. for example the `Dense` layer is a `DenseLayer`, the `RBF` kernel is `radialKernel`, etc.
 
-That said, Julia is a relatively fast language and most hard job is done in multithreaded functions or using matrix operations whose underlying libraries are multithreaded, so it is reasonably fast for small exploratory tasks. Also it is already very flexible. For example, one can implement its own layer as a subtype of the abstract type `Layer` or its own optimisation algorithm as a subtype of `OptimisationAlgorithm` or even specify its own distance metric in the Kmedoids algorithm..
+That said, Julia is a relatively fast language and most hard job is done in multithreaded functions or using matrix operations whose underlying libraries may be multithreaded, so it is reasonably fast for small exploratory tasks. Also it is already very flexible. For example, one can implement its own layer as a subtype of the abstract type `Layer` or its own optimisation algorithm as a subtype of `OptimisationAlgorithm` or even specify its own distance metric in the Kmedoids algorithm..
 
 ## Documentation
 
-Please refer to the package documentation ([dev](https://sylvaticus.github.io/BetaML.jl/dev)) or use the Julia inline package system (just press the question mark `?` and then, on the special help prompt `help?>`, type the module or function name).
+Please refer to the package documentation ([stable](https://sylvaticus.github.io/BetaML.jl/dev) | [dev](https://sylvaticus.github.io/BetaML.jl/dev)) or use the Julia inline package system (just press the question mark `?` and then, on the special help prompt `help?>`, type the module or function name).
 
 Module currently implemented are [Perceptron](https://sylvaticus.github.io/BetaML.jl/dev/Perceptron.html), [Nn](https://sylvaticus.github.io/BetaML.jl/dev/Nn.html), [Clustering](https://sylvaticus.github.io/BetaML.jl/dev/Clustering.html) and [Utils](https://sylvaticus.github.io/BetaML.jl/dev/Utils.html).
 
 We also provide some [notebooks](https://sylvaticus.github.io/BetaML.jl/dev/Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
 
 If you are looking for an introductory book on Julia, have a look on "[Julia Quick Syntax Reference](https://www.julia-book.com/)"(Apress,2019).
-
 
 
 ### Examples
