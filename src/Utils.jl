@@ -128,9 +128,9 @@ function getScaleFactors(x;skip=[])
 end
 
 """
-    scale(x;scalingFactors)
+    scale(x,scaleFactors)
 
-Perform a linear scaling of x using scaling factors `scalingFactors`.
+Perform a linear scaling of x using scaling factors `scaleFactors`.
 
 # Parameters
 - `x`: the (n × d) dimension matrix to scale on each dimension d
@@ -141,7 +141,8 @@ respectively [def: the scaling factors needed to scale x to mean 0 and variance 
 - The scaled matrix
 
 # Notes:
-- also available `scale!(x;scalingFactors)` for in-place scaling.
+- also available `scale!(x,scaleFactors)` for in-place scaling.
+- retrieve the scale factors with the `getScaleFactors()` function
 """
 function scale(x,scaleFactors=(-mean(x,dims=1),1 ./ sqrt.(var(x,corrected=false,dims=1)) ))
     y = (x .+ scaleFactors[1]) .* scaleFactors[2]
@@ -217,40 +218,68 @@ end
 # ------------------------------------------------------------------------------
 # Various error/accuracy measures
 import Base.error
-""" Categorical error """
-error(x::Array{Int64,1},y::Array{Int64,1}) = sum(x .!= y)/length(x)
-""" Categorical accuracy """
-accuracy(x::Array{Int64,1},y::Array{Int64,1}) = sum(x .== y)/length(x)
+""" error(ŷ,y) - Categorical error (Int vs Int)"""
+error(ŷ::Array{Int64,1},y::Array{Int64,1}) = sum(ŷ .!= y)/length(x)
+""" accuracy(ŷ,y) - Categorical accuracy (Int vs Int)"""
+accuracy(ŷ::Array{Int64,1},y::Array{Int64,1}) = sum(ŷ .== y)/length(x)
 """
-    accuracy(x,y;tol)
-Categorical accuracy with probabilistic prediction of a single datapoint.
+    accuracy(ŷ,y;tol)
+Categorical accuracy with probabilistic prediction of a single datapoint (PMF vs Int).
 
 Use the parameter tol [def: `1`] to determine the tollerance of the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values.
 """
-function accuracy(x::Array{T,1},y::Int64;tol=1) where {T <: Number}
-    sIdx = sortperm(x)[end:-1:1]
-    if x[y] in x[sIdx[1:min(tol,length(sIdx))]]
+function accuracy(ŷ::Array{T,1},y::Int64;tol=1) where {T <: Number}
+    sIdx = sortperm(ŷ)[end:-1:1]
+    if ŷ[y] in ŷ[sIdx[1:min(tol,length(sIdx))]]
         return 1
     else
         return 0
     end
 end
 """
-   accuracy(x,y;tol)
+   accuracy(ŷ,y;tol)
 
-Categorical accuracy with probabilistic predictions of a dataset.
+Categorical accuracy with probabilistic predictions of a dataset (PMF vs Int).
 
 Use the parameter tol [def: `1`] to determine the tollerance of the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values.
 """
-function accuracy(x::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number}
-    n = size(x,1)
-    acc = sum([accuracy(x[i,:],y[i],tol=tol) for i in 1:n])/n
+function accuracy(ŷ::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number}
+    n = size(ŷ,1)
+    acc = sum([accuracy(ŷ[i,:],y[i],tol=tol) for i in 1:n])/n
 end
-""" Categorical error with probabilistic prediction of a single datapoint. """
-error(x::Array{T,1},y::Int64;tol=1) where {T <: Number} = 1 - accuracy(x,y;tol=tol)
-""" Categorical error with probabilistic predictions of a dataset. """
-error(x::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number} = 1 - accuracy(x,y;tol=tol)
+""" error(ŷ,y) - Categorical error with probabilistic prediction of a single datapoint (PMF vs Int). """
+error(ŷ::Array{T,1},y::Int64;tol=1) where {T <: Number} = 1 - accuracy(ŷ,y;tol=tol)
+""" error(ŷ,y) - Categorical error with probabilistic predictions of a dataset (PMF vs Int). """
+error(ŷ::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number} = 1 - accuracy(ŷ,y;tol=tol)
 
+"""
+  relMeanError(ŷ,y;normDim=false,normRec=false,p=1)
+
+Compute the relative mean absolute error (l-1 based by default) between ŷ and y.
+
+There are many ways to compute a relative mean error. In particular, if normRec (normDim) is set to true, the records (dimensions) are normalised, in the sense that it doesn't matter if a record (dimension) is bigger or smaller than the others, the relative error is first computed for each record (dimension) and then it is averaged.
+With both `normDim` and `normRec` set to `false` (default) the function returns the relative mean error; with both set to `true` it returns the mean relative error (i.e. with p=1 the "[mean absolute percentage error (MAPE)](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)")
+The parameter `p` [def: `1`] controls the p-norm used to define the error.
+
+"""
+function relMeanError(ŷ,y;normDim=false,normRec=false,p=1)
+    (n,d) = size(y)
+    #ϵ = abs.(ŷ-y) .^ p
+    if (!normDim && !normRec) # relative mean error
+        avgϵRel = (sum(abs.(ŷ-y).^p)^(1/p) / (n*d)) / (sum( abs.(y) .^p)^(1/p) / (n*d)) # (avg error) / (avg y)
+        # avgϵRel = (norm((ŷ-y),p)/(n*d)) / (norm(y,p) / (n*d))
+    elseif (!normDim && normRec) # normalised by record (i.e. all records play the same weigth)
+        avgϵRel_byRec = (sum(abs.(ŷ-y) .^ (1/p),dims=2).^(1/p) ./ d) ./   (sum(abs.(y) .^ (1/p) ,dims=2) ./d)
+        avgϵRel = mean(avgϵRel_byRec)
+    elseif (normDim && !normRec) # normalised by dimensions (i.e.  all dimensions play the same weigth)
+        avgϵRel_byDim = (sum(abs.(ŷ-y) .^ (1/p),dims=1).^(1/p) ./ n) ./   (sum(abs.(y) .^ (1/p) ,dims=1) ./n)
+        avgϵRel = mean(avgϵRel_byDim)
+    else # mean relative error
+        avgϵRel = sum(abs.((ŷ-y)./ y).^p)^(1/p)/(n*d) # avg(error/y)
+        # avgϵRel = (norm((ŷ-y)./ y,p)/(n*d))
+    end
+    return avgϵRel
+end
 
 # ------------------------------------------------------------------------------
 # Various neural network loss functions as well their derivatives
@@ -278,6 +307,7 @@ l2_distance(x,y)     = norm(x-y)
 l2²_distance(x,y)    = norm(x-y)^2
 """Cosine distance"""
 cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
+
 
 # ------------------------------------------------------------------------------
 # Some common PDFs

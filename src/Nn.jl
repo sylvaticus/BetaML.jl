@@ -247,14 +247,15 @@ mutable struct NN
 end
 
 """
-   buildNetwork
+   buildNetwork(layers,cf;dcf,name)
 
 Instantiate a new Feedforward Neural Network
 
 Parameters:
-* `layers`:  Array of layers objects
-* `cf`:      Cost function
-* `dcf`:     Derivative of the cost function
+* `layers`: Array of layers objects
+* `cf`:     Cost function
+* `dcf`:    Derivative of the cost function [def: `nothing`]
+* `name`:   Name of the network [def: "Neural Network"]
 
 # Notes:
 * Even if the network ends with a single output note, the cost function and its derivative should always expect y and ŷ as column vectors.
