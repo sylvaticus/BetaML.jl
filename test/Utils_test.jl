@@ -61,10 +61,12 @@ x = [1.1 4.1 8.1 3 8; 2 4 9 7 2; 7 2 9 3 1]
 scaleFactors = getScaleFactors(x,skip=skip)
 y  = scale(x,scaleFactors)
 y2 = scale(x)
-scale!(x)
-
+x2 = copy(x)
+scale!(x2)
+@test y2 == x2
 @test all((sum(mean(y,dims=1)), sum(var(y,corrected=false,dims=1)) ) .≈ (11.366666666666667, 21.846666666666668))
-
+x3 = scale(y,scaleFactors,rev=true)
+@test x3 == x
 
 # ==================================
 # New test

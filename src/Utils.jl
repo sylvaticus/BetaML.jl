@@ -128,28 +128,37 @@ function getScaleFactors(x;skip=[])
 end
 
 """
-    scale(x,scaleFactors)
+    scale(x,scaleFactors;rev)
 
 Perform a linear scaling of x using scaling factors `scaleFactors`.
 
 # Parameters
-- `x`: the (n × d) dimension matrix to scale on each dimension d
-- `scalingFactors`: an tuple of the constant and multiplicative scaling factor
+- `x`: The (n × d) dimension matrix to scale on each dimension d
+- `scalingFactors`: A tuple of the constant and multiplicative scaling factor
 respectively [def: the scaling factors needed to scale x to mean 0 and variance 1]
+- `rev`: Wheter to invert the scaling [def: `false`]
 
 # Return
 - The scaled matrix
 
 # Notes:
-- also available `scale!(x,scaleFactors)` for in-place scaling.
-- retrieve the scale factors with the `getScaleFactors()` function
+- Also available `scale!(x,scaleFactors)` for in-place scaling.
+- Retrieve the scale factors with the `getScaleFactors()` function
 """
-function scale(x,scaleFactors=(-mean(x,dims=1),1 ./ sqrt.(var(x,corrected=false,dims=1)) ))
-    y = (x .+ scaleFactors[1]) .* scaleFactors[2]
+function scale(x,scaleFactors=(-mean(x,dims=1),1 ./ sqrt.(var(x,corrected=false,dims=1))); rev=false )
+    if (!rev)
+      y = (x .+ scaleFactors[1]) .* scaleFactors[2]
+    else
+      y = (x ./ scaleFactors[2]) .- scaleFactors[1]
+    end
     return y
 end
-function scale!(x,scaleFactors=(-mean(x,dims=1),1 ./ sqrt.(var(x,corrected=false,dims=1))))
-    x .= (x .+ scaleFactors[1]) .* scaleFactors[2]
+function scale!(x,scaleFactors=(-mean(x,dims=1),1 ./ sqrt.(var(x,corrected=false,dims=1))); rev=false)
+    if (!rev)
+        x .= (x .+ scaleFactors[1]) .* scaleFactors[2]
+    else
+        x .= (x ./ scaleFactors[2]) .- scaleFactors[1]
+    end
     return nothing
 end
 
