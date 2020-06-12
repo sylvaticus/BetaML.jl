@@ -88,7 +88,7 @@ p=2
 #ϵRel = ϵ ./ (abs.(y) .^ p)
 #avgϵRel = sum(ϵRel)^(1/p)/(n*d)
 avgϵRel = sum(abs.((ŷ-y)./ y).^p)^(1/p)/(n*d)
-avgϵRel = (norm((ŷ-y)./ y,p)/(n*d))
+#avgϵRel = (norm((ŷ-y)./ y,p)/(n*d))
 relMeanError(ŷ,y,normDim=true,normRec=true,p=p) == avgϵRel
 # case 2 - normalised by dimensions (i.e.  all dimensions play the same)
 #avgϵRel_byDim = (sum(ϵ,dims=1).^(1/p) ./ n) ./   mean(y,dims=1)
