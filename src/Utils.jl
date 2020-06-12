@@ -26,10 +26,11 @@ export reshape, makeColVector, makeRowVector, makeMatrix,
        relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
        autoJacobian,
        squaredCost, dSquaredCost, l1_distance,
-       error, accuracy,
+       error, accuracy,relMeanError,
        l2_distance, l2²_distance, cosine_distance, normalFixedSd, lse, sterling, logNormalFixedSd,
        radialKernel,polynomialKernel,
        Verbosity, NONE, LOW, STD, HIGH, FULL
+
 
 #export @reexport
 
@@ -272,6 +273,8 @@ The parameter `p` [def: `1`] controls the p-norm used to define the error.
 
 """
 function relMeanError(ŷ,y;normDim=false,normRec=false,p=1)
+    ŷ = makeMatrix(ŷ)
+    y = makeMatrix(y)
     (n,d) = size(y)
     #ϵ = abs.(ŷ-y) .^ p
     if (!normDim && !normRec) # relative mean error
