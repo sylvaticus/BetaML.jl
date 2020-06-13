@@ -26,7 +26,7 @@ export reshape, makeColVector, makeRowVector, makeMatrix,
        relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
        autoJacobian,
        squaredCost, dSquaredCost, l1_distance,
-       error, accuracy,relMeanError,
+       error, accuracy,meanRelError,
        l2_distance, l2²_distance, cosine_distance, normalFixedSd, lse, sterling, logNormalFixedSd,
        radialKernel,polynomialKernel,
        Verbosity, NONE, LOW, STD, HIGH, FULL
@@ -263,16 +263,16 @@ error(ŷ::Array{T,1},y::Int64;tol=1) where {T <: Number} = 1 - accuracy(ŷ,y;t
 error(ŷ::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number} = 1 - accuracy(ŷ,y;tol=tol)
 
 """
-  relMeanError(ŷ,y;normDim=false,normRec=false,p=1)
+  meanRelError(ŷ,y;normDim=true,normRec=true,p=1)
 
-Compute the relative mean absolute error (l-1 based by default) between ŷ and y.
+Compute the mean relative error (l-1 based by default) between ŷ and y.
 
-There are many ways to compute a relative mean error. In particular, if normRec (normDim) is set to true, the records (dimensions) are normalised, in the sense that it doesn't matter if a record (dimension) is bigger or smaller than the others, the relative error is first computed for each record (dimension) and then it is averaged.
-With both `normDim` and `normRec` set to `false` (default) the function returns the relative mean error; with both set to `true` it returns the mean relative error (i.e. with p=1 the "[mean absolute percentage error (MAPE)](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)")
+There are many ways to compute a mean relative error. In particular, if normRec (normDim) is set to true, the records (dimensions) are normalised, in the sense that it doesn't matter if a record (dimension) is bigger or smaller than the others, the relative error is first computed for each record (dimension) and then it is averaged.
+With both `normDim` and `normRec` set to `false` the function returns the relative mean error; with both set to `true` (default) it returns the mean relative error (i.e. with p=1 the "[mean absolute percentage error (MAPE)](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)")
 The parameter `p` [def: `1`] controls the p-norm used to define the error.
 
 """
-function relMeanError(ŷ,y;normDim=false,normRec=false,p=1)
+function meanRelError(ŷ,y;normDim=true,normRec=true,p=1)
     ŷ = makeMatrix(ŷ)
     y = makeMatrix(y)
     (n,d) = size(y)

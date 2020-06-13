@@ -77,7 +77,7 @@ println("** Testing batch()...")
 
 # ==================================
 # New test
-println("** Testing relMeanError()...")
+println("** Testing meanRelError()...")
 
 ŷ = [22 142 328; 3 9 31; 5 10 32; 3 10 36]
 y = [20 140 330; 1 11 33; 3 8 30; 5 12 38]
@@ -87,16 +87,16 @@ p=2
 # case 1 - average of the relative error (records and dimensions normalised)
 avgϵRel = sum(abs.((ŷ-y)./ y).^p)^(1/p)/(n*d)
 #avgϵRel = (norm((ŷ-y)./ y,p)/(n*d))
-relMeanError(ŷ,y,normDim=true,normRec=true,p=p) == avgϵRel
+meanRelError(ŷ,y,normDim=true,normRec=true,p=p) == avgϵRel
 # case 2 - normalised by dimensions (i.e.  all dimensions play the same)
 avgϵRel_byDim = (sum(abs.(ŷ-y) .^ (1/p),dims=1).^(1/p) ./ n) ./   (sum(abs.(y) .^ (1/p) ,dims=1) ./n)
 avgϵRel = mean(avgϵRel_byDim)
-@test relMeanError(ŷ,y,normDim=true,p=p) == avgϵRel
+@test meanRelError(ŷ,y,normDim=true,normRec=false,p=p) == avgϵRel
 # case 3
 avgϵRel_byRec = (sum(abs.(ŷ-y) .^ (1/p),dims=2).^(1/p) ./ d) ./   (sum(abs.(y) .^ (1/p) ,dims=2) ./d)
 avgϵRel = mean(avgϵRel_byRec)
-@test relMeanError(ŷ,y,normRec=true,p=p) == avgϵRel
+@test meanRelError(ŷ,y,normDim=false,normRec=true,p=p) == avgϵRel
 # case 4 - average error relativized
 avgϵRel = (sum(abs.(ŷ-y).^p)^(1/p) / (n*d)) / (sum( abs.(y) .^p)^(1/p) / (n*d))
 #avgϵRel = (norm((ŷ-y),p)/(n*d)) / (norm(y,p) / (n*d))
-@test relMeanError(ŷ,y,p=p) == avgϵRel
+@test meanRelError(ŷ,y,normDim=false,normRec=false,p=p) == avgϵRel
