@@ -85,23 +85,18 @@ p=2
 (n,d) = size(y)
 
 # case 1 - average of the relative error (records and dimensions normalised)
-#ϵRel = ϵ ./ (abs.(y) .^ p)
-#avgϵRel = sum(ϵRel)^(1/p)/(n*d)
 avgϵRel = sum(abs.((ŷ-y)./ y).^p)^(1/p)/(n*d)
 #avgϵRel = (norm((ŷ-y)./ y,p)/(n*d))
 relMeanError(ŷ,y,normDim=true,normRec=true,p=p) == avgϵRel
 # case 2 - normalised by dimensions (i.e.  all dimensions play the same)
-#avgϵRel_byDim = (sum(ϵ,dims=1).^(1/p) ./ n) ./   mean(y,dims=1)
 avgϵRel_byDim = (sum(abs.(ŷ-y) .^ (1/p),dims=1).^(1/p) ./ n) ./   (sum(abs.(y) .^ (1/p) ,dims=1) ./n)
 avgϵRel = mean(avgϵRel_byDim)
 @test relMeanError(ŷ,y,normDim=true,p=p) == avgϵRel
 # case 3
-#avgϵRel_byRec = (sum(ϵ,dims=2).^(1/p) ./ d) ./mean(y,dims=2)
 avgϵRel_byRec = (sum(abs.(ŷ-y) .^ (1/p),dims=2).^(1/p) ./ d) ./   (sum(abs.(y) .^ (1/p) ,dims=2) ./d)
 avgϵRel = mean(avgϵRel_byRec)
 @test relMeanError(ŷ,y,normRec=true,p=p) == avgϵRel
 # case 4 - average error relativized
-#avgϵRel = (norm((ŷ-y),p)/(n*d))/ mean(y)
 avgϵRel = (sum(abs.(ŷ-y).^p)^(1/p) / (n*d)) / (sum( abs.(y) .^p)^(1/p) / (n*d))
-avgϵRel = (norm((ŷ-y),p)/(n*d)) / (norm(y,p) / (n*d))
+#avgϵRel = (norm((ŷ-y),p)/(n*d)) / (norm(y,p) / (n*d))
 @test relMeanError(ŷ,y,p=p) == avgϵRel
