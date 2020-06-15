@@ -34,6 +34,9 @@ using LinearAlgebra, Random, Statistics, Reexport
 
 export initRepresentatives, kmeans, kmedoids, emGMM, collFilteringGMM
 
+abstract type Mixture end
+include("Mixtures.jl")
+
 ## Helper functions
 
 """
@@ -287,7 +290,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 julia> clusters = emGMM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=1,missingValue=0)
 ```
 """
-function emGMM(X,K;p₀=nothing,μ₀=nothing,σ²₀=nothing,tol=10^(-6),msgStep=10,minVariance=0.25,missingValue=missing)
+function em(X,K;p₀=nothing,mixture=sphericGaussian(μ₀=nothing,σ²₀=nothing),tol=10^(-6),msgStep=10,minVariance=0.25,missingValue=missing)
     # debug:
     #X = [1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4]
     #K = 3
