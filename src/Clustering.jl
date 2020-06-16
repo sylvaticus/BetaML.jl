@@ -32,7 +32,7 @@ using LinearAlgebra, Random, Statistics, Reexport
 
 @reexport using ..Utils
 
-export initRepresentatives, kmeans, kmedoids, emGMM, collFilteringGMM
+export initRepresentatives, kmeans, kmedoids, em, collFilteringGMM
 
 abstract type Mixture end
 include("Mixtures.jl")
@@ -292,100 +292,74 @@ julia> clusters = emGMM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.
 """
 
 function em(X,K;p₀=nothing,mixtures=fill(SphericalGaussian(),K),tol=10^(-6),msgStep=10,minVariance=0.25,initStrategy="grid")
-# debug:
-X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-K = 3
-p₀=nothing; tol=0.0001; msgStep=1; minVariance=0.25; missingValue = 0; initStrategy="grid"
-mixtures = fill(SphericalGaussian(),K)
-X     = makeMatrix(X)
-(N,D) = size(X)
-pⱼ    = isnothing(p₀) ? fill(1/K,K) : p₀
+    # debug:
+    #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+    #K = 3
+    #p₀=nothing; tol=0.0001; msgStep=1; minVariance=0.25; missingValue = 0; initStrategy="grid"
+    #mixtures = fill(SphericalGaussian(),K)
 
-# Initialisation of the parameters of the mixtures
-initMixtures!(mixtures,X,minVariance=minVariance,initStrategy=initStrategy)
+    X     = makeMatrix(X)
+    (N,D) = size(X)
+    pⱼ    = isnothing(p₀) ? fill(1/K,K) : p₀
 
-pⱼₓ = zeros(Float64,N,K) # The posteriors, i.e. the prob that item n belong to cluster k
-ϵ = Float64[]
+    # Initialisation of the parameters of the mixtures
+    initMixtures!(mixtures,X,minVariance=minVariance,initStrategy=initStrategy)
 
-# Checking dimensions only once (but adding then inbounds doesn't change anything. Still good
-# to provide a nice informative message)
-if size(pⱼ) != (K,) || length(mixtures) != K
-    error("Error in the dimensions of the inputs. Please check them.")
-end
+    pⱼₓ = zeros(Float64,N,K) # The posteriors, i.e. the prob that item n belong to cluster k
+    ϵ = Float64[]
 
-# finding empty/non_empty values
-XMask     =  .! ismissing.(X)
-XdimCount = sum(XMask, dims=2)
-
-lL = -Inf
-while(true)
-oldlL = lL
-# E Step: assigning the posterior prob p(j|xi) and computing the log-Likelihood of the parameters given the set of data
-# (this last one for informative purposes and terminating the algorithm)
-pⱼₓlagged = copy(pⱼₓ)
-logpⱼₓ = log.(pⱼₓ)
-lL = 0
-for n in 1:N
-    if any(XMask[n,:]) # if at least one true
-        Xu = X[n,XMask[n,:]]
-        logpx = lse([log(pⱼ[k] + 1e-16) + lpdf(mixtures[k],Xu,XMask[n,:]) for k in 1:K])
-        lL += logpx
-        #px = sum([pⱼ[k]*normalFixedSd(Xu,μ[k,XMask[n,:]],σ²[k]) for k in 1:K])
-        for k in 1:K
-            logpⱼₓ[n,k] = log(pⱼ[k] + 1e-16)+lpdf(mixtures[k],Xu,XMask[n,:])-logpx
-        end
-    else
-        logpⱼₓ[n,:] = log.(pⱼ)
+    # Checking dimensions only once (but adding then inbounds doesn't change anything. Still good
+    # to provide a nice informative message)
+    if size(pⱼ) != (K,) || length(mixtures) != K
+        error("Error in the dimensions of the inputs. Please check them.")
     end
-end
-pⱼₓ = exp.(logpⱼₓ)
 
-push!(ϵ,norm(pⱼₓlagged - pⱼₓ))
+    # finding empty/non_empty values
+    XMask     =  .! ismissing.(X)
+    XdimCount = sum(XMask, dims=2)
 
-# M step: find parameters that maximise the likelihood
-nⱼ = sum(pⱼₓ,dims=1)'
-n  = sum(nⱼ)
-pⱼ = nⱼ ./ n
-
-#μ  = (pⱼₓ' * X) ./ nⱼ
-for d in 1:D
-    for k in 1:K
-        nᵢⱼ = sum(pⱼₓ[XMask[:,d],k])
-        if nᵢⱼ > 1
-            μ[k,d] = sum(pⱼₓ[XMask[:,d],k] .* X[XMask[:,d],d])/nᵢⱼ
-        end
-    end
-end
-
-#σ² = [sum([pⱼₓ[n,j] * norm(X[n,:]-μ[j,:])^2 for n in 1:N]) for j in 1:K ] ./ (nⱼ .* D)
-for k in 1:K
-    den = dot(XdimCount,pⱼₓ[:,k])
-    nom = 0.0
+    lL = -Inf
+    while(true)
+    oldlL = lL
+    # E Step: assigning the posterior prob p(j|xi) and computing the log-Likelihood of the parameters given the set of data
+    # (this last one for informative purposes and terminating the algorithm)
+    pⱼₓlagged = copy(pⱼₓ)
+    logpⱼₓ = log.(pⱼₓ)
+    lL = 0
     for n in 1:N
-        if any(XMask[n,:])
-            nom += pⱼₓ[n,k] * norm(X[n,XMask[n,:]]-μ[k,XMask[n,:]])^2
+        if any(XMask[n,:]) # if at least one true
+            Xu = X[n,XMask[n,:]]
+            logpx = lse([log(pⱼ[k] + 1e-16) + lpdf(mixtures[k],Xu,XMask[n,:]) for k in 1:K])
+            lL += logpx
+            #px = sum([pⱼ[k]*normalFixedSd(Xu,μ[k,XMask[n,:]],σ²[k]) for k in 1:K])
+            for k in 1:K
+                logpⱼₓ[n,k] = log(pⱼ[k] + 1e-16)+lpdf(mixtures[k],Xu,XMask[n,:])-logpx
+            end
+        else
+            logpⱼₓ[n,:] = log.(pⱼ)
         end
     end
-    if(den> 0 && (nom/den) > minVariance)
-        σ²[k] = nom/den
-    else
-        σ²[k] = minVariance
+    pⱼₓ = exp.(logpⱼₓ)
+
+    push!(ϵ,norm(pⱼₓlagged - pⱼₓ))
+
+    # M step: find parameters that maximise the likelihood
+    updateParameters!(mixtures, X, pⱼₓ, XMask; minVariance=minVariance)
+
+
+    # Information. Note the likelihood is whitout accounting for the new mu, sigma
+    if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
+        println("Iter. $(length(ϵ)):\tVar. of the post  $(ϵ[end]) \t  Log-likelihood $(lL)")
     end
-end
 
-# Information. Note the likelihood is whitout accounting for the new mu, sigma
-if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
-    println("Iter. $(length(ϵ)):\tVar. of the post  $(ϵ[end]) \t  Log-likelihood $(lL)")
-end
-
-# Closing conditions. Note that the logLikelihood is those without considering the new mu,sigma
-if (lL - oldlL) <= (tol * abs(lL))
-    npar = K * D + K + (K-1)
-    BIC  = lL - (1/2) * npar * log(N)
-#if (ϵ[end] < tol)
-   return (pⱼₓ=pⱼₓ,pⱼ=pⱼ,μ=μ,σ²=σ²,ϵ=ϵ,lL=lL,BIC=BIC)
-end
-end # end while loop
+    # Closing conditions. Note that the logLikelihood is those without considering the new mu,sigma
+    if (lL - oldlL) <= (tol * abs(lL))
+        npar = K * D + K + (K-1)
+        BIC  = lL - (1/2) * npar * log(N)
+    #if (ϵ[end] < tol)
+       return (pⱼₓ=pⱼₓ,mixtures=mixtures,ϵ=ϵ,lL=lL,BIC=BIC)
+    end
+    end # end while loop
 end # end function
 
 #using BenchmarkTools

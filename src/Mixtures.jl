@@ -1,4 +1,9 @@
-using Statistics, LinearAlgebra, Distributions
+using Statistics, LinearAlgebra, Distributions, PDMats
+
+
+export SphericalGaussian, DiagonalGaussian, FullGaussian,
+initVariances!, initMixtures!,lpdf,updateVariances!,lpdf
+
 
 abstract type AbstractGaussian <: Mixture end
 
@@ -130,4 +135,62 @@ function lpdf(m::FullGaussian,x,mask)
     σ²  = reshape(m.σ²[mask*mask'],(nmd,nmd))
     d   = FullNormal(μ,PDMat(σ²))
     return logpdf(d,x)
+end
+
+function updateVariances!(mixtures::Array{T,1}, X, post, mask; minVariance=0.25) where {T <: SphericalGaussian}
+    # debug stuff..
+    #X = [1 10 20; 1.2 12 missing; 3.1 21 41; 2.9 18 39; 1.5 15 25]
+    #m1 = SphericalGaussian(μ=[1.0,15,21],σ²=5.0)
+    #m2 = SphericalGaussian(μ=[3.0,20,30],σ²=10.0)
+    #mixtures= [m1,m2]
+    #post = [0.9 0.1; 0.8 0.2; 0.1 0.9; 0.1 0.9; 0.4 0.6]
+    #mask = [true true true; true true false; true true true; true true true; true true true]
+
+#    #σ² = [sum([pⱼₓ[n,j] * norm(X[n,:]-μ[j,:])^2 for n in 1:N]) for j in 1:K ] ./ (nⱼ .* D)
+#    for k in 1:K
+#        den = dot(XdimCount,pⱼₓ[:,k])
+#        nom = 0.0
+#        for n in 1:N
+#            if any(XMask[n,:])
+#                nom += pⱼₓ[n,k] * norm(X[n,XMask[n,:]]-μ[k,XMask[n,:]])^2
+#            end
+#        end
+#        if(den> 0 && (nom/den) > minVariance)
+#            σ²[k] = nom/den
+#        else
+#            σ²[k] = minVariance
+#        end
+#    end
+
+end
+
+#https://github.com/davidavdav/GaussianMixtures.jl/blob/master/src/train.jl
+function updateParameters!(mixtures::Array{T,1}, X, post, mask; minVariance=0.25) where {T <: AbstractGaussian}
+    # debug stuff..
+    #X = [1 10 20; 1.2 12 missing; 3.1 21 41; 2.9 18 39; 1.5 15 25]
+    #m1 = SphericalGaussian(μ=[1.0,15,21],σ²=5.0)
+    #m2 = SphericalGaussian(μ=[3.0,20,30],σ²=10.0)
+    #mixtures= [m1,m2]
+    #post = [0.9 0.1; 0.8 0.2; 0.1 0.9; 0.1 0.9; 0.4 0.6]
+    #mask = [true true true; true true false; true true true; true true true; true true true]
+
+    (N,D) = size(X)
+    K = length(mixtures)
+
+    nⱼ = sum(post,dims=1)'
+    n  = sum(nⱼ)
+    pⱼ = nⱼ ./ n
+
+    # updating μ...
+    for k in 1:K
+        m = mixtures[k]
+        for d in 1:D
+            nᵢⱼ = sum(post[mask[:,d],k])
+            if nᵢⱼ > 1
+                m.μ[d] = sum(post[mask[:,d],k] .* X[mask[:,d],d])/nᵢⱼ
+            end
+        end
+    end
+
+    updateVariances!(mixtures, X, post, mask; minVariance=minVariance)
 end
