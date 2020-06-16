@@ -35,6 +35,35 @@ println("Testing kmedoids...")
 (clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initStrategy="grid")
 @test clIdx == [2, 2, 2, 2, 3, 3, 3, 1, 1]
 
+
+# ==================================
+# New test
+# ==================================
+println("Testing mixture initialisation...")
+
+m1 = SphericalGaussian()
+m2 = SphericalGaussian(μ=[1.1,2,3])
+m3 = SphericalGaussian(σ²=10.2)
+mixtures = [m1,m2,m3]
+X = [1 10 20; 1.2 12 missing; 3.1 21 41; 2.9 18 39; 1.5 15 25]
+initMixtures!(mixtures,X,minVariance=0.25)
+@test sum([sum(m.μ) for m in mixtures]) ≈ 102.2
+@test sum([sum(m.σ²) for m in mixtures]) ≈ 19.651086419753085
+
+m1 = DiagonalGaussian()
+m2 = DiagonalGaussian(μ=[1.1,2,3])
+m3 = DiagonalGaussian(σ²=[0.1,11,25.0])
+mixtures = [m1,m2,m3]
+initMixtures!(mixtures,X,minVariance=0.25)
+@test sum([sum(m.σ²) for m in mixtures]) ≈ 291.27933333333334
+
+m1 = FullGaussian()
+m2 = FullGaussian(μ=[1.1,2,3])
+m3 = FullGaussian(σ²=[0.1 0.2 0.5; 0 2 0.8; 1 0 5])
+mixtures = [m1,m2,m3]
+initMixtures!(mixtures,X,minVariance=0.25)
+@test sum([sum(m.σ²) for m in mixtures]) ≈ 264.77933333333334
+
 # ==================================
 # New test
 # ==================================
