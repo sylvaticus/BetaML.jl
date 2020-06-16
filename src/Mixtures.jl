@@ -1,4 +1,4 @@
-using Statistics, LinearAlgebra
+using Statistics, LinearAlgebra, Distributions
 
 abstract type AbstractGaussian <: Mixture end
 
@@ -71,7 +71,7 @@ function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25) where {T <: F
     end
 end
 
-function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25) where {T <: AbstractGaussian}
+function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, initStrategy="grid") where {T <: AbstractGaussian}
     (N,D) = size(X)
     K = length(mixtures)
 
@@ -106,4 +106,28 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25) where {T <: Ab
 
     initVariances!(mixtures,X,minVariance=minVariance)
 
+end
+
+
+function lpdf(m::SphericalGaussian,x,mask)
+    μ  = m.μ[mask]
+    σ² = m.σ²
+    #d = IsoNormal(μ,ScalMat(length(μ),σ²))
+    #return logpdf(d,x)
+    return (- (length(x)/2) * log(2π*σ²)  -  norm(x-μ)^2/(2σ²))
+end
+
+function lpdf(m::DiagonalGaussian,x,mask)
+    μ  = m.μ[mask]
+    σ² = m.σ²[mask]
+    d = DiagNormal(μ,PDiagMat(σ²))
+    return logpdf(d,x)
+end
+
+function lpdf(m::FullGaussian,x,mask)
+    μ   = m.μ[mask]
+    nmd = length(μ)
+    σ²  = reshape(m.σ²[mask*mask'],(nmd,nmd))
+    d   = FullNormal(μ,PDMat(σ²))
+    return logpdf(d,x)
 end
