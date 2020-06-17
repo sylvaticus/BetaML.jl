@@ -22,13 +22,13 @@ module Utils
 using LinearAlgebra, Random, Statistics, Zygote
 
 export reshape, makeColVector, makeRowVector, makeMatrix,
-       oneHotEncoder, getScaleFactors, scale, scale!,batch,
-       relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax, celu,
+       oneHotEncoder, getScaleFactors, scale, scale!, batch,
+       relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax, celu, mish, softplus,
        autoJacobian,
        squaredCost, dSquaredCost, l1_distance,
-       error, accuracy,meanRelError,
+       error, accuracy, meanRelError,
        l2_distance, l2²_distance, cosine_distance, normalFixedSd, lse, sterling, logNormalFixedSd,
-       radialKernel,polynomialKernel,
+       radialKernel, polynomialKernel,
        Verbosity, NONE, LOW, STD, HIGH, FULL
 
 
@@ -166,16 +166,27 @@ end
 # ------------------------------------------------------------------------------
 # Various neural network activation functions as well their derivatives
 
-relu(x)        = max(0,x)
-drelu(x)       = x <= 0 ? 0 : 1
-#identity(x)  = x already in Julia base
-didentity(x)   = 1
+relu(x)          = max(0,x)
+drelu(x)         = x <= 0 ? 0 : 1
+#identity(x)     = x already in Julia base
+didentity(x)     = 1
 #tanh(x) already in Julia base
-dtanh(x)       = 1-tanh(x)^2
-sigmoid(x)     = 1/(1+exp(-x))
-dsigmoid(x)    = exp(-x)*sigmoid(x)^2
-softMax(x;β=1) = exp.((β .* x) .- lse(β .* x)) # efficient implementation of softMax(x)  = exp.(x) ./  sum(exp.(x))
-celu(x; α=1)   = max(0,x)+ min(0, α *(exp(x / α) - 1) )
+dtanh(x)         = 1-tanh(x)^2
+sigmoid(x)       = 1/(1+exp(-x))
+dsigmoid(x)      = exp(-x)*sigmoid(x)^2
+softMax(x;β=1.0) = exp.((β .* x) .- lse(β .* x)) # efficient implementation of softMax(x)  = exp.(x) ./  sum(exp.(x))
+celu(x, α=1.0)   = if x >= zero(x) x/α else exp(x/α)-1 end
+softplus(x)      = ln(1 + exp(x))
+mish(x)          = x*tanh(softplus(x))
+function plu(x)
+  stripped=abs(x)
+  s=sign(x)
+  if stripped <= 1.0
+    return x
+  else
+    return 0.1*(x-s)+s
+  end
+end
 
 """ dSoftMax(x;β) - Derivative of the softMax function """
 function dSoftMax(x;β=1) # https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/
