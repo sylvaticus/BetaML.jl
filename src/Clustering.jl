@@ -32,7 +32,7 @@ using LinearAlgebra, Random, Statistics, Reexport
 
 @reexport using ..Utils
 
-export initRepresentatives, kmeans, kmedoids, em, fillSparseGMM
+export initRepresentatives, kmeans, kmedoids, em, predictMissing
 
 abstract type Mixture end
 include("Mixtures.jl")
@@ -257,9 +257,9 @@ end
 ## The EM algorithm (Lecture/segment 16.5 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
 
 """
-  emGMM(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)
+  em(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)
 
-Compute Expectation-Maximisation algorithm to identify K clusters of X data assuming a Gaussian Mixture probabilistic Model.
+Compute Expectation-Maximisation algorithm to identify K clusters of X data, i.e. employ a Generative Mixture Model as the underlying probabilistic model.
 
 X can contain missing values in some or all of its dimensions. In such case the learning is done only with the available data.
 Implemented in the log-domain for better numerical accuracy with many dimensions.
@@ -291,13 +291,13 @@ julia> clusters = emGMM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.
 ```
 """
 
-function em(X,K;p₀=nothing,mixtures=fill(SphericalGaussian(),K),tol=10^(-6),msgStep=10,minVariance=0.25,initStrategy="grid")
+function em(X,K;p₀=nothing,mixtures=[SphericalGaussian() for i in 1:K],tol=10^(-6),msgStep=10,minVariance=0.25,initStrategy="grid")
     # debug:
     #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
     #K = 3
-    #p₀=nothing; tol=0.0001; msgStep=1; minVariance=0.25; missingValue = 0; initStrategy="grid"
-    #mixtures = fill(SphericalGaussian(),K)
-
+    #p₀=nothing; tol=0.0001; msgStep=1; minVariance=0.25; initStrategy="grid"
+    #mixtures = [SphericalGaussian() for i in 1:K]
+    # ---------
     X     = makeMatrix(X)
     (N,D) = size(X)
     pₖ    = isnothing(p₀) ? fill(1/K,K) : p₀
@@ -320,45 +320,48 @@ function em(X,K;p₀=nothing,mixtures=fill(SphericalGaussian(),K),tol=10^(-6),ms
 
     lL = -Inf
     while(true)
-    oldlL = lL
-    # E Step: assigning the posterior prob p(j|xi) and computing the log-Likelihood of the parameters given the set of data
-    # (this last one for informative purposes and terminating the algorithm)
-    pₙₖlagged = copy(pₙₖ)
-    logpₙₖ = log.(pₙₖ)
-    lL = 0
-    for n in 1:N
-        if any(Xmask[n,:]) # if at least one true
-            Xu = X[n,Xmask[n,:]]
-            logpx = lse([log(pₖ[k] + 1e-16) + lpdf(mixtures[k],Xu,Xmask[n,:]) for k in 1:K])
-            lL += logpx
-            #px = sum([pⱼ[k]*normalFixedSd(Xu,μ[k,XMask[n,:]],σ²[k]) for k in 1:K])
-            for k in 1:K
-                logpₙₖ[n,k] = log(pₖ[k] + 1e-16)+lpdf(mixtures[k],Xu,Xmask[n,:])-logpx
+        oldlL = lL
+        # E Step: assigning the posterior prob p(j|xi) and computing the log-Likelihood of the parameters given the set of data
+        # (this last one for informative purposes and terminating the algorithm)
+        pₙₖlagged = copy(pₙₖ)
+        logpₙₖ = log.(pₙₖ)
+        lL = 0
+        for n in 1:N
+            if any(Xmask[n,:]) # if at least one true
+                Xu = X[n,Xmask[n,:]]
+                logpx = lse([log(pₖ[k] + 1e-16) + lpdf(mixtures[k],Xu,Xmask[n,:]) for k in 1:K])
+                lL += logpx
+                #px = sum([pⱼ[k]*normalFixedSd(Xu,μ[k,XMask[n,:]],σ²[k]) for k in 1:K])
+                for k in 1:K
+                    logpₙₖ[n,k] = log(pₖ[k] + 1e-16)+lpdf(mixtures[k],Xu,Xmask[n,:])-logpx
+                end
+            else
+                logpₙₖ[n,:] = log.(pₖ)
             end
-        else
-            logpₙₖ[n,:] = log.(pₖ)
         end
-    end
-    pₙₖ = exp.(logpₙₖ)
+        pₙₖ = exp.(logpₙₖ)
 
-    push!(ϵ,norm(pₙₖlagged - pₙₖ))
+        push!(ϵ,norm(pₙₖlagged - pₙₖ))
 
-    # M step: find parameters that maximise the likelihood
-    updateParameters!(mixtures, X, pₙₖ, Xmask; minVariance=minVariance)
+        # M step: find parameters that maximise the likelihood
+        # Updating the probabilities of the different mixtures
+        nₖ = sum(pₙₖ,dims=1)'
+        n  = sum(nₖ)
+        pₖ = nₖ ./ n
+        updateParameters!(mixtures, X, pₙₖ, Xmask; minVariance=minVariance)
 
+        # Information. Note the likelihood is whitout accounting for the new mu, sigma
+        if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
+            println("Iter. $(length(ϵ)):\tVar. of the post  $(ϵ[end]) \t  Log-likelihood $(lL)")
+        end
 
-    # Information. Note the likelihood is whitout accounting for the new mu, sigma
-    if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
-        println("Iter. $(length(ϵ)):\tVar. of the post  $(ϵ[end]) \t  Log-likelihood $(lL)")
-    end
-
-    # Closing conditions. Note that the logLikelihood is those without considering the new mu,sigma
-    if (lL - oldlL) <= (tol * abs(lL))
-        npars = npar(mixtures) + (K-1)
-        BIC  = lL - (1/2) * npars * log(N)
-    #if (ϵ[end] < tol)
-       return (pₙₖ=pₙₖ,pₖ=pₖ,mixtures=mixtures,ϵ=ϵ,lL=lL,BIC=BIC)
-    end
+        # Closing conditions. Note that the logLikelihood is those without considering the new mu,sigma
+        if (lL - oldlL) <= (tol * abs(lL))
+            npars = npar(mixtures) + (K-1)
+            BIC  = lL - (1/2) * npars * log(N)
+        #if (ϵ[end] < tol)
+           return (pₙₖ=pₙₖ,pₖ=pₖ,mixtures=mixtures,ϵ=ϵ,lL=lL,BIC=BIC)
+        end
     end # end while loop
 end # end function
 
@@ -374,7 +377,7 @@ end # end function
 #Profile.print()
 
 """
-  fillSparseGMM(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)
+  predictMissing(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance)
 
 Fill missing entries in a sparse matrix assuming an underlying Gaussian Mixture probabilistic Model (GMM) and implementing
 an Expectation-Maximisation algorithm.
@@ -401,17 +404,16 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 
 # Example:
 ```julia
-julia>  cFOut = collFilteringGMM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=1,missingValue=0)
+julia>  cFOut = predictMissing([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3,msgStep=1)
 ```
 """
-function fillSparseGMM(X,K;mixtures=fill(SphericalGaussian(),K),tol=10^(-6),msgStep=10,minVariance=0.25)
+function predictMissing(X,K;mixtures=[SphericalGaussian() for i in 1:K],tol=10^(-6),msgStep=10,minVariance=0.25)
     emOut = em(X,K;mixtures=mixtures,tol=tol,msgStep=msgStep,minVariance=minVariance)
     (N,D) = size(X)
     #K = size(emOut.μ)[1]
     XMask = .! ismissing.(X)
     nFill = (N * D) - sum(XMask)
     X̂ = copy(X)
-
     for n in 1:N
         for d in 1:D
             if !XMask[n,d]
@@ -421,8 +423,5 @@ function fillSparseGMM(X,K;mixtures=fill(SphericalGaussian(),K),tol=10^(-6),msgS
     end
     return (X̂=X̂,nFill=nFill,lL=emOut.lL,BIC=emOut.BIC)
 end
-
-#X = [1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4]
-#cFOut = collFilteringGMM(X,3,msgStep=1,missingValue=0)
 
 end

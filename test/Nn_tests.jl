@@ -160,11 +160,11 @@ ytrain_oh = y_oh[1:ntrain,:]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-l1   = DenseLayer(4,10, w=ones(10,4), wb=zeros(10),f=relu)
+l1   = DenseLayer(4,10, w=ones(10,4), wb=zeros(10),f=celu)
 l2   = DenseLayer(10,3, w=ones(3,10), wb=zeros(3))
 l3   = VectorFunctionLayer(3,3,f=softMax)
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal")
-train!(mynn,scale(xtrain),ytrain_oh,epochs=500,batchSize=8,sequential=true,verbosity=LOW,optAlg=SGD(η=t->0.001,λ=1))
+train!(mynn,scale(xtrain),ytrain_oh,epochs=500,batchSize=8,sequential=true,verbosity=NONE,optAlg=SGD(η=t->0.001,λ=1))
 
 ŷtrain = predict(mynn,scale(xtrain))
 ŷtest  = predict(mynn,scale(xtest))

@@ -23,7 +23,7 @@ using LinearAlgebra, Random, Statistics, Zygote
 
 export reshape, makeColVector, makeRowVector, makeMatrix,
        oneHotEncoder, getScaleFactors, scale, scale!,batch,
-       relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
+       relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax, celu,
        autoJacobian,
        squaredCost, dSquaredCost, l1_distance,
        error, accuracy,meanRelError,
@@ -166,15 +166,17 @@ end
 # ------------------------------------------------------------------------------
 # Various neural network activation functions as well their derivatives
 
-relu(x)     = max(0,x)
-drelu(x)    = x <= 0 ? 0 : 1
+relu(x)        = max(0,x)
+drelu(x)       = x <= 0 ? 0 : 1
 #identity(x)  = x already in Julia base
-didentity(x) = 1
+didentity(x)   = 1
 #tanh(x) already in Julia base
-dtanh(x)    = 1-tanh(x)^2
-sigmoid(x)  = 1/(1+exp(-x))
-dsigmoid(x) = exp(-x)*sigmoid(x)^2
+dtanh(x)       = 1-tanh(x)^2
+sigmoid(x)     = 1/(1+exp(-x))
+dsigmoid(x)    = exp(-x)*sigmoid(x)^2
 softMax(x;β=1) = exp.((β .* x) .- lse(β .* x)) # efficient implementation of softMax(x)  = exp.(x) ./  sum(exp.(x))
+celu(x; α=1)   = max(0,x)+ min(0, α *(exp(x / α) - 1) )
+
 """ dSoftMax(x;β) - Derivative of the softMax function """
 function dSoftMax(x;β=1) # https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/
     x = makeColVector(x)

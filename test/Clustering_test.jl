@@ -46,10 +46,10 @@ m2 = SphericalGaussian(μ=[1.1,2,3])
 m3 = SphericalGaussian(σ²=10.2)
 mixtures = [m1,m2,m3]
 X = [1 10 20; 1.2 12 missing; 3.1 21 41; 2.9 18 39; 1.5 15 25]
-mask = [true, true, false]
 initMixtures!(mixtures,X,minVariance=0.25)
 @test sum([sum(m.μ) for m in mixtures]) ≈ 102.2
 @test sum([sum(m.σ²) for m in mixtures]) ≈ 19.651086419753085
+mask = [true, true, false]
 @test lpdf(m1,X[2,:][mask],mask) ≈ -3.818323669882357
 
 m1 = DiagonalGaussian()
@@ -72,16 +72,14 @@ initMixtures!(mixtures,X,minVariance=0.25)
 # New test
 # ==================================
 println("Testing em...")
-
-#clusters = emGM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
-#@test isapprox(clusters.BIC,-39.7665224029492)
-#clusters = em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0)
+clusters = em([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3,msgStep=0)
+@test isapprox(clusters.BIC,-39.76652568903321)
 
 
 # ==================================
 # New test
 # ==================================
-#println("Testing emGMM...")
-#X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-#out = fillSparseGMM(X,3,msgStep=0)
-#@test isapprox(out.X̂[2,2],14.177888746691615)
+println("Testing emGMM...")
+X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+out = predictMissing(X,3,msgStep=0)
+@test isapprox(out.X̂[2,2],14.187187936786232)

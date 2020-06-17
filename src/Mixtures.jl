@@ -1,5 +1,6 @@
-using Statistics, LinearAlgebra, Distributions, PDMats
-
+using Statistics, LinearAlgebra, PDMats
+import Distributions: IsoNormal, DiagNormal, FullNormal, logpdf
+import PDMats: ScalMat, PDiagMat, PDMat
 
 export SphericalGaussian, DiagonalGaussian, FullGaussian,
 initVariances!, initMixtures!,lpdf,updateVariances!,lpdf
@@ -77,6 +78,10 @@ function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25) where {T <: F
 end
 
 function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, initStrategy="grid") where {T <: AbstractGaussian}
+    # debug..
+    #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing 2; 3.3 38; missing -2.3; 5.2 -2.4]
+    #mixtures = [SphericalGaussian() for i in 1:3]
+    # ---
     (N,D) = size(X)
     K = length(mixtures)
 
@@ -112,7 +117,6 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, initStrategy="
     initVariances!(mixtures,X,minVariance=minVariance)
 
 end
-
 
 function lpdf(m::SphericalGaussian,x,mask)
     μ  = m.μ[mask]
@@ -153,7 +157,7 @@ function updateVariances!(mixtures::Array{T,1}, X, pₙₖ, nkd, Xmask; minVaria
     #Xmask = [true true true; true true false; true true true; true true true; true true true]
     #minVariance=0.25
     # ---
-    
+
     (N,D) = size(X)
     K = length(mixtures)
     XdimCount = sum(Xmask, dims=2)
