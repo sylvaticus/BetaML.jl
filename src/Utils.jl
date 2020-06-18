@@ -23,7 +23,8 @@ using LinearAlgebra, Random, Statistics, Zygote
 
 export reshape, makeColVector, makeRowVector, makeMatrix,
        oneHotEncoder, getScaleFactors, scale, scale!, batch,
-       relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax, celu, mish, softplus,
+       relu, drelu, didentity, dtanh, sigmoid, dsigmoid,
+       softMax, dSoftMax, celu, dcelu, elu, mish, softplus,
        autoJacobian,
        squaredCost, dSquaredCost, l1_distance,
        error, accuracy, meanRelError,
@@ -166,39 +167,43 @@ end
 # ------------------------------------------------------------------------------
 # Various neural network activation functions as well their derivatives
 
-relu(x)             = max(zero(x), x)
-drelu(x)            = x <= zero(x) ? zero(x) : one(x)
-#identity(x)        = x already in Julia base
-didentity(x)        = one(x)
+relu(x)              = max(zero(x), x)
+drelu(x)             = x <= zero(x) ? zero(x) : one(x)
+#identity(x)         = x already in Julia base
+didentity(x)         = one(x)
 #tanh(x) already in Julia base
-dtanh(x)            = sech(x)^2  # = 1-tanh(x)^2
-sigmoid(x)          = one(x)/(one(x)+exp(-x))
-dsigmoid(x)         = exp(-x)*sigmoid(x)^2
-softMax(x;β=one(x)) = exp.((β .* x) .- lse(β .* x)) # efficient implementation of softMax(x)  = exp.(x) ./  sum(exp.(x))
-celu(x, α=one(x))   = if x >= zero(x) x/α else exp(x/α)-one(x) end
-softplus(x)         = log(one(x) + exp(x))
-mish(x)             = x*tanh(softplus(x))
-function plu(x, )
+dtanh(x)             = sech(x)^2  # = 1-tanh(x)^2
+sigmoid(x)           = one(x)/(one(x)+exp(-x))
+dsigmoid(x)          = exp(-x)*sigmoid(x)^2
+softMax(x; β=one(x)) = exp.((β .* x) .- lse(β .* x))  # efficient implementation of softMax(x)  = exp.(x) ./  sum(exp.(x))
+celu(x, α=one(x))    = if x >= zero(x) x/α else exp(x/α)-one(x) end
+softplus(x)          = log(one(x) + exp(x))
+dcelu(x, α=one(x))   = x >= zero(x) ? one(x) : exp(x/α)
+mish(x)              = x*tanh(softplus(x))  # credits: https://arxiv.org/pdf/1908.08681v1.pdf
+elu(x)               = celu(x)  # only equal when α = 1 and unclear how helpful to parameterize elu, as celu preferred
+delu(x)              = dcelu(x)
+
+function plu(x, α=0.1)  # credits (for original version): https://arxiv.org/pdf/1809.09534.pdf
   stripped=abs(x)
   s=sign(x)
   if stripped <= one(x)
     return x
   else
-    return convert(eltype(x), 0.1)*(x-s)+s
+    return convert(eltype(x), α)*(x-s)+s
   end
 end
 
-function dplu(x)
+function dplu(x, α=0.1)
   stripped=abs(x)
   if stripped <= one(x)
     return x
   else
-    return convert(eltype(x), 0.1)
+    return convert(eltype(x), α)
   end
 end
 
-""" dSoftMax(x;β) - Derivative of the softMax function """
-function dSoftMax(x;β=1) # https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/
+""" dSoftMax(x; β) - Derivative of the softMax function """
+function dSoftMax(x; β=1) # https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/
     x = makeColVector(x)
     d = length(x)
     out = zeros(d,d)
