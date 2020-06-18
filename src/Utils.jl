@@ -166,34 +166,34 @@ end
 # ------------------------------------------------------------------------------
 # Various neural network activation functions as well their derivatives
 
-relu(x)          = max(0,x)
-drelu(x)         = x <= 0 ? 0 : 1
-#identity(x)     = x already in Julia base
-didentity(x)     = 1
+relu(x)             = max(zero(x), x)
+drelu(x)            = x <= zero(x) ? zero(x) : one(x)
+#identity(x)        = x already in Julia base
+didentity(x)        = one(x)
 #tanh(x) already in Julia base
-dtanh(x)         = 1-tanh(x)^2
-sigmoid(x)       = 1/(1+exp(-x))
-dsigmoid(x)      = exp(-x)*sigmoid(x)^2
-softMax(x;β=1.0) = exp.((β .* x) .- lse(β .* x)) # efficient implementation of softMax(x)  = exp.(x) ./  sum(exp.(x))
-celu(x, α=1.0)   = if x >= zero(x) x/α else exp(x/α)-1 end
-softplus(x)      = log(1 + exp(x))
-mish(x)          = x*tanh(softplus(x))
-function plu(x)
+dtanh(x)            = sech(x)^2  # = 1-tanh(x)^2
+sigmoid(x)          = one(x)/(one(x)+exp(-x))
+dsigmoid(x)         = exp(-x)*sigmoid(x)^2
+softMax(x;β=one(x)) = exp.((β .* x) .- lse(β .* x)) # efficient implementation of softMax(x)  = exp.(x) ./  sum(exp.(x))
+celu(x, α=one(x))   = if x >= zero(x) x/α else exp(x/α)-one(x) end
+softplus(x)         = log(one(x) + exp(x))
+mish(x)             = x*tanh(softplus(x))
+function plu(x, )
   stripped=abs(x)
   s=sign(x)
-  if stripped <= 1.0
+  if stripped <= one(x)
     return x
   else
-    return 0.1*(x-s)+s
+    return convert(eltype(x), 0.1)*(x-s)+s
   end
 end
 
 function dplu(x)
   stripped=abs(x)
-  if stripped <= 1.0
+  if stripped <= one(x)
     return x
   else
-    return 0.1
+    return convert(eltype(x), 0.1)
   end
 end
 
