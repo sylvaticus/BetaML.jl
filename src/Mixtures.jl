@@ -11,24 +11,24 @@ abstract type AbstractGaussian <: Mixture end
 mutable struct SphericalGaussian{T <:Number} <: AbstractGaussian
         μ  ::Union{Array{T,1},Nothing}
         σ² ::Union{T,Nothing}
-        SphericalGaussian(;μ::Union{Array{T,1},Nothing}=nothing,σ²::Union{T,Nothing}=nothing) where {T} = new{T}(μ,σ²)
+        #SphericalGaussian(;μ::Union{Array{T,1},Nothing},σ²::Union{T,Nothing}) where {T} = SphericalGaussian(μ,σ²)
+        SphericalGaussian(μ::Union{Array{T,1},Nothing},σ²::Union{T,Nothing}=nothing) where {T} = new{T}(μ,σ²)
         SphericalGaussian(type::Type{T}=Float64) where {T} = new{T}(nothing, nothing)
 end
 
 mutable struct DiagonalGaussian{T <:Number} <: AbstractGaussian
     μ::Union{Array{T,1},Nothing}
     σ²::Union{Array{T,1},Nothing}
-    DiagonalGaussian(;μ::Union{Array{T,1},Nothing}=nothing,σ²::Union{Array{T,1},Nothing}=nothing) where {T} = new{T}(μ,σ²)
+    DiagonalGaussian(μ::Union{Array{T,1},Nothing},σ²::Union{Array{T,1},Nothing}=nothing) where {T} = new{T}(μ,σ²)
     DiagonalGaussian(::Type{T}=Float64) where {T} = new{T}(nothing, nothing)
 end
 
 mutable struct FullGaussian{T <:Number} <: AbstractGaussian
     μ::Union{Array{T,1},Nothing}
     σ²::Union{Array{T,2},Nothing}
-    FullGaussian(;μ::Union{Array{T,1},Nothing}=nothing,σ²::Union{Array{T,2},Nothing}=nothing) where {T} = new{T}(μ,σ²)
+    FullGaussian(μ::Union{Array{T,1},Nothing},σ²::Union{Array{T,2},Nothing}=nothing) where {T} = new{T}(μ,σ²)
     FullGaussian(::Type{T}=Float64) where {T} = new{T}(nothing, nothing)
 end
-
 
 function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25) where {T <: SphericalGaussian}
     (N,D) = size(X)

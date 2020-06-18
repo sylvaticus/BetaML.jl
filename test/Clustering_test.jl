@@ -42,8 +42,8 @@ println("Testing kmedoids...")
 println("Testing mixture initialisation and log-pdf...")
 
 m1 = SphericalGaussian()
-m2 = SphericalGaussian(μ=[1.1,2,3])
-m3 = SphericalGaussian(σ²=10.2)
+m2 = SphericalGaussian([1.1,2,3])
+m3 = SphericalGaussian(nothing,10.2)
 mixtures = [m1,m2,m3]
 X = [1 10 20; 1.2 12 missing; 3.1 21 41; 2.9 18 39; 1.5 15 25]
 initMixtures!(mixtures,X,minVariance=0.25)
@@ -53,16 +53,16 @@ mask = [true, true, false]
 @test lpdf(m1,X[2,:][mask],mask) ≈ -3.818323669882357
 
 m1 = DiagonalGaussian()
-m2 = DiagonalGaussian(μ=[1.1,2,3])
-m3 = DiagonalGaussian(σ²=[0.1,11,25.0])
+m2 = DiagonalGaussian([1.1,2,3])
+m3 = DiagonalGaussian(nothing,[0.1,11,25.0])
 mixtures = [m1,m2,m3]
 initMixtures!(mixtures,X,minVariance=0.25)
 @test sum([sum(m.σ²) for m in mixtures]) ≈ 291.27933333333334
 @test lpdf(m1,X[2,:][mask],mask) ≈ -3.4365786131066063
 
 m1 = FullGaussian()
-m2 = FullGaussian(μ=[1.1,2,3])
-m3 = FullGaussian(σ²=[0.1 0.2 0.5; 0 2 0.8; 1 0 5])
+m2 = FullGaussian([1.1,2,3])
+m3 = FullGaussian(nothing,[0.1 0.2 0.5; 0 2 0.8; 1 0 5])
 mixtures = [m1,m2,m3]
 initMixtures!(mixtures,X,minVariance=0.25)
 @test sum([sum(m.σ²) for m in mixtures]) ≈ 264.77933333333334
