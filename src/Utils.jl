@@ -23,8 +23,8 @@ using LinearAlgebra, Random, Statistics, Zygote
 
 export reshape, makeColVector, makeRowVector, makeMatrix,
        oneHotEncoder, getScaleFactors, scale, scale!, batch,
-       relu, drelu, didentity, dtanh, sigmoid, dsigmoid,
-       softMax, dSoftMax, celu, dcelu, elu, mish, softplus,
+       didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
+       dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        autoJacobian,
        squaredCost, dSquaredCost, l1_distance,
        error, accuracy, meanRelError,
@@ -167,47 +167,41 @@ end
 # ------------------------------------------------------------------------------
 # Various neural network activation functions as well their derivatives
 
-relu(x)              = max(zero(x), x)
-drelu(x)             = x <= zero(x) ? zero(x) : one(x)
-#identity(x)         = x already in Julia base
-didentity(x)         = one(x)
+#identity(x)          = x already in Julia base
+didentity(x)          = one(x)
+""" relu(x) \n\n Rectified Linear Unit \n\n https://www.cs.toronto.edu/~hinton/absps/reluICML.pdf"""
+relu(x)               = max(zero(x), x)
+""" drelu(x) \n\n Rectified Linear Unit \n\n https://www.cs.toronto.edu/~hinton/absps/reluICML.pdf"""
+drelu(x)              = x <= zero(x) ? zero(x) : one(x)
+"""elu(x; α=1) with α > 0 \n\n https://arxiv.org/pdf/1511.07289.pdf"""
+elu(x; α=one(x))      = x > zero(x) ? x : α *(exp(x) - one(x))
+"""delu(x; α=1) with α > 0 \n\n https://arxiv.org/pdf/1511.07289.pdf"""
+delu(x; α=one(x))      = x > zero(x) ? one(x) : elu(x, α=α) + α
+"""celu(x; α=1) \n\n https://arxiv.org/pdf/1704.07483.pdf"""
+celu(x; α=one(x))     = max(zero(x),x)+ min(zero(x), α *(exp(x / α) - one(x) ))
+#celu(x; α=one(x))    = if x >= zero(x) x/α else exp(x/α)-one(x) end
+"""dcelu(x; α=1) \n\n https://arxiv.org/pdf/1704.07483.pdf"""
+dcelu(x; α=one(x))    = x >= zero(x) ? one(x) : exp(x/α)
+"""plu(x;α=0.1,c=1) \n\n Piecewise Linear Unit \n\n https://arxiv.org/pdf/1809.09534.pdf"""
+plu(x;α=0.1,c=one(x)) = max(α*(x+c)-c,min(α*(x-c)+c,x)) # convert(eltype(x), α)
+"""dplu(x;α=0.1,c=1) \n\n Piecewise Linear Unit derivative \n\n https://arxiv.org/pdf/1809.09534.pdf"""
+dplu(x;α=0.1,c=one(x)) = ( ( x >= (α*(x+c)-c)  &&  x <= (α*(x+c)+c) ) ? one(x) : α ) # convert(eltype(x), α)
+
 #tanh(x) already in Julia base
-dtanh(x)             = sech(x)^2  # = 1-tanh(x)^2
-sigmoid(x)           = one(x)/(one(x)+exp(-x))
-dsigmoid(x)          = exp(-x)*sigmoid(x)^2
-softMax(x; β=one(x)) = exp.((β .* x) .- lse(β .* x))  # efficient implementation of softMax(x)  = exp.(x) ./  sum(exp.(x))
-celu(x, α=one(x))    = if x >= zero(x) x/α else exp(x/α)-one(x) end
-softplus(x)          = log(one(x) + exp(x))
-dcelu(x, α=one(x))   = x >= zero(x) ? one(x) : exp(x/α)
-mish(x)              = x*tanh(softplus(x))  # credits: https://arxiv.org/pdf/1908.08681v1.pdf
-elu(x)               = celu(x)  # only equal when α = 1 and unclear how helpful to parameterize elu, as celu preferred
-delu(x)              = dcelu(x)
-
-function plu(x, α=0.1)  # credits (for original version): https://arxiv.org/pdf/1809.09534.pdf
-  stripped=abs(x)
-  s=sign(x)
-  if stripped <= one(x)
-    return x
-  else
-    return convert(eltype(x), α)*(x-s)+s
-  end
-end
-
-function dplu(x, α=0.1)
-  stripped=abs(x)
-  if stripped <= one(x)
-    return x
-  else
-    return convert(eltype(x), α)
-  end
-end
-
-""" dSoftMax(x; β) - Derivative of the softMax function """
-function dSoftMax(x; β=1) # https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/
+"""dtanh(x)"""
+dtanh(x)              = sech(x)^2  # = 1-tanh(x)^2
+"""sigmoid(x)"""
+sigmoid(x)            = one(x)/(one(x)+exp(-x))
+"""dsigmoid(x)"""
+dsigmoid(x)           = exp(-x)*sigmoid(x)^2
+"""softmax (x; β=1) \n\n The input x is a vector. Return a PMF"""
+softmax(x; β=one.(x)) = exp.((β .* x) .- lse(β .* x))  # efficient implementation of softmax(x)  = exp.(x) ./  sum(exp.(x))
+""" dsoftmax(x; β=1) \n\n Derivative of the softmax function \n\n https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/"""
+function dsoftmax(x; β=one(x[1]))
     x = makeColVector(x)
     d = length(x)
     out = zeros(d,d)
-    y = softMax(x,β=β)
+    y = softmax(x,β=β)
     for i in 1:d
         smi = y[i]
         for j in 1:d
@@ -220,6 +214,16 @@ function dSoftMax(x; β=1) # https://eli.thegreenplace.net/2016/the-softmax-func
     end
     return out
 end
+
+"""softplus(x) \n\n https://en.wikipedia.org/wiki/Rectifier_(neural_networks)#Softplus"""
+softplus(x)           = log(one(x) + exp(x))
+"""dsoftplus(x) \n\n https://en.wikipedia.org/wiki/Rectifier_(neural_networks)#Softplus"""
+dsoftplus(x)          = 1/(1+exp(-x))
+""" mish(x) \n\n https://arxiv.org/pdf/1908.08681v1.pdf"""
+mish(x)               = x*tanh(softplus(x))
+""" dmish(x) \n\n https://arxiv.org/pdf/1908.08681v1.pdf"""
+dmish(x) = x*(1 - tanh(log(exp(x) + 1))^2)*exp(x)/(exp(x) + 1) + tanh(log(exp(x) + 1))
+
 
 """
    autoJacobian(f,x;nY)

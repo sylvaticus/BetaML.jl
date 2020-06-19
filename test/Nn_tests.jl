@@ -16,7 +16,7 @@ println("Testing basic NN behaviour...")
 x = [0.1,1]
 y = [1,0]
 l1   = DenseNoBiasLayer(2,2,w=[2 1;1 1],f=identity)
-l2   = VectorFunctionLayer(2,2,f=softMax)
+l2   = VectorFunctionLayer(2,2,f=softmax)
 mynn = buildNetwork([l1,l2],squaredCost,name="Simple Multinomial logistic regression")
 o1 = forward(l1,x)
 #@code_warntype forward(l1,x)
@@ -136,7 +136,7 @@ predicted = dropdims(predict(mynn,xtest),dims=2)
 # ==================================
 # NEW TEST
 # ==================================
-println("Going through Multinomial logistic regression (using softMax)...")
+println("Going through Multinomial logistic regression (using softmax)...")
 #=
 using RDatasets
 using Random
@@ -162,7 +162,7 @@ ytest = y[ntrain+1:end]
 
 l1   = DenseLayer(4,10, w=ones(10,4), wb=zeros(10),f=celu)
 l2   = DenseLayer(10,3, w=ones(3,10), wb=zeros(3))
-l3   = VectorFunctionLayer(3,3,f=softMax)
+l3   = VectorFunctionLayer(3,3,f=softmax)
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal")
 train!(mynn,scale(xtrain),ytrain_oh,epochs=500,batchSize=8,sequential=true,verbosity=NONE,optAlg=SGD(η=t->0.001,λ=1))
 

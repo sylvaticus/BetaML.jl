@@ -18,25 +18,33 @@ ce = oneHotEncoder(c,6)
 
 # ==================================
 # TEST 2: softMax
-println("** Going through Test2 (softMax)...")
-@test isapprox(softMax([2,3,4],β=0.1),[0.3006096053557272,0.3322249935333472,0.36716540111092544])
+println("** Going through Test2 (softmax and other activation functions)...")
+@test isapprox(softmax([2,3,4],β=0.1),[0.3006096053557272,0.3322249935333472,0.36716540111092544])
 
+@test didentity(-1) == 1 && relu(-1) == 0 && drelu(-1) == 0 && celu(-1,α=0.1) == -0.09999546000702375 && dcelu(-1) == 0.36787944117144233 &&
+      elu(-1,α=0.1) == -0.06321205588285576 && delu(-1) == 0.36787944117144233 && plu(-1) == -1 && dplu(-1) == 1
+
+@test didentity(1) == 1 && relu(1) == 1 && drelu(1) == 1 && celu(1) == 1 && dcelu(1) == 1 &&
+    elu(1) == 1 && delu(1) == 1 && plu(1) == 1 && dplu(1) == 1
+
+@test dtanh(1) == 0.41997434161402614 && sigmoid(1) == 0.7310585786300049 == dsoftplus(1) && dsigmoid(1) == 0.19661193324148188 &&
+      softplus(1) == 1.3132616875182228 && mish(1) == 0.8650983882673103 && dmish(1) == 1.0490362200997922
 
 # ==================================
 # TEST 3: autoJacobian
-println("** Going through Test3 (softMax, dSoftMax and autoJacobian)...")
-@test isapprox(softMax([2,3,4],β=0.1),[0.3006096053557272,0.3322249935333472,0.36716540111092544])
+println("** Going through Test3 (autoJacobian)...")
+@test isapprox(softmax([2,3,4],β=0.1),[0.3006096053557272,0.3322249935333472,0.36716540111092544])
 
 #import BetaML.Utils: autoJacobian
 @test autoJacobian(x -> (x[1]*2,x[2]*x[3]),[1,2,3]) == [2.0 0.0 0.0; 0.0 3.0 2.0]
 
-b = softMax([2,3,4],β=1/2)
-c = softMax([2,3.0000001,4],β=1/2)
-softMax2(x) = softMax(x,β=1/2)
-autoGrad = autoJacobian(softMax2,[2,3,4])
+b = softmax([2,3,4],β=1/2)
+c = softmax([2,3.0000001,4],β=1/2)
+softmax2(x) = softmax(x,β=1/2)
+autoGrad = autoJacobian(softmax2,[2,3,4])
 realG2 = [(c[1]-b[1])*10000000,(c[2]-b[2])*10000000,(c[3]-b[3])*10000000]
 @test isapprox(autoGrad[:,2],realG2,atol=0.000001)
-manualGrad = dSoftMax([2,3,4],β=1/2)
+manualGrad = dsoftmax([2,3,4],β=1/2)
 @test isapprox(manualGrad[:,2],realG2,atol=0.000001)
 
 # Manual way is hundred of times faster
