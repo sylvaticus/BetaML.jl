@@ -83,3 +83,7 @@ println("Testing emGMM...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 out = predictMissing(X,3,msgStep=0)
 @test isapprox(out.X̂[2,2],14.187187936786232)
+
+X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+out2 = predictMissing(X,3,mixtures=[DiagonalGaussian() for i in 1:K],msgStep=0)
+@test out2.X̂[2,2] == 11.788387366180444

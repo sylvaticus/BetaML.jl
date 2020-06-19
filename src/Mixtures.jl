@@ -146,7 +146,7 @@ npar(mixtures::Array{T,1}) where {T <: SphericalGaussian} = length(mixtures) * l
 npar(mixtures::Array{T,1}) where {T <: DiagonalGaussian}  = length(mixtures) * length(mixtures[1].μ) + length(mixtures) * length(mixtures[1].μ) # K * D + K * D
 npar(mixtures::Array{T,1}) where {T <: FullGaussian} = begin K = length(mixtures); D = length(mixtures[1].μ); K * D + K * (D^2+D)/2 end
 
-function updateVariances!(mixtures::Array{T,1}, X, pₙₖ, nkd, Xmask; minVariance=0.25) where {T <: SphericalGaussian}
+function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) where {T <: SphericalGaussian}
 
     # debug stuff..
     #X = [1 10 20; 1.2 12 missing; 3.1 21 41; 2.9 18 39; 1.5 15 25]
@@ -160,6 +160,7 @@ function updateVariances!(mixtures::Array{T,1}, X, pₙₖ, nkd, Xmask; minVaria
 
     (N,D) = size(X)
     K = length(mixtures)
+    Xmask     =  .! ismissing.(X)
     XdimCount = sum(Xmask, dims=2)
 
     #    #σ² = [sum([pⱼₓ[n,j] * norm(X[n,:]-μ[j,:])^2 for n in 1:N]) for j in 1:K ] ./ (nⱼ .* D)
@@ -181,8 +182,48 @@ function updateVariances!(mixtures::Array{T,1}, X, pₙₖ, nkd, Xmask; minVaria
 
 end
 
+function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) where {T <: DiagonalGaussian}
+
+# debug stuff..
+#X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+#m1 = DiagonalGaussian([1.0,10.0],[5.0,5.0])
+#m2 = DiagonalGaussian([4.0,40.0],[10.0,10.0])
+#m3 = DiagonalGaussian([4.0,-2.0],[5.0,5.0])
+#mixtures= [m1,m2,m3]
+#pₙₖ = [0.9 0.1 0; 0.7 0.1 0.1; 0.8 0.2 0; 0.7 0.3 0; 0.1 0.9 0; 0.4 0.4 0.2; 0.1 0.9 0; 0.2 0.1 0.7 ; 0 0.1 0.9]
+#minVariance=0.25
+# ---
+
+(N,D) = size(X)
+K = length(mixtures)
+Xmask     =  .! ismissing.(X)
+XdimCount = sum(Xmask, dims=2)
+
+#    #σ² = [sum([pⱼₓ[n,j] * norm(X[n,:]-μ[j,:])^2 for n in 1:N]) for j in 1:K ] ./ (nⱼ .* D)
+for k in 1:K
+    m = mixtures[k]
+    for d in 1:D
+        nom = 0.0
+        den = 0.0
+        for n in 1:N
+            if Xmask[n,d]
+                nom += pₙₖ[n,k] * (X[n,d]-m.μ[d])^2
+                den += pₙₖ[n,k]
+            end
+        end
+        if(den > 0 )
+            m.σ²[d] = max(nom/den,minVariance)
+        else
+            m.σ²[d] = minVariance
+        end
+    end
+end
+
+end
+
+
 #https://github.com/davidavdav/GaussianMixtures.jl/blob/master/src/train.jl
-function updateParameters!(mixtures::Array{T,1}, X, pₙₖ, Xmask; minVariance=0.25) where {T <: AbstractGaussian}
+function updateParameters!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) where {T <: AbstractGaussian}
     # debug stuff..
     #X = [1 10 20; 1.2 12 missing; 3.1 21 41; 2.9 18 39; 1.5 15 25]
     #m1 = SphericalGaussian(μ=[1.0,15,21],σ²=5.0)
@@ -193,25 +234,26 @@ function updateParameters!(mixtures::Array{T,1}, X, pₙₖ, Xmask; minVariance=
 
     (N,D) = size(X)
     K = length(mixtures)
+    Xmask     =  .! ismissing.(X)
 
     #nₖ = sum(pₙₖ,dims=1)'
     #n  = sum(nₖ)
     #pₖ = nₖ ./ n
 
-    #n = fill(0.0,K,D)
-    nkd = [sum(pₙₖ[Xmask[:,d],k]) for k in 1:K, d in 1:D] # number of point associated to a given mixture for a specific dimension
+    nkd = fill(0.0,K,D)
+    #nkd = [sum(pₙₖ[Xmask[:,d],k]) for k in 1:K, d in 1:D] # number of point associated to a given mixture for a specific dimension
 
 
     # updating μ...
     for k in 1:K
         m = mixtures[k]
         for d in 1:D
-            #n[k,d] = sum(pₙₖ[Xmask[:,d],k])
+            nkd[k,d] = sum(pₙₖ[Xmask[:,d],k])
             if nkd[k,d] > 1
                 m.μ[d] = sum(pₙₖ[Xmask[:,d],k] .* X[Xmask[:,d],d])/nkd[k,d]
             end
         end
     end
 
-    updateVariances!(mixtures, X, pₙₖ, nkd, Xmask; minVariance=minVariance)
+    updateVariances!(mixtures, X, pₙₖ; minVariance=minVariance)
 end

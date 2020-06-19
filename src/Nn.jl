@@ -34,7 +34,7 @@ The module provide the following type or functions. Use `?[type or function]` to
 - `setParams!(nn)`: Update the weigths of the network
 - `show(nn)`: Print a representation of the Neural Network
 
-Each layer can use a default activation function or you can specify your own. The derivative of the activation function can be optionally be provided, in such case training will be quicker, altought this difference tends to vanish with bigger datasets.
+Each layer can use a default activation function, one of the functions provided in the Utils module (relu, tanh, softmax,...) or you can specify your own function. The derivative of the activation function can be optionally be provided, in such case training will be quicker, altought this difference tends to vanish with bigger datasets.
 You can alternativly implement your own layers defining a new type as subtype of the abstract type `Layer`. Each user-implemented layer must define the following methods:
 
 - A suitable constructor

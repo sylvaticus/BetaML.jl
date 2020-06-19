@@ -348,7 +348,7 @@ function em(X,K;p₀=nothing,mixtures=[SphericalGaussian() for i in 1:K],tol=10^
         nₖ = sum(pₙₖ,dims=1)'
         n  = sum(nₖ)
         pₖ = nₖ ./ n
-        updateParameters!(mixtures, X, pₙₖ, Xmask; minVariance=minVariance)
+        updateParameters!(mixtures, X, pₙₖ; minVariance=minVariance)
 
         # Information. Note the likelihood is whitout accounting for the new mu, sigma
         if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
