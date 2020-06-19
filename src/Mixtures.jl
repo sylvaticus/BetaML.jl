@@ -183,41 +183,106 @@ function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) wh
 end
 
 function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) where {T <: DiagonalGaussian}
+    # debug stuff..
+    #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+    #m1 = DiagonalGaussian([1.0,10.0],[5.0,5.0])
+    #m2 = DiagonalGaussian([4.0,40.0],[10.0,10.0])
+    #m3 = DiagonalGaussian([4.0,-2.0],[5.0,5.0])
+    #mixtures= [m1,m2,m3]
+    #pₙₖ = [0.9 0.1 0; 0.7 0.1 0.1; 0.8 0.2 0; 0.7 0.3 0; 0.1 0.9 0; 0.4 0.4 0.2; 0.1 0.9 0; 0.2 0.1 0.7 ; 0 0.1 0.9]
+    #minVariance=0.25
+    # ---
 
-# debug stuff..
-#X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-#m1 = DiagonalGaussian([1.0,10.0],[5.0,5.0])
-#m2 = DiagonalGaussian([4.0,40.0],[10.0,10.0])
-#m3 = DiagonalGaussian([4.0,-2.0],[5.0,5.0])
-#mixtures= [m1,m2,m3]
-#pₙₖ = [0.9 0.1 0; 0.7 0.1 0.1; 0.8 0.2 0; 0.7 0.3 0; 0.1 0.9 0; 0.4 0.4 0.2; 0.1 0.9 0; 0.2 0.1 0.7 ; 0 0.1 0.9]
-#minVariance=0.25
-# ---
+    (N,D) = size(X)
+    K = length(mixtures)
+    Xmask     =  .! ismissing.(X)
+    #XdimCount = sum(Xmask, dims=2)
 
-(N,D) = size(X)
-K = length(mixtures)
-Xmask     =  .! ismissing.(X)
-XdimCount = sum(Xmask, dims=2)
-
-#    #σ² = [sum([pⱼₓ[n,j] * norm(X[n,:]-μ[j,:])^2 for n in 1:N]) for j in 1:K ] ./ (nⱼ .* D)
-for k in 1:K
-    m = mixtures[k]
-    for d in 1:D
-        nom = 0.0
-        den = 0.0
-        for n in 1:N
-            if Xmask[n,d]
-                nom += pₙₖ[n,k] * (X[n,d]-m.μ[d])^2
-                den += pₙₖ[n,k]
+    #    #σ² = [sum([pⱼₓ[n,j] * norm(X[n,:]-μ[j,:])^2 for n in 1:N]) for j in 1:K ] ./ (nⱼ .* D)
+    for k in 1:K
+        m = mixtures[k]
+        for d in 1:D
+            nom = 0.0
+            den = 0.0
+            for n in 1:N
+                if Xmask[n,d]
+                    nom += pₙₖ[n,k] * (X[n,d]-m.μ[d])^2
+                    den += pₙₖ[n,k]
+                end
+            end
+            if(den > 0 )
+                m.σ²[d] = max(nom/den,minVariance)
+            else
+                m.σ²[d] = minVariance
             end
         end
-        if(den > 0 )
-            m.σ²[d] = max(nom/den,minVariance)
-        else
-            m.σ²[d] = minVariance
+    end
+
+end
+
+function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) where {T <: FullGaussian}
+
+    # debug stuff..
+    #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+    #m1 = FullGaussian([1.0,10.0],[5.0 1; 1.0 5.0])
+    #m2 = FullGaussian([4.0,40.0],[10.0 1.0; 1.0 10.0])
+    #m3 = FullGaussian([4.0,-2.0],[5.0 1; 1.0 5.0])
+    #mixtures= [m1,m2,m3]
+    #pₙₖ = [0.9 0.1 0; 0.7 0.1 0.1; 0.8 0.2 0; 0.7 0.3 0; 0.1 0.9 0; 0.4 0.4 0.2; 0.1 0.9 0; 0.2 0.1 0.7 ; 0 0.1 0.9]
+    #minVariance=0.25
+    # ---
+
+    (N,D) = size(X)
+    K = length(mixtures)
+
+    # NDDMAsk is true only if both (N,D1) and (N,D2) are nonmissing values
+    NDDMask = fill(false,N,D,D)
+    for n in 1:N
+        for d1 in 1:D
+            for d2 in 1:D
+                if !ismissing(X[n,d1]) && !ismissing(X[n,d2])
+                    NDDMask[n,d1,d2] = true
+                end
+            end
         end
     end
-end
+
+
+    #    #σ² = [sum([pⱼₓ[n,j] * norm(X[n,:]-μ[j,:])^2 for n in 1:N]) for j in 1:K ] ./ (nⱼ .* D)
+    for k in 1:K
+        m = mixtures[k]
+        for d2 in 1:D # out var matrix col
+            for d1 in 1:D # out var matrix row
+                if d1 >= d2 # lower half of triang
+                    nom = 0.0
+                    den = 0.0
+                    for n in 1:N
+                        if NDDMask[n,d1,d2]
+                            nom += pₙₖ[n,k] * (X[n,d1]-m.μ[d1])*(X[n,d2]-m.μ[d2])
+                            den += pₙₖ[n,k]
+                        end
+                    end
+                    if(den > 0 )
+                        if d1 == d2
+                            m.σ²[d1,d2] = max(nom/den,minVariance)
+                        else
+                            #m.σ²[d1,d2] = max(nom/den,minVariance-0.01)
+                            m.σ²[d1,d2] = nom/den
+                        end
+                    else
+                        if d1 == d2
+                           m.σ²[d1,d2] = minVariance
+                        else
+                          #m.σ²[d1,d2] = minVariance-0.01 # to avoid singularity in all variances equal to minVariance
+                          m.σ²[d1,d2] = 0
+                        end
+                    end
+                else # upper half of the matrix
+                    m.σ²[d1,d2] = m.σ²[d2,d1]
+                end
+            end
+        end
+    end
 
 end
 
