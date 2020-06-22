@@ -86,7 +86,7 @@ using Random, Zygote, ProgressMeter, Reexport
 import Base.size
 
 # module own functions
-export Layer, forward, backward, getParams, getGradient, setParams!, size, NN,
+export Layer, forward, backward, getParams, getNParams, getGradient, setParams!, size, NN,
        buildNetwork, predict, loss, train!, getindex,
        DenseLayer, DenseNoBiasLayer, VectorFunctionLayer,
        gradSum,gradSub,gradMul,gradDiv,
@@ -224,6 +224,20 @@ function size(layer::Layer)
     error("Not implemented for this kind of layer. Please implement `size(layer)`.")
 end
 
+"""getNParams(layer)
+
+Return the number of parameters of a layer.
+
+It doesn't need to be implemented by each layer type, as it uses getParams().
+"""
+function getNParams(layer::Layer)
+    pars = getParams(layer)
+    nP = 0
+    for p in pars
+        nP += *(size(p)...)
+    end
+    return nP
+end
 
 # ------------------------------------------------------------------------------
 # NN-related functions
@@ -454,6 +468,16 @@ function show(nn::NN)
     println("$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
   end
 end
+
+"getNParams(nn) - Return the number of trainable parameters of the neural network."
+function getNParams(nn::NN)
+    nP = 0
+    for l in nn.layers
+        nP += getNParams(l)
+    end
+    return nP
+end
+
 
 Base.getindex(n::NN, i::AbstractArray) = NN(n.layers[i]...)
 

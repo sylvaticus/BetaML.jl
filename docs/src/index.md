@@ -37,7 +37,7 @@ For a list of supported algorithms please look at the individual modules:
 
 ## Examples
 
-### Using an Artificial Neural Network for multinomial categorisation
+- **Using an Artificial Neural Network for multinomial categorisation**
 
 ```julia
 # Load Modules
@@ -85,9 +85,52 @@ plot(0:res.epochs,res.ϵ_epochs, ylabel="epochs",xlabel="error",legend=nothing,t
 
 ![results](assets/sepalOutput_errors.png)
 
-### Notebooks
 
-We also provide [some notebooks](Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
+- **Using the expectation-Maximisation algorithm for clustering**
+
+```julia
+using BetaML.Clustering, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
+Random.seed!(123); # Fix the random seed (to obtain reproducible results)
+
+# Load the data
+iris     = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
+iris     = iris[shuffle(axes(iris, 1)), :] # Shuffle the records, as they aren't by default
+x        = convert(Array{Float64,2}, iris[:,1:4])
+x        = scale(x) # normalise all dimensions to (μ=0, σ=1)
+y        = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iris[:, 5]) # Convert the target column to numbers
+
+# Get some ranges of minVariance and minCovariance to test
+minVarRange = collect(0.04:0.05:1.5)
+minCovarRange = collect(0:0.05:1.45)
+minCovarRange[15]
+
+# Run the em algorithm for the various cases...
+sphOut  = [em(x,3,mixtures=[SphericalGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE) for v in minVarRange, cv in minCovarRange[1:1]]
+diagOut  = [em(x,3,mixtures=[DiagonalGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE)  for v in minVarRange, cv in minCovarRange[1:1]]
+fullOut = [em(x,3,mixtures=[FullGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE)  for v in minVarRange, cv in minCovarRange]
+
+# Get the Bayesian information criterion (AIC is also available)
+sphBIC = [sphOut[v,cv].BIC for v in 1:length(minVarRange), cv in 1:1]
+diagBIC = [diagOut[v,cv].BIC for v in 1:length(minVarRange), cv in 1:1]
+fullBIC = [fullOut[v,cv].BIC for v in 1:length(minVarRange), cv in 1:length(minCovarRange)]
+
+# Compare the accuracy with true categories
+sphAcc  = [accuracy(sphOut[v,cv].pₙₖ,y,ignoreLabels=true) for v in 1:length(minVarRange), cv in 1:1]
+diagAcc = [accuracy(diagOut[v,cv].pₙₖ,y,ignoreLabels=true) for v in 1:length(minVarRange), cv in 1:1]
+fullAcc = [accuracy(fullOut[v,cv].pₙₖ,y,ignoreLabels=true) for v in 1:length(minVarRange), cv in 1:length(minCovarRange)]
+
+plot(minVarRange,[sphBIC diagBIC fullBIC[:,1] fullBIC[:,15] fullBIC[:,30]], markershape=:circle, label=["sph" "diag" "full (cov=0)" "full (cov=0.7)" "full (cov=1.45)"], title="BIC", xlabel="minVariance")
+plot(minVarRange,[sphAcc diagAcc fullAcc[:,1] fullAcc[:,15] fullAcc[:,30]], markershape=:circle, label=["sph" "diag" "full (cov=0)" "full (cov=0.7)" "full (cov=1.45)"], title="Accuracies", xlabel="minVariance")
+```
+
+![results](assets/sepalClustersBIC.png)
+
+![results](assets/sepalClustersAccuracy.png)
+
+
+- **Further examples**
+
+We also provide [some Jupyter notebooks](Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
 
 ## Acknowledgements
 

@@ -87,6 +87,8 @@ lossTraining = loss(mynn,x',y')
 #@code_warntype
 @test isapprox(lossFinal,lossTraining,atol=0.00001)
 
+li   = DenseLayer(2,2,w=[2 1;1 1],f=identity)
+@test getNParams(li) == 6
 
 # ==================================
 # NEW Test

@@ -19,12 +19,13 @@ Provide shared utility functions for various machine learning algorithms. You do
 """
 module Utils
 
-using LinearAlgebra, Random, Statistics, Zygote
+using LinearAlgebra, Random, Statistics, Combinatorics, Zygote
 
 export reshape, makeColVector, makeRowVector, makeMatrix,
        oneHotEncoder, getScaleFactors, scale, scale!, batch,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
+       BIC, AIC,
        autoJacobian,
        squaredCost, dSquaredCost, l1_distance,
        error, accuracy, meanRelError,
@@ -277,17 +278,37 @@ function accuracy(ŷ::Array{T,1},y::Int64;tol=1) where {T <: Number}
         return 0
     end
 end
-"""
-   accuracy(ŷ,y;tol)
+
+@doc raw"""
+   accuracy(ŷ,y;tol,ignoreLabels)
 
 Categorical accuracy with probabilistic predictions of a dataset (PMF vs Int).
 
-Use the parameter tol [def: `1`] to determine the tollerance of the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values.
+# Parameters:
+- `ŷ`: An (N,K) matrix of probabilities that each ``\hat y_n`` record with ``n \in 1,....,N``  being of category ``k`` with $k \in 1,...,K$.
+- `y`: The N array with the correct category for each point $n$.
+- `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
+- `ignoreLabels`: Wheter to ignore the specific label order in y. Useful for unsupervised learning algorithms where the specific label order don't make sense [def: false]
+
 """
-function accuracy(ŷ::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number}
-    n = size(ŷ,1)
-    acc = sum([accuracy(ŷ[i,:],y[i],tol=tol) for i in 1:n])/n
+function accuracy(ŷ::Array{T,2},y::Array{Int64,1};tol=1,ignoreLabels=false) where {T <: Number}
+    (N,D) = size(ŷ)
+
+
+    pSet = ignoreLabels ? collect(permutations(1:D)) : [collect(1:D)]
+
+    bestAcc = -Inf
+    for perm in pSet
+        pŷ = hcat([ŷ[:,c] for c in perm]...)
+        acc = sum([accuracy(pŷ[i,:],y[i],tol=tol) for i in 1:N])/N
+        if acc > bestAcc
+            bestAcc = acc
+        end
+    end
+    return bestAcc
 end
+
+
 """ error(ŷ,y) - Categorical error with probabilistic prediction of a single datapoint (PMF vs Int). """
 error(ŷ::Array{T,1},y::Int64;tol=1) where {T <: Number} = 1 - accuracy(ŷ,y;tol=tol)
 """ error(ŷ,y) - Categorical error with probabilistic predictions of a dataset (PMF vs Int). """
@@ -323,6 +344,12 @@ function meanRelError(ŷ,y;normDim=true,normRec=true,p=1)
     end
     return avgϵRel
 end
+
+"""BIC(lL,k,n) -  Bayesian information criterion (lower is better)"""
+BIC(lL,k,n) = k*log(n)-2*lL
+"""AIC(lL,k) -  Akaike information criterion (lower is better)"""
+AIC(lL,k)   = 2*k-2*lL
+
 
 # ------------------------------------------------------------------------------
 # Various neural network loss functions as well their derivatives

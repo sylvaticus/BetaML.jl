@@ -12,6 +12,7 @@ mutable struct SphericalGaussian{T <:Number} <: AbstractGaussian
         μ  ::Union{Array{T,1},Nothing}
         σ² ::Union{T,Nothing}
         #SphericalGaussian(;μ::Union{Array{T,1},Nothing},σ²::Union{T,Nothing}) where {T} = SphericalGaussian(μ,σ²)
+        """SphericalGaussian(μ,σ²) - Spherical Gaussian mixture with mean μ and (single) variance σ²"""
         SphericalGaussian(μ::Union{Array{T,1},Nothing},σ²::Union{T,Nothing}=nothing) where {T} = new{T}(μ,σ²)
         SphericalGaussian(type::Type{T}=Float64) where {T} = new{T}(nothing, nothing)
 end
@@ -19,6 +20,7 @@ end
 mutable struct DiagonalGaussian{T <:Number} <: AbstractGaussian
     μ::Union{Array{T,1},Nothing}
     σ²::Union{Array{T,1},Nothing}
+    """DiagonalGaussian(μ,σ²) - Gaussian mixture with mean μ and variances σ² (and fixed zero covariances)"""
     DiagonalGaussian(μ::Union{Array{T,1},Nothing},σ²::Union{Array{T,1},Nothing}=nothing) where {T} = new{T}(μ,σ²)
     DiagonalGaussian(::Type{T}=Float64) where {T} = new{T}(nothing, nothing)
 end
@@ -26,11 +28,12 @@ end
 mutable struct FullGaussian{T <:Number} <: AbstractGaussian
     μ::Union{Array{T,1},Nothing}
     σ²::Union{Array{T,2},Nothing}
+    """FullGaussian(μ,σ²) - Gaussian mixture with mean μ and variance/covariance matrix σ²"""
     FullGaussian(μ::Union{Array{T,1},Nothing},σ²::Union{Array{T,2},Nothing}=nothing) where {T} = new{T}(μ,σ²)
     FullGaussian(::Type{T}=Float64) where {T} = new{T}(nothing, nothing)
 end
 
-function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25) where {T <: SphericalGaussian}
+function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0,) where {T <: SphericalGaussian}
     (N,D) = size(X)
     K = length(mixtures)
     varX_byD = fill(0.0,D)
@@ -46,7 +49,7 @@ function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25) where {T <: S
     end
 end
 
-function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25) where {T <: DiagonalGaussian}
+function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0) where {T <: DiagonalGaussian}
     (N,D) = size(X)
     K = length(mixtures)
     varX_byD = fill(0.0,D)
@@ -62,22 +65,33 @@ function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25) where {T <: D
 
 end
 
-function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25) where {T <: FullGaussian}
+function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0) where {T <: FullGaussian}
     (N,D) = size(X)
     K = length(mixtures)
     varX_byD = fill(0.0,D)
+
     for d in 1:D
       varX_byD[d] = max(minVariance, var(skipmissing(X[:,d])))
     end
 
     for (i,m) in enumerate(mixtures)
         if isnothing(m.σ²)
-            m.σ² = diagm(varX_byD)
+            m.σ² = fill(0.0,D,D)
+            for d1 in 1:D
+                for d2 in 1:D
+                    if d1 == d2
+                        m.σ²[d1,d2] = varX_byD[d1]
+                    else
+                        m.σ²[d1,d2] = minCovariance
+                    end
+                end
+            end
         end
     end
 end
 
-function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, initStrategy="grid") where {T <: AbstractGaussian}
+""" initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid")"""
+function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid") where {T <: AbstractGaussian}
     # debug..
     #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing 2; 3.3 38; missing -2.3; 5.2 -2.4]
     #mixtures = [SphericalGaussian() for i in 1:3]
@@ -114,10 +128,11 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, initStrategy="
        end
     end
 
-    initVariances!(mixtures,X,minVariance=minVariance)
+    initVariances!(mixtures,X,minVariance=minVariance, minCovariance=minCovariance)
 
 end
 
+"""lpdf(m::SphericalGaussian,x,mask) - Log PDF of the mixture given the observation `x`"""
 function lpdf(m::SphericalGaussian,x,mask)
     μ  = m.μ[mask]
     σ² = m.σ²
@@ -126,6 +141,7 @@ function lpdf(m::SphericalGaussian,x,mask)
     return (- (length(x)/2) * log(2π*σ²)  -  norm(x-μ)^2/(2σ²))
 end
 
+"""lpdf(m::DiagonalGaussian,x,mask) - Log PDF of the mixture given the observation `x`"""
 function lpdf(m::DiagonalGaussian,x,mask)
     μ  = m.μ[mask]
     σ² = m.σ²[mask]
@@ -133,10 +149,12 @@ function lpdf(m::DiagonalGaussian,x,mask)
     return logpdf(d,x)
 end
 
+"""lpdf(m::FullGaussian,x,mask) - Log PDF of the mixture given the observation `x`"""
 function lpdf(m::FullGaussian,x,mask)
     μ   = m.μ[mask]
     nmd = length(μ)
     σ²  = reshape(m.σ²[mask*mask'],(nmd,nmd))
+    σ² = σ² + max(0, -2minimum(eigvals(σ²))) * I # Improve numerical stability https://stackoverflow.com/q/57559589/1586860 (-2 * minimum...) https://stackoverflow.com/a/35612398/1586860
     d   = FullNormal(μ,PDMat(σ²))
     return logpdf(d,x)
 end
@@ -146,7 +164,8 @@ npar(mixtures::Array{T,1}) where {T <: SphericalGaussian} = length(mixtures) * l
 npar(mixtures::Array{T,1}) where {T <: DiagonalGaussian}  = length(mixtures) * length(mixtures[1].μ) + length(mixtures) * length(mixtures[1].μ) # K * D + K * D
 npar(mixtures::Array{T,1}) where {T <: FullGaussian} = begin K = length(mixtures); D = length(mixtures[1].μ); K * D + K * (D^2+D)/2 end
 
-function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) where {T <: SphericalGaussian}
+
+function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25, minCovariance = 0.0) where {T <: SphericalGaussian}
 
     # debug stuff..
     #X = [1 10 20; 1.2 12 missing; 3.1 21 41; 2.9 18 39; 1.5 15 25]
@@ -182,7 +201,7 @@ function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) wh
 
 end
 
-function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) where {T <: DiagonalGaussian}
+function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25, minCovariance = 0.0) where {T <: DiagonalGaussian}
     # debug stuff..
     #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
     #m1 = DiagonalGaussian([1.0,10.0],[5.0,5.0])
@@ -220,7 +239,7 @@ function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) wh
 
 end
 
-function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) where {T <: FullGaussian}
+function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25, minCovariance = 0.0) where {T <: FullGaussian}
 
     # debug stuff..
     #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
@@ -266,15 +285,14 @@ function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) wh
                         if d1 == d2
                             m.σ²[d1,d2] = max(nom/den,minVariance)
                         else
-                            #m.σ²[d1,d2] = max(nom/den,minVariance-0.01)
-                            m.σ²[d1,d2] = nom/den
+                            m.σ²[d1,d2] = max(nom/den,minCovariance)
                         end
                     else
                         if d1 == d2
                            m.σ²[d1,d2] = minVariance
                         else
                           #m.σ²[d1,d2] = minVariance-0.01 # to avoid singularity in all variances equal to minVariance
-                          m.σ²[d1,d2] = 0
+                          m.σ²[d1,d2] = minCovariance
                         end
                     end
                 else # upper half of the matrix
@@ -286,9 +304,14 @@ function updateVariances!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) wh
 
 end
 
+"""
+updateParameters!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25, minCovariance)
 
+Find and set the parameters that maximise the likelihood (m-step in the EM algorithm)
+
+"""
 #https://github.com/davidavdav/GaussianMixtures.jl/blob/master/src/train.jl
-function updateParameters!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) where {T <: AbstractGaussian}
+function updateParameters!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25, minCovariance = 0.0) where {T <: AbstractGaussian}
     # debug stuff..
     #X = [1 10 20; 1.2 12 missing; 3.1 21 41; 2.9 18 39; 1.5 15 25]
     #m1 = SphericalGaussian(μ=[1.0,15,21],σ²=5.0)
@@ -320,5 +343,5 @@ function updateParameters!(mixtures::Array{T,1}, X, pₙₖ; minVariance=0.25) w
         end
     end
 
-    updateVariances!(mixtures, X, pₙₖ; minVariance=minVariance)
+    updateVariances!(mixtures, X, pₙₖ; minVariance=minVariance, minCovariance=minCovariance)
 end

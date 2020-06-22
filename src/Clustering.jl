@@ -22,8 +22,14 @@ The module provide the following functions. Use `?[function]` to access their fu
 - [`initRepresentatives(X,K;initStrategy,Z₀)`](@ref initRepresentatives): Initialisation strategies for Kmean and Kmedoids
 - [`kmeans(X,K;dist,initStrategy,Z₀)](@ref kmeans)`: Classical KMean algorithm
 - [`kmedoids(X,K;dist,initStrategy,Z₀)](@ref kmedoids)`: Kmedoids algorithm
-- [`emGMM(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)](@ref emGMM)`: EM algorithm over GMM with fixed variance
-- [`collFilteringGMM(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)](@ref collFilteringGMM)`: Collaborative filtering using GMM
+- [`em(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initStrategy)](@ref em)`: EM algorithm over GMM
+- [`predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)](@ref predictMissing)`: Fill mixing values / collaborative filtering using GMM as backbone
+
+{Spherical|Diagonal|Full}Gaussian mixtures for em()/predictMissing() are already provided. User defined mixtrues can be used defining a struct as subtype of `Mixture` and implementing for that mixture the following functions:
+- `initMixtures!(mixtures, X; minVariance, minCovariance, initStrategy)`
+- `lpdf(m,x,mask)`
+- `updateParameters!(mixtures, X, pₙₖ; minVariance, minCovariance)`
+
 """
 module Clustering
 
@@ -256,8 +262,10 @@ end
 
 ## The EM algorithm (Lecture/segment 16.5 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
 
+# no longer true with the numerical trick implemented
+# - For mixtures with full covariance matrix (i.e. `FullGaussian(μ,σ²)`) the minCovariance should NOT be set equal to the minVariance, or if the covariance matrix goes too low, it will become singular and not invertible.
 """
-  em(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance,missingValue)
+  em(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initStrategy)
 
 Compute Expectation-Maximisation algorithm to identify K clusters of X data, i.e. employ a Generative Mixture Model as the underlying probabilistic model.
 
@@ -265,15 +273,15 @@ X can contain missing values in some or all of its dimensions. In such case the 
 Implemented in the log-domain for better numerical accuracy with many dimensions.
 
 # Parameters:
-* `X`  :          A (n x d) data to clusterise
-* `K`  :          Number of cluster wanted
-* `p₀` :          Initial probabilities of the categorical distribution (K x 1) [default: `nothing`]
-* `μ₀` :          Initial means (K x d) of the Gaussian [default: `nothing`]
-* `σ²₀`:          Initial variance of the gaussian (K x 1). We assume here that the gaussian has the same variance across all the dimensions [default: `nothing`]
-* `tol`:          Tolerance to stop the algorithm [default: 10^(-6)]
-* `msgStep` :     Iterations between update messages. Use 0 for no updates [default: 10]
-* `minVariance`:  Minimum variance for the mixtures [default: 0.25]
-* `missingValue`: Value to be considered as missing in the X [default: `missing`]
+* `X`  :           A (n x d) data to clusterise
+* `K`  :           Number of cluster wanted
+* `p₀` :           Initial probabilities of the categorical distribution (K x 1) [default: `nothing`]
+* `mixtures`:      An array (of length K) of the mixture to employ (see notes) [def: `[DiagonalGaussian() for i in 1:K]`]
+* `tol`:           Tolerance to stop the algorithm [default: 10^(-6)]
+* `verbosity`:     A verbosity parameter regulating the information messages frequency [def: `STD`]
+* `minVariance`:   Minimum variance for the mixtures [default: 0.05]
+* `minCovariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes).
+* `initStrategy`:  Mixture initialisation algorithm [def: `grid`]
 
 # Returns:
 * A named touple of:
@@ -283,15 +291,19 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
   * `σ²` : Variance of the gaussian (K x 1). We assume here that the gaussian has the same variance across all the dimensions
   * `ϵ`  : Vector of the discrepancy (matrix norm) between pⱼₓ and the lagged pⱼₓ at each iteration
   * `lL` : The log-likelihood (without considering the last mixture optimisation)
-  * `BIC` : The Bayesian Information Criterion
+  * `BIC` : The Bayesian Information Criterion (lower is better)
+  * `AIC` : The Akaike Information Criterion (lower is better)
+
+ # Notes:
+ - The mixtures currently implemented are `SphericalGaussian(μ,σ²)`,`DiagonalGaussian(μ,σ²)` and `FullGaussian(μ,σ²)`
+ - Reasonable choices for the minVariance/Covariance depends on the mixture. For example 0.25 seems a reasonable value for the SphericalGaussian, 0.05 seems better for the DiagonalGaussian, and FullGaussian seems to prefer either very low values of variance/covariance (e.g. `(0.05,0.05)` ) or very big but similar ones (e.g. `(100,100)` ).
 
 # Example:
 ```julia
-julia> clusters = emGMM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=1,missingValue=0)
+julia> clusters = emGMM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,verbosity=HIGH)
 ```
 """
-
-function em(X,K;p₀=nothing,mixtures=[SphericalGaussian() for i in 1:K],tol=10^(-6),msgStep=10,minVariance=0.25,initStrategy="grid")
+function em(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="grid")
     # debug:
     #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
     #K = 3
@@ -302,8 +314,17 @@ function em(X,K;p₀=nothing,mixtures=[SphericalGaussian() for i in 1:K],tol=10^
     (N,D) = size(X)
     pₖ    = isnothing(p₀) ? fill(1/K,K) : p₀
 
+    # no longer true with the numerical trick implemented
+    #if (minVariance == minCovariance)
+    #    @warn("Setting the minVariance equal to the minCovariance may lead to singularity problems for mixtures with full covariance matrix.")
+    #end
+
+    msgStepMap = Dict(NONE => 0, LOW=>100, STD=>20, HIGH=>5, FULL=>1)
+    msgStep    = msgStepMap[verbosity]
+
+
     # Initialisation of the parameters of the mixtures
-    initMixtures!(mixtures,X,minVariance=minVariance,initStrategy=initStrategy)
+    initMixtures!(mixtures,X,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy)
 
     pₙₖ = zeros(Float64,N,K) # The posteriors, i.e. the prob that item n belong to cluster k
     ϵ = Float64[]
@@ -329,9 +350,22 @@ function em(X,K;p₀=nothing,mixtures=[SphericalGaussian() for i in 1:K],tol=10^
         for n in 1:N
             if any(Xmask[n,:]) # if at least one true
                 Xu = X[n,Xmask[n,:]]
+                #=if (length(ϵ) == 2)
+                    println("here I am")
+                    for m in mixtures[3:end]
+                        println(m.μ)
+                        println(m.σ²)
+                        println(Xu)
+                        println(Xmask[n,:])
+                        lpdf(m,Xu,Xmask[n,:])
+                        println("here I am partially")
+                    end
+                    println("here I am dead")
+                end=#
                 logpx = lse([log(pₖ[k] + 1e-16) + lpdf(mixtures[k],Xu,Xmask[n,:]) for k in 1:K])
                 lL += logpx
                 #px = sum([pⱼ[k]*normalFixedSd(Xu,μ[k,XMask[n,:]],σ²[k]) for k in 1:K])
+                #println(n)
                 for k in 1:K
                     logpₙₖ[n,k] = log(pₖ[k] + 1e-16)+lpdf(mixtures[k],Xu,Xmask[n,:])-logpx
                 end
@@ -348,7 +382,7 @@ function em(X,K;p₀=nothing,mixtures=[SphericalGaussian() for i in 1:K],tol=10^
         nₖ = sum(pₙₖ,dims=1)'
         n  = sum(nₖ)
         pₖ = nₖ ./ n
-        updateParameters!(mixtures, X, pₙₖ; minVariance=minVariance)
+        updateParameters!(mixtures, X, pₙₖ; minVariance=minVariance,minCovariance=minCovariance)
 
         # Information. Note the likelihood is whitout accounting for the new mu, sigma
         if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
@@ -358,9 +392,11 @@ function em(X,K;p₀=nothing,mixtures=[SphericalGaussian() for i in 1:K],tol=10^
         # Closing conditions. Note that the logLikelihood is those without considering the new mu,sigma
         if (lL - oldlL) <= (tol * abs(lL))
             npars = npar(mixtures) + (K-1)
-            BIC  = lL - (1/2) * npars * log(N)
+            #BIC  = lL - (1/2) * npars * log(N)
+            BICv = BIC(lL,npars,N)
+            AICv = AIC(lL,npars)
         #if (ϵ[end] < tol)
-           return (pₙₖ=pₙₖ,pₖ=pₖ,mixtures=mixtures,ϵ=ϵ,lL=lL,BIC=BIC)
+           return (pₙₖ=pₙₖ,pₖ=pₖ,mixtures=mixtures,ϵ=ϵ,lL=lL,BIC=BICv,AIC=AICv)
         end
     end # end while loop
 end # end function
@@ -377,7 +413,7 @@ end # end function
 #Profile.print()
 
 """
-  predictMissing(X,K;p₀,μ₀,σ²₀,tol,msgStep,minVariance)
+  predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)
 
 Fill missing entries in a sparse matrix assuming an underlying Gaussian Mixture probabilistic Model (GMM) and implementing
 an Expectation-Maximisation algorithm.
@@ -385,30 +421,35 @@ an Expectation-Maximisation algorithm.
 Implemented in the log-domain for better numerical accuracy with many dimensions.
 
 # Parameters:
-* `X`  :          A (N x D) sparse matrix of data to fill according to a GMM model
-* `K`  :          Number of mixtures desired
-* `p₀` :          Initial probabilities of the categorical distribution (K x 1) [default: `nothing`]
-* `μ₀` :          Initial means (K x D) of the Gaussian [default: `nothing`]
-* `σ²₀`:          Initial variance of the gaussian (K x 1). We assume here that the gaussian has the same variance across all the dimensions [default: `nothing`]
-* `tol`:          Tolerance to stop the algorithm [default: 10^(-6)]
-* `msgStep` :     Iterations between update messages. Use 0 for no updates [default: 10]
-* `minVariance`:  Minimum variance for the mixtures [default: 0.25]
-* `missingValue`: Value to be considered as missing in the X [default: `missing`]
+* `X`  :           A (N x D) sparse matrix of data to fill according to a GMM model
+* `K`  :           Number of mixtures desired
+* `p₀` :           Initial probabilities of the categorical distribution (K x 1) [default: `nothing`]
+* `mixtures`:      An array (of length K) of the mixture to employ (see notes) [def: `[DiagonalGaussian() for i in 1:K]`]
+* `tol`:           Tolerance to stop the algorithm [default: 10^(-6)]
+* `verbosity`:     A verbosity parameter regulating the information messages frequency [def: `STD`]
+* `minVariance`:   Minimum variance for the mixtures [default: 0.05]
+* `minCovariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes).
+* `initStrategy`:  Mixture initialisation algorithm [def: `grid`]
 
 # Returns:
 * A named touple of:
   * `̂X̂`    : The Filled Matrix of size (N x D)
   * `nFill`: The number of items filled
   * `lL`   : The log-likelihood (without considering the last mixture optimisation)
-  * `BIC`  : The Bayesian Information Criterion
+  * `BIC` :  The Bayesian Information Criterion (lower is better)
+  * `AIC` :  The Akaike Information Criterion (lower is better)
+
+  # Notes:
+  - The mixtures currently implemented are `SphericalGaussian(μ,σ²)`,`DiagonalGaussian(μ,σ²)` and `FullGaussian(μ,σ²)`
+  - For mixtures with full covariance matrix (i.e. `FullGaussian(μ,σ²)`) the minCovariance should NOT be set equal to the minVariance, or if the covariance matrix goes too low, it will become singular and not invertible.
 
 # Example:
 ```julia
-julia>  cFOut = predictMissing([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3,msgStep=1)
+julia>  cFOut = predictMissing([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3)
 ```
 """
-function predictMissing(X,K;mixtures=[SphericalGaussian() for i in 1:K],tol=10^(-6),msgStep=10,minVariance=0.25)
-    emOut = em(X,K;mixtures=mixtures,tol=tol,msgStep=msgStep,minVariance=minVariance)
+function predictMissing(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="grid")
+    emOut = em(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy)
     (N,D) = size(X)
     #K = size(emOut.μ)[1]
     XMask = .! ismissing.(X)
@@ -421,7 +462,7 @@ function predictMissing(X,K;mixtures=[SphericalGaussian() for i in 1:K],tol=10^(
             end
         end
     end
-    return (X̂=X̂,nFill=nFill,lL=emOut.lL,BIC=emOut.BIC)
+    return (X̂=X̂,nFill=nFill,lL=emOut.lL,BIC=emOut.BIC,AIC=emOut.AIC)
 end
 
 end
