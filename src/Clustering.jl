@@ -418,6 +418,8 @@ end # end function
 Fill missing entries in a sparse matrix assuming an underlying Gaussian Mixture probabilistic Model (GMM) and implementing
 an Expectation-Maximisation algorithm.
 
+While the name of the function is `predictMissing`, the function can be used also for system reccomendation / collaborative filtering and GMM-based regressions.
+
 Implemented in the log-domain for better numerical accuracy with many dimensions.
 
 # Parameters:

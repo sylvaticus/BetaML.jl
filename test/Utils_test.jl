@@ -112,3 +112,14 @@ avgϵRel = mean(avgϵRel_byRec)
 avgϵRel = (sum(abs.(ŷ-y).^p)^(1/p) / (n*d)) / (sum( abs.(y) .^p)^(1/p) / (n*d))
 #avgϵRel = (norm((ŷ-y),p)/(n*d)) / (norm(y,p) / (n*d))
 @test meanRelError(ŷ,y,normDim=false,normRec=false,p=p) == avgϵRel
+
+
+# ==================================
+# New test
+println("** Testing pca()...")
+
+X = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95]
+error=0.05
+out = pca(X,error=0.05)
+@test out.error ≈ 1.0556269747774571e-5
+@test sum(out.X) ≈ 662.3492034128955

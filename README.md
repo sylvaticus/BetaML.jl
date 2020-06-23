@@ -94,7 +94,6 @@ y        = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iri
 # Get some ranges of minVariance and minCovariance to test
 minVarRange = collect(0.04:0.05:1.5)
 minCovarRange = collect(0:0.05:1.45)
-minCovarRange[15]
 
 # Run the em algorithm for the various cases...
 sphOut  = [em(x,3,mixtures=[SphericalGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE) for v in minVarRange, cv in minCovarRange[1:1]]

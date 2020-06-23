@@ -22,7 +22,7 @@ module Utils
 using LinearAlgebra, Random, Statistics, Combinatorics, Zygote
 
 export reshape, makeColVector, makeRowVector, makeMatrix,
-       oneHotEncoder, getScaleFactors, scale, scale!, batch,
+       oneHotEncoder, getScaleFactors, scale, scale!, batch, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        BIC, AIC,
@@ -164,6 +164,58 @@ function scale!(x,scaleFactors=(-mean(x,dims=1),1 ./ sqrt.(var(x,corrected=false
     end
     return nothing
 end
+
+"""
+pca(X;K,error)
+
+Perform Principal Component Analysis returning the matrix reprojected among the dimensions of maximum variance.
+
+# Parameters:
+- `X` : The (N,D) data to reproject
+- `K` : The number of dimensions to maintain (with K<=D) [def: `nothing`]
+- `error`: The maximum approximation error that we are willing to achieve [def: `0.05`]
+
+# Return:
+- A named tuple with:
+  - `X`: The reprojected (NxK) matrix
+  - `K`: The dimensions retieved
+  - `error`: The actual proportion of variance not explained in the reprojected dimensions
+
+Note that if `K` is indicated, the parameter `error` has no effect.
+"""
+function pca(X;K=nothing,error=0.05)
+    # debug
+    #X = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95]
+    #K = nothing
+    #error=0.05
+
+    (N,D) = size(X)
+    if !isnothing(K) && K > D
+        @error("The parameter K must be ≤ D")
+    end
+    Σ = (1/N) * X'*(I-(1/N)*ones(N)*ones(N)')*X
+    E = eigen(Σ)
+    totVar           = sum(E.values)
+    propVarExplained = 0.0
+    if K == nothing
+        for k in 1:D
+            explVar = sum(E.values[D-k+1:end])
+            if explVar/totVar >= 1 - error
+                propVarExplained = explVar/totVar
+                K = k
+                break
+            end
+        end
+    else
+        explVar = sum(E.values[D-K+1:end])
+        propVarExplained = explVar/totVar
+    end
+
+    P = E.vectors[:,D-K+1:end]
+
+    return (X=X*P,K=K,error=1-propVarExplained)
+end
+
 
 # ------------------------------------------------------------------------------
 # Various neural network activation functions as well their derivatives
