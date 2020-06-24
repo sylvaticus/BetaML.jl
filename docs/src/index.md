@@ -31,9 +31,9 @@ Documentation for most algorithms can be retrieved using the inline Julia help s
 For a list of supported algorithms please look at the individual modules:
 
 - [**`BetaML.Perceptron`**](Perceptron.html): Perform classification tasks using the Perceptron, Kernel Perceptron or Pegasus algorithms
-- [**`BetaML.Nn`**](Nn.html): Implementation of Artificial Neural networks
-- [**`BetaML.Clustering``**](Clustering.html): Clustering algorithms (Kmeans, Mdedoids, GMM) and collaborative filtering /recommandation systems using clusters
-- [**`BetaML.Utils``**](Utils.html): Various utility functions (scale, one-hot, distances, kernels,..)
+- [**`BetaML.Nn`**](Nn.html): Implementation of Artificial Neural Networks
+- [**`BetaML.Clustering``**](Clustering.html): Clustering algorithms (Kmeans, Mdedoids, EM/GMM) and missing imputation / collaborative filtering / recommandation systems using clusters
+- [**`BetaML.Utils``**](Utils.html): Various utility functions (scale, one-hot, distances, kernels, pca, accuracy/error measures..)
 
 ## Examples
 
@@ -130,6 +130,12 @@ plot(minVarRange,[sphAcc diagAcc fullAcc[:,1] fullAcc[:,15] fullAcc[:,30]], mark
 - **Further examples**
 
 We also provide [some Jupyter notebooks](Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
+
+## Contribute
+
+Contributions to the library are welcome. We are particularly interested in the areas covered in the "TODO" list in the readme file, but we are open to other areas as well. Please however consider that the focus is mostly didactic/research, so clear, easy to read (and well documented) code is more important that highly optimised one. For the same reason, it is fine to use verbose names.
+Please open an issue to discuss your ideas or make directly a well-documented pull request to the repository.
+
 
 ## Acknowledgements
 

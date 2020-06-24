@@ -119,7 +119,7 @@ avgϵRel = (sum(abs.(ŷ-y).^p)^(1/p) / (n*d)) / (sum( abs.(y) .^p)^(1/p) / (n*d
 println("** Testing pca()...")
 
 X = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95]
-error=0.05
 out = pca(X,error=0.05)
 @test out.error ≈ 1.0556269747774571e-5
 @test sum(out.X) ≈ 662.3492034128955
+#X2 = out.X*out.P'

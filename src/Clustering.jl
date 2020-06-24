@@ -13,22 +13,20 @@ Clustering and collaborative filtering (via clustering) algorithms
 """
     Clustering module (WIP)
 
-Provide clustering methods and collaborative filtering using clustering methods as backend.
+Provide clustering methods and missing values imputation / collaborative filtering / reccomendation systems using clustering methods as backend.
 
-The em algorithm is work in progress, as its API will likely change to account for different type of mixtures.
-
-The module provide the following functions. Use `?[function]` to access their full signature and detailed documentation:
+The module provides the following functions. Use `?[function]` to access their full signature and detailed documentation:
 
 - [`initRepresentatives(X,K;initStrategy,Z₀)`](@ref initRepresentatives): Initialisation strategies for Kmean and Kmedoids
 - [`kmeans(X,K;dist,initStrategy,Z₀)](@ref kmeans)`: Classical KMean algorithm
 - [`kmedoids(X,K;dist,initStrategy,Z₀)](@ref kmedoids)`: Kmedoids algorithm
 - [`em(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initStrategy)](@ref em)`: EM algorithm over GMM
-- [`predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)](@ref predictMissing)`: Fill mixing values / collaborative filtering using GMM as backbone
+- [`predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)](@ref predictMissing)`: Fill mixing values / collaborative filtering using EM as backbone
 
-{Spherical|Diagonal|Full}Gaussian mixtures for em()/predictMissing() are already provided. User defined mixtrues can be used defining a struct as subtype of `Mixture` and implementing for that mixture the following functions:
+{Spherical|Diagonal|Full}Gaussian mixtures for `em` / `predictMissing` are already provided. User defined mixtures can be used defining a struct as subtype of `Mixture` and implementing for that mixture the following functions:
 - `initMixtures!(mixtures, X; minVariance, minCovariance, initStrategy)`
-- `lpdf(m,x,mask)`
-- `updateParameters!(mixtures, X, pₙₖ; minVariance, minCovariance)`
+- `lpdf(m,x,mask)` (for the e-step)
+- `updateParameters!(mixtures, X, pₙₖ; minVariance, minCovariance)` (the m-step)
 
 """
 module Clustering
@@ -298,9 +296,14 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
  - The mixtures currently implemented are `SphericalGaussian(μ,σ²)`,`DiagonalGaussian(μ,σ²)` and `FullGaussian(μ,σ²)`
  - Reasonable choices for the minVariance/Covariance depends on the mixture. For example 0.25 seems a reasonable value for the SphericalGaussian, 0.05 seems better for the DiagonalGaussian, and FullGaussian seems to prefer either very low values of variance/covariance (e.g. `(0.05,0.05)` ) or very big but similar ones (e.g. `(100,100)` ).
 
+ # Resources:
+ - [Paper describing EM with missing values](https://doi.org/10.1016/j.csda.2006.10.002)
+ - [Class notes from MITx 6.86x (Sec 15.9)](https://stackedit.io/viewer#!url=https://github.com/sylvaticus/MITx_6.86x/raw/master/Unit 04 - Unsupervised Learning/Unit 04 - Unsupervised Learning.md)
+ - [Limitations of EM](https://www.r-craft.org/r-news/when-not-to-use-gaussian-mixture-model-em-clustering/)
+
 # Example:
 ```julia
-julia> clusters = emGMM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,verbosity=HIGH)
+julia> clusters = em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,verbosity=HIGH)
 ```
 """
 function em(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="grid")
@@ -393,8 +396,8 @@ function em(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(
         if (lL - oldlL) <= (tol * abs(lL))
             npars = npar(mixtures) + (K-1)
             #BIC  = lL - (1/2) * npars * log(N)
-            BICv = BIC(lL,npars,N)
-            AICv = AIC(lL,npars)
+            BICv = bic(lL,npars,N)
+            AICv = aic(lL,npars)
         #if (ϵ[end] < tol)
            return (pₙₖ=pₙₖ,pₖ=pₖ,mixtures=mixtures,ϵ=ϵ,lL=lL,BIC=BICv,AIC=AICv)
         end

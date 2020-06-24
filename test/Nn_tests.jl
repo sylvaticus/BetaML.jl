@@ -162,14 +162,21 @@ ytrain_oh = y_oh[1:ntrain,:]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
+xtrain = scale(xtrain)
+#pcaOut = pca(xtrain,error=0.01)
+#(xtrain,P) = pcaOut.X, pcaOut.P
+xtest = scale(xtest)
+#xtest = xtest*P
+
 l1   = DenseLayer(4,10, w=ones(10,4), wb=zeros(10),f=celu)
 l2   = DenseLayer(10,3, w=ones(3,10), wb=zeros(3))
 l3   = VectorFunctionLayer(3,3,f=softmax)
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal")
-train!(mynn,scale(xtrain),ytrain_oh,epochs=500,batchSize=8,sequential=true,verbosity=NONE,optAlg=SGD(η=t->0.001,λ=1))
 
-ŷtrain = predict(mynn,scale(xtrain))
-ŷtest  = predict(mynn,scale(xtest))
+train!(mynn,xtrain,ytrain_oh,epochs=500,batchSize=8,sequential=true,verbosity=NONE,optAlg=SGD(η=t->0.001,λ=1))
+
+ŷtrain = predict(mynn,xtrain)
+ŷtest  = predict(mynn,xtest)
 trainAccuracy = accuracy(ŷtrain,ytrain,tol=1)
 testAccuracy  = accuracy(ŷtest,ytest,tol=1)
 @test testAccuracy >= 0.8 # set to random initialisation/training to have much better accuracy

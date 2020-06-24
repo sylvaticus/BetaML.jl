@@ -25,7 +25,7 @@ export reshape, makeColVector, makeRowVector, makeMatrix,
        oneHotEncoder, getScaleFactors, scale, scale!, batch, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
-       BIC, AIC,
+       bic, aic,
        autoJacobian,
        squaredCost, dSquaredCost, l1_distance,
        error, accuracy, meanRelError,
@@ -180,6 +180,7 @@ Perform Principal Component Analysis returning the matrix reprojected among the 
   - `X`: The reprojected (NxK) matrix
   - `K`: The dimensions retieved
   - `error`: The actual proportion of variance not explained in the reprojected dimensions
+  - `P`: The (D,K) matrix of the eigenvalues associated to the K-largest eigenvalues used to reproject the data matrix
 
 Note that if `K` is indicated, the parameter `error` has no effect.
 """
@@ -194,7 +195,7 @@ function pca(X;K=nothing,error=0.05)
         @error("The parameter K must be ≤ D")
     end
     Σ = (1/N) * X'*(I-(1/N)*ones(N)*ones(N)')*X
-    E = eigen(Σ)
+    E = eigen(Σ) # eigenvalues are ordered from the smallest to the largest
     totVar           = sum(E.values)
     propVarExplained = 0.0
     if K == nothing
@@ -213,7 +214,7 @@ function pca(X;K=nothing,error=0.05)
 
     P = E.vectors[:,D-K+1:end]
 
-    return (X=X*P,K=K,error=1-propVarExplained)
+    return (X=X*P,K=K,error=1-propVarExplained,P=P)
 end
 
 
@@ -397,10 +398,10 @@ function meanRelError(ŷ,y;normDim=true,normRec=true,p=1)
     return avgϵRel
 end
 
-"""BIC(lL,k,n) -  Bayesian information criterion (lower is better)"""
-BIC(lL,k,n) = k*log(n)-2*lL
-"""AIC(lL,k) -  Akaike information criterion (lower is better)"""
-AIC(lL,k)   = 2*k-2*lL
+"""bic(lL,k,n) -  Bayesian information criterion (lower is better)"""
+bic(lL,k,n) = k*log(n)-2*lL
+"""aic(lL,k) -  Akaike information criterion (lower is better)"""
+aic(lL,k)   = 2*k-2*lL
 
 
 # ------------------------------------------------------------------------------

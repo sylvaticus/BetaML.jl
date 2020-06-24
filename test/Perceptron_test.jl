@@ -22,11 +22,11 @@ ytrain = y[1:ntrain]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-out   = perceptron(xtrain, ytrain, rShuffle=false,nMsgs=0)
-ŷtest = Perceptron.predict(xtest,out.θ,out.θ₀)
+out      = perceptron(xtrain, ytrain, rShuffle=false,nMsgs=0)
+ŷtest    = Perceptron.predict(xtest,out.θ,out.θ₀)
 ŷavgtest = Perceptron.predict(xtest,out.avgθ,out.avgθ₀)
-ϵ = error(ytest, ŷtest)
-ϵavg = error(ytest, ŷavgtest)
+ϵ        = error(ytest, ŷtest)
+ϵavg     = error(ytest, ŷavgtest)
 
 
 
@@ -73,3 +73,5 @@ ŷtest = Perceptron.predict(xtest,out.θ,out.θ₀)
 ŷavgtest = Perceptron.predict(xtest,out.avgθ,out.avgθ₀)
 ϵ = error(ytest, ŷtest)
 ϵavg = error(ytest, ŷavgtest)
+@test ϵ ≈ 0.025
+@test ϵavg ≈ 0.1
