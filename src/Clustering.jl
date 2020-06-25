@@ -158,7 +158,17 @@ function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing)
         # for (j,z) in enumerate(eachrow(Z))
         for j in  1:K
             Cⱼ = X[cIdx .== j,:] # Selecting the constituency by boolean selection
-            Z[j,:] = sum(Cⱼ,dims=1) ./ size(Cⱼ)[1]
+            #debug  =  sum(Cⱼ,dims=1)
+            #debug2 = size(Cⱼ)[1]
+            if size(Cⱼ)[1] > 0
+                Z[j,:] = sum(Cⱼ,dims=1) ./ size(Cⱼ)[1]
+            else
+                # move toward the center if no costituency
+                xAvg = mean(X,dims=1)'
+                Z[j,:] = Z[j,:] .+ ((xAvg - Z[j,:]) .* 0.01)
+                #debug  = sum(Cⱼ,dims=1)
+                #debug2 = size(Cⱼ)[1]
+            end
             #Z[j,:] = median(Cⱼ,dims=1) # for l1 distance
         end
 

@@ -78,7 +78,7 @@ clusters = em([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 3
 # ==================================
 # New test
 # ==================================
-println("Testing emGMM...")
+println("Testing em...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 out = predictMissing(X,3,mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE)
 @test isapprox(out.X̂[2,2],14.187187936786232)

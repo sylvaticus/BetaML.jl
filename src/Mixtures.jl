@@ -155,8 +155,24 @@ function lpdf(m::FullGaussian,x,mask)
     nmd = length(μ)
     σ²  = reshape(m.σ²[mask*mask'],(nmd,nmd))
     σ² = σ² + max(0, -2minimum(eigvals(σ²))) * I # Improve numerical stability https://stackoverflow.com/q/57559589/1586860 (-2 * minimum...) https://stackoverflow.com/a/35612398/1586860
-    d   = FullNormal(μ,PDMat(σ²))
-    return logpdf(d,x)
+
+    #=
+    try
+      d      = FullNormal(μ,PDMat(σ²))
+      return logpdf(d,x)
+    catch
+        println(σ²)
+        println(mask)
+        println(μ)
+        println(x)
+        println(σ²^(-1))
+        error("Failed PDMat")
+    end
+    =#
+    diff = x .- μ
+    return -(nmd/2)*log(2pi)-(1/2)log(det(σ²))-(1/2)*diff'*σ²^(-1)*diff
+
+
 end
 
 
