@@ -1,7 +1,7 @@
 name = "BetaML"
 uuid = "024491cd-cc6b-443e-8034-08ea7eb7db2b"
 authors = ["Antonello Lobianco <antonello@lobianco.org>"]
-version = "0.2.0"
+version = "0.2.1"
 
 [deps]
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"

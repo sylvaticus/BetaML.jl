@@ -139,7 +139,6 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
         end
 
     elseif initStrategy == "kmeans"
-        println("init with kmeans")
         if !any(ismissing.(X)) # there are no missing
             kmμ = kmeans(X,K)[2]
             for (k,m) in enumerate(mixtures)

@@ -124,13 +124,18 @@ Further examples are provided as [Jupyter notebooks](https://sylvaticus.github.i
 
 ### Short term
 
-- adding other optimisation algorithms to NN
-- PCA
+- Adding other optimisation algorithms to NN
 
 ### Long term
 
 - Support Vector Machine (if anyone request it)
 - Add convolutional layers and RNN support
+
+## Contribute
+
+Contributions to the library are welcome. We are particularly interested in the areas covered in the "TODO" list above, but we are open to other areas as well. Please however consider that the focus is mostly didactic/research, so clear, easy to read (and well documented) code and simple API with reasonable defaults are more important that highly optimised algorithms. For the same reason, it is fine to use verbose names.
+Please open an issue to discuss your ideas or make directly a well-documented pull request to the repository.
+
 
 ## Acknowledgements
 

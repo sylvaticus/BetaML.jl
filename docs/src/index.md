@@ -131,12 +131,6 @@ plot(minVarRange,[sphAcc diagAcc fullAcc[:,1] fullAcc[:,15] fullAcc[:,30]], mark
 
 We also provide [some Jupyter notebooks](Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
 
-## Contribute
-
-Contributions to the library are welcome. We are particularly interested in the areas covered in the "TODO" list in the readme file, but we are open to other areas as well. Please however consider that the focus is mostly didactic/research, so clear, easy to read (and well documented) code is more important that highly optimised one. For the same reason, it is fine to use verbose names.
-Please open an issue to discuss your ideas or make directly a well-documented pull request to the repository.
-
-
 ## Acknowledgements
 
 The development of this package at the _Bureau d'Economie Théorique et Appliquée_ (BETA, Nancy) was supported by the French National Research Agency through the [Laboratory of Excellence ARBRE](http://mycor.nancy.inra.fr/ARBRE/), a part of the “Investissements d'Avenir” Program (ANR 11 – LABX-0002-01).
