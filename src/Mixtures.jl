@@ -90,7 +90,13 @@ function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance
     end
 end
 
-""" initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid")"""
+
+"""
+initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid")
+
+ TThe parameter `initStrategy` can be either `grid` or `kmeans`.
+ If the data contains missing values, a first run of `predictMissing` is done under init=`grid` to impute the missing values just to allow the kmeans algorithm. Then the em algorithm is used with the output of kmean as init values.
+"""
 function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid") where {T <: AbstractGaussian}
     # debug..
     #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing 2; 3.3 38; missing -2.3; 5.2 -2.4]
@@ -98,14 +104,6 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
     # ---
     (N,D) = size(X)
     K = length(mixtures)
-
-    minX = fill(-Inf,D)
-    maxX = fill(Inf,D)
-
-    for d in 1:D
-       minX[d]  = minimum(skipmissing(X[:,d]))
-       maxX[d]  = maximum(skipmissing(X[:,d]))
-    end
 
     # count nothing mean mixtures
     nMM = 0
@@ -115,17 +113,52 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
         end
     end
 
-    rangedμ = zeros(nMM,D)
-    for d in 1:D
-        rangedμ[:,d] = collect(range(minX[d], stop=maxX[d], length=nMM))
-    end
+    if initStrategy == "grid"
 
-    j = 1
-    for m in mixtures
-       if isnothing(m.μ)
-           m.μ = rangedμ[j,:]
-           j +=1
-       end
+        minX = fill(-Inf,D)
+        maxX = fill(Inf,D)
+
+        for d in 1:D
+           minX[d]  = minimum(skipmissing(X[:,d]))
+           maxX[d]  = maximum(skipmissing(X[:,d]))
+        end
+
+
+
+        rangedμ = zeros(nMM,D)
+        for d in 1:D
+            rangedμ[:,d] = collect(range(minX[d], stop=maxX[d], length=nMM))
+        end
+
+        j = 1
+        for m in mixtures
+           if isnothing(m.μ)
+               m.μ = rangedμ[j,:]
+               j +=1
+           end
+        end
+
+    elseif initStrategy == "kmeans"
+        println("init with kmeans")
+        if !any(ismissing.(X)) # there are no missing
+            kmμ = kmeans(X,K)[2]
+            for (k,m) in enumerate(mixtures)
+               if isnothing(m.μ)
+                   m.μ = kmμ[k,:]
+               end
+            end
+        else # missings are present
+            # First pass of predictMissing using initStrategy=grid
+            emOut1 = predictMissing(X,K;mixtures=mixtures,verbosity=NONE,minVariance=minVariance,minCovariance=minCovariance,initStrategy="grid")
+            kmμ = kmeans(emOut1.X̂,K)[2]
+            for (k,m) in enumerate(mixtures)
+               if isnothing(m.μ)
+                   m.μ = kmμ[k,:]
+               end
+            end
+        end
+    else
+        @error "initStrategy $initStrategy not supported by this mixture type"
     end
 
     initVariances!(mixtures,X,minVariance=minVariance, minCovariance=minCovariance)

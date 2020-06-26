@@ -167,7 +167,7 @@ function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing)
                 xAvg = mean(X,dims=1)'
                 Z[j,:] = Z[j,:] .+ ((xAvg - Z[j,:]) .* 0.01)
                 #debug  = sum(Cⱼ,dims=1)
-                #debug2 = size(Cⱼ)[1]
+                # debug2 = size(Cⱼ)[1]
             end
             #Z[j,:] = median(Cⱼ,dims=1) # for l1 distance
         end
@@ -305,6 +305,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
  # Notes:
  - The mixtures currently implemented are `SphericalGaussian(μ,σ²)`,`DiagonalGaussian(μ,σ²)` and `FullGaussian(μ,σ²)`
  - Reasonable choices for the minVariance/Covariance depends on the mixture. For example 0.25 seems a reasonable value for the SphericalGaussian, 0.05 seems better for the DiagonalGaussian, and FullGaussian seems to prefer either very low values of variance/covariance (e.g. `(0.05,0.05)` ) or very big but similar ones (e.g. `(100,100)` ).
+ - For `initStrategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support either `grid` or `kmeans`. `grid` is faster (expecially if X contains missing values), but `kmeans` often provides better results.
 
  # Resources:
  - [Paper describing EM with missing values](https://doi.org/10.1016/j.csda.2006.10.002)
@@ -425,6 +426,7 @@ end # end function
 #Profile.clear()
 #Profile.print()
 
+#  - For mixtures with full covariance matrix (i.e. `FullGaussian(μ,σ²)`) the minCovariance should NOT be set equal to the minVariance, or if the covariance matrix goes too low, it will become singular and not invertible.
 """
   predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)
 
@@ -456,7 +458,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 
   # Notes:
   - The mixtures currently implemented are `SphericalGaussian(μ,σ²)`,`DiagonalGaussian(μ,σ²)` and `FullGaussian(μ,σ²)`
-  - For mixtures with full covariance matrix (i.e. `FullGaussian(μ,σ²)`) the minCovariance should NOT be set equal to the minVariance, or if the covariance matrix goes too low, it will become singular and not invertible.
+   - For `initStrategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support either `grid` or `kmeans`. `grid` is faster, but `kmeans` often provides better results.
 
 # Example:
 ```julia
