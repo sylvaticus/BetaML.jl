@@ -173,14 +173,14 @@ Perform Principal Component Analysis returning the matrix reprojected among the 
 # Parameters:
 - `X` : The (N,D) data to reproject
 - `K` : The number of dimensions to maintain (with K<=D) [def: `nothing`]
-- `error`: The maximum approximation error that we are willing to achieve [def: `0.05`]
+- `error`: The maximum approximation error that we are willing to accept [def: `0.05`]
 
 # Return:
 - A named tuple with:
   - `X`: The reprojected (NxK) matrix
   - `K`: The dimensions retieved
   - `error`: The actual proportion of variance not explained in the reprojected dimensions
-  - `P`: The (D,K) matrix of the eigenvalues associated to the K-largest eigenvalues used to reproject the data matrix
+  - `P`: The (D,K) matrix of the eigenvectors associated to the K-largest eigenvalues used to reproject the data matrix
 
 Note that if `K` is indicated, the parameter `error` has no effect.
 """
