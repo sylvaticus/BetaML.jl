@@ -351,7 +351,8 @@ Retrieve current weigthts
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
 function getParams(nn::NN)
-  w = Tuple[]
+  w = Tuple{Vararg{Array{Float64,N} where N,N} where N}[]
+    
   for l in nn.layers
       push!(w,getParams(l))
   end
@@ -401,7 +402,8 @@ function getGradient(nn::NN,x::Union{T,AbstractArray{T,1}},y::Union{T2,AbstractA
   backwardStack = backwardStack[end:-1:1] # reversing it,
 
   # Step 3: Computing gradient of weigths
-  dWs = Tuple[]
+  dWs = Tuple{Vararg{Array{Float64,N} where N,N} where N}[]
+
   for lidx in 1:nLayers
      l = nn.layers[lidx]
      dW = getGradient(l,forwardStack[lidx],backwardStack[lidx+1])
@@ -425,7 +427,8 @@ Retrieve the current gradient of the weigthts (i.e. derivative of the cost with 
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
 function getGradient(nn,xbatch::AbstractArray{T,2},ybatch::AbstractArray{T2,2}) where {T <: Number, T2 <: Number}
-    gradients = Array{Vector{Tuple},1}(undef,size(xbatch,1))
+    gradients = Array{Array{Tuple{Vararg{Array{Float64,N} where N,N} where N},1},1}(undef,size(xbatch,1))
+
     #gradients = Vector{Tuple}[]
     for j in 1:size(xbatch,1)
        gradients[j] =  getGradient(nn,xbatch[j,:],ybatch[j,:])
@@ -650,11 +653,11 @@ own version
 - Most parameters are not used by any optimisation algorithm. They are provided
 to support the largest possible class of optimisation algorithms
 """
-function singleUpdate(θ,▽;nEpoch,nBatch,batchSize,xbatch,ybatch,optAlg::OptimisationAlgorithm=SGD())
+function singleUpdate(θ::Array{Tuple{Vararg{Array{Float64,N} where N,N} where N},1},▽::Array{Tuple{Vararg{Array{Float64,N} where N,N} where N},1};nEpoch,nBatch,batchSize,xbatch,ybatch,optAlg::OptimisationAlgorithm=SGD())
    return singleUpdate(θ,▽,optAlg;nEpoch=nEpoch,nBatch=nBatch,batchSize=batchSize,xbatch=xbatch,ybatch=ybatch)
 end
 
-function singleUpdate(θ,▽,optAlg::OptimisationAlgorithm;nEpoch,nBatch,batchSize,xbatch,ybatch)
+function singleUpdate(θ::Array{Tuple{Vararg{Array{Float64,N} where N,N} where N},1},▽::Array{Tuple{Vararg{Array{Float64,N} where N,N} where N},1},optAlg::OptimisationAlgorithm;nEpoch,nBatch,batchSize,xbatch,ybatch)
     error("singleUpdate() not implemented for this optimisation algorithm")
 end
 
