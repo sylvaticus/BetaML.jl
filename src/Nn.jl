@@ -351,7 +351,7 @@ Retrieve current weigthts
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
 function getParams(nn::NN)
-  w = Tuple[]
+  w = Vector[]
   for l in nn.layers
       push!(w,getParams(l))
   end
@@ -401,7 +401,7 @@ function getGradient(nn::NN,x::Union{T,AbstractArray{T,1}},y::Union{T2,AbstractA
   backwardStack = backwardStack[end:-1:1] # reversing it,
 
   # Step 3: Computing gradient of weigths
-  dWs = Tuple[]
+  dWs = Vector[]
   for lidx in 1:nLayers
      l = nn.layers[lidx]
      dW = getGradient(l,forwardStack[lidx],backwardStack[lidx+1])
@@ -425,7 +425,7 @@ Retrieve the current gradient of the weigthts (i.e. derivative of the cost with 
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
 function getGradient(nn,xbatch::AbstractArray{T,2},ybatch::AbstractArray{T2,2}) where {T <: Number, T2 <: Number}
-    gradients = Array{Vector{Tuple},1}(undef,size(xbatch,1))
+    gradients = Array{Vector{Vector},1}(undef,size(xbatch,1))
     #gradients = Vector{Tuple}[]
     for j in 1:size(xbatch,1)
        gradients[j] =  getGradient(nn,xbatch[j,:],ybatch[j,:])
@@ -597,8 +597,8 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
            ybatch = y[batch, :]
            θ   = getParams(nn)
            gradients   = @spawn getGradient(nn,xbatch,ybatch) # remove @spawn and fetch (on next row) to get single thread code
-           sumGradient = gradSum(fetch(gradients))
-           ▽   = gradDiv.(sumGradient, batchSize)
+           sumGradient = sum(fetch(gradients))
+           ▽   = sumGradient ./ batchSize
            #▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)
            res = singleUpdate(θ,▽;nEpoch=t,nBatch=i,batchSize=batchSize,xbatch=xbatch,ybatch=ybatch,optAlg=optAlg)
            setParams!(nn,res.θ)

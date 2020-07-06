@@ -68,7 +68,7 @@ function backward(layer::DenseLayer,x,nextGradient)
 end
 
 function getParams(layer::DenseLayer)
-  return (layer.w,layer.wb)
+  return [layer.w,layer.wb]
 end
 
 function getGradient(layer::DenseLayer,x,nextGradient)
@@ -80,7 +80,7 @@ function getGradient(layer::DenseLayer,x,nextGradient)
     end
    dϵ_dw  = dϵ_dz * x'
    dϵ_dwb = dϵ_dz
-   return (dϵ_dw,dϵ_dwb)
+   return [dϵ_dw,dϵ_dwb]
 end
 
 function setParams!(layer::DenseLayer,w)
@@ -148,7 +148,7 @@ function backward(layer::DenseNoBiasLayer,x,nextGradient)
 end
 
 function getParams(layer::DenseNoBiasLayer)
-  return (layer.w,)
+  return [layer.w]
 end
 
 function getGradient(layer::DenseNoBiasLayer,x,nextGradient)
@@ -159,7 +159,7 @@ function getGradient(layer::DenseNoBiasLayer,x,nextGradient)
        dϵ_dz = layer.f'.(z) .* nextGradient # using AD
     end
    dϵ_dw  = dϵ_dz * x'
-   return (dϵ_dw,)
+   return [dϵ_dw]
 end
 
 function setParams!(layer::DenseNoBiasLayer,w)
@@ -230,11 +230,11 @@ function backward(layer::VectorFunctionLayer,x,nextGradient)
 end
 
 function getParams(layer::VectorFunctionLayer)
-  return ()
+  return []
 end
 
 function getGradient(layer::VectorFunctionLayer,x,nextGradient)
-   return () # parameterless layer
+   return [] # parameterless layer
 end
 
 function setParams!(layer::VectorFunctionLayer,w)
