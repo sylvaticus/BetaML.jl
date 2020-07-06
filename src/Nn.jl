@@ -110,8 +110,9 @@ export relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
 #import Base./
 gradSum(a::Tuple,b::Tuple) = a .+ b
 gradSum(a::Tuple) = a
-gradSub(a::Tuple,b::Tuple) = a .- b
+gradSub(a::Tuple,b::Tuple)  = a .- b
 gradMul(a::Tuple,b::Number) = a .* b
+gradMul(a::Tuple,b::Tuple)  = a .* b
 gradDiv(a::Tuple,b::Number) = a ./ b
 # For summing more than two I had to resort to this function:
 function gradSum(▽ₛ)
