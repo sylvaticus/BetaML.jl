@@ -22,7 +22,7 @@ struct SGD <: OptimisationAlgorithm
 end
 
 
-function singleUpdate(θ,▽,optAlg::SGD;nEpoch,nBatch,batchSize,xbatch,ybatch)
+function singleUpdate(θ::Vector{Vector{Array{Float64,N} where N}},▽::Vector{Vector{Array{Float64,N} where N}},optAlg::SGD;nEpoch,nBatch,batchSize,xbatch,ybatch)
     η    = optAlg.η(nEpoch)*optAlg.λ
     #newθ = gradSub.(θ,gradMul.(▽,η))
     newθ = @. θ - ▽ * η
