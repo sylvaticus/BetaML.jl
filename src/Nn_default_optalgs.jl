@@ -1,9 +1,9 @@
 
-export SGD,DebugOptAlg,singleUpdate
+export SGD,DebugOptAlg,ADAM
 
 
 # ------------------------------------------------------------------------------
-# DebugOptAlg
+# SGD
 """
   SGD(;η=t -> 1/(1+t), λ=2)
 
@@ -22,12 +22,12 @@ struct SGD <: OptimisationAlgorithm
 end
 
 
-function singleUpdate(θ,▽,optAlg::SGD;nEpoch,nBatch,batchSize,xbatch,ybatch)
+function singleUpdate!(θ,▽,optAlg::SGD;nEpoch,nBatch,nBatches,xbatch,ybatch)
     η    = optAlg.η(nEpoch)*optAlg.λ
     #newθ = gradSub.(θ,gradMul.(▽,η))
-    newθ = θ - ▽ * η
+    θ = θ - ▽ * η
     #newθ = gradientDescentSingleUpdate(θ,▽,η)
-    return (θ=newθ,stop=false)
+    return (θ=θ,stop=false)
 end
 
 #gradientDescentSingleUpdate(θ::Number,▽::Number,η) = θ .- (η .* ▽)
@@ -44,53 +44,53 @@ end
 #
 
 """
-  ADAM(;η=0.001, β₁=0.9, β₂=0.999)
+  ADAM(;η, λ, β₁, β₂, ϵ)
 
-ADAM[https://arxiv.org/pdf/1412.6980.pdf] algorithm, an an adaptive moment estimation optimiser.
+The ADAM[https://arxiv.org/pdf/1412.6980.pdf] algorithm, an adaptive moment estimation optimiser.
 
 # Fields:
-- `η`:  Learning rate (stepsize, α in the paper) [def: 0.001]
+- `η`:  Learning rate (stepsize, α in the paper), as a function of the current epoch [def: t -> 0.001 (i.e. fixed)]
+- `λ`:  Multiplicative constant to the learning rate [def: 1]
 - `β₁`: Exponential decay rate for the first moment estimate [range: ∈ [0,1], def: 0.9]
 - `β₂`: Exponential decay rate for the second moment estimate [range: ∈ [0,1], def: 0.999]
-- `ϵ`: Epsilon [def: 10^-8]
+- `ϵ`:  Epsilon value to avoid division by zero [def: 10^-8]
 """
 mutable struct ADAM <: OptimisationAlgorithm
-    η::Float64
+    η::Function
+    λ::Float64
     β₁::Float64
     β₂::Float64
     ϵ::Float64
-    m::Vector{Vector{Array{Float64,N} where N}}
-    v::Vector{Vector{Array{Float64,N} where N}}
-    function ADAM(;η=0.001, β₁=0.9, β₂=0.999, ϵ=1e-8)
-        return new(η,β₁,β₂,ϵ,[],[])
+    m::Vector{Learnable}
+    v::Vector{Learnable}
+    function ADAM(;η=t -> 0.001, λ=1.0, β₁=0.9, β₂=0.999, ϵ=1e-8)
+        return new(η,λ,β₁,β₂,ϵ,[],[])
     end
 end
 
+"""
+   initOptAlg!(optAlg::ADAM;θ,batchSize,x,y)
+
+Initialize the ADAM algorithm with the parameters m and v as zeros and check parameter bounds
+"""
 function initOptAlg!(optAlg::ADAM;θ,batchSize,x,y)
-    optAlg.m = θ - θ # setting to zeros
-    optAlg.v = θ - θ # setting to zeros
+    optAlg.m = θ .- θ # setting to zeros
+    optAlg.v = θ .- θ # setting to zeros
+    if optAlg.β₁ <= 0 || optAlg.β₁ >= 1 @error "The parameter β₁ must be ∈ [0,1]" end
+    if optAlg.β₂ <= 0 || optAlg.β₂ >= 1 @error "The parameter β₂ must be ∈ [0,1]" end
 end
 
-
-
-function singleUpdate(θ::Array{Tuple{Vararg{Array{Float64,N} where N,N} where N},1},▽::Array{Tuple{Vararg{Array{Float64,N} where N,N} where N},1},optAlg::ADAM;nEpoch,nBatch,batchSize,xbatch,ybatch)
-    η,β₁,β₂,ϵ,m,v = optAlg.η, optAlg.β₁, optAlg.β₂
-
-    newθ = θ - ▽ * η
-
-    return (θ=newθ,stop=false)
+function singleUpdate!(θ,▽,optAlg::ADAM;nEpoch,nBatch,nBatches,xbatch,ybatch)
+    β₁,β₂,ϵ  = optAlg.β₁, optAlg.β₂, optAlg.ϵ
+    η        = optAlg.η(nEpoch)*optAlg.λ
+    t        = (nEpoch-1)*nBatches+nBatch
+    optAlg.m = @. β₁ * optAlg.m + (1-β₁) * ▽
+    optAlg.v = @. β₂ * optAlg.v + (1-β₂) * (▽*▽)
+    m̂        = @. optAlg.m /(1-β₁^t)
+    v̂        = @. optAlg.v /(1-β₂^t)
+    θ        = @. θ - (η * m̂) /(sqrt(v̂)+ϵ)
+    return     (θ=θ,stop=false)
 end
-
-function apply!(o::ADAM, x, Δ)
-  η, β = o.eta, o.beta
-  mt, vt, βp = get!(o.state, x, (zero(x), zero(x), β))
-  @. mt = β[1] * mt + (1 - β[1]) * Δ
-  @. vt = β[2] * vt + (1 - β[2]) * Δ^2
-  @. Δ =  mt / (1 - βp[1]) / (√(vt / (1 - βp[2])) + ϵ) * η
-  o.state[x] = (mt, vt, βp .* β)
-  return Δ
-end
-
 
 # ------------------------------------------------------------------------------
 # DebugOptAlg
@@ -102,7 +102,7 @@ struct DebugOptAlg <: OptimisationAlgorithm
     end
 end
 
-function singleUpdate(θ,▽,optAlg::DebugOptAlg;nEpoch,nBatch,batchSize,ϵ_epoch,ϵ_epoch_l)
+function singleUpdate!(θ,▽,optAlg::DebugOptAlg;nEpoch,nBatch,batchSize,ϵ_epoch,ϵ_epoch_l)
     println(optAlg.dString)
     return (θ=θ,stop=false)
 end

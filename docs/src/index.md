@@ -65,7 +65,7 @@ l2   = DenseLayer(10,3)        # Activation function is identity by default
 l3   = VectorFunctionLayer(3,3,f=softMax) # Add a (parameterless) layer whose activation function (softMax in this case) is defined to all its nodes at once
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal") # Build the NN and use the squared cost (aka MSE) as error function
 
-# Training it (default to SGD)
+# Training it (default to ADAM)
 res = train!(mynn,scale(xtrain),ytrain_oh,epochs=100,batchSize=6) # Use optAlg=SGD (Stochastic Gradient Descent) by default
 
 # Test it

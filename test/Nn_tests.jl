@@ -22,7 +22,10 @@ L1c = Learnable(([1.0 2; 3 4.0], [1.1,2.2], Float64[], [1.1,2.2], [1.1]))
 foo = (((((sum(L1a,L1b,L1c) - (L1a + L1b + L1c)) + 10) - 4) * 2 ) / 3) *
       (((((sum(L1a,L1b,L1c) - (L1a + L1b + L1c)) + 10) - 4) * 2 ) / 3)
 
-foo.data[1][2] == 16.0 && foo.data[5][1] == 16.00
+@test foo.data[1][2] == 16.0 && foo.data[5][1] == 16.00
+@test (L1a -1).data[1] ≈ (-1 * (1 - L1a)).data[1]
+@test (2 / (L1a / 2)).data[2] ≈ (4/L1a).data[2]
+@test sqrt(L1a).data[1][2,2] == 2.0
 
 
 # ==================================
@@ -126,11 +129,22 @@ expectedOutput = [0.7360644412052633, 0.7360644412052633, 0.7360644412052633, 2.
 predicted = dropdims(predict(mynn,xtest),dims=2)
 @test any(isapprox(expectedOutput,predicted))
 
+# With the ADAM optimizer...
+l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], f=tanh, df=dtanh)
+l2 = DenseNoBiasLayer(3,2, w=[1 1 1; 1 1 1], f=relu, df=drelu)
+l3 = DenseLayer(2,1, w=[1 1], wb=[0], f=identity,df=didentity)
+mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network with ADAM",dcf=dSquaredCost)
+train!(mynn,xtrain,ytrain,batchSize=1,sequential=true,epochs=100,verbosity=NONE,optAlg=ADAM())
+avgLoss = loss(mynn,xtest,ytest)
+@test  avgLoss ≈ 0.9497779759064725
+expectedOutput = [1.7020525792404175, -0.1074729043392682, 1.4998367847079956, 3.3985794704732717]
+predicted = dropdims(predict(mynn,xtest),dims=2)
+@test any(isapprox(expectedOutput,predicted))
+
 # ==================================
 # NEW TEST
 # ==================================
 println("Testing using AD...")
-
 
 ϵtrain = [1.023,1.08,0.961,0.919,0.933,0.993,1.011,0.923,1.084,1.037,1.012]
 ϵtest  = [1.056,0.902,0.998,0.977]
@@ -188,11 +202,21 @@ l1   = DenseLayer(4,10, w=ones(10,4), wb=zeros(10),f=celu)
 l2   = DenseLayer(10,3, w=ones(3,10), wb=zeros(3))
 l3   = VectorFunctionLayer(3,3,f=softmax)
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal")
-
-train!(mynn,xtrain,ytrain_oh,epochs=500,batchSize=8,sequential=true,verbosity=NONE,optAlg=SGD(η=t->0.001,λ=1))
-
+train!(mynn,xtrain,ytrain_oh,epochs=254,batchSize=8,sequential=true,verbosity=NONE,optAlg=SGD(η=t->0.001,λ=1))
 ŷtrain = predict(mynn,xtrain)
 ŷtest  = predict(mynn,xtest)
 trainAccuracy = accuracy(ŷtrain,ytrain,tol=1)
 testAccuracy  = accuracy(ŷtest,ytest,tol=1)
 @test testAccuracy >= 0.8 # set to random initialisation/training to have much better accuracy
+
+# With ADAM
+l1   = DenseLayer(4,10, w=ones(10,4), wb=zeros(10),f=celu)
+l2   = DenseLayer(10,3, w=ones(3,10), wb=zeros(3))
+l3   = VectorFunctionLayer(3,3,f=softmax)
+mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal")
+train!(mynn,xtrain,ytrain_oh,epochs=10,batchSize=8,sequential=true,verbosity=NONE,optAlg=ADAM(η=t -> 1/(1+t), λ=0.5))
+ŷtrain = predict(mynn,xtrain)
+ŷtest  = predict(mynn,xtest)
+trainAccuracy = accuracy(ŷtrain,ytrain,tol=1)
+testAccuracy  = accuracy(ŷtest,ytest,tol=1)
+@test testAccuracy >= 1
