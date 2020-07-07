@@ -50,20 +50,31 @@ ADAM[https://arxiv.org/pdf/1412.6980.pdf] algorithm, an an adaptive moment estim
 
 # Fields:
 - `η`:  Learning rate (stepsize, α in the paper) [def: 0.001]
-- `β₁`: Exponential decay rate for the first moment estimate [def: 0.9]
-- `β₂`: Exponential decay rate for the second moment estimate [def: 0.999]
+- `β₁`: Exponential decay rate for the first moment estimate [range: ∈ [0,1], def: 0.9]
+- `β₂`: Exponential decay rate for the second moment estimate [range: ∈ [0,1], def: 0.999]
+- `ϵ`: Epsilon [def: 10^-8]
 """
-struct ADAM <: OptimisationAlgorithm
+mutable struct ADAM <: OptimisationAlgorithm
     η::Float64
     β₁::Float64
     β₂::Float64
-    function ADAM(;η=0.001, β₁=0.9, β₂=0.999)
-        return new(η,β₁,β₂)
+    ϵ::Float64
+    m::Vector{Vector{Array{Float64,N} where N}}
+    v::Vector{Vector{Array{Float64,N} where N}}
+    function ADAM(;η=0.001, β₁=0.9, β₂=0.999, ϵ=1e-8)
+        return new(η,β₁,β₂,ϵ,[],[])
     end
 end
 
+function initOptAlg!(optAlg::ADAM;θ,batchSize,x,y)
+    optAlg.m = gradSub(θ,θ) # setting to zeros
+    optAlg.v = gradSub(θ,θ) # setting to zeros
+end
+
+
+
 function singleUpdate(θ::Array{Tuple{Vararg{Array{Float64,N} where N,N} where N},1},▽::Array{Tuple{Vararg{Array{Float64,N} where N,N} where N},1},optAlg::ADAM;nEpoch,nBatch,batchSize,xbatch,ybatch)
-    η ,β₁,β₂   = optAlg.η, optAlg.β₁, optAlg.β₂
+    η,β₁,β₂,ϵ,m,v = optAlg.η, optAlg.β₁, optAlg.β₂
 
     newθ = gradSub.(θ,gradMul.(▽,η))
 

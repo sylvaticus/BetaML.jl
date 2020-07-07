@@ -585,8 +585,10 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
     ϵ_epochs  = Float64[]
     θ_epochs  = []
 
+    initOptAlg!(optAlg::OptimisationAlgorithm;θ=getParams(nn),batchSize=batchSize,x=x,y=y)
+
     timetoShowProgress = verbosity > NONE ? 1 : typemax(Int64)
-    @showprogress timetoShowProgress "Training the Neural Network..."  for t in 1:epochs
+    @showprogress timetoShowProgress "Training the Neural Network..." for t in 1:epochs
        batches = batch(n,batchSize,sequential=sequential)
        if t == 1
            if (verbosity >= STD) push!(ϵ_epochs,ϵ_epoch); end
@@ -658,7 +660,7 @@ function singleUpdate(θ,▽,optAlg::OptimisationAlgorithm;nEpoch,nBatch,batchSi
     error("singleUpdate() not implemented for this optimisation algorithm")
 end
 
-
+initOptAlg!(optAlg::OptimisationAlgorithm;θ,batchSize,x,y) = nothing
 
 #=
         if rShuffle
