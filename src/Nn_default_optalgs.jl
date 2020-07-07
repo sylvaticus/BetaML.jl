@@ -24,8 +24,8 @@ end
 
 function singleUpdate(θ,▽,optAlg::SGD;nEpoch,nBatch,batchSize,xbatch,ybatch)
     η    = optAlg.η(nEpoch)*optAlg.λ
-    newθ = gradSub.(θ,gradMul.(▽,η))
-    #newθ = θ - ▽ * η
+    #newθ = gradSub.(θ,gradMul.(▽,η))
+    newθ = θ - ▽ * η
     #newθ = gradientDescentSingleUpdate(θ,▽,η)
     return (θ=newθ,stop=false)
 end
@@ -67,8 +67,8 @@ mutable struct ADAM <: OptimisationAlgorithm
 end
 
 function initOptAlg!(optAlg::ADAM;θ,batchSize,x,y)
-    optAlg.m = gradSub(θ,θ) # setting to zeros
-    optAlg.v = gradSub(θ,θ) # setting to zeros
+    optAlg.m = θ - θ # setting to zeros
+    optAlg.v = θ - θ # setting to zeros
 end
 
 
@@ -76,7 +76,7 @@ end
 function singleUpdate(θ::Array{Tuple{Vararg{Array{Float64,N} where N,N} where N},1},▽::Array{Tuple{Vararg{Array{Float64,N} where N,N} where N},1},optAlg::ADAM;nEpoch,nBatch,batchSize,xbatch,ybatch)
     η,β₁,β₂,ϵ,m,v = optAlg.η, optAlg.β₁, optAlg.β₂
 
-    newθ = gradSub.(θ,gradMul.(▽,η))
+    newθ = θ - ▽ * η
 
     return (θ=newθ,stop=false)
 end

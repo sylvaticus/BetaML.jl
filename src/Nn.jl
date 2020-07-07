@@ -84,12 +84,13 @@ using Random, Zygote, ProgressMeter, Reexport
       Verbosity, NONE, LOW, STD, HIGH, FULL
 =#
 import Base.size
+import Base: +, -, *, /, sum
 
 # module own functions
 export Layer, forward, backward, getParams, getNParams, getGradient, setParams!, size, NN,
        buildNetwork, predict, loss, train!, getindex,
        DenseLayer, DenseNoBiasLayer, VectorFunctionLayer,
-       gradSum,gradSub,gradMul,gradDiv,
+       Learnable,
        show
 
 #=
@@ -103,25 +104,70 @@ export relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
 =#
 
 # for working on gradient as e.g [([1.0 2.0; 3.0 4.0], [1.0,2.0,3.0]),([1.0,2.0,3.0],1.0)]
-# Renamed to avoid "type pyracy"
-#import Base.+
-#import Base.-
-#import Base.*
-#import Base./
-gradSum(a::Tuple,b::Tuple) = a .+ b
-gradSum(a::Tuple) = a
-gradSub(a::Tuple,b::Tuple)  = a .- b
-gradMul(a::Tuple,b::Number) = a .* b
-gradMul(a::Tuple,b::Tuple)  = a .* b
-gradDiv(a::Tuple,b::Number) = a ./ b
-# For summing more than two I had to resort to this function:
-function gradSum(▽ₛ)
-    o = ▽ₛ[1]
-    for i in 2:length(▽ₛ)
-        o = gradSum.(o,▽ₛ[i])
+mutable struct Learnable
+    data::Tuple{Vararg{Array{Float64,N} where N}}
+    function Learnable(data)
+        return new(data)
     end
-    return o
 end
+function +(items::Learnable...)
+  values = collect(items[1].data)
+  N = length(values)
+  for item in items[2:end]
+      for n in 1:N
+          values[n] += item.data[n]
+      end
+  end
+  return Learnable(Tuple(values))
+end
+sum(items::Learnable...)  = +(items...)
+function -(items::Learnable...)
+  values = collect(items[1].data)
+  N = length(values)
+  for item in items[2:end]
+      for n in 1:N
+          values[n] -= item.data[n]
+      end
+  end
+  return Learnable(Tuple(values))
+end
+function *(items::Learnable...)
+  values = collect(items[1].data)
+  N = length(values)
+  for item in items[2:end]
+      for n in 1:N
+          values[n] = values[n] .* item.data[n]
+      end
+  end
+  return Learnable(Tuple(values))
+end
+function +(item::Learnable,sc::Number)
+  return Learnable(Tuple([item.data[i] .+ sc for i in 1:length(item.data)]))
+end
+function -(item::Learnable,sc::Number)
+  return Learnable(Tuple([item.data[i] .- sc for i in 1:length(item.data)]))
+end
+function *(item::Learnable,sc::Number)
+  return Learnable(item.data .* sc)
+end
+function /(item::Learnable,sc::Number)
+  return Learnable(item.data ./ sc)
+end
+
+#=
+# not needed ??
+function Base.iterate(iter::Learnable, state=(iter.data[1], 1))
+           element, count = state
+           if count > length(iter)
+               return nothing
+           elseif count == length(iter)
+               return (element, (iter.data[count], count + 1))
+           end
+           return (element, (iter.data[count+1], count + 1))
+end
+Base.length(iter::Learnable) = length(iter.data)
+#Base.eltype(iter::Learnable) = Int
+=#
 
 ## Sckeleton for the layer functionality.
 # See nn_default_layers.jl for actual implementations
@@ -234,7 +280,7 @@ It doesn't need to be implemented by each layer type, as it uses getParams().
 function getNParams(layer::Layer)
     pars = getParams(layer)
     nP = 0
-    for p in pars
+    for p in pars.data
         nP += *(size(p)...)
     end
     return nP
@@ -351,7 +397,7 @@ Retrieve current weigthts
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
 function getParams(nn::NN)
-  w = Tuple[]
+  w = Learnable[]
   for l in nn.layers
       push!(w,getParams(l))
   end
@@ -401,7 +447,7 @@ function getGradient(nn::NN,x::Union{T,AbstractArray{T,1}},y::Union{T2,AbstractA
   backwardStack = backwardStack[end:-1:1] # reversing it,
 
   # Step 3: Computing gradient of weigths
-  dWs = Tuple[]
+  dWs = Learnable[]
   for lidx in 1:nLayers
      l = nn.layers[lidx]
      dW = getGradient(l,forwardStack[lidx],backwardStack[lidx+1])
@@ -425,7 +471,7 @@ Retrieve the current gradient of the weigthts (i.e. derivative of the cost with 
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
 function getGradient(nn,xbatch::AbstractArray{T,2},ybatch::AbstractArray{T2,2}) where {T <: Number, T2 <: Number}
-    gradients = Array{Vector{Tuple},1}(undef,size(xbatch,1))
+    gradients = Array{Vector{Learnable},1}(undef,size(xbatch,1))
     #gradients = Vector{Tuple}[]
     for j in 1:size(xbatch,1)
        gradients[j] =  getGradient(nn,xbatch[j,:],ybatch[j,:])
@@ -599,8 +645,8 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
            ybatch = y[batch, :]
            θ   = getParams(nn)
            gradients   = @spawn getGradient(nn,xbatch,ybatch) # remove @spawn and fetch (on next row) to get single thread code
-           sumGradient = gradSum(fetch(gradients))
-           ▽   = gradDiv.(sumGradient, batchSize)
+           sumGradient = sum(fetch(gradients))
+           ▽   = sumGradient / batchSize
            #▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)
            res = singleUpdate(θ,▽;nEpoch=t,nBatch=i,batchSize=batchSize,xbatch=xbatch,ybatch=ybatch,optAlg=optAlg)
            setParams!(nn,res.θ)

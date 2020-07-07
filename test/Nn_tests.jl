@@ -9,6 +9,22 @@ using BetaML.Nn
 
 println("*** Testing Neural Network...")
 
+
+# ==================================
+# New test
+# ==================================
+println("Testing Learnable structure...")
+
+
+L1a = Learnable(([1.0 2; 3 4.0], [1.1,2.2], Float64[], [1.1,2.2], [1.1]))
+L1b = Learnable(([1.0 2; 3 4.0], [1.1,2.2], Float64[], [1.1,2.2], [1.1]))
+L1c = Learnable(([1.0 2; 3 4.0], [1.1,2.2], Float64[], [1.1,2.2], [1.1]))
+foo = (((((sum(L1a,L1b,L1c) - (L1a + L1b + L1c)) + 10) - 4) * 2 ) / 3) *
+      (((((sum(L1a,L1b,L1c) - (L1a + L1b + L1c)) + 10) - 4) * 2 ) / 3)
+
+foo.data[1][2] == 16.0 && foo.data[5][1] == 16.00
+
+
 # ==================================
 # New test
 # ==================================
@@ -55,17 +71,17 @@ deltaloss = dot(dϵ_dX,[0.001,0])
 #@code_warntype
 @test isapprox(lossDeltax1-lossOrig,deltaloss,atol=0.0000001)
 l1wNew = l1w
-l1wNew[1][1,1] += 0.001
+l1wNew.data[1][1,1] += 0.001
 setParams!(l1,l1wNew)
 lossDelPar = loss(mynn,x',y')
 #@code_warntype
-deltaLossPar = 0.001*l1dw[1][1,1]
+deltaLossPar = 0.001*l1dw.data[1][1,1]
 lossDelPar - lossOrig
 @test isapprox(lossDelPar - lossOrig,deltaLossPar,atol=0.00000001)
 η = 0.01
 #w = gradientDescentSingleUpdate(w,dw,η)
 #w = w - dw * η
-w = gradSub.(w, gradMul.(dw,η))
+w = w - dw * η
 #@code_warntype gradSub.(w, gradMul.(dw,η))
 #@code_warntype
 setParams!(mynn,w)
@@ -75,7 +91,7 @@ loss2 = loss(mynn,x',y')
 for i in 1:10000
     w  = getParams(mynn)
     dw = getGradient(mynn,x,y)
-    w  = gradSub.(w,gradMul.(dw,η))
+    w  = w - dw * η
     setParams!(mynn,w)
 end
 lossFinal = loss(mynn,x',y')
