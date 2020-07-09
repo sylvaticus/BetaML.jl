@@ -46,7 +46,7 @@ end
 """
   ADAM(;η, λ, β₁, β₂, ϵ)
 
-The ADAM[https://arxiv.org/pdf/1412.6980.pdf] algorithm, an adaptive moment estimation optimiser.
+The [ADAM](https://arxiv.org/pdf/1412.6980.pdf) algorithm, an adaptive moment estimation optimiser.
 
 # Fields:
 - `η`:  Learning rate (stepsize, α in the paper), as a function of the current epoch [def: t -> 0.001 (i.e. fixed)]

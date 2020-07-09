@@ -4,6 +4,7 @@ The following notebooks provide runnable examples of the package functionality:
 
 - [Pegasus classifiers](https://mybinder.org/v2/gh/sylvaticus/BetaML.jl/master?filepath=notebooks%2FPerceptron.ipynb)
 - [Neural Networks](https://mybinder.org/v2/gh/sylvaticus/BetaML.jl/master?filepath=notebooks%2FNn.ipynb)
+  - [Bike sharing demand forecast (daily data)](https://mybinder.org/v2/gh/sylvaticus/BetaML.jl/master?filepath=notebooks%NN - Bike sharing demand forecast (daily db).ipynb)
 - [Clustering](https://mybinder.org/v2/gh/sylvaticus/BetaML.jl/master?filepath=notebooks%2FClustering.ipynb)
 
 

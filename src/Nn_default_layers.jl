@@ -10,6 +10,7 @@ Provided layers
 #import ..Utils
 #import Base.size
 
+using Distributions
 
 # ------------------------------------------------------------------------------
 # DenseLayer layer
@@ -35,17 +36,20 @@ mutable struct DenseLayer <: Layer
 
      Instantiate a new DenseLayer
 
-     Positional arguments:
+     # Positional arguments:
      * `nₗ`: Number of nodes of the previous layer
      * `n`:  Number of nodes
-     Keyword arguments:
-     * `w`:  Initial weigths with respect to input [default: `rand(n,nₗ)`]
-     * `wb`: Initial weigths with respect to bias [default: `rand(n)`]
+     # Keyword arguments:
+     * `w`:  Initial weigths with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
+     * `wb`: Initial weigths with respect to bias [default: Xavier initialisation, dims = (n)]
      * `f`:  Activation function [def: `identity`]
      * `df`: Derivative of the activation function [default: `nothing` (i.e. use AD)]
 
+     # Notes:
+     - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n))`
+
      """
-     function DenseLayer(nₗ,n;w=rand(n,nₗ),wb=rand(n),f=identity,df=nothing)
+     function DenseLayer(nₗ,n;w=rand(Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n)),n,nₗ),wb=rand(Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n)),n),f=identity,df=nothing)
          # To be sure w is a matrix and wb a column vector..
          w  = reshape(w,n,nₗ)
          wb = reshape(wb,n)
@@ -118,15 +122,17 @@ mutable struct DenseNoBiasLayer <: Layer
 
      Instantiate a new DenseNoBiasLayer
 
-     Positional arguments:
+     # Positional arguments:
      * `nₗ`: Number of nodes of the previous layer
      * `n`:  Number of nodes
-     Keyword arguments:
-     * `w`:  Initial weigths with respect to input [def: `rand(n,nₗ)`]
+     # Keyword arguments:
+     * `w`:  Initial weigths with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
      * `f`:  Activation function [def: `identity`]
      * `df`: Derivative of the activation function [def: `nothing` (i.e. use AD)]
+     # Notes:
+     - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ,n))`
      """
-     function DenseNoBiasLayer(nₗ,n;w=rand(n,nₗ),f=identity,df=nothing)
+     function DenseNoBiasLayer(nₗ,n;w=rand(Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n)),n,nₗ),f=identity,df=nothing)
          # To be sure w is a matrix and wb a column vector..
          w  = reshape(w,n,nₗ)
          return new(w,f,df)
