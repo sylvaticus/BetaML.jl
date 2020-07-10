@@ -1,5 +1,7 @@
 # Beta Machine Learning Toolkit
 
+_Machine Learning made simple :-)_
+
 <img src="assets/BetaML_logo.png" width="300" valign="middle"/> &nbsp;&nbsp;&nbsp;<img src="assets/microExample_white.png" width="500" valign="middle"/>
 
 The **Beta Machine Learning Toolkit** is a repository with several basic Machine Learning algorithms, started from implementing in the Julia language the concepts taught in the [MITX 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://www.edx.org/course/machine-learning-with-python-from-linear-models-to) course.
@@ -12,12 +14,14 @@ The **Beta Machine Learning Toolkit** is a repository with several basic Machine
 
 Theoretical notes describing most of these algorithms are at the companion repository https://github.com/sylvaticus/MITx_6.86x.
 
-This stuff most likely has value only didactically, as the approaches are the "vanilla" ones, i.e. the simplest possible ones, and GPU is not supported here.
-For "serious" machine learning work in Julia I suggest to use either [Flux](https://fluxml.ai/) or [Knet](https://github.com/denizyuret/Knet.jl).
+The focus of the library is mostly didactic, as the code is not heavily optimised and GPU is not supported.
+For deep learning in Julia with huge datasets I suggest to use either [Flux](https://fluxml.ai/) or [Knet](https://github.com/denizyuret/Knet.jl) that both supports GPU and distributed computation on clusters.
 
 As the focus is mainly didactic, functions have pretty longer but more explicit names than usual.. for example the `Dense` layer is a `DenseLayer`, the `RBF` kernel is `radialKernel`, etc.
+As we didn't aim for heavy optimisation, we were able to keep the API (Application Programming Interface) both beginner-friendly and flexible. Contrary to established packages, most methods provide reasonable defaults that can be overridden when needed (like the neural network optimiser, the verbosity level, or the loss function).
+For example, one can implement its own layer as a subtype of the abstract type `Layer` or its own optimisation algorithm as a subtype of `OptimisationAlgorithm` or even specify its own distance metric in the clustering `Kmedoids` algorithm..
 
-That said, Julia is a relatively fast language and most hard job is done in multithreaded functions or using matrix operations whose underlying libraries may be multithreaded, so it is reasonably fast for small exploratory tasks. Also it is already very flexible. For example, one can implement its own layer as a subtype of the abstract type `Layer` or its own optimisation algorithm as a subtype of `OptimisationAlgorithm` or even specify its own distance metric in the Kmedoids algorithm..
+That said, Julia is a relatively fast language and most hard job is done in multithreaded functions or using matrix operations whose underlying libraries may be multithreaded, so it is reasonably fast for small exploratory tasks and mid-size analysis (basically everything that hold in your PC's memory).
 
 ## Documentation
 
@@ -61,7 +65,7 @@ l3   = VectorFunctionLayer(3,3,f=softMax) # Add a (parameterless) layer whose ac
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal") # Build the NN and use the squared cost (aka MSE) as error function
 
 # Training it (default to ADAM)
-res = train!(mynn,scale(xtrain),ytrain_oh,epochs=100,batchSize=6) # Use optAlg=SGD (Stochastic Gradient Descent) by default
+res = train!(mynn,scale(xtrain),ytrain_oh,epochs=100,batchSize=6) # Use optAlg=SGD() to use Stochastic Gradient Descent instead
 
 # Test it
 ŷtrain        = predict(mynn,scale(xtrain))   # Note the scaling function
@@ -124,7 +128,7 @@ Further examples are provided as [Jupyter notebooks](https://sylvaticus.github.i
 
 ### Short term
 
--
+- Improve documentation
 
 ### Mid/Long term
 
