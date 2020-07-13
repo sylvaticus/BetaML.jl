@@ -1,16 +1,12 @@
-name: Build Notebook Container
-on: [push] # You may want to trigger this Action on other things than a push.
+name: Binder
+on: [push]
+
 jobs:
-  build:
+  Create-Binder-Badge:
     runs-on: ubuntu-latest
     steps:
-
-    - name: checkout files in repo
-      uses: actions/checkout@master
-
-    - name: update jupyter dependencies with repo2docker
-      uses: machine-learning-apps/repo2docker-action@master
+    - name: cache binder build on mybinder.org
+      uses: machine-learning-apps/repo2docker-action@0.2
       with:
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        MYBINDERORG_CACHE: true
+        NO_PUSH: true
+        MYBINDERORG_TAG: ${{ github.event.ref }} # This builds the container on mybinder.org with the branch that was pushed on.
