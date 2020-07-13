@@ -655,7 +655,7 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
            θ   = getParams(nn)
            gradients   = @spawn getGradient(nn,xbatch,ybatch) # remove @spawn and fetch (on next row) to get single thread code
            sumGradient = sum(fetch(gradients))
-           ▽   = sumGradient / batchSize
+           ▽   = sumGradient / length(batch)
            #▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)
            res = singleUpdate!(θ,▽;nEpoch=t,nBatch=i,nBatches=nBatches,xbatch=xbatch,ybatch=ybatch,optAlg=optAlg)
            setParams!(nn,res.θ)

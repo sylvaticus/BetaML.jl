@@ -88,8 +88,17 @@ end
 """
   batch(n,bSize;sequential=false)
 
-Return a vector of `bSize` indeces from `1` to `n`.
+Return a vector of `bSize` vectors of indeces from `1` to `n`.
 Randomly unless the optional parameter `sequential` is used.
+
+# Example:
+```julia
+julia> Utils.batch(6,2,sequential=true)
+3-element Array{Array{Int64,1},1}:
+ [1, 2]
+ [3, 4]
+ [5, 6]
+ ```
 """
 function batch(n::Integer,bSize::Integer;sequential=false)
     ridx = sequential ? collect(1:n) : shuffle(1:n)

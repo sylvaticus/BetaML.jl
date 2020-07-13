@@ -21,7 +21,7 @@ As the focus is mainly didactic, functions have pretty longer but more explicit 
 As we didn't aim for heavy optimisation, we were able to keep the API (Application Programming Interface) both beginner-friendly and flexible. Contrary to established packages, most methods provide reasonable defaults that can be overridden when needed (like the neural network optimiser, the verbosity level, or the loss function).
 For example, one can implement its own layer as a subtype of the abstract type `Layer` or its own optimisation algorithm as a subtype of `OptimisationAlgorithm` or even specify its own distance metric in the clustering `Kmedoids` algorithm..
 
-That said, Julia is a relatively fast language and most hard job is done in multithreaded functions or using matrix operations whose underlying libraries may be multithreaded, so it is reasonably fast for small exploratory tasks and mid-size analysis (basically everything that hold in your PC's memory).
+That said, Julia is a relatively fast language and most hard job is done in multithreaded functions or using matrix operations whose underlying libraries may be multithreaded, so it is reasonably fast for small exploratory tasks and mid-size analysis (basically everything that holds in your PC's memory).
 
 ## Documentation
 
@@ -61,7 +61,7 @@ ytest     = y[ntrain+1:end]
 # Define the Artificial Neural Network model
 l1   = DenseLayer(4,10,f=relu) # Activation function is ReLU
 l2   = DenseLayer(10,3)        # Activation function is identity by default
-l3   = VectorFunctionLayer(3,3,f=softMax) # Add a (parameterless) layer whose activation function (softMax in this case) is defined to all its nodes at once
+l3   = VectorFunctionLayer(3,3,f=softmax) # Add a (parameterless) layer whose activation function (softMax in this case) is defined to all its nodes at once
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal") # Build the NN and use the squared cost (aka MSE) as error function
 
 # Training it (default to ADAM)
