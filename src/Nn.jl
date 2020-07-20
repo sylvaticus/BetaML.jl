@@ -68,6 +68,7 @@ module Nn
 import Base.Threads.@spawn
 
 using Random, Zygote, ProgressMeter, Reexport
+import Distributions: Uniform
 
 
 @reexport using ..Utils

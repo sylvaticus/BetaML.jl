@@ -186,12 +186,36 @@ Perform Principal Component Analysis returning the matrix reprojected among the 
 
 # Return:
 - A named tuple with:
-  - `X`: The reprojected (NxK) matrix
-  - `K`: The dimensions retieved
+  - `X`: The reprojected (NxK) matrix with the column dimensions organized in descending order of of the proportion of explained variance
+  - `K`: The number of dimensions retieved
   - `error`: The actual proportion of variance not explained in the reprojected dimensions
   - `P`: The (D,K) matrix of the eigenvectors associated to the K-largest eigenvalues used to reproject the data matrix
+  - `explVarByDim`: An array of dimensions D with the share of the cumulative variance explained by dimensions (the last element being always 1.0)
 
-Note that if `K` is indicated, the parameter `error` has no effect.
+# Notes:
+- If `K` is provided, the parameter `error` has no effect.
+- If one doesn't know _a priori_ the error that she/he is willling to accept, nor the wished number of dimensions, he/she can run this pca function with `out = pca(X,K=size(X,2))` (i.e. with K=D), analise the proportions of explained cumulative variance by dimensions in `out.explVarByDim`, choose the number of dimensions K according to his/her needs and finally pick from the reprojected matrix only the number of dimensions needed, i.e. `out.X[:,1:K]`.
+
+# Example:
+```julia
+julia> X = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95]
+6×3 Array{Float64,2}:
+ 1.0   10.0  100.0
+ 1.1   15.0  120.0
+ 0.95  23.0   90.0
+ 0.99  17.0  120.0
+ 1.05   8.0   90.0
+ 1.1   12.0   95.0
+ julia> X = pca(X,error=0.05).X
+6×2 Array{Float64,2}:
+  3.1783   100.449
+  6.80764  120.743
+ 16.8275    91.3551
+  8.80372  120.878
+  1.86179   90.3363
+  5.51254   95.5965
+```
+
 """
 function pca(X;K=nothing,error=0.05)
     # debug
@@ -205,25 +229,24 @@ function pca(X;K=nothing,error=0.05)
     end
     Σ = (1/N) * X'*(I-(1/N)*ones(N)*ones(N)')*X
     E = eigen(Σ) # eigenvalues are ordered from the smallest to the largest
-    totVar           = sum(E.values)
+    totVar  = sum(E.values)
+    explVarByDim = [sum(E.values[D-k+1:end])/totVar for k in 1:D]
     propVarExplained = 0.0
     if K == nothing
         for k in 1:D
-            explVar = sum(E.values[D-k+1:end])
-            if explVar/totVar >= 1 - error
-                propVarExplained = explVar/totVar
-                K = k
+            if explVarByDim[k] >= (1 - error)
+                propVarExplained  = explVarByDim[k]
+                K                 = k
                 break
             end
         end
     else
-        explVar = sum(E.values[D-K+1:end])
-        propVarExplained = explVar/totVar
+        propVarExplained = explVarByDim[K]
     end
 
     P = E.vectors[:,D-K+1:end]
 
-    return (X=X*P,K=K,error=1-propVarExplained,P=P)
+    return (X=X*P,K=K,error=1-propVarExplained,P=P,explVarByDim=explVarByDim)
 end
 
 

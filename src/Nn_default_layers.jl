@@ -10,8 +10,6 @@ Provided layers
 #import ..Utils
 #import Base.size
 
-using Distributions
-
 # ------------------------------------------------------------------------------
 # DenseLayer layer
 
