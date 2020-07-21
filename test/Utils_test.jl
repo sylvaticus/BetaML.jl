@@ -123,3 +123,4 @@ out = pca(X,error=0.05)
 @test out.error ≈ 1.0556269747774571e-5
 @test sum(out.X) ≈ 662.3492034128955
 #X2 = out.X*out.P'
+@test out.explVarByDim ≈ [0.873992272007021,0.9999894437302522,1.0]

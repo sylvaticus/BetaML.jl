@@ -9,9 +9,9 @@ tags:
   - perceptron
   - data science
 authors:
-  - name: Antonello Lobianco^[Corressponding author.]
+  - name: Antonello Lobianco^[Corresponding author.]
     orcid: 0000-0002-1534-8697
-    affiliation: "1, 2" # (Multiple affiliations must be quoted)
+    affiliation: "1, 2, 3, 4, 5, 6" # (Multiple affiliations must be quoted)
 affiliations:
  - name: Université de Lorraine
    index: 1
@@ -31,9 +31,16 @@ bibliography: docs/paper/paper.bib
 
 # Summary
 
-Test summary
+We implemented a serie of _machine learning_ algorithms in a package for the Julia language.
+Currently, algorithms are in the area of classification (perceptron, kernel perceptron, pegasus), neural networks and clustering (kmeans, kmenoids, EM, missing values attribution). Development of these algorithms follows the theoretical notes of the MOOC class "Machine Learning with Python: from Linear Models to Deep Learning" from MITx/edX.
+
+
+
+
+
 
 # Statement of need
+
 
 
 # Mathematics
