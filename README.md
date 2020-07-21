@@ -25,7 +25,7 @@ That said, Julia is a relatively fast language and most hard job is done in mult
 
 ## Documentation
 
-Please refer to the package documentation ([stable](https://sylvaticus.github.io/BetaML.jl/dev) | [dev](https://sylvaticus.github.io/BetaML.jl/dev)) or use the Julia inline package system (just press the question mark `?` and then, on the special help prompt `help?>`, type the module or function name).
+Please refer to the package documentation ([stable](https://sylvaticus.github.io/BetaML.jl/stable) | [dev](https://sylvaticus.github.io/BetaML.jl/dev)) or use the Julia inline package system (just press the question mark `?` and then, on the special help prompt `help?>`, type the module or function name).
 
 Module currently implemented are [Perceptron](https://sylvaticus.github.io/BetaML.jl/dev/Perceptron.html), [Nn](https://sylvaticus.github.io/BetaML.jl/dev/Nn.html), [Clustering](https://sylvaticus.github.io/BetaML.jl/dev/Clustering.html) and [Utils](https://sylvaticus.github.io/BetaML.jl/dev/Utils.html).
 
