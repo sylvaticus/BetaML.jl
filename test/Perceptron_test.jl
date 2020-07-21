@@ -55,9 +55,9 @@ ŷtestExpected = [-1,-1,-1,-1,1]
 
 
 # ==================================
-# Test 3: Pegasus
+# Test 3: Pegasos
 # ==================================
-println("Going through Test3 (Pegasus)...")
+println("Going through Test3 (Pegasos)...")
 
 
 perceptronData     = readdlm(joinpath(@__DIR__,"data/binary2DData.csv"),'\t')
@@ -68,7 +68,7 @@ ytrain = y[1:160]
 xtest = x[161:end,:]
 ytest = y[161:end]
 
-out   = pegasus(xtrain, ytrain, rShuffle=false,nMsgs=0)
+out   = pegasos(xtrain, ytrain, rShuffle=false,nMsgs=0)
 ŷtest = Perceptron.predict(xtest,out.θ,out.θ₀)
 ŷavgtest = Perceptron.predict(xtest,out.avgθ,out.avgθ₀)
 ϵ = error(ytest, ŷtest)

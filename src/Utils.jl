@@ -27,9 +27,10 @@ export reshape, makeColVector, makeRowVector, makeMatrix,
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
        autoJacobian,
-       squaredCost, dSquaredCost, l1_distance,
+       squaredCost, dSquaredCost,
        error, accuracy, meanRelError,
-       l2_distance, l2²_distance, cosine_distance, normalFixedSd, lse, sterling, logNormalFixedSd,
+       l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
+       #normalFixedSd, logNormalFixedSd,
        radialKernel, polynomialKernel,
        Verbosity, NONE, LOW, STD, HIGH, FULL
 
@@ -463,7 +464,8 @@ l2²_distance(x,y)    = norm(x-y)^2
 """Cosine distance"""
 cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
 
-
+#=
+# No longer used, as mixtures has been generalised
 # ------------------------------------------------------------------------------
 # Some common PDFs
 
@@ -471,7 +473,7 @@ cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
 normalFixedSd(x,μ,σ²)    = (1/(2π*σ²)^(length(x)/2)) * exp(-1/(2σ²)*norm(x-μ)^2)
 """ log-PDF of a multidimensional normal with no covariance and shared variance across dimensions"""
 logNormalFixedSd(x,μ,σ²) = - (length(x)/2) * log(2π*σ²)  -  norm(x-μ)^2/(2σ²)
-
+=#
 
 # ------------------------------------------------------------------------------
 # Other mathematical/computational functions

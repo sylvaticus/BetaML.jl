@@ -22,7 +22,7 @@ See a [runnable example on myBinder](https://mybinder.org/v2/gh/sylvaticus/BetaM
 
 - [`perceptron`](@ref): Train data using the classical perceptron
 - [`kernelPerceptron`](@ref): Train data using the kernel perceptron
-- [`pegasus`](@ref): Train data using the pegasus algorithm
+- [`pegasos`](@ref): Train data using the pegasos algorithm
 - [`predict`](@ref): Predict data using parameters from one of the above algorithms
 
 """
@@ -33,7 +33,7 @@ import ..Utils: radialKernel, polynomialKernel, makeMatrix, makeColVector, error
 
 @reexport using ..Utils
 
-export perceptron, kernelPerceptron, pegasus, predict
+export perceptron, kernelPerceptron, pegasos, predict
 
 #export radialKernel, polynomialKernel, makeMatrix, error, accuracy
 
@@ -125,7 +125,7 @@ Train a Kernel Perceptron algorithm based on x and y
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
 * `y`:        Associated labels of the training data, in the format of ⨦ 1
-* `K`:        Kernel function to emplpy. See `?radialKernel` or `?polynomialKernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]
+* `K`:        Kernel function to employ. See `?radialKernel` or `?polynomialKernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]
 * `T`:        Maximum number of iterations across the whole set (if the set is not fully classified earlier) [def: 1000]
 * `α`:        Initial distribution of the errors [def: `zeros(length(y))`]
 * `nMsg`:     Maximum number of messages to show if all iterations are done
@@ -189,9 +189,9 @@ end
 
 
 """
- pegasus(x,y;θ,θ₀,λ,η,T,nMsgs,rShuffle,forceOrigin)
+ pegasos(x,y;θ,θ₀,λ,η,T,nMsgs,rShuffle,forceOrigin)
 
-Train the peagasus algorithm based on x and y (labels)
+Train the peagasos algorithm based on x and y (labels)
 
 # Parameters:
 * `x`:           Feature matrix of the training data (n × d)
@@ -221,12 +221,12 @@ Train the peagasus algorithm based on x and y (labels)
 
 # Example:
 ```jldoctest
-julia> pegasus([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
+julia> pegasos([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 """
-function pegasus(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, rShuffle=false, forceOrigin=false)
+function pegasos(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, rShuffle=false, forceOrigin=false)
   if nMsgs != 0
-      println("***\n*** Training pegasus for maximum $T iterations. Random shuffle: $rShuffle")
+      println("***\n*** Training pegasos for maximum $T iterations. Random shuffle: $rShuffle")
   end
   x = makeMatrix(x)
   (n,d) = size(x)
@@ -234,7 +234,7 @@ function pegasus(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)
   lastϵ = Inf
   if forceOrigin θ₀ = 0.0; end
   sumθ = θ; sumθ₀ = θ₀
-  @showprogress 1 "Training Perceptron..." for t in 1:T
+  @showprogress 1 "Training Pegasos..." for t in 1:T
       ϵ = 0
       ηₜ = η(t)
       if rShuffle
@@ -309,7 +309,7 @@ end
 """
   predict(x,xtrain,ytrain,α;K)
 
-Predict a binary label {-1,1} given the feature vector and the training data together with their errors (as trained by a kenrnel perceptron algorithm)
+Predict a binary label {-1,1} given the feature vector and the training data together with their errors (as trained by a kernel perceptron algorithm)
 
 # Parameters:
 * `x`:      Feature matrix of the training data (n × d)
