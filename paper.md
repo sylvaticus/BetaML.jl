@@ -41,6 +41,22 @@ Currently, algorithms are in the area of classification (perceptron, kernel perc
 
 # Statement of need
 
+# Provided features
+
+The toolkit is currently composed by 4 modules: `Utils`, providing common data-science utility functions to be used in the other modules, `Perceptron` providing linear and non-linear classifiers, `Nn` to implement and train artificial neural networks, and `Clustering`, with several clustering algorithms and missing value attribution/ collaborative filtering based on clustering.
+`Perceptron`, `Nn` and `Clustering` all import and re-export the Utile function, so the final users normally doesn't need to deal with `Utils`, but just with the module of interest.
+
+## The `Utils` module
+
+Function to preprocess the data
+`scale and `pca`
+
+
+
+## The `Perceptron` module
+
+It provides the classical `Perceptron` binomial classifier, a kernelised version of it and `Perceptron`, a ...
+The user can leave the default KBF kernel or provide its own function )that we don't check for correctness)
 
 
 # Mathematics
