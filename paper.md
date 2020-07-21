@@ -42,7 +42,7 @@ This paper is work in progress !!
 A serie of _machine learning_ algorithms has been implemented and bundled in a single package for the Julia language.
 Currently, algorithms are in the area of classification (perceptron, kernel perceptron, pegasos), neural networks and clustering (kmeans, kmenoids, EM, missing values attribution). Development of these algorithms started following the theoretical notes of the MOOC class "Machine Learning with Python: from Linear Models to Deep Learning" from MITx/edX.
 
-This paper presents the general approach of the package and gives an overview of its organisation. We refer the reader to the [package documentation](https://sylvaticus.github.io/BetaML.jl/stable) for instructions on how to use the various algorithms provided or to the MOOC notes available on GitHub for their mathematical backgrounds.
+This paper presents the general approach of the package and gives an overview of its organisation. We refer the reader to the [package documentation](https://sylvaticus.github.io/BetaML.jl/stable) for instructions on how to use the various algorithms provided or to the MOOC notes available on GitHub [@Lobianco:2020] for their mathematical backgrounds.
 
 
 # Statement of need
@@ -55,7 +55,9 @@ Simplicity not like Flux that rather than passing the neural network object to t
 In BetaML modelling, training and collecting predictions from an artificial neural network with one hidden layer can be as simple as:
 
 ```julia
-mynn   = buildNetwork([DenseLayer(nIn,nHidden),DenseLayer(nHidden,nOut)],squaredCost)
+mynn   = buildNetwork([DenseLayer(nIn,nHidden),
+                       DenseLayer(nHidden,nOut)],
+                       squaredCost)
 train!(mynn,xtrain,ytrain)
 ytrain_est = predict(mynn,xtrain)           
 ytest_est  = predict(mynn,xtest)
@@ -66,6 +68,8 @@ We believe that the BetaML flexibility and simplicity, together with the efficie
 will support the needs of
 <!-- can address significantly better the needs of  -->
 students and researchers that, contrary to industrial practitioners, often don't need to work  with very large datasets that don't fit in memory or algorithms that require distributed computation.
+
+<!-- Students and reserachers may find appealling to perform their research or as a platform to develop their own algorithms -->
 
 
 # Package organisation
@@ -78,17 +82,20 @@ The BetaML toolkit is currently composed of 4 modules: `Utils` provides common d
 
 ## The `Utils` module
 
-The `Utils` module is intended to provide functionalities that are either: (a) used in other modules but are not strictly part of that specific module's logic (for example activation functions would be most likely used in neural networks, but could be of more general usage); (b) general methods that are used alongside the ML algorithms implemented in the other modules, e.g. to improve their predictions capabilities or (c) general methods to assess the goodness of fits of ML algorithms.+
-Concerning the fist category `Utils` provides "classical" activation functions (and their respective derivatives) like `relu`, `sigmoid`, `softmax`, but also more recent implementations like elu [TODO cite], celu[TODO cite], plu[TODO cite], softplus[TODO cite] and mish[TODO cite]. Kernel functions (`radialKernel` - aka `KBF`, `polynomialKernel`), distance metrics (`l1_distance` - aka "Manhattan", `l2_distance`, `l2²_distance`, `cosine_distance`), and functions typically used to improve numerical stability (`lse`) are also provided with the intention to be available in the different ML algorithms.+
-Often ML algorithms work better if the data is normalised or dimensions are reduced to those explaining the greatest extent of data variability. This is the purpose of the functions `scale` and `pca` respectively. `scale` scales the data to $\mu=0$ and $\sigma=1$, optionally skipping dimensions that don't need to be normalised. The related function `getScaleFactors` save the scaling factors so that inverse scaling (typically for the predictions of the ML algorithm) can be applied. `pca` perform Principal Component Analysis, where the user can specify the wanted dimensions or the maximum approximation error that he is willing to accept either ex-ante or ex-post, after having analysed the distribution of the explained variance by number of dimensions. Other "general support" functions provided are `oneHotEncoder` and `batch`.+
-Concerning the last category, several functions are provided to assess the goodness of fit of a single datapoint or the whole dataset, whether the output of the ML algorithm is in $R^n$ or categorical. Notably, `accuracy` provides categorical accuracy given a probabilistic prediction (PMF) of a datapoint, with a parameter `tol` to determine the tollerance of the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values.
+The `Utils` module is intended to provide functionalities that are either: (a) used in other modules but are not strictly part of that specific module's logic (for example activation functions would be most likely used in neural networks, but could be of more general usage); (b) general methods that are used alongside the ML algorithms implemented in the other modules, e.g. to improve their predictions capabilities or (c) general methods to assess the goodness of fits of ML algorithms.
 
+Concerning the fist category `Utils` provides "classical" activation functions (and their respective derivatives) like `relu`, `sigmoid`, `softmax`, but also more recent implementations like elu [TODO cite], celu[TODO cite], plu[TODO cite], softplus[TODO cite] and mish[TODO cite]. Kernel functions (`radialKernel` - aka `KBF`, `polynomialKernel`), distance metrics (`l1_distance` - aka "Manhattan", `l2_distance`, `l2²_distance`, `cosine_distance`), and functions typically used to improve numerical stability (`lse`) are also provided with the intention to be available in the different ML algorithms.
+
+Often ML algorithms work better if the data is normalised or dimensions are reduced to those explaining the greatest extent of data variability. This is the purpose of the functions `scale` and `pca` respectively. `scale` scales the data to $\mu=0$ and $\sigma=1$, optionally skipping dimensions that don't need to be normalised. The related function `getScaleFactors` saves the scaling factors so that inverse scaling (typically for the predictions of the ML algorithm) can be applied. `pca` performs Principal Component Analysis, where the user can specify the wanted dimensions or the maximum approximation error that he is willing to accept either _ex-ante_ or _ex-post_, after having analysed the distribution of the explained variance by number of dimensions. Other "general support" functions provided are `oneHotEncoder` and `batch`.
+
+Concerning the last category, several functions are provided to assess the goodness of fit of a single datapoint or the whole dataset, whether the output of the ML algorithm is in $R^n$ or categorical. Notably, `accuracy` provides categorical accuracy given a probabilistic prediction (PMF) of a datapoint, with a parameter `tol` to determine the tollerance of the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values.
+The Bayesian information criterion `bic` and Akaike information criterion `aic` functions can be used for regularisation.
 
 ## The `Perceptron` module
 
 It provides the classical Perceptron linear classifier, a _kernelised_ version of it and "Pegasos" [@Shalev-Shwartz:2011], a gradient-descent based implementation.
 
-The basic Perceptron classifier is implemented in the `perceptron` function, where the user can provide the initial weights and retrieve both the final and the average parameters of the classifiers. In `kernelPerceptron` the user can either pass one of the kernel implemented in `Utils` or implement its own kernel function. `pegasos` performs the classification using a basic stochastic descent method^[We plan to generalise the `pegasus` algorithm to use the optimisation algorithms implemented for neural networks.]. Finally `predict` predicts the binary label given the feature vector and the linear coefficients or the error distribution as obtained by the kernel Perceptron algorithm.
+The basic Perceptron classifier is implemented in the `perceptron` function, where the user can provide the initial weights and retrieve both the final and the average parameters of the classifiers. In `kernelPerceptron` the user can either pass one of the kernel implemented in `Utils` or implement its own kernel function. `pegasos` performs the classification using a basic stochastic descent method^[We plan to generalise the Pegasos algorithm to use the optimisation algorithms implemented for neural networks.]. Finally `predict` predicts the binary label given the feature vector and the linear coefficients or the error distribution as obtained by the kernel Perceptron algorithm.
 
 ## The `Nn` module
 
@@ -96,7 +103,7 @@ Artificial neural networks can be implemented using the functions provided by th
 Currently only feed-forward networks for regression or classification tasks are fully provided, but more complex layers (convolutional, pooling, recursive,...) can be eventually defined and implemented directly by the user.
 The instantiation of the layers required by the network can be done indeed either using one of the layer provided (`DenseLayer`, `DenseNoBiasLayer` or `VectorFunctionLayer`, the latter one being a parameterless layer whose activation function, like `softMax`, is applied to the ensemble of the neurons rather than individually on each of them) or by creating a user-defined layer by subclassing the `Layer` type and implementing the functions `forward`, `backward`, `getParams`, `getGradient`, `setParams` and `size`.
 
-While in the provided layers the computation of the derivatives for `backward` and `getParams` is coded manually^[For the derivatives of the activation function the user can provide one of the derivative functions defined in `Utils`, implement it by himself, or just leave the library use automatic differentiation (using Zygote) to compute it.], for complex user-defined layers the two functions can benefit of automatic differentiation packages like `Zigote`[TODO Citeme], eventually wrapped in the function `autoJacobian` defined in `Utils`.
+While in the provided layers the computation of the derivatives for `backward` and `getParams` is coded manually^[For the derivatives of the activation function the user can (a) provide one of the derivative functions defined in `Utils`, (b) implement it by himself, or (c) just leave the library use automatic differentiation (using Zygote) to compute it.], for complex user-defined layers the two functions can benefit of automatic differentiation packages like `Zigote`[TODO Citeme], eventually wrapped in the function `autoJacobian` defined in `Utils`.
 
 Once the layers are defined, the neural network is modelled by setting the layers in an array, giving the network a cost function (default to ) and a name. The `show` function can be employ to print the structure of the network.
 
@@ -105,6 +112,13 @@ The training of the model is done with the highly parametrisable `train!` functi
 
 # `Clustering` module
 
+Both the classical `kmeans` and `kmedoids` algorithms are provided (with the difference being that the clusters "representatives" can be in any $R^n$ point in `kmeans`, while are restricted to be one of the data point in `kmedoids`), where different measure metrics can be provided (either those defined in `Utils` or user-provided ones) as well as different initialisation strategies (`random`, `grid`, `shuffle` - randomly within the available points, `given`).
+
+Alongside these "hard clustering" algorithms, the `Clustering` module provides `em`, an implementation of the Expectation-Maximisation algorithm to estimate a generative mixture model, with variance-free and variance-constrained Gaussian mixtures already provided (and again, one can write his own mixture by subclassing `Mixture` and implementing `initMixtures!`, `lpdf`, `updateParameters!` and `npar`) and with `kmeans` or `grid` initialisation strategy supported.
+
+Notably the `em` algorithm would accept an input data whose values are missing in one or all dimensions (and in the former case learning would use only the available dimensions).
+
+This, together with the probabilistic assignment nature of the em algorithm, allows it to be used as base for missing values assignment or even collaborative filtering in the `predictMissing` function.
 
 <!--
 
