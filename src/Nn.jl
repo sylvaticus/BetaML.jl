@@ -625,7 +625,9 @@ Train a neural network with the given x,y data
 - The update is done computing the average gradient for each batch and then calling `singleUpdate!` to let the optimisation algorithm perform the parameters update
 """
 function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=false, verbosity::Verbosity=STD, cb=trainingInfo, optAlg::OptimisationAlgorithm=ADAM())#,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0optAlg::SD=SD())
-
+    if verbosity > STD
+        @codeLocation
+    end
     x = makeMatrix(x)
     y = makeMatrix(y)
     (n,d)     = size(x)

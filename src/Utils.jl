@@ -21,7 +21,8 @@ module Utils
 
 using LinearAlgebra, Random, Statistics, Combinatorics, Zygote
 
-export reshape, makeColVector, makeRowVector, makeMatrix,
+export @codeLocation,
+       reshape, makeColVector, makeRowVector, makeMatrix,
        oneHotEncoder, getScaleFactors, scale, scale!, batch, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
@@ -40,6 +41,23 @@ export reshape, makeColVector, makeRowVector, makeMatrix,
 
 
 @enum Verbosity NONE=0 LOW=10 STD=20 HIGH=30 FULL=40
+
+macro codeLocation()
+    return quote
+        st = stacktrace(backtrace())
+        myf = ""
+        for frm in st
+            funcname = frm.func
+            if frm.func != :backtrace && frm.func!= Symbol("macro expansion")
+                myf = frm.func
+                break
+            end
+        end
+        println("Running function ", $("$(__module__)"),".$(myf) at ",$("$(__source__.file)"),":",$("$(__source__.line)"))
+        println("Type `]dev BetaML` to modify the source code (this would change its location on disk)")
+    end
+end
+
 
 # ------------------------------------------------------------------------------
 # Various reshaping functions

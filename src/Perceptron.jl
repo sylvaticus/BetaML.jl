@@ -76,6 +76,7 @@ julia> perceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 """
 function perceptron(x, y; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=10, rShuffle=false, forceOrigin=false)
    if nMsgs != 0
+       @codeLocation
        println("***\n*** Training perceptron for maximum $T iterations. Random shuffle: $rShuffle")
    end
    x = makeMatrix(x)
@@ -150,6 +151,7 @@ julia> kernelPerceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 """
 function kernelPerceptron(x, y; K=radialKernel, T=1000, α=zeros(length(y)), nMsgs=10, rShuffle=false)
     if nMsgs != 0
+        @codeLocation
         println("***\n*** Training kernel perceptron for maximum $T iterations. Random shuffle: $rShuffle")
     end
     x = makeMatrix(x)
@@ -226,6 +228,7 @@ julia> pegasos([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 """
 function pegasos(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, rShuffle=false, forceOrigin=false)
   if nMsgs != 0
+      @codeLocation
       println("***\n*** Training pegasos for maximum $T iterations. Random shuffle: $rShuffle")
   end
   x = makeMatrix(x)
