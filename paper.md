@@ -83,7 +83,7 @@ Of course you can get much better results (in general) by scaling the variables,
 We believe that the BetaML flexibility and simplicity, together with the efficiency and usability of a Just in Time compiled language like Julia and the convenience to have several ML algorithms and data-science utilities all in the same package,
 will support the needs of
 <!-- can address significantly better the needs of  -->
-students and researchers that, contrary to industrial practitioners, often don't need to work  with very large datasets that don't fit in memory or algorithms that require distributed computation.
+general students and researchers community that, contrary to industrial practitioners and perhaps researchers in machine learning or computer sciences, often don't need to work  with very large datasets that don't fit in memory or algorithms that require distributed computation.
 
 <!--
 Other approaches
