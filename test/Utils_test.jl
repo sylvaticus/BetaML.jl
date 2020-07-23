@@ -53,6 +53,16 @@ manualGrad = dsoftmax([2,3,4],β=1/2)
 
 # ==================================
 # New test
+println("** Testing cross-entropy...")
+or = crossEntropy([0.8,0.001,0.001],[1.0,0,0],weight = [2,1,1])
+@test or ≈ 0.4462871026284194
+d = dCrossEntropy([0.8,0.001,0.001],[1.0,0,0],weight = [2,1,1])
+δ = 0.001
+dest = crossEntropy([0.8+δ,0.101,0.001],[1.0,0,0],weight = [2,1,1])
+@test isapprox(dest-or, d[1]*δ,atol=0.0001)
+
+# ==================================
+# New test
 println("** Going through testing accuracy...")
 
 x = [0.01 0.02 0.1 0.05 0.2 0.1  0.05 0.27  0.2;

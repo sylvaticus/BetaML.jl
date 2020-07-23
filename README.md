@@ -62,7 +62,7 @@ ytest     = y[ntrain+1:end]
 l1   = DenseLayer(4,10,f=relu) # Activation function is ReLU
 l2   = DenseLayer(10,3)        # Activation function is identity by default
 l3   = VectorFunctionLayer(3,3,f=softmax) # Add a (parameterless) layer whose activation function (softMax in this case) is defined to all its nodes at once
-mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal") # Build the NN and use the squared cost (aka MSE) as error function
+mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal") # Build the NN and use the squared cost (aka MSE) as error function (crossEntropy could also be used)
 
 # Training it (default to ADAM)
 res = train!(mynn,scale(xtrain),ytrain_oh,epochs=100,batchSize=6) # Use optAlg=SGD() to use Stochastic Gradient Descent instead

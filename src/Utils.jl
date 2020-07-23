@@ -28,7 +28,7 @@ export @codeLocation,
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
        autoJacobian,
-       squaredCost, dSquaredCost,
+       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy,
        error, accuracy, meanRelError,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
@@ -268,6 +268,28 @@ function pca(X;K=nothing,error=0.05)
     return (X=X*P,K=K,error=1-propVarExplained,P=P,explVarByDim=explVarByDim)
 end
 
+# ------------------------------------------------------------------------------
+# Various neural network loss functions as well their derivatives
+"""
+   squaredCost(ŷ,y)
+
+Compute the squared costs between a vector of prediction and one of observations as (1/2)*norm(y - ŷ)^2.
+
+Aside the 1/2 term correspond to the squared l-2 norm distance and when it is averaged on multiple datapoints corresponds to the Mean Squared Error.
+It is mostly used for regression problems.
+"""
+squaredCost(ŷ,y)   = (1/2)*norm(y - ŷ)^2
+dSquaredCost(ŷ,y)  = ( ŷ - y)
+"""
+   crossEntropy(ŷ, y; weight)
+
+Compute the (weighted) cross-entropy between the predicted and the sampled probability distributions.
+
+To be used in classification problems.
+
+"""
+crossEntropy(ŷ, y; weight = ones(eltype(y),length(y)))  = -sum(y .* log.(ŷ .+ 1e-15) .* weight)
+dCrossEntropy(ŷ, y; weight = ones(eltype(y),length(y))) = - y .* weight ./ (ŷ .+ 1e-15)
 
 # ------------------------------------------------------------------------------
 # Various neural network activation functions as well their derivatives
@@ -455,10 +477,6 @@ bic(lL,k,n) = k*log(n)-2*lL
 aic(lL,k)   = 2*k-2*lL
 
 
-# ------------------------------------------------------------------------------
-# Various neural network loss functions as well their derivatives
-squaredCost(ŷ,y)   = (1/2)*norm(y - ŷ)^2
-dSquaredCost(ŷ,y)  = ( ŷ - y)
 
 # ------------------------------------------------------------------------------
 # Various kernel functions (e.g. for Perceptron)
