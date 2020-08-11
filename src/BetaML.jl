@@ -37,6 +37,8 @@ include("Nn.jl")
 using .Nn
 include("Perceptron.jl")
 using .Perceptron
+include("Trees.jl")
+using .Trees
 include("Clustering.jl")
 using .Clustering
 

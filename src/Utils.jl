@@ -28,7 +28,7 @@ export @codeLocation,
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
        autoJacobian,
-       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy,
+       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, gini,
        error, accuracy, meanRelError,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
@@ -477,7 +477,46 @@ bic(lL,k,n) = k*log(n)-2*lL
 aic(lL,k)   = 2*k-2*lL
 
 
+"""
 
+gini(groups,classes)
+
+groups: an array of G (N_g,D) groups (N can be different across groups)
+classes: a (K,D) matrix of K classes
+
+"""
+function gini(groups,classes)
+    # Debug
+    #groups  = [[1 2 3; 1 2 3; 3 2 1; 1 2 3; 1 2 3], [3 2 1; 3 2 1; 1 2 3; 1 3 2]]
+    #classes = [1 2 3; 3 2 1; 1 3 2]
+    # debug ends
+    G     = length(groups)
+    D     = size(classes,2)
+    K     = size(classes,1)
+    Ns    = [size(g,1) for g in groups]
+    gini = 0.0
+    for (gidx,g) in enumerate(groups)
+        #gidx = 2
+        #g = [3 2 1; 3 2 1; 1 2 3; 1 3 2]
+        N = Ns[gidx]
+        P = [sum( [g[n,:] for n in 1:N] .== Ref(classes[k,:])) / N for k in 1:K]
+        gini += (sum([P[k] * (1-P[k]) for k in 1:K]) * (N / sum(Ns)) )# last term is the weigth of relative size
+    end
+    return gini
+end
+groups  = [[1 2 3; 1 2 3; 3 2 1; 1 2 3; 1 2 3], [3 2 1; 3 2 1; 1 2 3; 1 3 2]]
+classes = [1 2 3; 3 2 1; 1 3 2]
+groups  = [[1;1; 3; 1; 1], [3; 3; 1; 2]]
+classes = [1; 3;2]
+groups  = [[1,1,3,1,1], [3,3,1,2]]
+classes = [1,3,2]
+groups  = [[1 1; 1 0] , [1 1; 1 0] ]
+classes = [1 1; 1 0]
+groups  = [[1 0; 1 0] , [1 1; 1 1] ]
+classes = [1 1; 1 0]
+gini(groups,classes)
+
+#(N / sum(Ns))
 # ------------------------------------------------------------------------------
 # Various kernel functions (e.g. for Perceptron)
 """Radial Kernel (aka _RBF kernel_) parametrised with γ=1/2. For other gammas γᵢ use
