@@ -5,33 +5,55 @@ using LinearAlgebra, Random,  Reexport
 
 export fitTrees, predictTrees
 
-function fitTrees(X,Y)
-
-end
-
-function predictTrees(X,trees)
-
-end
-
-
-
-
 
 # based on https://www.youtube.com/watch?v=LDRbO9a6XPU
 # https://github.com/random-forests/tutorials/blob/master/decision_tree.ipynb
+import Base.print
 
-training_data = [
-    "Green"  3.0 "Apple";
-    "Yellow" 3.0 "Apple";
-    "Red"    1.0 "Grape";
-    "Red"    1.0 "Grape";
-    "Yellow" 3.0 "Lemon";
-    "Yellow" missing "Lemon";
-]
+"""A Question is used to partition a dataset.
 
+This class just records a 'column number' (e.g., 0 for Color) and a
+'column value' (e.g., Green). The 'match' method is used to compare
+the feature value in an example to the feature value stored in the
+question. See the demo below.
+"""
 mutable struct Question
     column
     value
+end
+
+function print(question::Question)
+    condition = "=="
+    if isa(question.value, Number)
+        condition = ">="
+    end
+    print("Is col $(question.column) $condition $(question.value) ?")
+end
+
+
+"""A Leaf node classifies data.
+
+This holds a dictionary of class (e.g., "Apple") -> number of times
+it appears in the rows from the training data that reach this leaf.
+"""
+mutable struct Leaf
+    predictions
+    function Leaf(rows)
+        return new(class_counts(rows))
+    end
+end
+
+"""A Decision Node asks a question.
+
+This holds a reference to the question, and to the two child nodes.
+"""
+mutable struct Decision_Node
+    question
+    true_branch
+    false_branch
+    function Decision_Node(question,true_branch,false_branch)
+        return new(question,true_branch,false_branch)
+    end
 end
 
 
@@ -158,26 +180,92 @@ function find_best_split(data)
     return best_gain, best_question
 end
 
-q1 = Question(1,"Green")
-q2 = Question(2,3)
+"""Builds the tree.
 
-p1,p2 = partition(training_data,q1)
+Rules of recursion: 1) Believe that it works. 2) Start by checking
+for the base case (no further information gain). 3) Prepare for
+giant stack traces.
+"""
+function build_tree(data)
 
-info_gain(p1,p2,gini(training_data))
+    # Try partitioing the dataset on each of the unique attribute,
+    # calculate the information gain,
+    # and return the question that produces the highest gain.
+    gain, question = find_best_split(data)
 
-p1,p2 = partition(training_data,q2)
+    # Base case: no further info gain
+    # Since we can ask no further questions,
+    # we'll return a leaf.
+    if gain == 0
+        return Leaf(data)
+    end
 
-a = ["a","b","a","c","d"]
-c = class_counts(a)
-gini([1 2 3; 2 3 3; 4 3 3])
-gini([1 2 3; 2 3 1; 4 3 2; 2 3 4; 1 2 5])
-gini(training_data)
+    # If we reach here, we have found a useful feature / value
+    # to partition on.
+    true_rows, false_rows = partition(data, question)
 
-find_best_split(training_data)
+    # Recursively build the true branch.
+    true_branch = build_tree(true_rows)
+
+    # Recursively build the false branch.
+    false_branch = build_tree(false_rows)
+
+    # Return a Question node.
+    # This records the best feature / value to ask at this point,
+    # as well as the branches to follow
+    # dependingo on the answer.
+    return Decision_Node(question, true_branch, false_branch)
+end
+
+"""World's most elegant tree printing function."""
+function print_tree(node, spacing="")
+
+    # Base case: we've reached a leaf
+    if typeof(node) == Leaf
+        println("$spacing  Predict $(node.predictions)")
+        return
+    end
+
+    # Print the question at this node
+    print(spacing)
+    print(node.question)
+    print("\n")
+
+    # Call this function recursively on the true branch
+    println(spacing * "--> True:")
+    print_tree(node.true_branch, spacing * "  ")
+
+    # Call this function recursively on the false branch
+    println(spacing * "--> False:")
+    print_tree(node.false_branch, spacing * "  ")
+end
 
 
+"""See the 'rules of recursion' above."""
+function classify(row, node)
+    # Base case: we've reached a leaf
+    if typeof(node) == Leaf
+        return node.predictions
+    end
+    # Decide whether to follow the true-branch or the false-branch.
+    # Compare the feature / value stored in the node,
+    # to the example we're considering.
+    if match(node.question,row)
+        return classify(row, node.true_branch)
+    else
+        return classify(row, node.false_branch)
+    end
+end
 
-
+"""A nicer way to print the predictions at a leaf."""
+function print_leaf(counts)
+    total = sum(values(counts))
+    probs = Dict()
+    for lbl in keys(counts)
+        probs[lbl] = string(100 * (counts[lbl] / total)) * "%"
+    end
+    return probs
+end
 
 
 
