@@ -3,8 +3,7 @@ module Trees
 using LinearAlgebra, Random,  Reexport
 @reexport using ..Utils
 
-export buildTree, predict, printPredictions, print
-
+export buildTree, predict, print
 
 # Decision trees:
 
@@ -32,7 +31,6 @@ function print(question::Question)
     print("Is col $(question.column) $condition $(question.value) ?")
 end
 
-
 """A Leaf node classifies data.
 
 This holds a dictionary of class (e.g., "Apple") -> number of times
@@ -43,14 +41,13 @@ mutable struct Leaf
     predictions
     depth
     function Leaf(y,depth)
-        T = eltype(y)
-        if T <: Number
+        if eltype(y) <: Number
             rawPredictions = y
             prediction     = mean(rawPredictions)
         else
             rawPredictions = classCounts(y)
             total = sum(values(rawPredictions))
-            predictions = Dict{T,Float64}()
+            predictions = Dict{eltype(y),Float64}()
             [predictions[k] = rawPredictions[k] / total for k in keys(rawPredictions)]
         end
         return new(rawPredictions,predictions,depth)
@@ -122,35 +119,7 @@ function partition(question::Question,x)
     return trueIdx, falseIdx
 end
 
-"""Counts the number of each type of example in a dataset."""
-function classCounts(y)
-    T = eltype(y)
-    counts = Dict{T,Int64}()  # a dictionary of label -> count.
-    for label in y
-        if !(label in keys(counts))
-            counts[label] = 1
-        else
-            counts[label] += 1
-        end
-    end
-    return counts
-end
 
-"""Calculate the Gini Impurity for a list of rows.
-
-There are a few different ways to do this, I thought this one was
-the most concise. See:
-https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity
-"""
-function gini(rows)
-    counts = classCounts(rows)
-    impurity = 1
-    for lbl in keys(counts)
-        prob_of_lbl = counts[lbl] / float(size(rows,1))
-        impurity -= prob_of_lbl^2
-    end
-    return impurity
-end
 
 """Information Gain.
 
@@ -159,7 +128,7 @@ two child nodes.
 """
 function infoGain(left, right, current_uncertainty)
     p = size(left,1) / (size(left,1) + size(right,1))
-    return current_uncertainty - p * gini(left) - (1 - p) * gini(right)
+    return current_uncertainty - p * giniImpurity(left) - (1 - p) * giniImpurity(right)
 end
 
 """Find the best question to ask by iterating over every feature / value
@@ -168,7 +137,7 @@ function findBestSplit(x,y;maxFeatures,splittingCriterion)
 
     best_gain           = 0  # keep track of the best information gain
     best_question       = nothing  # keep train of the feature / value that produced it
-    current_uncertainty = gini(y)
+    current_uncertainty = giniImpurity(y)
     D                   = size(x,2)  # number of columns (the last column is the label)
 
     for d in shuffle(1:D)[1:maxFeatures]      # for each feature (we consider only maxFeatures features randomly)
@@ -205,7 +174,7 @@ giant stack traces.
 criterion{“gini”, “entropy”,"mse"}
 
 """
-function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion="entropy")
+function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion = eltype(y) <: Number ? "gini" : "mse")
 
     # Check if this branch has still the minimum number of records required and we are reached the maxDepth allowed. In case, declare it a leaf
     if size(x,1) <= minRecords || depth >= maxDepth return Leaf(y, depth) end
@@ -249,7 +218,6 @@ function print(node::Union{Leaf,DecisionNode}, rootDepth="")
     else
         spacing = join(["\t" for i in 1:depth],"")
     end
-
 
     # Base case: we've reached a leaf
     if typeof(node) == Leaf

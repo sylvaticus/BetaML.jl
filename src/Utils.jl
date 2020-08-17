@@ -28,7 +28,7 @@ export @codeLocation,
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
        autoJacobian,
-       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, gini,
+       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, giniImpurity, classCounts,
        error, accuracy, meanRelError,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
@@ -439,10 +439,7 @@ Categorical accuracy with probabilistic predictions of a dataset (PMF vs Int).
 """
 function accuracy(ŷ::Array{T,2},y::Array{Int64,1};tol=1,ignoreLabels=false) where {T <: Number}
     (N,D) = size(ŷ)
-
-
     pSet = ignoreLabels ? collect(permutations(1:D)) : [collect(1:D)]
-
     bestAcc = -Inf
     for perm in pSet
         pŷ = hcat([ŷ[:,c] for c in perm]...)
@@ -513,47 +510,54 @@ bic(lL,k,n) = k*log(n)-2*lL
 """aic(lL,k) -  Akaike information criterion (lower is better)"""
 aic(lL,k)   = 2*k-2*lL
 
+"""
+classCounts(x)
+
+Return a dictionary that counts the number of each unique item (rows) in a dataset.
 
 """
-
-gini(groups,classes)
-
-groups: an array of G (N_g,D) groups (N can be different across groups)
-classes: a (K,D) matrix of K classes
-
-"""
-function gini(groups,classes)
-    # Debug
-    #groups  = [[1 2 3; 1 2 3; 3 2 1; 1 2 3; 1 2 3], [3 2 1; 3 2 1; 1 2 3; 1 3 2]]
-    #classes = [1 2 3; 3 2 1; 1 3 2]
-    # debug ends
-    G     = length(groups)
-    D     = size(classes,2)
-    K     = size(classes,1)
-    Ns    = [size(g,1) for g in groups]
-    gini = 0.0
-    for (gidx,g) in enumerate(groups)
-        #gidx = 2
-        #g = [3 2 1; 3 2 1; 1 2 3; 1 3 2]
-        N = Ns[gidx]
-        P = [sum( [g[n,:] for n in 1:N] .== Ref(classes[k,:])) / N for k in 1:K]
-        gini += (sum([P[k] * (1-P[k]) for k in 1:K]) * (N / sum(Ns)) )# last term is the weigth of relative size
+function classCounts(x)
+    dims = ndims(x)
+    if dims == 1
+        T = eltype(x)
+    else
+        T = Array{eltype(x),1}
     end
-    return gini
+    counts = Dict{T,Int64}()  # a dictionary of label -> count.
+    for i in 1:size(x,1)
+        if dims == 1
+            label = x[i]
+        else
+            label = x[i,:]
+        end
+        if !(label in keys(counts))
+            counts[label] = 1
+        else
+            counts[label] += 1
+        end
+    end
+    return counts
 end
-groups  = [[1 2 3; 1 2 3; 3 2 1; 1 2 3; 1 2 3], [3 2 1; 3 2 1; 1 2 3; 1 3 2]]
-classes = [1 2 3; 3 2 1; 1 3 2]
-groups  = [[1;1; 3; 1; 1], [3; 3; 1; 2]]
-classes = [1; 3;2]
-groups  = [[1,1,3,1,1], [3,3,1,2]]
-classes = [1,3,2]
-groups  = [[1 1; 1 0] , [1 1; 1 0] ]
-classes = [1 1; 1 0]
-groups  = [[1 0; 1 0] , [1 1; 1 1] ]
-classes = [1 1; 1 0]
-gini(groups,classes)
 
-#(N / sum(Ns))
+"""
+giniImpurity(x)
+
+Calculate the Gini Impurity for a list of items (or rows).
+
+See: https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity
+"""
+function giniImpurity(x)
+    counts = classCounts(x)
+    N = size(x,1)
+    impurity = 1.0
+    for k in keys(counts)
+        probₖ = counts[k] / N
+        impurity -= probₖ^2
+    end
+    return impurity
+end
+
+
 # ------------------------------------------------------------------------------
 # Various kernel functions (e.g. for Perceptron)
 """Radial Kernel (aka _RBF kernel_) parametrised with γ=1/2. For other gammas γᵢ use

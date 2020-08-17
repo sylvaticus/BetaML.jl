@@ -156,3 +156,18 @@ ŷ = [ŷ1,ŷ2,ŷ3,ŷ4]
 y = ["Lemon","Lemon","Apple","Lemon"]
 @test accuracy(ŷ,y) == 0.5
 @test accuracy(ŷ,y,tol=2) == 0.75
+
+# ==================================
+# New test
+println("** Testing classCounts()...")
+
+a = ["a","b","a","c","d"]
+@test classCounts(["a","b","a","c","d"]) == Dict("a"=>2,"b"=>1,"c"=>1,"d"=>1)
+@test classCounts(['a' 'b'; 'a' 'c';'a' 'b']) == Dict(['a', 'b'] => 2,['a', 'c'] => 1)
+
+
+# ==================================
+# New test
+println("** Testing giniImpurity()...")
+@test giniImpurity(['a','b','c','c']) == 0.625 # (1/4) * (3/4) + (2/4) * (2/4) + (1/4)*(3/4)
+@test giniImpurity([1 10; 2 20; 3 30; 2 20]) == 0.625

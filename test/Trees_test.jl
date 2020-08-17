@@ -23,20 +23,6 @@ xtrain = [
 ]
 
 ytrain = ["Apple",  "Apple", "Grape", "Grape", "Lemon"]
-
-#q1 = Question(1,"Green")
-#q2 = Question(2,3)
-#p1,p2 = partition(training_data,q1)
-#infoGain(p1,p2,gini(training_data))
-#p1,p2 = partition(training_data,q2)
-
-#a = ["a","b","a","c","d"]
-#c = class_counts(a)
-#gini([1 2 3; 2 3 3; 4 3 3])
-#gini([1 2 3; 2 3 1; 4 3 2; 2 3 4; 1 2 5])
-#gini(training_data)
-#findBestSplit(training_data)
-
 myTree = buildTree(xtrain,ytrain)
 
 #print(myTree)
@@ -81,3 +67,12 @@ ŷtest = predict(myTree, xtest)
 
 
 print(myTree)
+
+a = [1,2,3]
+
+for i in 1:size(a,1)
+
+    println(a[i,:])
+end
+
+ndims(a)
