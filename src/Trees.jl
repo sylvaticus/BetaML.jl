@@ -3,8 +3,10 @@ module Trees
 using LinearAlgebra, Random,  Reexport
 @reexport using ..Utils
 
-export fitTrees, predictTrees
+export buildTree, predict, printPredictions, print
 
+
+# Decision trees:
 
 # based on https://www.youtube.com/watch?v=LDRbO9a6XPU
 # https://github.com/random-forests/tutorials/blob/master/decision_tree.ipynb
@@ -37,9 +39,22 @@ This holds a dictionary of class (e.g., "Apple") -> number of times
 it appears in the rows from the training data that reach this leaf.
 """
 mutable struct Leaf
+    rawPredictions
     predictions
-    function Leaf(rows)
-        return new(class_counts(rows))
+    function Leaf(data)
+        T = eltype(data[:,end])
+        println(data)
+        println(T)
+        if eltype(data[:,end]) <: Number
+            rawPredictions = data[:,end]
+            prediction = mean(rawPredictions)
+        else
+            rawPredictions = classCounts(data)
+            total = sum(values(rawPredictions))
+            predictions = Dict{T,Float64}()
+            [predictions[k] = rawPredictions[k] / total for k in keys(rawPredictions)]
+        end
+        return new(rawPredictions,predictions)
     end
 end
 
@@ -47,11 +62,11 @@ end
 
 This holds a reference to the question, and to the two child nodes.
 """
-mutable struct Decision_Node
+mutable struct DecisionNode
     question
     true_branch
     false_branch
-    function Decision_Node(question,true_branch,false_branch)
+    function DecisionNode(question,true_branch,false_branch)
         return new(question,true_branch,false_branch)
     end
 end
@@ -106,8 +121,9 @@ function partition(data,question::Question)
 end
 
 """Counts the number of each type of example in a dataset."""
-function class_counts(data)
-    counts = Dict{Any,Int64}()  # a dictionary of label -> count.
+function classCounts(data)
+    T = eltype(data[:,end])
+    counts = Dict{T,Int64}()  # a dictionary of label -> count.
     for row in eachrow(data)
         # in our dataset format, the label is always the last column
         label = row[end]
@@ -127,7 +143,7 @@ the most concise. See:
 https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity
 """
 function gini(rows)
-    counts = class_counts(rows)
+    counts = classCounts(rows)
     impurity = 1
     for lbl in keys(counts)
         prob_of_lbl = counts[lbl] / float(size(rows,1))
@@ -141,14 +157,14 @@ end
 The uncertainty of the starting node, minus the weighted impurity of
 two child nodes.
 """
-function info_gain(left, right, current_uncertainty)
+function infoGain(left, right, current_uncertainty)
     p = size(left,1) / (size(left,1) + size(right,1))
     return current_uncertainty - p * gini(left) - (1 - p) * gini(right)
 end
 
 """Find the best question to ask by iterating over every feature / value
 and calculating the information gain."""
-function find_best_split(data)
+function findBestSplit(data)
 
     best_gain           = 0  # keep track of the best information gain
     best_question       = nothing  # keep train of the feature / value that produced it
@@ -168,7 +184,7 @@ function find_best_split(data)
                 continue
             end
             # Calculate the information gain from this split
-            gain = info_gain(true_rows, false_rows, current_uncertainty)
+            gain = infoGain(true_rows, false_rows, current_uncertainty)
             # You actually can use '>' instead of '>=' here
             # but I wanted the tree to look a certain way for our
             # toy dataset.
@@ -186,12 +202,12 @@ Rules of recursion: 1) Believe that it works. 2) Start by checking
 for the base case (no further information gain). 3) Prepare for
 giant stack traces.
 """
-function build_tree(data)
+function buildTree(data)
 
     # Try partitioing the dataset on each of the unique attribute,
     # calculate the information gain,
     # and return the question that produces the highest gain.
-    gain, question = find_best_split(data)
+    gain, question = findBestSplit(data)
 
     # Base case: no further info gain
     # Since we can ask no further questions,
@@ -205,20 +221,25 @@ function build_tree(data)
     true_rows, false_rows = partition(data, question)
 
     # Recursively build the true branch.
-    true_branch = build_tree(true_rows)
+    true_branch = buildTree(true_rows)
 
     # Recursively build the false branch.
-    false_branch = build_tree(false_rows)
+    false_branch = buildTree(false_rows)
 
     # Return a Question node.
     # This records the best feature / value to ask at this point,
     # as well as the branches to follow
     # dependingo on the answer.
-    return Decision_Node(question, true_branch, false_branch)
+    return DecisionNode(question, true_branch, false_branch)
+end
+
+function buildTree(x,y)
+    data = hcat(x,y)
+    return buildTree(data)
 end
 
 """World's most elegant tree printing function."""
-function print_tree(node, spacing="")
+function print(node::Union{Leaf,DecisionNode}, spacing="")
 
     # Base case: we've reached a leaf
     if typeof(node) == Leaf
@@ -233,16 +254,16 @@ function print_tree(node, spacing="")
 
     # Call this function recursively on the true branch
     println(spacing * "--> True:")
-    print_tree(node.true_branch, spacing * "  ")
+    print(node.true_branch, spacing * "  ")
 
     # Call this function recursively on the false branch
     println(spacing * "--> False:")
-    print_tree(node.false_branch, spacing * "  ")
+    print(node.false_branch, spacing * "  ")
 end
 
 
 """See the 'rules of recursion' above."""
-function classify(row, node)
+function predict(node::Union{DecisionNode,Leaf}, data)
     # Base case: we've reached a leaf
     if typeof(node) == Leaf
         return node.predictions
@@ -250,21 +271,16 @@ function classify(row, node)
     # Decide whether to follow the true-branch or the false-branch.
     # Compare the feature / value stored in the node,
     # to the example we're considering.
-    if match(node.question,row)
-        return classify(row, node.true_branch)
+    if match(node.question,data)
+        return predict(node.true_branch,data)
     else
-        return classify(row, node.false_branch)
+        return predict(node.false_branch,data)
     end
 end
 
-"""A nicer way to print the predictions at a leaf."""
-function print_leaf(counts)
-    total = sum(values(counts))
-    probs = Dict()
-    for lbl in keys(counts)
-        probs[lbl] = string(100 * (counts[lbl] / total)) * "%"
-    end
-    return probs
+function predict(tree::Union{DecisionNode, Leaf}, X,Y)
+    data = hcat(X,Y)
+    predictions = predict.(Ref(tree),eachrow(data))
 end
 
 

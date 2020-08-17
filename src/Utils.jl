@@ -405,6 +405,26 @@ function accuracy(ŷ::Array{T,1},y::Int64;tol=1) where {T <: Number}
     end
 end
 
+"""
+    accuracy(ŷ,y;tol)
+
+Categorical accuracy with probabilistic prediction of a single datapoint given in terms of a dictionary of probabilities (Dict{T,Float64} vs T).
+
+# Parameters:
+- `ŷ`: The returned probability mass function in terms of a Dictionary(Item1 => Prob1, Item2 => Prob2, ...)
+- `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
+"""
+function accuracy(ŷ::Dict{T,Float64},y::T;tol=1) where {T}
+    if !(y in keys(ŷ)) return 0 end
+    sIdx = sortperm(collect(values(ŷ)))[end:-1:1] # sort by decreasing values of the dictionary values
+    sKeys = collect(keys(ŷ))[sIdx][1:min(tol,length(sIdx))]  # retrieve the corresponding keys
+    if y in sKeys
+        return 1
+    else
+        return 0
+    end
+end
+
 @doc raw"""
    accuracy(ŷ,y;tol,ignoreLabels)
 
@@ -432,6 +452,23 @@ function accuracy(ŷ::Array{T,2},y::Array{Int64,1};tol=1,ignoreLabels=false) wh
         end
     end
     return bestAcc
+end
+
+@doc raw"""
+   accuracy(ŷ,y;tol)
+
+Categorical accuracy with probabilistic predictions of a dataset given in terms of a dictionary of probabilities (Dict{T,Float64} vs T).
+
+# Parameters:
+- `ŷ`: A narray where each item is the estimated probability mass function in terms of a Dictionary(Item1 => Prob1, Item2 => Prob2, ...)
+- `y`: The N array with the correct category for each point $n$.
+- `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
+
+"""
+function accuracy(ŷ::Array{Dict{T,Float64},1},y::Array{T,1};tol=1) where {T}
+    N = size(ŷ,1)
+    acc = sum([accuracy(ŷ[i],y[i],tol=tol) for i in 1:N])/N
+    return acc
 end
 
 

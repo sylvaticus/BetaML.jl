@@ -134,3 +134,25 @@ out = pca(X,error=0.05)
 @test sum(out.X) ≈ 662.3492034128955
 #X2 = out.X*out.P'
 @test out.explVarByDim ≈ [0.873992272007021,0.9999894437302522,1.0]
+
+# ==================================
+# New test
+println("** Testing accuracy() on probs given in a dictionary...")
+
+ŷ = Dict("Lemon" => 0.33, "Apple" => 0.2, "Grape" => 0.47)
+y = "Lemon"
+@test accuracy(ŷ,y) == 0
+@test accuracy(ŷ,y,tol=2) == 1
+y = "Grape"
+@test accuracy(ŷ,y) == 1
+y = "Something else"
+@test accuracy(ŷ,y) == 0
+
+ŷ1 = Dict("Lemon" => 0.6, "Apple" => 0.4)
+ŷ2 = Dict("Lemon" => 0.33, "Apple" => 0.2, "Grape" => 0.47)
+ŷ3 = Dict("Lemon" => 0.2, "Apple" => 0.5, "Grape" => 0.3)
+ŷ4 = Dict("Apple" => 0.2, "Grape" => 0.8)
+ŷ = [ŷ1,ŷ2,ŷ3,ŷ4]
+y = ["Lemon","Lemon","Apple","Lemon"]
+@test accuracy(ŷ,y) == 0.5
+@test accuracy(ŷ,y,tol=2) == 0.75
