@@ -56,6 +56,8 @@ ytest = ["Apple","Apple","Grape","Grape","Lemon"]
 ŷtest = predict(myTree, xtest)
 accuracy(ŷtest,ytest)
 
+print(myTree)
+
 # ==================================
 # NEW TEST
 # ==================================

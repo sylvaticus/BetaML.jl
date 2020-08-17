@@ -41,7 +41,8 @@ it appears in the rows from the training data that reach this leaf.
 mutable struct Leaf
     rawPredictions
     predictions
-    function Leaf(y)
+    depth
+    function Leaf(y,depth)
         T = eltype(y)
         if T <: Number
             rawPredictions = y
@@ -52,7 +53,7 @@ mutable struct Leaf
             predictions = Dict{T,Float64}()
             [predictions[k] = rawPredictions[k] / total for k in keys(rawPredictions)]
         end
-        return new(rawPredictions,predictions)
+        return new(rawPredictions,predictions,depth)
     end
 end
 
@@ -64,8 +65,9 @@ mutable struct DecisionNode
     question
     true_branch
     false_branch
-    function DecisionNode(question,true_branch,false_branch)
-        return new(question,true_branch,false_branch)
+    depth
+    function DecisionNode(question,true_branch,false_branch, depth)
+        return new(question,true_branch,false_branch, depth)
     end
 end
 
@@ -206,7 +208,7 @@ criterion{“gini”, “entropy”,"mse"}
 function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion="entropy")
 
     # Check if this branch has still the minimum number of records required and we are reached the maxDepth allowed. In case, declare it a leaf
-    if size(x,1) <= minRecords || depth >= maxDepth return Leaf(y) end
+    if size(x,1) <= minRecords || depth >= maxDepth return Leaf(y, depth) end
 
     # Try partitioing the dataset on each of the unique attribute,
     # calculate the information gain,
@@ -216,14 +218,13 @@ function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=
     # Base case: no further info gain
     # Since we can ask no further questions,
     # we'll return a leaf.
-    if gain <= minGain  return Leaf(y)  end
+    if gain <= minGain  return Leaf(y, depth)  end
 
     # If we reach here, we have found a useful feature / value
     # to partition on.
     trueIdx, falseIdx = partition(question,x)
 
     # Recursively build the true branch.
-
     true_branch = buildTree(x[trueIdx,:], y[trueIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion)
 
     # Recursively build the false branch.
@@ -233,31 +234,41 @@ function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=
     # This records the best feature / value to ask at this point,
     # as well as the branches to follow
     # dependingo on the answer.
-    return DecisionNode(question, true_branch, false_branch)
+    return DecisionNode(question, true_branch, false_branch, depth)
 end
 
 
 """World's most elegant tree printing function."""
-function print(node::Union{Leaf,DecisionNode}, spacing="")
+function print(node::Union{Leaf,DecisionNode}, rootDepth="")
+
+    depth   = node.depth
+    fullDepth = rootDepth*string(depth)*"."
+    spacing = ""
+    if depth == 1
+        println("*** Printing Decision Tree: ***")
+    else
+        spacing = join(["\t" for i in 1:depth],"")
+    end
+
 
     # Base case: we've reached a leaf
     if typeof(node) == Leaf
-        println("$spacing  Predict $(node.predictions)")
+        println("  $(node.predictions)")
         return
     end
 
     # Print the question at this node
-    print(spacing)
+    print("\n$spacing$fullDepth ")
     print(node.question)
     print("\n")
 
     # Call this function recursively on the true branch
-    println(spacing * "--> True:")
-    print(node.true_branch, spacing * "  ")
+    print(spacing * "--> True :")
+    print(node.true_branch, fullDepth)
 
     # Call this function recursively on the false branch
-    println(spacing * "--> False:")
-    print(node.false_branch, spacing * "  ")
+    print(spacing * "--> False:")
+    print(node.false_branch, fullDepth)
 end
 
 
