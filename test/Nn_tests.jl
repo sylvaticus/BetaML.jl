@@ -40,8 +40,8 @@ mynn = buildNetwork([l1,l2],squaredCost,name="Simple Multinomial logistic regres
 o1 = forward(l1,x)
 #@code_warntype forward(l1,x)
 o2 = forward(l2,o1)
-orig = predict(mynn,x')[1,:]
-#@code_warntype predict(mynn,x')[1,:]
+orig = Nn.predict(mynn,x')[1,:]
+#@code_warntype Nn.predict(mynn,x')[1,:]
 ϵ = squaredCost(o2,y)
 #@code_warntype  squaredCost(o2,y)
 lossOrig = loss(mynn,x',y')
@@ -66,8 +66,8 @@ l1dw = getGradient(l1,x,dϵ_do1)
 #@code_warntype
 dw = getGradient(mynn,x,y)
 #@code_warntype getGradient(mynn,x,y)
-y_deltax1 = predict(mynn,[x[1]+0.001 x[2]])[1,:]
-#@code_warntype predict(mynn,[x[1]+0.001 x[2]])[1,:]
+y_deltax1 = Nn.predict(mynn,[x[1]+0.001 x[2]])[1,:]
+#@code_warntype Nn.predict(mynn,[x[1]+0.001 x[2]])[1,:]
 lossDeltax1 = loss(mynn,[x[1]+0.001 x[2]],y')
 #@code_warntype
 deltaloss = dot(dϵ_dX,[0.001,0])
@@ -98,7 +98,7 @@ for i in 1:10000
     setParams!(mynn,w)
 end
 lossFinal = loss(mynn,x',y')
-@test predict(mynn,x')[1,1]>0.96
+@test Nn.predict(mynn,x')[1,1]>0.96
 setParams!(mynn,origW)
 train!(mynn,x',y',epochs=10000,batchSize=1,sequential=true,verbosity=NONE,optAlg=SGD(η=t->η,λ=1))
 #@code_warntype train!(mynn,x',y',epochs=10000,batchSize=1,sequential=true,verbosity=NONE,optAlg=SGD(η=t->η,λ=1))
@@ -126,7 +126,7 @@ train!(mynn,xtrain,ytrain,batchSize=1,sequential=true,epochs=100,verbosity=NONE,
 avgLoss = loss(mynn,xtest,ytest)
 @test  avgLoss ≈ 1.599729991966362
 expectedOutput = [0.7360644412052633, 0.7360644412052633, 0.7360644412052633, 2.47093434438514]
-predicted = dropdims(predict(mynn,xtest),dims=2)
+predicted = dropdims(Nn.predict(mynn,xtest),dims=2)
 @test any(isapprox(expectedOutput,predicted))
 
 # With the ADAM optimizer...
@@ -138,7 +138,7 @@ train!(mynn,xtrain,ytrain,batchSize=1,sequential=true,epochs=100,verbosity=NONE,
 avgLoss = loss(mynn,xtest,ytest)
 @test  avgLoss ≈ 0.9497779759064725
 expectedOutput = [1.7020525792404175, -0.1074729043392682, 1.4998367847079956, 3.3985794704732717]
-predicted = dropdims(predict(mynn,xtest),dims=2)
+predicted = dropdims(Nn.predict(mynn,xtest),dims=2)
 @test any(isapprox(expectedOutput,predicted))
 
 # ==================================
@@ -160,9 +160,9 @@ train!(mynn,xtrain,ytrain,epochs=1000,sequential=true,batchSize=1,verbosity=NONE
 avgLoss = loss(mynn,xtest,ytest)
 @test  avgLoss ≈ 0.0032018998005211886
 expectedOutput = [0.4676699631752518,0.3448383593117405,0.4500863419692639,9.908883999376018]
-predicted = dropdims(predict(mynn,xtest),dims=2)
+predicted = dropdims(Nn.predict(mynn,xtest),dims=2)
 @test any(isapprox(expectedOutput,predicted))
-#predicted = dropdims(predict(mynn,xtrain),dims=2)
+#predicted = dropdims(Nn.predict(mynn,xtrain),dims=2)
 #ytrain
 
 # ==================================
@@ -203,8 +203,8 @@ l2   = DenseLayer(10,3, w=ones(3,10), wb=zeros(3))
 l3   = VectorFunctionLayer(3,3,f=softmax)
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal")
 train!(mynn,xtrain,ytrain_oh,epochs=254,batchSize=8,sequential=true,verbosity=NONE,optAlg=SGD(η=t->0.001,λ=1))
-ŷtrain = predict(mynn,xtrain)
-ŷtest  = predict(mynn,xtest)
+ŷtrain = Nn.predict(mynn,xtrain)
+ŷtest  = Nn.predict(mynn,xtest)
 trainAccuracy = accuracy(ŷtrain,ytrain,tol=1)
 testAccuracy  = accuracy(ŷtest,ytest,tol=1)
 @test testAccuracy >= 0.8 # set to random initialisation/training to have much better accuracy
@@ -215,8 +215,8 @@ l2   = DenseLayer(10,3, w=ones(3,10), wb=zeros(3))
 l3   = VectorFunctionLayer(3,3,f=softmax)
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal")
 train!(mynn,xtrain,ytrain_oh,epochs=10,batchSize=8,sequential=true,verbosity=NONE,optAlg=ADAM(η=t -> 1/(1+t), λ=0.5))
-ŷtrain = predict(mynn,xtrain)
-ŷtest  = predict(mynn,xtest)
+ŷtrain = Nn.predict(mynn,xtrain)
+ŷtest  = Nn.predict(mynn,xtest)
 trainAccuracy = accuracy(ŷtrain,ytrain,tol=1)
 testAccuracy  = accuracy(ŷtest,ytest,tol=1)
 @test testAccuracy >= 1

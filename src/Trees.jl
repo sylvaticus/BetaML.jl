@@ -126,19 +126,37 @@ end
 The uncertainty of the starting node, minus the weighted impurity of
 two child nodes.
 """
-function infoGain(left, right, current_uncertainty)
+function infoGain(left, right, parentUncertainty; splittingCriterion)
     p = size(left,1) / (size(left,1) + size(right,1))
-    return current_uncertainty - p * giniImpurity(left) - (1 - p) * giniImpurity(right)
+    critFunction = giniImpurity
+    if splittingCriterion == "gini"
+        critFunction = giniImpurity
+    elseif splittingCriterion == "entropy"
+        critFunction = entropy
+    elseif splittingCriterion == "mse"
+        critFunction = entropy
+    else
+        @error "Splitting criterion not supported"
+    end
+    return parentUncertainty - p * critFunction(left) - (1 - p) * critFunction(right)
 end
 
 """Find the best question to ask by iterating over every feature / value
 and calculating the information gain."""
 function findBestSplit(x,y;maxFeatures,splittingCriterion)
 
-    best_gain           = 0  # keep track of the best information gain
-    best_question       = nothing  # keep train of the feature / value that produced it
-    current_uncertainty = giniImpurity(y)
-    D                   = size(x,2)  # number of columns (the last column is the label)
+    bestGain           = 0  # keep track of the best information gain
+    bestQuestion       = nothing  # keep train of the feature / value that produced it
+    if splittingCriterion == "gini"
+        currentUncertainty = giniImpurity(y)
+    elseif splittingCriterion == "entropy"
+        currentUncertainty = entropy(y)
+    elseif splittingCriterion == "mse"
+        currentUncertainty = 0.0
+    else
+        @error "Splitting criterion not defined"
+    end
+    D  = size(x,2)  # number of columns (the last column is the label)
 
     for d in shuffle(1:D)[1:maxFeatures]      # for each feature (we consider only maxFeatures features randomly)
         values = Set(skipmissing(x[:,d]))  # unique values in the column
@@ -153,16 +171,16 @@ function findBestSplit(x,y;maxFeatures,splittingCriterion)
                 continue
             end
             # Calculate the information gain from this split
-            gain = infoGain(y[trueIdx], y[falseIdx], current_uncertainty)
+            gain = infoGain(y[trueIdx], y[falseIdx], currentUncertainty, splittingCriterion=splittingCriterion)
             # You actually can use '>' instead of '>=' here
             # but I wanted the tree to look a certain way for our
             # toy dataset.
-            if gain >= best_gain
-                best_gain, best_question = gain, question
+            if gain >= bestGain
+                bestGain, bestQuestion = gain, question
             end
         end
     end
-    return best_gain, best_question
+    return bestGain, bestQuestion
 end
 
 """Builds the tree.
@@ -174,7 +192,7 @@ giant stack traces.
 criterion{“gini”, “entropy”,"mse"}
 
 """
-function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion = eltype(y) <: Number ? "gini" : "mse")
+function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion = eltype(y) <: Number ? "mse" : "gini")
 
     # Check if this branch has still the minimum number of records required and we are reached the maxDepth allowed. In case, declare it a leaf
     if size(x,1) <= minRecords || depth >= maxDepth return Leaf(y, depth) end
@@ -210,10 +228,10 @@ end
 """World's most elegant tree printing function."""
 function print(node::Union{Leaf,DecisionNode}, rootDepth="")
 
-    depth   = node.depth
+    depth     = node.depth
     fullDepth = rootDepth*string(depth)*"."
-    spacing = ""
-    if depth == 1
+    spacing   = ""
+    if depth  == 1
         println("*** Printing Decision Tree: ***")
     else
         spacing = join(["\t" for i in 1:depth],"")

@@ -27,8 +27,8 @@ myTree = buildTree(xtrain,ytrain)
 
 #print(myTree)
 
-ŷtrain = predict(myTree, xtrain)
-accuracy(ŷtrain,ytrain)
+ŷtrain = Trees.predict(myTree, xtrain)
+@test accuracy(ŷtrain,ytrain) >= 0.8
 
 xtest = [
     "Green"  3;
@@ -39,10 +39,10 @@ xtest = [
 ]
 
 ytest = ["Apple","Apple","Grape","Grape","Lemon"]
-ŷtest = predict(myTree, xtest)
-accuracy(ŷtest,ytest)
+ŷtest = Trees.predict(myTree, xtest)
+@test accuracy(ŷtest,ytest) >= 0.8
 
-print(myTree)
+#print(myTree)
 
 # ==================================
 # NEW TEST
@@ -59,20 +59,8 @@ ytrain = y[1:ntrain]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-myTree = buildTree(xtrain,ytrain);
-ŷtrain = predict(myTree, xtrain)
+myTree = buildTree(xtrain,ytrain, splittingCriterion="entropy");
+ŷtrain = Trees.predict(myTree, xtrain)
 @test accuracy(ŷtrain,ytrain) >= 0.99
-ŷtest = predict(myTree, xtest)
+ŷtest = Trees.predict(myTree, xtest)
 @test accuracy(ŷtest,ytest)  >= 0.95
-
-
-print(myTree)
-
-a = [1,2,3]
-
-for i in 1:size(a,1)
-
-    println(a[i,:])
-end
-
-ndims(a)

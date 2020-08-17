@@ -28,7 +28,7 @@ export @codeLocation,
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
        autoJacobian,
-       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, giniImpurity, classCounts,
+       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, giniImpurity, classCounts, entropy,
        error, accuracy, meanRelError,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
@@ -544,7 +544,7 @@ giniImpurity(x)
 
 Calculate the Gini Impurity for a list of items (or rows).
 
-See: https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity
+See: https://en.wikipedia.org/wiki/Decision_tree_learning#Information_gain
 """
 function giniImpurity(x)
     counts = classCounts(x)
@@ -556,6 +556,26 @@ function giniImpurity(x)
     end
     return impurity
 end
+
+"""
+entropy(x)
+
+Calculate the entropy for a list of items (or rows).
+
+See: https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity
+"""
+function entropy(x)
+    counts = classCounts(x)
+    N = size(x,1)
+    entr = 0.0
+    for k in keys(counts)
+        probₖ = counts[k] / N
+        entr -= probₖ * log2(probₖ)
+    end
+    return entr
+end
+
+
 
 
 # ------------------------------------------------------------------------------

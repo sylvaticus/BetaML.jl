@@ -171,3 +171,24 @@ a = ["a","b","a","c","d"]
 println("** Testing giniImpurity()...")
 @test giniImpurity(['a','b','c','c']) == 0.625 # (1/4) * (3/4) + (2/4) * (2/4) + (1/4)*(3/4)
 @test giniImpurity([1 10; 2 20; 3 30; 2 20]) == 0.625
+
+
+#a = -0.01*log2(0.01)
+#b = -0.99*log2(0.99)
+#c = a+b
+
+#A = -0.49*log2(0.49)
+#B = -0.51*log2(0.51)
+#C = A+B
+
+# ==================================
+# New test
+println("** Testing entropy()...")
+@test isapprox(entropy([1,2,3]), 1.584962500721156) #-(1/3)*log2(1/3)-(1/3)*log2(1/3)-(1/3)*log2(1/3)
+@test isapprox(entropy([1 10; 2 20; 3 30]), 1.584962500721156)
+#par = entropy([1,1,1,1,1,0,0,0,0,0,0,0,0,0])
+#k1 = entropy([1,1,1,0,0,0])
+#k2 = entropy([1,1,0,0,0,0,0,0])
+#kidsEntropy = k1 *(6/14) + k2*(8/14)
+#gain = par - kidsEntropy
+#entropy([0,1,2,3,4,5,6,7])
