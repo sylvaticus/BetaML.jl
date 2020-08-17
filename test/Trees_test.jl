@@ -41,8 +41,7 @@ myTree = buildTree(xtrain,ytrain)
 
 #print(myTree)
 
-ŷtrain = predict(myTree, xtrain, ytrain)
-ytrain = convert(Array{Any,1},ytrain)
+ŷtrain = predict(myTree, xtrain)
 accuracy(ŷtrain,ytrain)
 
 xtest = [
@@ -53,12 +52,9 @@ xtest = [
     "Yellow" 3
 ]
 
-ytest = Any["Apple","Apple","Grape","Grape","Lemon"]
-ŷtest = predict(myTree, xtest,ytest)
+ytest = ["Apple","Apple","Grape","Grape","Lemon"]
+ŷtest = predict(myTree, xtest)
 accuracy(ŷtest,ytest)
-
-
-
 
 # ==================================
 # NEW TEST
@@ -67,7 +63,7 @@ accuracy(ŷtest,ytest)
 println("Testing classification of the sepal database using decision trees...")
 iris     = readdlm(joinpath(@__DIR__,"data","iris_shuffled.csv"),',',skipstart=1)
 x = convert(Array{Float64,2}, iris[:,1:4])
-y = iris[:, 5]
+y = convert(Array{String,1}, iris[:,5])
 
 ntrain = Int64(round(size(x,1)*0.8))
 xtrain = x[1:ntrain,:]
@@ -76,7 +72,10 @@ xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
 myTree = buildTree(xtrain,ytrain);
-ŷtrain = predict(myTree, xtrain, ytrain)
-accuracy(ŷtrain,ytrain)
-ŷtest = predict(myTree, xtest,ytest)
-accuracy(ŷtest,ytest)
+ŷtrain = predict(myTree, xtrain)
+@test accuracy(ŷtrain,ytrain) >= 0.99
+ŷtest = predict(myTree, xtest)
+@test accuracy(ŷtest,ytest)  >= 0.95
+
+
+print(myTree)

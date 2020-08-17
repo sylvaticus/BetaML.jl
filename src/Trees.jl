@@ -41,15 +41,13 @@ it appears in the rows from the training data that reach this leaf.
 mutable struct Leaf
     rawPredictions
     predictions
-    function Leaf(data)
-        T = eltype(data[:,end])
-        println(data)
-        println(T)
-        if eltype(data[:,end]) <: Number
-            rawPredictions = data[:,end]
-            prediction = mean(rawPredictions)
+    function Leaf(y)
+        T = eltype(y)
+        if T <: Number
+            rawPredictions = y
+            prediction     = mean(rawPredictions)
         else
-            rawPredictions = classCounts(data)
+            rawPredictions = classCounts(y)
             total = sum(values(rawPredictions))
             predictions = Dict{T,Float64}()
             [predictions[k] = rawPredictions[k] / total for k in keys(rawPredictions)]
@@ -94,39 +92,39 @@ so, add it to 'true rows', otherwise, add it to 'false rows'.
 
 Rows with missing values on the question column are assigned randomply proportionally to the assignment of the non-missing rows.
 """
-function partition(data,question::Question)
-    (N,D) = size(data)
-    true_rows, false_rows, missing_rows = Array{Any,2}(undef,0,D), Array{Any,2}(undef,0,D), Array{Any,2}(undef,0,D)
-    for row in eachrow(data)
+function partition(question::Question,x)
+    N = size(x,1)
+    trueIdx = fill(false,N); falseIdx = fill(false,N); missingIdx = fill(false,N)
+    for (rIdx,row) in enumerate(eachrow(x))
         #println(row)
         if(ismissing(row[question.column]))
-            missing_rows = vcat(missing_rows,permutedims(row))
+            missingIdx[rIdx] = true
         elseif match(question,row)
-            true_rows = vcat(true_rows,permutedims(row))
+            trueIdx[rIdx] = true
         else
-            false_rows = vcat(false_rows,permutedims(row))
+            falseIdx[rIdx] = true
         end
     end
     # Assigning missing rows randomly proportionally to non-missing rows
-    p = size(true_rows,1)/(size(true_rows,1)+size(false_rows,1))
-    r = rand(size(missing_rows,1))
-    for (ridx,row) in enumerate(eachrow(missing_rows))
-        if r[ridx] <= p
-            true_rows = vcat(true_rows,permutedims(row))
-        else
-            false_rows = vcat(false_rows,permutedims(row))
+    p = sum(trueIdx)/(sum(trueIdx)+sum(falseIdx))
+    r = rand(N)
+    for rIdx in 1:N
+        if missingIdx[rIdx]
+            if r[rIdx] <= p
+                trueIdx[rIdx] = true
+            else
+                falseIdx[rIdx] = true
+            end
         end
     end
-    return true_rows, false_rows
+    return trueIdx, falseIdx
 end
 
 """Counts the number of each type of example in a dataset."""
-function classCounts(data)
-    T = eltype(data[:,end])
+function classCounts(y)
+    T = eltype(y)
     counts = Dict{T,Int64}()  # a dictionary of label -> count.
-    for row in eachrow(data)
-        # in our dataset format, the label is always the last column
-        label = row[end]
+    for label in y
         if !(label in keys(counts))
             counts[label] = 1
         else
@@ -164,27 +162,27 @@ end
 
 """Find the best question to ask by iterating over every feature / value
 and calculating the information gain."""
-function findBestSplit(data)
+function findBestSplit(x,y;maxFeatures,splittingCriterion)
 
     best_gain           = 0  # keep track of the best information gain
     best_question       = nothing  # keep train of the feature / value that produced it
-    current_uncertainty = gini(data)
-    D                   = size(data,2)-1  # number of columns (the last column is the label)
+    current_uncertainty = gini(y)
+    D                   = size(x,2)  # number of columns (the last column is the label)
 
-    for d in 1:D  # for each feature
-        values = Set(skipmissing(data[:,d]))  # unique values in the column
+    for d in shuffle(1:D)[1:maxFeatures]      # for each feature (we consider only maxFeatures features randomly)
+        values = Set(skipmissing(x[:,d]))  # unique values in the column
         for val in values  # for each value
             question = Question(d, val)
             # try splitting the dataset
-            println(question)
-            true_rows, false_rows = partition(data, question)
+            #println(question)
+            trueIdx, falseIdx = partition(question,x)
             # Skip this split if it doesn't divide the
             # dataset.
-            if size(true_rows,1) == 0 || size(false_rows,1) == 0
+            if sum(trueIdx) == 0 || sum(falseIdx) == 0
                 continue
             end
             # Calculate the information gain from this split
-            gain = infoGain(true_rows, false_rows, current_uncertainty)
+            gain = infoGain(y[trueIdx], y[falseIdx], current_uncertainty)
             # You actually can use '>' instead of '>=' here
             # but I wanted the tree to look a certain way for our
             # toy dataset.
@@ -201,30 +199,35 @@ end
 Rules of recursion: 1) Believe that it works. 2) Start by checking
 for the base case (no further information gain). 3) Prepare for
 giant stack traces.
+
+criterion{“gini”, “entropy”,"mse"}
+
 """
-function buildTree(data)
+function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion="entropy")
+
+    # Check if this branch has still the minimum number of records required and we are reached the maxDepth allowed. In case, declare it a leaf
+    if size(x,1) <= minRecords || depth >= maxDepth return Leaf(y) end
 
     # Try partitioing the dataset on each of the unique attribute,
     # calculate the information gain,
     # and return the question that produces the highest gain.
-    gain, question = findBestSplit(data)
+    gain, question = findBestSplit(x,y;maxFeatures=maxFeatures,splittingCriterion=splittingCriterion)
 
     # Base case: no further info gain
     # Since we can ask no further questions,
     # we'll return a leaf.
-    if gain == 0
-        return Leaf(data)
-    end
+    if gain <= minGain  return Leaf(y)  end
 
     # If we reach here, we have found a useful feature / value
     # to partition on.
-    true_rows, false_rows = partition(data, question)
+    trueIdx, falseIdx = partition(question,x)
 
     # Recursively build the true branch.
-    true_branch = buildTree(true_rows)
+
+    true_branch = buildTree(x[trueIdx,:], y[trueIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion)
 
     # Recursively build the false branch.
-    false_branch = buildTree(false_rows)
+    false_branch = buildTree(x[falseIdx,:], y[falseIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion)
 
     # Return a Question node.
     # This records the best feature / value to ask at this point,
@@ -233,10 +236,6 @@ function buildTree(data)
     return DecisionNode(question, true_branch, false_branch)
 end
 
-function buildTree(x,y)
-    data = hcat(x,y)
-    return buildTree(data)
-end
 
 """World's most elegant tree printing function."""
 function print(node::Union{Leaf,DecisionNode}, spacing="")
@@ -263,7 +262,7 @@ end
 
 
 """See the 'rules of recursion' above."""
-function predict(node::Union{DecisionNode,Leaf}, data)
+function predictSingle(node::Union{DecisionNode,Leaf}, x)
     # Base case: we've reached a leaf
     if typeof(node) == Leaf
         return node.predictions
@@ -271,16 +270,15 @@ function predict(node::Union{DecisionNode,Leaf}, data)
     # Decide whether to follow the true-branch or the false-branch.
     # Compare the feature / value stored in the node,
     # to the example we're considering.
-    if match(node.question,data)
-        return predict(node.true_branch,data)
+    if match(node.question,x)
+        return predictSingle(node.true_branch,x)
     else
-        return predict(node.false_branch,data)
+        return predictSingle(node.false_branch,x)
     end
 end
 
-function predict(tree::Union{DecisionNode, Leaf}, X,Y)
-    data = hcat(X,Y)
-    predictions = predict.(Ref(tree),eachrow(data))
+function predict(tree::Union{DecisionNode, Leaf}, x)
+    predictions = predictSingle.(Ref(tree),eachrow(x))
 end
 
 
