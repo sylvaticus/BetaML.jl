@@ -37,7 +37,6 @@ The module provide the following functions. Use `?[type or function]` to access 
 
 Features are expected to be in the standard format (nRecords × nDimensions matrices) and the labels (either categorical or numerical) as a nRecords column vector.
 """
-
 module Trees
 
 using LinearAlgebra, Random, Statistics, Reexport
