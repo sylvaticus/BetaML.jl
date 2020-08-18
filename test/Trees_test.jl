@@ -118,6 +118,6 @@ myForest = buildForest(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3)
 ŷtrain = Trees.predict(myForest, xtrain)
 ŷtest = Trees.predict(myTree, xtest)
 mreTrain = meanRelError(ŷtrain,ytrain)
-@test mreTrain <= 0.07
+@test mreTrain <= 0.08
 mreTest  = meanRelError(ŷtest,ytest)
-@test mreTest <= 0.3
+@test mreTest <= 0.4
