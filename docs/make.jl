@@ -1,4 +1,4 @@
-using Documenter, BetaML.Utils, BetaML.Nn, BetaML.Perceptron, BetaML.Clustering
+using Documenter, BetaML.Utils, BetaML.Nn, BetaML.Perceptron, BetaML.Clustering, BetaML.Trees
 
 push!(LOAD_PATH,"../src/")
 makedocs(sitename="BetaML.jl Documentation",
@@ -8,6 +8,7 @@ makedocs(sitename="BetaML.jl Documentation",
          pages = [
             "Index" => "index.md",
             "Perceptron" => "Perceptron.md",
+            "Trees" => "Trees.md",
             "Nn"   => "Nn.md",
             "Clustering" => "Clustering.md",
             "Utils" => "Utils.md",
