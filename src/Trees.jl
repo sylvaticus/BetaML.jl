@@ -1,6 +1,6 @@
 module Trees
 
-using LinearAlgebra, Random,  Reexport
+using LinearAlgebra, Random, Statistics, Reexport
 @reexport using ..Utils
 
 export buildTree, predict, print
@@ -43,7 +43,7 @@ mutable struct Leaf
     function Leaf(y,depth)
         if eltype(y) <: Number
             rawPredictions = y
-            prediction     = mean(rawPredictions)
+            predictions     = mean(rawPredictions)
         else
             rawPredictions = classCounts(y)
             total = sum(values(rawPredictions))
@@ -128,13 +128,14 @@ two child nodes.
 """
 function infoGain(left, right, parentUncertainty; splittingCriterion)
     p = size(left,1) / (size(left,1) + size(right,1))
+    popvar(x) = var(x,corrected=false)
     critFunction = giniImpurity
     if splittingCriterion == "gini"
         critFunction = giniImpurity
     elseif splittingCriterion == "entropy"
         critFunction = entropy
-    elseif splittingCriterion == "mse"
-        critFunction = entropy
+    elseif splittingCriterion == "variance"
+        critFunction = popvar
     else
         @error "Splitting criterion not supported"
     end
@@ -151,8 +152,8 @@ function findBestSplit(x,y;maxFeatures,splittingCriterion)
         currentUncertainty = giniImpurity(y)
     elseif splittingCriterion == "entropy"
         currentUncertainty = entropy(y)
-    elseif splittingCriterion == "mse"
-        currentUncertainty = 0.0
+    elseif splittingCriterion == "variance"
+        currentUncertainty = var(y,corrected=false)
     else
         @error "Splitting criterion not defined"
     end
@@ -192,7 +193,12 @@ giant stack traces.
 criterion{“gini”, “entropy”,"mse"}
 
 """
-function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion = eltype(y) <: Number ? "mse" : "gini")
+function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion = eltype(y) <: Number ? "variance" : "gini", forceClassification=false)
+
+    # Force what would be a regression task into a classification task
+    if forceClassification && eltype(y) <: Number
+        y = string.(y)
+    end
 
     # Check if this branch has still the minimum number of records required and we are reached the maxDepth allowed. In case, declare it a leaf
     if size(x,1) <= minRecords || depth >= maxDepth return Leaf(y, depth) end
@@ -212,10 +218,10 @@ function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=
     trueIdx, falseIdx = partition(question,x)
 
     # Recursively build the true branch.
-    true_branch = buildTree(x[trueIdx,:], y[trueIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion)
+    true_branch = buildTree(x[trueIdx,:], y[trueIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion, forceClassification=forceClassification)
 
     # Recursively build the false branch.
-    false_branch = buildTree(x[falseIdx,:], y[falseIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion)
+    false_branch = buildTree(x[falseIdx,:], y[falseIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion, forceClassification=forceClassification)
 
     # Return a Question node.
     # This records the best feature / value to ask at this point,
