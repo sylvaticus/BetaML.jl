@@ -4,7 +4,7 @@ _Machine Learning made simple :-)_
 
 <img src="assets/BetaML_logo.png" width="300" valign="middle"/> &nbsp;&nbsp;&nbsp;<img src="assets/microExample_white.png" width="500" valign="middle"/>
 
-The **Beta Machine Learning Toolkit** is a repository with several basic Machine Learning algorithms, started from implementing in the Julia language the concepts taught in the [MITX 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://www.edx.org/course/machine-learning-with-python-from-linear-models-to) course.
+The **Beta Machine Learning Toolkit** is a repository with several Machine Learning algorithms, started from implementing in the Julia language the concepts taught in the [MITX 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://www.edx.org/course/machine-learning-with-python-from-linear-models-to) course.
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://sylvaticus.github.io/BetaML.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sylvaticus.github.io/BetaML.jl/dev)
@@ -27,7 +27,7 @@ That said, Julia is a relatively fast language and most hard job is done in mult
 
 Please refer to the package documentation ([stable](https://sylvaticus.github.io/BetaML.jl/stable) | [dev](https://sylvaticus.github.io/BetaML.jl/dev)) or use the Julia inline package system (just press the question mark `?` and then, on the special help prompt `help?>`, type the module or function name).
 
-Module currently implemented are [Perceptron](https://sylvaticus.github.io/BetaML.jl/dev/Perceptron.html), [Nn](https://sylvaticus.github.io/BetaML.jl/dev/Nn.html), [Clustering](https://sylvaticus.github.io/BetaML.jl/dev/Clustering.html) and [Utils](https://sylvaticus.github.io/BetaML.jl/dev/Utils.html).
+We currently implemented the following modules: [Perceptron](https://sylvaticus.github.io/BetaML.jl/dev/Perceptron.html) (linear and kernel-based classifiers), [Trees](https://sylvaticus.github.io/BetaML.jl/dev/Trees.html) (Decision Trees and Random Forests), [Nn](https://sylvaticus.github.io/BetaML.jl/dev/Nn.html) (Neural Networks), [Clustering](https://sylvaticus.github.io/BetaML.jl/dev/Clustering.html) (Kmean, Kmenoids, Expectation-Maximisation, ...) and [Utils](https://sylvaticus.github.io/BetaML.jl/dev/Utils.html).
 
 We also provide some [notebooks](https://sylvaticus.github.io/BetaML.jl/dev/Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
 
@@ -132,7 +132,6 @@ Further examples are provided as [Jupyter notebooks](https://sylvaticus.github.i
 
 ### Mid/Long term
 
-- Support Vector Machine (if anyone request it)
 - Add convolutional layers and RNN support
 - Reinforcement learning (Markov decision processes)
 

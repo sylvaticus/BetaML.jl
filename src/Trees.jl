@@ -1,22 +1,57 @@
+"""
+  Trees.jl File
+
+Decision Trees implementation (Module BetaML.Trees)
+
+`?BetaML.Trees` for documentation
+
+- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/BetaML.jl/blob/master/src/Trees.jl) - [Julia Package](https://github.com/sylvaticus/BetaML.jl)
+- New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
+
+"""
+
+
+"""
+    BetaML.Trees module
+
+Implement the functionality required to build a Decision Tree or a whole Random Forest, predict data and assess its performances.
+
+Both Decision Trees and Random Forests can be used for regression or classification problems, based on the type of the labels (numerical or not). You can override the automatic selection with the parameter `forceClassification=true`, typically if your labels are integer representing some categories rather than numbers.
+
+Missing data on features are supported.
+
+Based originally on the [Josh Gordon's code](https://www.youtube.com/watch?v=LDRbO9a6XPU)
+
+The module provide the following functions. Use `?[type or function]` to access their full signature and detailed documentation:
+
+# Model definition and training:
+
+- `buildTree`: Build a single Decision Tree
+- `buildForest`: Build a "forest" of Decision Trees
+
+
+# Model predictions and assessment:
+
+- `predict`: Return the prediction given the feature matrix
+- `Utils.accuracy(nn)`: Categorical output accuracy
+
+Features are expected to be in the standard format (nRecords × nDimensions matrices) and the labels (either categorical or numerical) as a nRecords column vector.
+"""
+
 module Trees
 
 using LinearAlgebra, Random, Statistics, Reexport
 @reexport using ..Utils
 
-export buildTree, predict, print
-
-# Decision trees:
-
-# based on https://www.youtube.com/watch?v=LDRbO9a6XPU
-# https://github.com/random-forests/tutorials/blob/master/decision_tree.ipynb
+export buildTree, buildForest, predict, print
 import Base.print
 
-"""A Question is used to partition a dataset.
+"""
+   Question
 
-This class just records a 'column number' (e.g., 0 for Color) and a
-'column value' (e.g., Green). The 'match' method is used to compare
-the feature value in an example to the feature value stored in the
-question. See the demo below.
+A question used to partition a dataset.
+
+This struct just records a 'column number' and a 'column value' (e.g., Green).
 """
 mutable struct Question
     column
@@ -31,10 +66,19 @@ function print(question::Question)
     print("Is col $(question.column) $condition $(question.value) ?")
 end
 
-"""A Leaf node classifies data.
+"""
+   Leaf(y,depth)
 
-This holds a dictionary of class (e.g., "Apple") -> number of times
-it appears in the rows from the training data that reach this leaf.
+A tree's leaf (terminal) node.
+
+# Constructor's arguments:
+- `y`: The labels assorciated to each record (either numerical or categorical)
+- `depth`: The nodes's depth in the tree
+
+# Struct members:
+- `rawPredictions`: Either the label's count or the numerical labels of the members of the node
+- `predictions`: Either the relative label's count (i.e. a PMF) or the mean
+- `depth`: The nodes's depth in the tree
 """
 mutable struct Leaf
     rawPredictions
@@ -54,29 +98,49 @@ mutable struct Leaf
     end
 end
 
-"""A Decision Node asks a question.
+"""
+
+
+A Decision Node asks a question.
 
 This holds a reference to the question, and to the two child nodes.
 """
+
+
+"""
+   DecisionNode(question,trueBranch,falseBranch, depth)
+
+A tree's non-terminal node.
+
+# Constructor's arguments and struct members:
+- `question`: The question asked in this node
+- `trueBranch`: A reference to the "true" branch of the trees
+- `falseBranch`: A reference to the "false" branch of the trees
+- `depth`: The nodes's depth in the tree
+"""
 mutable struct DecisionNode
     question
-    true_branch
-    false_branch
+    trueBranch
+    falseBranch
     depth
-    function DecisionNode(question,true_branch,false_branch, depth)
-        return new(question,true_branch,false_branch, depth)
+    function DecisionNode(question,trueBranch,falseBranch, depth)
+        return new(question,trueBranch,falseBranch, depth)
     end
 end
 
 
 """
-Compare the feature value in an example to the
-feature value in this question.
+
+   match(question, x)
+
+Return a dicotomic answer of a question when applied to a given feature record.
+
+It compares the feature value in the given record to the value stored in the
+question.
+Numerical features are compared in terms of disequality (">="), while categorical features are compared in terms of equality ("==").
 """
-function match(question, example)
-    val = example[question.column]
-    #println(val)
-    #println(question.value)
+function match(question, x)
+    val = x[question.column]
     if isa(val, Number) # or isa(val, AbstractFloat) to consider "numeric" only floats
         return val >= question.value
     else
@@ -84,11 +148,12 @@ function match(question, example)
     end
 end
 
-"""Partitions a dataset.
+"""
+   partition(question,x)
 
-For each row in the dataset, check if it matches the question. If
-so, add it to 'true rows', otherwise, add it to 'false rows'.
+Dicotomically partitions a dataset `x` given a question.
 
+For each row in the dataset, check if it matches the question. If so, add it to 'true rows', otherwise, add it to 'false rows'.
 Rows with missing values on the question column are assigned randomply proportionally to the assignment of the non-missing rows.
 """
 function partition(question::Question,x)
@@ -121,13 +186,28 @@ end
 
 
 
-"""Information Gain.
-
-The uncertainty of the starting node, minus the weighted impurity of
-two child nodes.
 """
-function infoGain(left, right, parentUncertainty; splittingCriterion)
-    p = size(left,1) / (size(left,1) + size(right,1))
+
+   infoGain(left, right, parentUncertainty; splittingCriterion)
+
+Compute the information gain of a specific partition.
+
+Compare the "information gain" my measuring the difference betwwen the "impurity" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items.
+
+# Parameters:
+- `leftY`:  Child #1 labels
+- `rightY`: Child #2 labels
+- `parentUncertainty`: "Impurity" of the labels of the parent node
+- `splittingCriterion`: Metrics to adopt to determine the "impurity" (see below)
+
+Three "impurity" metrics are supported:
+- `gini` (categorical)
+- `entropy` (categorical)
+- `variance` (numerical)
+
+"""
+function infoGain(leftY, rightY, parentUncertainty; splittingCriterion)
+    p = size(leftY,1) / (size(leftY,1) + size(rightY,1))
     popvar(x) = var(x,corrected=false)
     critFunction = giniImpurity
     if splittingCriterion == "gini"
@@ -139,13 +219,24 @@ function infoGain(left, right, parentUncertainty; splittingCriterion)
     else
         @error "Splitting criterion not supported"
     end
-    return parentUncertainty - p * critFunction(left) - (1 - p) * critFunction(right)
+    return parentUncertainty - p * critFunction(leftY) - (1 - p) * critFunction(rightY)
 end
 
-"""Find the best question to ask by iterating over every feature / value
-and calculating the information gain."""
-function findBestSplit(x,y;maxFeatures,splittingCriterion)
+"""
+   findBestSplit(x,y;maxFeatures,splittingCriterion)
 
+Find the best possible split of the database.
+
+Find the best question to ask by iterating over every feature / value and calculating the information gain.
+
+# Parameters:
+- `x`: The feature dataset
+- `y`: The labels dataset
+- `maxFeatures`: Maximum number of (random) features to look up for the "best split"
+- `splittingCriterion`: The metric to define the "impurity" of the labels
+
+"""
+function findBestSplit(x,y;maxFeatures,splittingCriterion)
     bestGain           = 0  # keep track of the best information gain
     bestQuestion       = nothing  # keep train of the feature / value that produced it
     if splittingCriterion == "gini"
@@ -184,14 +275,30 @@ function findBestSplit(x,y;maxFeatures,splittingCriterion)
     return bestGain, bestQuestion
 end
 
-"""Builds the tree.
 
-Rules of recursion: 1) Believe that it works. 2) Start by checking
-for the base case (no further information gain). 3) Prepare for
-giant stack traces.
+"""
 
-criterion{“gini”, “entropy”,"mse"}
+   buildTree(x, y, depth; maxDepth, minGain, minRecords, maxFeatures, splittingCriterion, forceClassification)
 
+Builds (define and train) a Decision Tree.
+
+Given a dataset of features `x` and the corresponding dataset of labels `y`, recursivelly build a decision tree by finding at each node the best question to split the data untill either all the dataset is separated or a terminal condition is reached.
+The given tree is then returned.
+
+# Parameters:
+- `x`: The dataset's features (N × D)
+- `y`: The dataset's labels (N × 1)
+- `depth`: The current tree's depth. Used when calling the function recursively [def: `1`]
+- `maxDepth`: The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `N`, i.e. no limits]
+- `minGain`: The minimum information gain to allow for a node's partition [def: `0`]
+- `minRecords`:  The minimum number of records a node must holds to consider for a partition of it [def: `2`]
+- `maxFeatures`: The maximum number of (random) features to consider at each partitioning [def: `D`, i.e. look at all features]
+- `splittingCriterion`: Either `gini`, `entropy` or `variance` (see [`infoGain`](@ref) ) [def: `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]
+- `forceClassification`: Weather to force a classification task even if the labels are numerical (typically when labels are integers encoding some feature rather than representing a real cardinal measure) [def: `false`]
+
+# Notes:
+
+Missing data (in the feature dataset) are supported.
 """
 function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion = eltype(y) <: Number ? "variance" : "gini", forceClassification=false)
 
@@ -218,20 +325,25 @@ function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=
     trueIdx, falseIdx = partition(question,x)
 
     # Recursively build the true branch.
-    true_branch = buildTree(x[trueIdx,:], y[trueIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion, forceClassification=forceClassification)
+    trueBranch = buildTree(x[trueIdx,:], y[trueIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion, forceClassification=forceClassification)
 
     # Recursively build the false branch.
-    false_branch = buildTree(x[falseIdx,:], y[falseIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion, forceClassification=forceClassification)
+    falseBranch = buildTree(x[falseIdx,:], y[falseIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion, forceClassification=forceClassification)
 
     # Return a Question node.
     # This records the best feature / value to ask at this point,
     # as well as the branches to follow
     # dependingo on the answer.
-    return DecisionNode(question, true_branch, false_branch, depth)
+    return DecisionNode(question, trueBranch, falseBranch, depth)
 end
 
 
-"""World's most elegant tree printing function."""
+"""
+  print(node)
+
+Print a Decision Tree (textual)
+
+"""
 function print(node::Union{Leaf,DecisionNode}, rootDepth="")
 
     depth     = node.depth
@@ -256,15 +368,20 @@ function print(node::Union{Leaf,DecisionNode}, rootDepth="")
 
     # Call this function recursively on the true branch
     print(spacing * "--> True :")
-    print(node.true_branch, fullDepth)
+    print(node.trueBranch, fullDepth)
 
     # Call this function recursively on the false branch
     print(spacing * "--> False:")
-    print(node.false_branch, fullDepth)
+    print(node.falseBranch, fullDepth)
 end
 
 
-"""See the 'rules of recursion' above."""
+"""
+predictSingle(tree,x)
+
+Predict the label of a single feature record. See [`predict`](@ref).
+
+"""
 function predictSingle(node::Union{DecisionNode,Leaf}, x)
     # Base case: we've reached a leaf
     if typeof(node) == Leaf
@@ -274,16 +391,84 @@ function predictSingle(node::Union{DecisionNode,Leaf}, x)
     # Compare the feature / value stored in the node,
     # to the example we're considering.
     if match(node.question,x)
-        return predictSingle(node.true_branch,x)
+        return predictSingle(node.trueBranch,x)
     else
-        return predictSingle(node.false_branch,x)
+        return predictSingle(node.falseBranch,x)
     end
 end
 
+"""
+   predict(tree,x)
+
+Predict the labels of a feature dataset.
+
+For each record of the dataset, recursivelly traverse the tree to find the prediction most opportune for the given record.
+If the labels the tree has been trained with are numeric, the prediction is also numeric.
+If the labels were categorical, the prediction is a dictionary with the probabilities of each item.
+
+In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
+"""
 function predict(tree::Union{DecisionNode, Leaf}, x)
     predictions = predictSingle.(Ref(tree),eachrow(x))
+    return predictions
 end
 
+"""
+   buildForest(x, y, nTrees; maxDepth, minGain, minRecords, maxFeatures, splittingCriterion, forceClassification)
+
+Builds (define and train) a "forest of Decision Trees.
+
+See [`buildForest`](@ref). The parameters are exactly the same except here we have `nTrees` to define the number of trees in the forest [def: `30`] and the `maxFeatures` default to `√D` instead of `D`.
+
+Each individual decision tree is built using bootstrap over the data, i.e. "sampling N records with replacement" (hence, some records appear multiple times and some records do not appear in the specific tree training). The `maxFeature` to square of the features inject further variability and reduce the correlation between the forest trees.
+
+The predictions of the "forest" are then the aggregated predictions of the individual trees (from which the name "bagging": **b**oostrap **agg**regat**ing**).
+"""
+
+function buildForest(x, y, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), splittingCriterion = eltype(y) <: Number ? "variance" : "gini", forceClassification=false)
+    forest = Union{DecisionNode,Leaf}[]
+    (N,D) = size(x)
+    for i in 1:nTrees
+        toSample = rand(1:N,N)
+        boostedx = x[toSample,:]
+        boostedy = y[toSample]
+        tree = buildTree(boostedx, boostedy; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion = splittingCriterion, forceClassification=forceClassification)
+        push!(forest,tree)
+    end
+    return forest
+end
+
+"""
+predictSingle(forest,x)
+
+Predict the label of a single feature record. See [`predict`](@ref).
+
+"""
+function predictSingle(forest::Array{Union{DecisionNode,Leaf},1}, x)
+    predictions  = predictSingle.(forest,Ref(x))
+    if eltype(predictions) <: AbstractDict   # categorical
+        return meanDicts(predictions)
+    else
+        return mean(predictions)
+    end
+end
+
+"""
+   predict(forest,x)
+
+Predict the labels of a feature dataset.
+
+For each record of the dataset and each tree of the "forest", recursivelly traverse the tree to find the prediction most opportune for the given record.
+If the labels the tree has been trained with are numeric, the prediction is also numeric (the mean of the different trees predictions, in turn the mean of the labels of the training records ended in that leaf node).
+If the labels were categorical, the prediction is a dictionary with the probabilities of each item (again the probabilities of the different trees are averaged to compose the forest predictions).
+
+In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
+
+"""
+function predict(forest::Array{Union{DecisionNode,Leaf},1}, x)
+    predictions = predictSingle.(Ref(forest),eachrow(x))
+    return predictions
+end
 
 
 end

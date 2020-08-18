@@ -192,3 +192,22 @@ println("** Testing entropy()...")
 #kidsEntropy = k1 *(6/14) + k2*(8/14)
 #gain = par - kidsEntropy
 #entropy([0,1,2,3,4,5,6,7])
+
+# ==================================
+# New test
+println("** Testing meanDicts()...")
+
+a = Dict('a'=> 0.2,'b'=>0.3,'c'=>0.5)
+b = Dict('a'=> 0.3,'b'=>0.1,'d'=>0.6)
+c = Dict('b'=>0.6,'e'=>0.4)
+d = Dict('a'=>1)
+dicts = [a,b,c,d]
+@test meanDicts(dicts) == Dict('a' => 0.375,'c' => 0.125,'d' => 0.15,'e' => 0.1,'b' => 0.25)
+
+
+a = Dict(1=> 0.1,2=>0.4,3=>0.5)
+b = Dict(4=> 0.3,1=>0.1,2=>0.6)
+c = Dict(5=>0.6,4=>0.4)
+d = Dict(2=>1)
+dicts = [a,b,c,d]
+@test meanDicts(dicts)  == Dict(4 => 0.175, 2 => 0.5, 3 => 0.125, 5 => 0.15, 1 => 0.05)

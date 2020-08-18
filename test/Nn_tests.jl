@@ -159,9 +159,15 @@ mynn = buildNetwork([l1,l2],squaredCost,name="Feed-forward Neural Network Model 
 train!(mynn,xtrain,ytrain,epochs=1000,sequential=true,batchSize=1,verbosity=NONE,optAlg=SGD(η=t->0.01,λ=1))
 avgLoss = loss(mynn,xtest,ytest)
 @test  avgLoss ≈ 0.0032018998005211886
-expectedOutput = [0.4676699631752518,0.3448383593117405,0.4500863419692639,9.908883999376018]
-predicted = dropdims(Nn.predict(mynn,xtest),dims=2)
-@test any(isapprox(expectedOutput,predicted))
+ŷtestExpected = [0.4676699631752518,0.3448383593117405,0.4500863419692639,9.908883999376018]
+ŷtrain = dropdims(Nn.predict(mynn,xtrain),dims=2)
+ŷtest = dropdims(Nn.predict(mynn,xtest),dims=2)
+@test any(isapprox(ŷtest,ŷtestExpected))
+mreTrain = meanRelError(ŷtrain,ytrain)
+@test mreTrain <= 0.06
+mreTest  = meanRelError(ŷtest,ytest)
+@test mreTest <= 0.05
+
 #predicted = dropdims(Nn.predict(mynn,xtrain),dims=2)
 #ytrain
 

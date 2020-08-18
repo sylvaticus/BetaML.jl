@@ -30,10 +30,11 @@ Documentation for most algorithms can be retrieved using the inline Julia help s
 
 For a list of supported algorithms please look at the individual modules:
 
-- [**`BetaML.Perceptron`**](Perceptron.html): Perform classification tasks using the Perceptron, Kernel Perceptron or Pegasos algorithms
-- [**`BetaML.Nn`**](Nn.html): Implementation of Artificial Neural Networks
-- [**`BetaML.Clustering``**](Clustering.html): Clustering algorithms (Kmeans, Mdedoids, EM/GMM) and missing imputation / collaborative filtering / recommandation systems using clusters
-- [**`BetaML.Utils``**](Utils.html): Various utility functions (scale, one-hot, distances, kernels, pca, accuracy/error measures..)
+- [**`BetaML.Perceptron`**](Perceptron.html): The Perceptron, Kernel Perceptron and Pegasos classification algorithms;
+- [**`BetaML.Trees`**](Trees.html): The Decision Trees and Random Forests algorithms for classification or regression (with missing values supported);
+- [**`BetaML.Nn`**](Nn.html): Implementation of Artificial Neural Networks;
+- [**`BetaML.Clustering``**](Clustering.html): Clustering algorithms (Kmeans, Mdedoids, EM/GMM) and missing imputation / collaborative filtering / recommandation systems using clusters;
+- [**`BetaML.Utils``**](Utils.html): Various utility functions (scale, one-hot, distances, kernels, pca, accuracy/error measures..).
 
 ## Examples
 

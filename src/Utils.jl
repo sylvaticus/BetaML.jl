@@ -28,7 +28,7 @@ export @codeLocation,
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
        autoJacobian,
-       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, giniImpurity, classCounts, entropy,
+       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, giniImpurity, classCounts, meanDicts, entropy,
        error, accuracy, meanRelError,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
@@ -511,7 +511,7 @@ bic(lL,k,n) = k*log(n)-2*lL
 aic(lL,k)   = 2*k-2*lL
 
 """
-classCounts(x)
+   classCounts(x)
 
 Return a dictionary that counts the number of each unique item (rows) in a dataset.
 
@@ -540,7 +540,33 @@ function classCounts(x)
 end
 
 """
-giniImpurity(x)
+   meanDicts(dicts)
+
+Compute the mean of the values of an array of dictionaries.
+
+Given `dicts` an array of dictionaries, `meanDicts` first compute the union of the keys and then average the values.
+If the original valueas are probabilities (non-negative items summing to 1), the result is also a probability distribution.
+
+"""
+function meanDicts(dicts)
+    T = eltype(keys(dicts[1]))
+    allkeys = union([keys(i) for i in dicts]...)
+    outDict = Dict{T,Float64}()
+    ndicts = length(dicts)
+    for k in allkeys
+        v = 0
+        for d in dicts
+            if k in keys(d)
+                v += d[k]/ndicts
+            end
+        end
+        outDict[k] = v
+    end
+    return outDict
+end
+
+"""
+   giniImpurity(x)
 
 Calculate the Gini Impurity for a list of items (or rows).
 
@@ -558,7 +584,7 @@ function giniImpurity(x)
 end
 
 """
-entropy(x)
+   entropy(x)
 
 Calculate the entropy for a list of items (or rows).
 
@@ -574,9 +600,6 @@ function entropy(x)
     end
     return entr
 end
-
-
-
 
 # ------------------------------------------------------------------------------
 # Various kernel functions (e.g. for Perceptron)

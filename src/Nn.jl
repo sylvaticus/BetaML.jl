@@ -619,7 +619,7 @@ Train a neural network with the given x,y data
     - `ADAM`,  an adaptive moment estimation optimiser
 - Look at the individual optimisation algorithm (`?[Name OF THE ALGORITHM]`) for info on its parameter, e.g. [`?SGD`](@ref SGD) for the Stochastic Gradient Descent.
 - You can implement your own optimisation algorithm using a subtype of `OptimisationAlgorithm` and implementing its constructor and the update function `singleUpdate!(⋅)` (type `?singleUpdate!` for details).
-- You can implement your own callback function, altought the one provided by default is already pretty generic (its output depends on the `verbosity` parameter). @see [`trainingInfo`](@ref) for informations on the cb parameters.
+- You can implement your own callback function, altought the one provided by default is already pretty generic (its output depends on the `verbosity` parameter). See [`trainingInfo`](@ref) for informations on the cb parameters.
 - Both the callback function and the [`singleUpdate!`](@ref) function of the optimisation algorithm can be used to stop the training algorithm, respectively returning `true` or `stop=true`.
 - The verbosity can be set to any of `NONE`,`LOW`,`STD`,`HIGH`,`FULL`.
 - The update is done computing the average gradient for each batch and then calling `singleUpdate!` to let the optimisation algorithm perform the parameters update
