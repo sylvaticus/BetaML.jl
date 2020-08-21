@@ -33,7 +33,8 @@ The module provide the following functions. Use `?[type or function]` to access 
 # Model predictions and assessment:
 
 - `predict`: Return the prediction given the feature matrix
-- `Utils.accuracy(nn)`: Categorical output accuracy
+- `Utils.accuracy(tree or forest)`: Categorical output accuracy
+- `Utils.mearRelError(tree or forest,p)`: L-p norm based error
 
 Features are expected to be in the standard format (nRecords × nDimensions matrices) and the labels (either categorical or numerical) as a nRecords column vector.
 """
