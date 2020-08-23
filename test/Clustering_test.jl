@@ -1,9 +1,8 @@
 using Test
 #using DelimitedFiles, LinearAlgebra
 
-import Random:seed!
-seed!(123)
-
+using StableRNGs
+rng = StableRNG(123)
 using BetaML.Clustering
 
 

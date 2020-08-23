@@ -1,10 +1,10 @@
 using Test
-using DelimitedFiles, LinearAlgebra
+using DelimitedFiles, LinearAlgebra, MLDatasets
 
-import Random:seed!
-seed!(123)
-
+using StableRNGs
+rng = StableRNG(123)
 using BetaML.Nn
+
 
 
 println("*** Testing Neural Network...")
@@ -226,3 +226,17 @@ ŷtest  = Nn.predict(mynn,xtest)
 trainAccuracy = accuracy(ŷtrain,ytrain,tol=1)
 testAccuracy  = accuracy(ŷtest,ytest,tol=1)
 @test testAccuracy >= 1
+
+
+# ==================================
+# NEW TEST
+# ==================================
+println("Testing colvolution layer with MINST data...")
+train_x, train_y = MNIST.traindata()
+test_x,  test_y  = MNIST.testdata()
+
+test = train_x[:,:,1]
+
+eltype(test)
+
+test .+ 1

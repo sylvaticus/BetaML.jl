@@ -2,9 +2,8 @@ using Statistics
 using Test
 using DelimitedFiles
 
-import Random:seed!
-seed!(1234)
-
+using StableRNGs
+rng = StableRNG(123)
 using BetaML.Perceptron
 
 println("*** Testing Perceptron algorithms...")

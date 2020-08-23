@@ -1,5 +1,6 @@
 using Test, Statistics
-
+using StableRNGs
+rng = StableRNG(123)
 using BetaML.Utils
 
 println("*** Testing individual utility functions (module `Utils`)...")
