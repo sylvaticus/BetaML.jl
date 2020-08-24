@@ -105,7 +105,7 @@ ŷtrain2 = Trees.predict(myForest, xtrain,weights=treesWeights)
 ŷtest2 = Trees.predict(myForest, xtest,weights=treesWeights)
 @test accuracy(ŷtest2,ytest)  >= 0.96
 
-
+oobError = oobEstimation(myForest,notUsedData,xtrain,ytrain)
 
 
 # ==================================
@@ -134,3 +134,5 @@ mreTrain = meanRelError(ŷtrain2,ytrain)
 @test mreTrain <= 0.08
 mreTest  = meanRelError(ŷtest2,ytest)
 @test mreTest <= 0.4
+
+oobError = oobEstimation(myForest,notUsedData,xtrain,ytrain)

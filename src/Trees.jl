@@ -43,7 +43,7 @@ module Trees
 using LinearAlgebra, Random, Statistics, Reexport
 @reexport using ..Utils
 
-export buildTree, buildForest, computeTreesWeights, predict, print
+export buildTree, buildForest, computeTreesWeights, oobEstimation, predictSingle, predict, print
 import Base.print
 
 """
@@ -475,7 +475,7 @@ Predict the labels of a feature dataset.
 
 For each record of the dataset and each tree of the "forest", recursivelly traverse the tree to find the prediction most opportune for the given record.
 If the labels the tree has been trained with are numeric, the prediction is also numeric (the mean of the different trees predictions, in turn the mean of the labels of the training records ended in that leaf node).
-If the labels were categorical, the prediction is a dictionary with the probabilities of each item (again the probabilities of the different trees are averaged to compose the forest predictions).
+If the labels were categorical, the prediction is a dictionary with the probabilities of each item and in such case the probabilities of the different trees are averaged to compose the forest predictions. This is a bit different than most other implementations where the mode instead is reported.
 
 In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 
@@ -494,8 +494,8 @@ end
 Compute the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
 
 """
-function computeTreesWeights(forest::Array{Union{DecisionNode,Leaf},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false,β=1)
-    weights = []
+function computeTreesWeights(forest::Array{Union{DecisionNode,Leaf},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false,β=50)
+    weights = Float64[]
     jobIsRegression = (forceClassification || !(eltype(y) <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     for (i,tree) in enumerate(forest)
         yoob = y[notSampledByTree[i]]
@@ -509,5 +509,27 @@ function computeTreesWeights(forest::Array{Union{DecisionNode,Leaf},1},notSample
     return weights
 end
 
+function oobEstimation(forest::Array{Union{DecisionNode,Leaf},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false)
+    T = eltype(y)
+    jobIsRegression = (forceClassification || !(T <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
+    B = length(forest)
+    N = size(x,1)
+    if jobIsRegression
+        ŷ = Array{Float64,1}(undef,N)
+    else
+        ŷ = Array{Dict{T,Float64},1}(undef,N)
+    end
+
+    for (n,x) in enumerate(eachrow(x))
+        unseenTrees  = in.(n,notSampledByTree)
+        unseenForest = forest[(1:B)[unseenTrees]]
+        ŷ[n] = predictSingle(unseenForest,x)
+    end
+    if jobIsRegression
+        return meanRelError(ŷ,y)
+    else
+        return error(ŷ,y)
+    end
+end
 
 end
