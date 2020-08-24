@@ -94,12 +94,18 @@ ytrain = y[1:ntrain]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-myForest = buildForest(xtrain,ytrain);
-
+myForest, notUsedData = buildForest(xtrain,ytrain);
+treesWeights = computeTreesWeights(myForest,notUsedData,xtrain,ytrain,β=1)
 ŷtrain = Trees.predict(myForest, xtrain)
 @test accuracy(ŷtrain,ytrain) >= 0.99
 ŷtest = Trees.predict(myForest, xtest)
 @test accuracy(ŷtest,ytest)  >= 0.96
+ŷtrain2 = Trees.predict(myForest, xtrain,weights=treesWeights)
+@test accuracy(ŷtrain2,ytrain) >= 0.99
+ŷtest2 = Trees.predict(myForest, xtest,weights=treesWeights)
+@test accuracy(ŷtest2,ytest)  >= 0.96
+
+
 
 
 # ==================================
@@ -113,10 +119,18 @@ ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtrain[i] for (i,x) in enumerate(eachrow(xtra
 xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
 ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest))]
 
-myForest = buildForest(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3)
+myForest, notUsedData = buildForest(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3)
+treesWeights  = computeTreesWeights(myForest,notUsedData,xtrain,ytrain,β=100)
 ŷtrain = Trees.predict(myForest, xtrain)
-ŷtest = Trees.predict(myTree, xtest)
+ŷtest = Trees.predict(myForest, xtest)
 mreTrain = meanRelError(ŷtrain,ytrain)
 @test mreTrain <= 0.08
 mreTest  = meanRelError(ŷtest,ytest)
+@test mreTest <= 0.4
+
+ŷtrain2 = Trees.predict(myForest, xtrain,weights=treesWeights)
+ŷtest2 = Trees.predict(myForest, xtest,weights=treesWeights)
+mreTrain = meanRelError(ŷtrain2,ytrain)
+@test mreTrain <= 0.08
+mreTest  = meanRelError(ŷtest2,ytest)
 @test mreTest <= 0.4

@@ -473,6 +473,8 @@ end
 error(ŷ::Array{T,1},y::Int64;tol=1) where {T <: Number} = 1 - accuracy(ŷ,y;tol=tol)
 """ error(ŷ,y) - Categorical error with probabilistic predictions of a dataset (PMF vs Int). """
 error(ŷ::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number} = 1 - accuracy(ŷ,y;tol=tol)
+""" error(ŷ,y) - Categorical error with with probabilistic predictions of a dataset given in terms of a dictionary of probabilities (Dict{T,Float64} vs T). """
+error(ŷ::Array{Dict{T,Float64},1},y::Array{T,1};tol=1) where {T} = 1 - accuracy(ŷ,y;tol=tol)
 
 """
   meanRelError(ŷ,y;normDim=true,normRec=true,p=1)
@@ -548,20 +550,22 @@ Given `dicts` an array of dictionaries, `meanDicts` first compute the union of t
 If the original valueas are probabilities (non-negative items summing to 1), the result is also a probability distribution.
 
 """
-function meanDicts(dicts)
+function meanDicts(dicts; weights=ones(length(dicts)))
     T = eltype(keys(dicts[1]))
     allkeys = union([keys(i) for i in dicts]...)
     outDict = Dict{T,Float64}()
     ndicts = length(dicts)
+    totWeights = sum(weights)
     for k in allkeys
         v = 0
-        for d in dicts
+        for (i,d) in enumerate(dicts)
             if k in keys(d)
-                v += d[k]/ndicts
+                v += (d[k])*(weights[i]/totWeights)
             end
         end
         outDict[k] = v
     end
+
     return outDict
 end
 

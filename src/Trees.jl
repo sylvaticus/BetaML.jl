@@ -43,7 +43,7 @@ module Trees
 using LinearAlgebra, Random, Statistics, Reexport
 @reexport using ..Utils
 
-export buildTree, buildForest, predict, print
+export buildTree, buildForest, computeTreesWeights, predict, print
 import Base.print
 
 """
@@ -423,38 +423,53 @@ See [`buildForest`](@ref). The parameters are exactly the same except here we ha
 Each individual decision tree is built using bootstrap over the data, i.e. "sampling N records with replacement" (hence, some records appear multiple times and some records do not appear in the specific tree training). The `maxFeature` to square of the features inject further variability and reduce the correlation between the forest trees.
 
 The predictions of the "forest" are then the aggregated predictions of the individual trees (from which the name "bagging": **b**oostrap **agg**regat**ing**).
+
+The function returns a touple whose first argument is the forest ityself (array of Trees) and the second one is an array with the ids of the records that has _not_ being used to train the specific tree.
 """
 
 function buildForest(x, y, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), splittingCriterion = eltype(y) <: Number ? "variance" : "gini", forceClassification=false)
     forest = Union{DecisionNode,Leaf}[]
+    errors = Float64[]
+    notSampledByTree = Array{Int64,1}[] # to later compute the Out of Bag Error
+
+    #jobIsRegression = (forceClassification || !(eltype(y) <: Number ) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     (N,D) = size(x)
+
     for i in 1:nTrees
         toSample = rand(1:N,N)
-        boostedx = x[toSample,:]
-        boostedy = y[toSample]
-        tree = buildTree(boostedx, boostedy; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion = splittingCriterion, forceClassification=forceClassification)
+        notToSample = setdiff(1:N,toSample)
+        bootstrappedx = x[toSample,:] # "boosted is different than "bootstrapped": https://towardsdatascience.com/random-forest-and-its-implementation-71824ced454f
+        bootstrappedy = y[toSample]
+        #controlx = x[notToSample,:]
+        #controly = y[notToSample]
+        tree = buildTree(bootstrappedx, bootstrappedy; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion = splittingCriterion, forceClassification=forceClassification)
+        #ŷ = predict(tree,controlx)
         push!(forest,tree)
+        push!(notSampledByTree,notToSample)
     end
-    return forest
+    return (forest,notSampledByTree)
 end
 
 """
-predictSingle(forest,x)
+predictSingle(forest,x;weights)
 
 Predict the label of a single feature record. See [`predict`](@ref).
+Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 
 """
-function predictSingle(forest::Array{Union{DecisionNode,Leaf},1}, x)
+function predictSingle(forest::Array{Union{DecisionNode,Leaf},1}, x;weights=ones(length(forest)))
     predictions  = predictSingle.(forest,Ref(x))
     if eltype(predictions) <: AbstractDict   # categorical
-        return meanDicts(predictions)
+        #weights = 1 .- treesErrors # back to the accuracy
+        return meanDicts(predictions,weights=weights)
     else
-        return mean(predictions)
+        #weights = exp.( - treesErrors)
+        return dot(predictions,weights)/sum(weights)
     end
 end
 
 """
-   predict(forest,x)
+   predict(forest,x;weights)
 
 Predict the labels of a feature dataset.
 
@@ -464,10 +479,34 @@ If the labels were categorical, the prediction is a dictionary with the probabil
 
 In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 
+Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
+
 """
-function predict(forest::Array{Union{DecisionNode,Leaf},1}, x)
-    predictions = predictSingle.(Ref(forest),eachrow(x))
+function predict(forest::Array{Union{DecisionNode,Leaf},1}, x; weights=ones(length(forest)))
+    predictions = predictSingle.(Ref(forest),eachrow(x); weights = weights)
     return predictions
+end
+
+
+"""
+   computeTreesWeights(forest,notSampledByTree,x,y;forceClassification,β)
+
+Compute the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
+
+"""
+function computeTreesWeights(forest::Array{Union{DecisionNode,Leaf},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false,β=1)
+    weights = []
+    jobIsRegression = (forceClassification || !(eltype(y) <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
+    for (i,tree) in enumerate(forest)
+        yoob = y[notSampledByTree[i]]
+        ŷ = predict(tree,x[notSampledByTree[i],:])
+        if jobIsRegression
+            push!(weights,exp(- β*meanRelError(ŷ,yoob)))
+        else
+            push!(weights,accuracy(ŷ,yoob)*β)
+        end
+    end
+    return weights
 end
 
 
