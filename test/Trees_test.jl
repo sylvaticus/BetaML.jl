@@ -59,7 +59,7 @@ ytrain = y[1:ntrain]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-myTree = buildTree(xtrain,ytrain, splittingCriterion="entropy");
+myTree = buildTree(xtrain,ytrain, splittingCriterion=entropy);
 ŷtrain = Trees.predict(myTree, xtrain)
 @test accuracy(ŷtrain,ytrain) >= 0.99
 ŷtest = Trees.predict(myTree, xtest)
@@ -97,8 +97,10 @@ ytrain = y[1:ntrain]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-myForest, notUsedData = buildForest(xtrain,ytrain);
-treesWeights = computeTreesWeights(myForest,notUsedData,xtrain,ytrain,β=1)
+forestClassifier = buildForest(xtrain,ytrain,β=1,oob=true)
+myForest = forestClassifier[:forest]
+treesWeights = forestClassifier[:weights]
+oobError = forestClassifier[:oobError]
 ŷtrain = Trees.predict(myForest, xtrain)
 @test accuracy(ŷtrain,ytrain) >= 0.99
 ŷtest = Trees.predict(myForest, xtest)
@@ -107,8 +109,8 @@ ŷtrain2 = Trees.predict(myForest, xtrain,weights=treesWeights)
 @test accuracy(ŷtrain2,ytrain) >= 0.99
 ŷtest2 = Trees.predict(myForest, xtest,weights=treesWeights)
 @test accuracy(ŷtest2,ytest)  >= 0.96
+@test oobError <= 0.07
 
-oobError = oobEstimation(myForest,notUsedData,xtrain,ytrain)
 
 
 # ==================================
@@ -122,11 +124,13 @@ ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtrain[i] for (i,x) in enumerate(eachrow(xtra
 xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
 ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest))]
 
-myForest, notUsedData = buildForest(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3)
-treesWeights  = computeTreesWeights(myForest,notUsedData,xtrain,ytrain,β=100)
-ŷtrain = Trees.predict(myForest, xtrain)
-ŷtest = Trees.predict(myForest, xtest)
-mreTrain = meanRelError(ŷtrain,ytrain)
+forestClassifier = buildForest(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3, β=100)
+myForest         = forestClassifier[:forest]
+treesWeights     = forestClassifier[:weights]
+
+ŷtrain           = Trees.predict(myForest, xtrain)
+ŷtest            = Trees.predict(myForest, xtest)
+mreTrain         = meanRelError(ŷtrain,ytrain)
 @test mreTrain <= 0.08
 mreTest  = meanRelError(ŷtest,ytest)
 @test mreTest <= 0.4
@@ -138,4 +142,14 @@ mreTrain = meanRelError(ŷtrain2,ytrain)
 mreTest  = meanRelError(ŷtest2,ytest)
 @test mreTest <= 0.4
 
-oobError = oobEstimation(myForest,notUsedData,xtrain,ytrain)
+# ==================================
+# NEW TEST
+println("Testing all possible combinations...")
+xtrain = [1 "pippo" 1.5; 3 "topolino" 2.5; 1 "amanda" 5.2; 5 "zzz" 1.2]
+ytrain = [x[2][1] <= 'q' ? 5*x[1]-2*x[3] : -5*x[1]+2*x[3] for x in eachrow(xtrain)]
+ytrainInt = Int64.(round.(ytrain))
+myTree1 = buildTree(xtrain,ytrain)
+myTree2 = buildTree(xtrain,ytrainInt)
+myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true)
+
+@test typeof(myTree1) <: Trees.DecisionNode && typeof(myTree2) <: Trees.DecisionNode && typeof(myTree3) <: Trees.DecisionNode

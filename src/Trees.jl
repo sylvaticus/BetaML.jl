@@ -87,15 +87,13 @@ A tree's leaf (terminal) node.
 - `depth`: The nodes's depth in the tree
 """
 struct Leaf{Ty} <: AbstractLeaf
-    predictions::Union{Ty,Dict{Ty,Float64}}
+    predictions::Union{Number,Dict{Ty,Float64}}
     depth::Int64
     function Leaf(y::Array{Ty,1},depth::Int64) where {Ty}
         if eltype(y) <: Number
             rawPredictions = y
             predictions    = mean(rawPredictions)
         else
-            #println(y)
-            #println(eltype(y))
             rawPredictions = classCounts(y)
             total = sum(values(rawPredictions))
             predictions = Dict{Ty,Float64}()
@@ -105,9 +103,7 @@ struct Leaf{Ty} <: AbstractLeaf
     end
 end
 
-
 """
-
 
 A Decision Node asks a question.
 
@@ -148,7 +144,7 @@ It compares the feature value in the given record to the value stored in the
 question.
 Numerical features are compared in terms of disequality (">="), while categorical features are compared in terms of equality ("==").
 """
-function match(question::Question{Tx}, x::AbstractArray) where {Tx}
+function match(question::Question{Tx}, x) where {Tx}
     val = x[question.column]
     if Tx <: Number
     #if isa(val, Number) # or isa(val, AbstractFloat) to consider "numeric" only floats
@@ -291,7 +287,7 @@ The given tree is then returned.
 
 Missing data (in the feature dataset) are supported.
 """
-function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion = Ty <: Number ? variance : gini, forceClassification=false) where {Ty}
+function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini) where {Ty}
 
     #println(depth)
     # Force what would be a regression task into a classification task
@@ -408,18 +404,27 @@ end
 """
    buildForest(x, y, nTrees; maxDepth, minGain, minRecords, maxFeatures, splittingCriterion, forceClassification)
 
-Builds (define and train) a "forest of Decision Trees.
+Builds (define and train) a "forest" of Decision Trees.
 
-See [`buildForest`](@ref). The parameters are exactly the same except here we have `nTrees` to define the number of trees in the forest [def: `30`] and the `maxFeatures` default to `√D` instead of `D`.
 
-Each individual decision tree is built using bootstrap over the data, i.e. "sampling N records with replacement" (hence, some records appear multiple times and some records do not appear in the specific tree training). The `maxFeature` to square of the features inject further variability and reduce the correlation between the forest trees.
+# Parameters:
+See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with the `maxFeatures` defaulting to `√D` instead of `D`) plus the following parameters:
+- `nTrees`: Number of trees in the forest [def: `30`]
+- `β`: Parameter that regulate the weights of the scoring of each tree, to be (optionally) used in prediction (see later) [def: `0`, i.e. uniform weigths]
+- `oob`: Wheter to report the out-of-bag error, an estimation of the generalization accuracy [def: `false`]
 
-The predictions of the "forest" are then the aggregated predictions of the individual trees (from which the name "bagging": **b**oostrap **agg**regat**ing**).
+# Output:
+The function returns a named touple with the following elements:
+- `forest`: the forest ityself (array of Trees)
+- `weights`: the per-tree weight based on their accuracy [def: to array of ones if `β ≤ 0`]
+- `oob`:   the estimate of the oob error [def: to `+Inf` if `oob` == `false`]
 
-The function returns a touple whose first argument is the forest ityself (array of Trees) and the second one is an array with the ids of the records that has _not_ being used to train the specific tree.
+# Notes :
+- Each individual decision tree is built using bootstrap over the data, i.e. "sampling N records with replacement" (hence, some records appear multiple times and some records do not appear in the specific tree training). The `maxFeature` injects further variability and reduces the correlation between the forest trees.
+- The predictions of the "forest" (using the function `predict()`) are then the aggregated predictions of the individual trees (from which the name "bagging": **b**oostrap **agg**regat**ing**).
+- This function optionally reports a weight distribution of the performances of eanch individual trees, as measured using the records he has not being trained with. These weights can then be (optionally) used in the `predict` function. The parameter `β ≥ 0` regulate the distribution of these weights: larger is `β`, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of β depends on the problem under exam (and the chosen caratteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
 """
-
-function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), splittingCriterion = Ty <: Number ? variance : gini, forceClassification=false) where {Ty}
+function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, β=0, oob=false) where {Ty}
     # Force what would be a regression task into a classification task
     if forceClassification && Ty <: Number
         y = string.(y)
@@ -443,7 +448,16 @@ function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain
         push!(forest,tree)
         push!(notSampledByTree,notToSample)
     end
-    return (forest,notSampledByTree)
+
+    weigths = ones(Float64,nTrees)
+    if β > 0
+        weigths = computeTreesWeights(forest, notSampledByTree, x, y, forceClassification=forceClassification, β=β)
+    end
+    oobE = +Inf
+    if oob
+        oobE = oobError(forest,notSampledByTree,x,y,forceClassification = forceClassification)
+    end
+    return (forest=forest,weights=weigths,oobError=oobE)
 end
 
 """
@@ -505,7 +519,7 @@ function computeTreesWeights(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf
     return weights
 end
 
-function oobEstimation(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false) where {Ty}
+function oobError(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false) where {Ty}
     jobIsRegression = (forceClassification || !(Ty <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     B = length(forest)
     N = size(x,1)
