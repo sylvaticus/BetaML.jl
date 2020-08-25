@@ -54,9 +54,9 @@ A question used to partition a dataset.
 This struct just records a 'column number' and a 'column value' (e.g., Green).
 """
 abstract type AbstractQuestion end
-struct Question{T} <: AbstractQuestion
+struct Question{Tx} <: AbstractQuestion
     column::Int64
-    value::T
+    value::Tx
 end
 
 function print(question::Question)
@@ -69,6 +69,7 @@ end
 
 abstract type AbstractNode end
 abstract type AbstractDecisionNode <: AbstractNode end
+abstract type AbstractDecisionNodeTy{Ty} <: AbstractDecisionNode end
 abstract type AbstractLeaf <: AbstractNode end
 
 """
@@ -104,21 +105,6 @@ struct Leaf{Ty} <: AbstractLeaf
     end
 end
 
-#=
-function Leaf(y::Array{T,1},depth::Int64) where {T}
-    if eltype(y) <: Number # TODO replace eltype with T
-        rawPredictions = y
-        predictions     = mean(rawPredictions)
-    else
-        rawPredictions = classCounts(y)
-        total = sum(values(rawPredictions))
-        predictions = Dict{eltype(y),Float64}()
-        [predictions[k] = rawPredictions[k] / total for k in keys(rawPredictions)]
-    end
-    return Leaf(predictions,depth)
-end
-=#
-
 
 """
 
@@ -140,13 +126,14 @@ A tree's non-terminal node.
 - `falseBranch`: A reference to the "false" branch of the trees
 - `depth`: The nodes's depth in the tree
 """
-struct DecisionNode{Ty} <: AbstractDecisionNode
-    question::AbstractQuestion
-    trueBranch::Union{DecisionNode{Ty},Leaf{Ty}}
-    falseBranch::Union{DecisionNode{Ty},Leaf{Ty}}
+struct DecisionNode{Tx,Ty} <: AbstractDecisionNodeTy{Ty}
+    # Note that a decision node is indeed type unstable, as it host other decision nodes whose X type could be different (different X features can have different type)
+    question::Question{Tx}
+    trueBranch::Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}}
+    falseBranch::Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}}
     depth::Int64
-    function DecisionNode(question,trueBranch::Union{DecisionNode{Ty},Leaf{Ty}},falseBranch::Union{DecisionNode{Ty},Leaf{Ty}}, depth) where {Ty}
-        return new{Ty}(question,trueBranch,falseBranch, depth)
+    function DecisionNode(question::Question{Tx},trueBranch::Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},falseBranch::Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}}, depth) where {Tx,Ty}
+        return new{Tx,Ty}(question,trueBranch,falseBranch, depth)
     end
 end
 
@@ -161,9 +148,10 @@ It compares the feature value in the given record to the value stored in the
 question.
 Numerical features are compared in terms of disequality (">="), while categorical features are compared in terms of equality ("==").
 """
-function match(question, x)
+function match(question::Question{Tx}, x::AbstractArray) where {Tx}
     val = x[question.column]
-    if isa(val, Number) # or isa(val, AbstractFloat) to consider "numeric" only floats
+    if Tx <: Number
+    #if isa(val, Number) # or isa(val, AbstractFloat) to consider "numeric" only floats
         return val >= question.value
     else
         return val == question.value
@@ -178,7 +166,7 @@ Dicotomically partitions a dataset `x` given a question.
 For each row in the dataset, check if it matches the question. If so, add it to 'true rows', otherwise, add it to 'false rows'.
 Rows with missing values on the question column are assigned randomply proportionally to the assignment of the non-missing rows.
 """
-function partition(question::Question,x)
+function partition(question::Question{Tx},x) where {Tx}
     N = size(x,1)
     trueIdx = fill(false,N); falseIdx = fill(false,N); missingIdx = fill(false,N)
     for (rIdx,row) in enumerate(eachrow(x))
@@ -220,28 +208,17 @@ Compare the "information gain" my measuring the difference betwwen the "impurity
 - `leftY`:  Child #1 labels
 - `rightY`: Child #2 labels
 - `parentUncertainty`: "Impurity" of the labels of the parent node
-- `splittingCriterion`: Metrics to adopt to determine the "impurity" (see below)
+- `splittingCriterion`: Metric to adopt to determine the "impurity" (see below)
 
-Three "impurity" metrics are supported:
+You can use your own function as the metric. We provide the following built-in metrics:
 - `gini` (categorical)
 - `entropy` (categorical)
 - `variance` (numerical)
 
 """
-function infoGain(leftY, rightY, parentUncertainty; splittingCriterion)
+function infoGain(leftY, rightY, parentUncertainty; splittingCriterion=gini)
     p = size(leftY,1) / (size(leftY,1) + size(rightY,1))
-    popvar(x) = var(x,corrected=false)
-    critFunction = giniImpurity
-    if splittingCriterion == "gini"
-        critFunction = giniImpurity
-    elseif splittingCriterion == "entropy"
-        critFunction = entropy
-    elseif splittingCriterion == "variance"
-        critFunction = popvar
-    else
-        @error "Splitting criterion not supported"
-    end
-    return parentUncertainty - p * critFunction(leftY) - (1 - p) * critFunction(rightY)
+    return parentUncertainty - p * splittingCriterion(leftY) - (1 - p) * splittingCriterion(rightY)
 end
 
 """
@@ -258,18 +235,10 @@ Find the best question to ask by iterating over every feature / value and calcul
 - `splittingCriterion`: The metric to define the "impurity" of the labels
 
 """
-function findBestSplit(x,y;maxFeatures,splittingCriterion)
+function findBestSplit(x,y::Array{Ty,1};maxFeatures,splittingCriterion=gini) where {Ty}
     bestGain           = 0  # keep track of the best information gain
     bestQuestion       = nothing  # keep train of the feature / value that produced it
-    if splittingCriterion == "gini"
-        currentUncertainty = giniImpurity(y)
-    elseif splittingCriterion == "entropy"
-        currentUncertainty = entropy(y)
-    elseif splittingCriterion == "variance"
-        currentUncertainty = var(y,corrected=false)
-    else
-        @error "Splitting criterion not defined"
-    end
+    currentUncertainty = splittingCriterion(y)
     D  = size(x,2)  # number of columns (the last column is the label)
 
     for d in shuffle(1:D)[1:maxFeatures]      # for each feature (we consider only maxFeatures features randomly)
@@ -322,7 +291,7 @@ The given tree is then returned.
 
 Missing data (in the feature dataset) are supported.
 """
-function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion = Ty <: Number ? "variance" : "gini", forceClassification=false) where {Ty}
+function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion = Ty <: Number ? variance : gini, forceClassification=false) where {Ty}
 
     #println(depth)
     # Force what would be a regression task into a classification task
@@ -367,7 +336,7 @@ end
 Print a Decision Tree (textual)
 
 """
-function print(node::Union{Leaf{Ty},DecisionNode{Ty}}, rootDepth="") where {Ty}
+function print(node::AbstractNode, rootDepth="")
 
     depth     = node.depth
     fullDepth = rootDepth*string(depth)*"."
@@ -405,7 +374,7 @@ predictSingle(tree,x)
 Predict the label of a single feature record. See [`predict`](@ref).
 
 """
-function predictSingle(node::Union{DecisionNode{Ty},Leaf{Ty}}, x) where {Ty}
+function predictSingle(node::Union{DecisionNode{Tx,Ty},Leaf{Ty}}, x) where {Tx,Ty}
     # Base case: we've reached a leaf
     if typeof(node) <: Leaf
         return node.predictions
@@ -431,7 +400,7 @@ If the labels were categorical, the prediction is a dictionary with the probabil
 
 In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 """
-function predict(tree::Union{DecisionNode{Ty}, Leaf{Ty}}, x) where {Ty}
+function predict(tree::Union{DecisionNode{Tx,Ty}, Leaf{Ty}}, x) where {Tx,Ty}
     predictions = predictSingle.(Ref(tree),eachrow(x))
     return predictions
 end
@@ -450,12 +419,12 @@ The predictions of the "forest" are then the aggregated predictions of the indiv
 The function returns a touple whose first argument is the forest ityself (array of Trees) and the second one is an array with the ids of the records that has _not_ being used to train the specific tree.
 """
 
-function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), splittingCriterion = Ty <: Number ? "variance" : "gini", forceClassification=false) where {Ty}
+function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), splittingCriterion = Ty <: Number ? variance : gini, forceClassification=false) where {Ty}
     # Force what would be a regression task into a classification task
     if forceClassification && Ty <: Number
         y = string.(y)
     end
-    forest = Union{DecisionNode{Ty},Leaf{Ty}}[]
+    forest = Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}}[]
     errors = Float64[]
     notSampledByTree = Array{Int64,1}[] # to later compute the Out of Bag Error
 
@@ -484,7 +453,7 @@ Predict the label of a single feature record. See [`predict`](@ref).
 Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 
 """
-function predictSingle(forest::Array{Union{DecisionNode{Ty},Leaf{Ty}},1}, x;weights=ones(length(forest))) where {Ty}
+function predictSingle(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1}, x;weights=ones(length(forest))) where {Ty}
     predictions  = predictSingle.(forest,Ref(x))
     if eltype(predictions) <: AbstractDict   # categorical
         #weights = 1 .- treesErrors # back to the accuracy
@@ -509,7 +478,7 @@ In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess th
 Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 
 """
-function predict(forest::Array{Union{DecisionNode{Ty},Leaf{Ty}},1}, x; weights=ones(length(forest))) where {Ty}
+function predict(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1}, x; weights=ones(length(forest))) where {Ty}
     predictions = predictSingle.(Ref(forest),eachrow(x); weights = weights)
     return predictions
 end
@@ -521,7 +490,7 @@ end
 Compute the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
 
 """
-function computeTreesWeights(forest::Array{Union{DecisionNode{Ty},Leaf{Ty}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false,β=50) where {Ty}
+function computeTreesWeights(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false,β=50) where {Ty}
     weights = Float64[]
     jobIsRegression = (forceClassification || !(Ty <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     for (i,tree) in enumerate(forest)
@@ -536,7 +505,7 @@ function computeTreesWeights(forest::Array{Union{DecisionNode{Ty},Leaf{Ty}},1},n
     return weights
 end
 
-function oobEstimation(forest::Array{Union{DecisionNode{Ty},Leaf{Ty}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false) where {Ty}
+function oobEstimation(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false) where {Ty}
     jobIsRegression = (forceClassification || !(Ty <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     B = length(forest)
     N = size(x,1)
