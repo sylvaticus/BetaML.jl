@@ -317,11 +317,11 @@ The given tree is then returned.
 
 Missing data (in the feature dataset) are supported.
 """
-function buildTree(x, y::Array{T,1}, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion = eltype(y) <: Number ? "variance" : "gini", forceClassification=false) where {T}
+function buildTree(x, y::Array{T,1}, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion = T <: Number ? "variance" : "gini", forceClassification=false) where {T}
 
     #println(depth)
     # Force what would be a regression task into a classification task
-    if forceClassification && eltype(y) <: Number
+    if forceClassification && T <: Number
         y = string.(y)
     end
 
@@ -445,13 +445,12 @@ The predictions of the "forest" are then the aggregated predictions of the indiv
 The function returns a touple whose first argument is the forest ityself (array of Trees) and the second one is an array with the ids of the records that has _not_ being used to train the specific tree.
 """
 
-function buildForest(x, y, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), splittingCriterion = eltype(y) <: Number ? "variance" : "gini", forceClassification=false)
+function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), splittingCriterion = Ty <: Number ? "variance" : "gini", forceClassification=false) where {Ty}
     # Force what would be a regression task into a classification task
-    if forceClassification && eltype(y) <: Number
+    if forceClassification && Ty <: Number
         y = string.(y)
     end
-    Tl = eltype(y)
-    forest = Union{DecisionNode,Leaf{Tl}}[]
+    forest = Union{DecisionNode,Leaf{Ty}}[]
     errors = Float64[]
     notSampledByTree = Array{Int64,1}[] # to later compute the Out of Bag Error
 
@@ -480,7 +479,7 @@ Predict the label of a single feature record. See [`predict`](@ref).
 Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 
 """
-function predictSingle(forest::Array{Union{DecisionNode,Leaf{Tl}},1}, x;weights=ones(length(forest))) where {Tl}
+function predictSingle(forest::Array{Union{DecisionNode,Leaf{Ty}},1}, x;weights=ones(length(forest))) where {Ty}
     predictions  = predictSingle.(forest,Ref(x))
     if eltype(predictions) <: AbstractDict   # categorical
         #weights = 1 .- treesErrors # back to the accuracy
@@ -505,7 +504,7 @@ In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess th
 Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 
 """
-function predict(forest::Array{Union{DecisionNode,Leaf{Tl}},1}, x; weights=ones(length(forest))) where {Tl}
+function predict(forest::Array{Union{DecisionNode,Leaf{Ty}},1}, x; weights=ones(length(forest))) where {Ty}
     predictions = predictSingle.(Ref(forest),eachrow(x); weights = weights)
     return predictions
 end
@@ -517,9 +516,9 @@ end
 Compute the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
 
 """
-function computeTreesWeights(forest::Array{Union{DecisionNode,Leaf{Tl}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false,β=50) where {Tl}
+function computeTreesWeights(forest::Array{Union{DecisionNode,Leaf{Ty}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false,β=50) where {Ty}
     weights = Float64[]
-    jobIsRegression = (forceClassification || !(eltype(y) <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
+    jobIsRegression = (forceClassification || !(Ty <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     for (i,tree) in enumerate(forest)
         yoob = y[notSampledByTree[i]]
         ŷ = predict(tree,x[notSampledByTree[i],:])
@@ -532,15 +531,14 @@ function computeTreesWeights(forest::Array{Union{DecisionNode,Leaf{Tl}},1},notSa
     return weights
 end
 
-function oobEstimation(forest::Array{Union{DecisionNode,Leaf{Tl}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false) where {Tl}
-    T = eltype(y) #TODO: not needed, should comes from Tl
-    jobIsRegression = (forceClassification || !(T <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
+function oobEstimation(forest::Array{Union{DecisionNode,Leaf{Ty}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false) where {Ty}
+    jobIsRegression = (forceClassification || !(Ty <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     B = length(forest)
     N = size(x,1)
     if jobIsRegression
         ŷ = Array{Float64,1}(undef,N)
     else
-        ŷ = Array{Dict{T,Float64},1}(undef,N)
+        ŷ = Array{Dict{Ty,Float64},1}(undef,N)
     end
 
     for (n,x) in enumerate(eachrow(x))

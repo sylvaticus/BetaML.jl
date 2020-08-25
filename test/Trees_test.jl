@@ -5,6 +5,9 @@ using StableRNGs
 rng = StableRNG(123)
 using BetaML.Trees
 
+import BetaML.Trees:Leaf
+
+Leaf([1.1,2.1,3.1],2)
 
 println("*** Testing Decision trees/Random Forest algorithms...")
 
