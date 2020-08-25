@@ -228,15 +228,17 @@ testAccuracy  = accuracy(ŷtest,ytest,tol=1)
 @test testAccuracy >= 1
 
 
-# ==================================
-# NEW TEST
-# ==================================
-println("Testing colvolution layer with MINST data...")
-train_x, train_y = MNIST.traindata()
-test_x,  test_y  = MNIST.testdata()
+if "all" in ARGS
+    # ==================================
+    # NEW TEST
+    # ==================================
+    println("Testing colvolution layer with MINST data...")
+    train_x, train_y = MNIST.traindata()
+    test_x,  test_y  = MNIST.testdata()
 
-test = train_x[:,:,1]
+    test = train_x[:,:,1]
 
-eltype(test)
+    eltype(test)
 
-test .+ 1
+    test .+ 1
+end

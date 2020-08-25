@@ -131,6 +131,8 @@ plot(minVarRange,[sphAcc diagAcc fullAcc[:,1] fullAcc[:,15] fullAcc[:,30]], mark
 - **Further examples**
 
 We also provide [some Jupyter notebooks](Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
+Finally, you may want to give a look at the ["test" folder](https://github.com/sylvaticus/BetaML.jl/tree/master/test). While the primary reason of the scripts under the "test" folder is to provide automatic testing of the BetaML toolkit, they can also be used to see how functions should be called, as virtually all functions provided by BetaML are tested there.
+
 
 ## Acknowledgements
 

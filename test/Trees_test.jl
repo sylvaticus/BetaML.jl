@@ -102,11 +102,11 @@ myForest = forestClassifier[:forest]
 treesWeights = forestClassifier[:weights]
 oobError = forestClassifier[:oobError]
 ŷtrain = Trees.predict(myForest, xtrain)
-@test accuracy(ŷtrain,ytrain) >= 0.99
+@test accuracy(ŷtrain,ytrain) >= 0.98
 ŷtest = Trees.predict(myForest, xtest)
 @test accuracy(ŷtest,ytest)  >= 0.96
 ŷtrain2 = Trees.predict(myForest, xtrain,weights=treesWeights)
-@test accuracy(ŷtrain2,ytrain) >= 0.99
+@test accuracy(ŷtrain2,ytrain) >= 0.98
 ŷtest2 = Trees.predict(myForest, xtest,weights=treesWeights)
 @test accuracy(ŷtest2,ytest)  >= 0.96
 @test oobError <= 0.07
