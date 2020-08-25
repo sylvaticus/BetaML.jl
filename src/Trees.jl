@@ -53,9 +53,9 @@ A question used to partition a dataset.
 
 This struct just records a 'column number' and a 'column value' (e.g., Green).
 """
-mutable struct Question
-    column
-    value
+struct Question{T}
+    column::Int64
+    value::T
 end
 
 function print(question::Question)
@@ -80,23 +80,40 @@ A tree's leaf (terminal) node.
 - `predictions`: Either the relative label's count (i.e. a PMF) or the mean
 - `depth`: The nodes's depth in the tree
 """
-mutable struct Leaf
-    rawPredictions
-    predictions
-    depth
-    function Leaf(y,depth)
+struct Leaf{T}
+    predictions::Union{T,Dict{T,Float64}}
+    depth::Int64
+    function Leaf(y::Array{T,1},depth::Int64) where {T}
         if eltype(y) <: Number
             rawPredictions = y
-            predictions     = mean(rawPredictions)
+            predictions    = mean(rawPredictions)
         else
+            #println(y)
+            #println(eltype(y))
             rawPredictions = classCounts(y)
             total = sum(values(rawPredictions))
             predictions = Dict{eltype(y),Float64}()
             [predictions[k] = rawPredictions[k] / total for k in keys(rawPredictions)]
         end
-        return new(rawPredictions,predictions,depth)
+        new{T}(predictions,depth)
     end
 end
+
+#=
+function Leaf(y::Array{T,1},depth::Int64) where {T}
+    if eltype(y) <: Number # TODO replace eltype with T
+        rawPredictions = y
+        predictions     = mean(rawPredictions)
+    else
+        rawPredictions = classCounts(y)
+        total = sum(values(rawPredictions))
+        predictions = Dict{eltype(y),Float64}()
+        [predictions[k] = rawPredictions[k] / total for k in keys(rawPredictions)]
+    end
+    return Leaf(predictions,depth)
+end
+=#
+
 
 """
 
@@ -118,11 +135,11 @@ A tree's non-terminal node.
 - `falseBranch`: A reference to the "false" branch of the trees
 - `depth`: The nodes's depth in the tree
 """
-mutable struct DecisionNode
+struct DecisionNode
     question
     trueBranch
     falseBranch
-    depth
+    depth::Int64
     function DecisionNode(question,trueBranch,falseBranch, depth)
         return new(question,trueBranch,falseBranch, depth)
     end
@@ -300,8 +317,9 @@ The given tree is then returned.
 
 Missing data (in the feature dataset) are supported.
 """
-function buildTree(x, y, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion = eltype(y) <: Number ? "variance" : "gini", forceClassification=false)
+function buildTree(x, y::Array{T,1}, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), splittingCriterion = eltype(y) <: Number ? "variance" : "gini", forceClassification=false) where {T}
 
+    #println(depth)
     # Force what would be a regression task into a classification task
     if forceClassification && eltype(y) <: Number
         y = string.(y)
@@ -382,9 +400,9 @@ predictSingle(tree,x)
 Predict the label of a single feature record. See [`predict`](@ref).
 
 """
-function predictSingle(node::Union{DecisionNode,Leaf}, x)
+function predictSingle(node::Union{DecisionNode,Leaf{Tl}}, x) where {Tl}
     # Base case: we've reached a leaf
-    if typeof(node) == Leaf
+    if typeof(node) <: Leaf
         return node.predictions
     end
     # Decide whether to follow the true-branch or the false-branch.
@@ -408,7 +426,7 @@ If the labels were categorical, the prediction is a dictionary with the probabil
 
 In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 """
-function predict(tree::Union{DecisionNode, Leaf}, x)
+function predict(tree::Union{DecisionNode, Leaf{Tl}}, x) where {Tl}
     predictions = predictSingle.(Ref(tree),eachrow(x))
     return predictions
 end
@@ -428,7 +446,12 @@ The function returns a touple whose first argument is the forest ityself (array 
 """
 
 function buildForest(x, y, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), splittingCriterion = eltype(y) <: Number ? "variance" : "gini", forceClassification=false)
-    forest = Union{DecisionNode,Leaf}[]
+    # Force what would be a regression task into a classification task
+    if forceClassification && eltype(y) <: Number
+        y = string.(y)
+    end
+    Tl = eltype(y)
+    forest = Union{DecisionNode,Leaf{Tl}}[]
     errors = Float64[]
     notSampledByTree = Array{Int64,1}[] # to later compute the Out of Bag Error
 
@@ -457,7 +480,7 @@ Predict the label of a single feature record. See [`predict`](@ref).
 Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 
 """
-function predictSingle(forest::Array{Union{DecisionNode,Leaf},1}, x;weights=ones(length(forest)))
+function predictSingle(forest::Array{Union{DecisionNode,Leaf{Tl}},1}, x;weights=ones(length(forest))) where {Tl}
     predictions  = predictSingle.(forest,Ref(x))
     if eltype(predictions) <: AbstractDict   # categorical
         #weights = 1 .- treesErrors # back to the accuracy
@@ -482,7 +505,7 @@ In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess th
 Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 
 """
-function predict(forest::Array{Union{DecisionNode,Leaf},1}, x; weights=ones(length(forest)))
+function predict(forest::Array{Union{DecisionNode,Leaf{Tl}},1}, x; weights=ones(length(forest))) where {Tl}
     predictions = predictSingle.(Ref(forest),eachrow(x); weights = weights)
     return predictions
 end
@@ -494,7 +517,7 @@ end
 Compute the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
 
 """
-function computeTreesWeights(forest::Array{Union{DecisionNode,Leaf},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false,β=50)
+function computeTreesWeights(forest::Array{Union{DecisionNode,Leaf{Tl}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false,β=50) where {Tl}
     weights = Float64[]
     jobIsRegression = (forceClassification || !(eltype(y) <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     for (i,tree) in enumerate(forest)
@@ -509,8 +532,8 @@ function computeTreesWeights(forest::Array{Union{DecisionNode,Leaf},1},notSample
     return weights
 end
 
-function oobEstimation(forest::Array{Union{DecisionNode,Leaf},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false)
-    T = eltype(y)
+function oobEstimation(forest::Array{Union{DecisionNode,Leaf{Tl}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false) where {Tl}
+    T = eltype(y) #TODO: not needed, should comes from Tl
     jobIsRegression = (forceClassification || !(T <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     B = length(forest)
     N = size(x,1)
