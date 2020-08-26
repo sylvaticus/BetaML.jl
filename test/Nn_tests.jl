@@ -92,8 +92,8 @@ loss2 = loss(mynn,x',y')
 #@code_warntype
 @test loss2 < lossOrig
 for i in 1:10000
-    w  = getParams(mynn)
-    dw = getGradient(mynn,x,y)
+    local w  = getParams(mynn)
+    local dw = getGradient(mynn,x,y)
     w  = w - dw * η
     setParams!(mynn,w)
 end

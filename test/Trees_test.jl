@@ -109,8 +109,7 @@ ŷtrain2 = Trees.predict(myForest, xtrain,weights=treesWeights)
 @test accuracy(ŷtrain2,ytrain) >= 0.98
 ŷtest2 = Trees.predict(myForest, xtest,weights=treesWeights)
 @test accuracy(ŷtest2,ytest)  >= 0.96
-@test oobError <= 0.07
-
+@test oobError <= 0.1
 
 
 # ==================================

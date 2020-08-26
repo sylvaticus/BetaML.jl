@@ -15,7 +15,7 @@ The **Beta Machine Learning Toolkit** is a repository with several Machine Learn
 Theoretical notes describing most of these algorithms are at the companion repository https://github.com/sylvaticus/MITx_6.86x.
 
 The focus of the library is mostly didactic, as the code is not heavily optimised and GPU is not supported.
-For deep learning in Julia with huge datasets I suggest to use either [Flux](https://fluxml.ai/) or [Knet](https://github.com/denizyuret/Knet.jl) that both supports GPU and distributed computation on clusters.
+For deep learning in Julia with huge datasets I suggest to use either [Flux](https://fluxml.ai/) or [Knet](https://github.com/denizyuret/Knet.jl) that both supports GPU and distributed computation; for Decision Trees and Random Forests a well-tested package in Julia is [DecisionTree](https://github.com/bensadeghi/DecisionTree.jl).
 
 As the focus is mainly didactic, functions have pretty longer but more explicit names than usual.. for example the `Dense` layer is a `DenseLayer`, the `RBF` kernel is `radialKernel`, etc.
 As we didn't aim for heavy optimisation, we were able to keep the API (Application Programming Interface) both beginner-friendly and flexible. Contrary to established packages, most methods provide reasonable defaults that can be overridden when needed (like the neural network optimiser, the verbosity level, or the loss function).

@@ -423,20 +423,22 @@ The function returns a named touple with the following elements:
 - Each individual decision tree is built using bootstrap over the data, i.e. "sampling N records with replacement" (hence, some records appear multiple times and some records do not appear in the specific tree training). The `maxFeature` injects further variability and reduces the correlation between the forest trees.
 - The predictions of the "forest" (using the function `predict()`) are then the aggregated predictions of the individual trees (from which the name "bagging": **b**oostrap **agg**regat**ing**).
 - This function optionally reports a weight distribution of the performances of eanch individual trees, as measured using the records he has not being trained with. These weights can then be (optionally) used in the `predict` function. The parameter `β ≥ 0` regulate the distribution of these weights: larger is `β`, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of β depends on the problem under exam (and the chosen caratteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
+- Note that this function uses muiltiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
 """
 function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, β=0, oob=false) where {Ty}
     # Force what would be a regression task into a classification task
     if forceClassification && Ty <: Number
         y = string.(y)
     end
-    forest = Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}}[]
+    forest           = Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1}(undef,nTrees)
+    notSampledByTree = Array{Array{Int64,1},1}(undef,nTrees) # to later compute the Out of Bag Error
+
     errors = Float64[]
-    notSampledByTree = Array{Int64,1}[] # to later compute the Out of Bag Error
 
     #jobIsRegression = (forceClassification || !(eltype(y) <: Number ) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     (N,D) = size(x)
 
-    for i in 1:nTrees
+    Threads.@threads for i in 1:nTrees
         toSample = rand(1:N,N)
         notToSample = setdiff(1:N,toSample)
         bootstrappedx = x[toSample,:] # "boosted is different than "bootstrapped": https://towardsdatascience.com/random-forest-and-its-implementation-71824ced454f
@@ -445,8 +447,8 @@ function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain
         #controly = y[notToSample]
         tree = buildTree(bootstrappedx, bootstrappedy; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion = splittingCriterion, forceClassification=forceClassification)
         #ŷ = predict(tree,controlx)
-        push!(forest,tree)
-        push!(notSampledByTree,notToSample)
+        forest[i] = tree
+        notSampledByTree[i] = notToSample
     end
 
     weigths = ones(Float64,nTrees)
