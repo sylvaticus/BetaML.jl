@@ -27,11 +27,6 @@ xtrain = [
 ytrain = ["Apple",  "Apple", "Grape", "Grape", "Lemon"]
 myTree = buildTree(xtrain,ytrain)
 
-
-b = xtrain[[false,false,true,true,false],:]
-
-#print(myTree)
-
 ŷtrain = Trees.predict(myTree, xtrain)
 @test accuracy(ŷtrain,ytrain) >= 0.8
 
@@ -154,4 +149,4 @@ myTree1 = buildTree(xtrain,ytrain)
 myTree2 = buildTree(xtrain,ytrainInt)
 myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true)
 
-@test typeof(myTree1) <: Trees.DecisionNode && typeof(myTree2) <: Trees.DecisionNode && typeof(myTree3) <: Trees.DecisionNode
+@test typeof(myTree1) <: Trees.Tree && typeof(myTree2) <: Trees.Tree && typeof(myTree3) <: Trees.Tree
