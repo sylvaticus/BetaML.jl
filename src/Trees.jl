@@ -69,15 +69,35 @@ end
 
 abstract type AbstractNode end
 abstract type AbstractDecisionNode <: AbstractNode end
-#abstract type AbstractDecisionNodeTy{Ty} <: AbstractDecisionNode end
 abstract type AbstractLeaf <: AbstractNode end
 
+"""
+    Tree{Ty}
 
+Type representing an individual Decision Tree.
+
+Nodes are stored in the array `nodes`. The "type" of the tree is given by the type of its labels
+
+"""
 struct Tree{Ty}
-    nodes::Array{AbstractNode,1}
+    nodes::Array{AbstractNode,1} # Array of nodes
     type::DataType
 end
 
+"""
+    Forest{Ty}
+
+Type representing a Random Forest.
+
+Individual trees are stored in the array `trees`. The "type" of the forest is given by the type of the labels on which it has been trained.
+
+# Struct members:
+- `trees`:        The individual Decision Trees
+- `isRegression`: Wheter the forest is to be used for regression jobs or classification
+- `oobData`:      For each tree, the rows number if the data that have _not_ being used to train the specific tree
+- `oobError`:     The out of bag error (if it has been computed)
+- `weights`:      A weight for each tree depending on the tree's score on the oobData (see [`buildForest`](@ref))
+"""
 mutable struct Forest{Ty}
     trees::Array{Tree{Ty},1}
     isRegression::Bool
@@ -92,11 +112,10 @@ end
 A tree's leaf (terminal) node.
 
 # Constructor's arguments:
-- `y`: The labels assorciated to each record (either numerical or categorical)
+- `y`: The labels associated to each record (either numerical or categorical)
 - `depth`: The nodes's depth in the tree
 
 # Struct members:
-- `rawPredictions`: Either the label's count or the numerical labels of the members of the node
 - `predictions`: Either the relative label's count (i.e. a PMF) or the mean
 - `depth`: The nodes's depth in the tree
 """
@@ -119,23 +138,15 @@ struct Leaf{Ty} <: AbstractLeaf
 end
 
 """
-
-A Decision Node asks a question.
-
-This holds a reference to the question, and to the two child nodes.
-"""
-
-
-"""
-   DecisionNode(question,trueBranch,falseBranch, depth)
+   DecisionNode(question,trueNodeId,falseNodeId,depth)
 
 A tree's non-terminal node.
 
 # Constructor's arguments and struct members:
-- `question`: The question asked in this node
-- `trueBranch`: A reference to the "true" branch of the trees
-- `falseBranch`: A reference to the "false" branch of the trees
-- `depth`: The nodes's depth in the tree
+- `question`:    The question asked in this node
+- `trueNodeId`:  The position in the array of the node representing the "true" branch
+- `falseNodeId`: The position in the array of the node representing the  "false" branch of the trees
+- `depth`:       The nodes's depth in the tree
 """
 mutable struct DecisionNode{Tx} <: AbstractDecisionNode
     # Note that a decision node is indeed type unstable, as it host other decision nodes whose X type could be different (different X features can have different type)
@@ -151,7 +162,7 @@ end
 
 """
 
-   match(question, x)
+   match(question, val)
 
 Return a dicotomic answer of a question when applied to a given feature record.
 
@@ -161,7 +172,6 @@ Numerical features are compared in terms of disequality (">="), while categorica
 """
 function match(question::Question{Tx}, val::Tx) where {Tx}
     if Tx <: Number
-    #if isa(val, Number) # or isa(val, AbstractFloat) to consider "numeric" only floats
         return val >= question.value
     else
         return val == question.value
@@ -169,12 +179,12 @@ function match(question::Question{Tx}, val::Tx) where {Tx}
 end
 
 """
-   partition(question,x,xids)
+   partition(question,x,rIds)
 
 Dicotomically partitions a dataset `x` given a question.
 
-For each of the rows xids in the dataset x, check if it matches the question. If so, add the row id to 'true rows', otherwise, add it to 'false rows'.
-Rows with missing values on the question column are assigned randomply proportionally to the assignment of the non-missing rows.
+For each of the rows rIds in the dataset x, check if they match the question. If so, add the row ids to 'true rows', otherwise, add them to the 'false rows'.
+Rows with missing values on the question column are assigned randomly, proportionally to the assignment of the non-missing rows.
 """
 function partition(question::Question{Tx},x,rIds) where {Tx}
     N = size(x,1)
@@ -204,10 +214,7 @@ function partition(question::Question{Tx},x,rIds) where {Tx}
     return trueRIds, falseRIds
 end
 
-
-
 """
-
    infoGain(left, right, parentUncertainty; splittingCriterion)
 
 Compute the information gain of a specific partition.
@@ -232,7 +239,7 @@ function infoGain(leftY, rightY, parentUncertainty; splittingCriterion=gini)
 end
 
 """
-   findBestSplit(x,y;maxFeatures,splittingCriterion)
+   findBestSplit(x,y,rIds;maxFeatures,splittingCriterion)
 
 Find the best possible split of the database.
 
@@ -241,6 +248,7 @@ Find the best question to ask by iterating over every feature / value and calcul
 # Parameters:
 - `x`: The feature dataset
 - `y`: The labels dataset
+- `rIds`: The rows ids on which to work
 - `maxFeatures`: Maximum number of (random) features to look up for the "best split"
 - `splittingCriterion`: The metric to define the "impurity" of the labels
 
@@ -278,8 +286,7 @@ end
 
 
 """
-
-   buildTree(x, y, depth; maxDepth, minGain, minRecords, maxFeatures, splittingCriterion, forceClassification)
+   buildTree(x, y; maxDepth, minGain, minRecords, maxFeatures, splittingCriterion, forceClassification)
 
 Builds (define and train) a Decision Tree.
 
@@ -289,7 +296,6 @@ The given tree is then returned.
 # Parameters:
 - `x`: The dataset's features (N × D)
 - `y`: The dataset's labels (N × 1)
-- `depth`: The current tree's depth. Used when calling the function recursively [def: `1`]
 - `maxDepth`: The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `N`, i.e. no limits]
 - `minGain`: The minimum information gain to allow for a node's partition [def: `0`]
 - `minRecords`:  The minimum number of records a node must holds to consider for a partition of it [def: `2`]
@@ -301,7 +307,7 @@ The given tree is then returned.
 
 Missing data (in the feature dataset) are supported.
 """
-function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini) where {Ty}
+function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini) where {Ty}
 
     tree = Tree{Ty}(Array{Union{AbstractDecisionNode,Leaf{Ty}},1}[],Ty)
     N    = size(x,1)
@@ -330,8 +336,6 @@ function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0
     while length(idsToTreat) > 0
         workingSet = pop!(idsToTreat)
         thisNodeRIds = workingSet[1]
-        #nodex = @view x[workingSet[1],:]
-        #nodey = @view y[workingSet[1]]
         thisDepth =  tree.nodes[workingSet[2]].depth + 1
 
         # Check if this branch has still the minimum number of records required, that we didn't reached the maxDepth allowed and that there is still a gain in splitting. In case, declare it a leaf
@@ -472,16 +476,14 @@ See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with
 - `oob`: Wheter to report the out-of-bag error, an estimation of the generalization accuracy [def: `false`]
 
 # Output:
-The function returns a named touple with the following elements:
-- `forest`: the forest ityself (array of Trees)
-- `weights`: the per-tree weight based on their accuracy [def: to array of ones if `β ≤ 0`]
-- `oob`:   the estimate of the oob error [def: to `+Inf` if `oob` == `false`]
+The function returns a Forest object (see [`Forest`](@ref)).
+The forest weights default to array of ones if `β ≤ 0` and the oob error to `+Inf` if `oob` == `false`.
 
 # Notes :
 - Each individual decision tree is built using bootstrap over the data, i.e. "sampling N records with replacement" (hence, some records appear multiple times and some records do not appear in the specific tree training). The `maxFeature` injects further variability and reduces the correlation between the forest trees.
 - The predictions of the "forest" (using the function `predict()`) are then the aggregated predictions of the individual trees (from which the name "bagging": **b**oostrap **agg**regat**ing**).
 - This function optionally reports a weight distribution of the performances of eanch individual trees, as measured using the records he has not being trained with. These weights can then be (optionally) used in the `predict` function. The parameter `β ≥ 0` regulate the distribution of these weights: larger is `β`, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of β depends on the problem under exam (and the chosen caratteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
-- Note that this function uses muiltiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
+- Note that this function uses multiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
 """
 function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, β=0, oob=false) where {Ty}
     # Force what would be a regression task into a classification task
@@ -521,10 +523,9 @@ function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain
 end
 
 """
-predictSingle(forest,x;weights)
+predictSingle(forest,x)
 
 Predict the label of a single feature record. See [`predict`](@ref).
-Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 
 """
 function predictSingle(forest::Forest{Ty}, x) where {Ty}
@@ -540,6 +541,7 @@ function predictSingle(forest::Forest{Ty}, x) where {Ty}
     end
 end
 
+# Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 """
    predict(forest,x)
 
@@ -551,8 +553,6 @@ If the labels were categorical, the prediction is a dictionary with the probabil
 
 In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 
-Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
-
 """
 function predict(forest::Forest{Ty}, x) where {Ty}
     predictions = predictSingle.(Ref(forest),eachrow(x))
@@ -561,9 +561,11 @@ end
 
 
 """
-   updateTreesWeights(forest,notSampledByTree,x,y;forceClassification,β)
+   updateTreesWeights!(forest,x,y;β)
 
-Compute the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
+Update the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
+
+As training a forest is expensive, this function can be used to "just" upgrade the trees weights using different betas, without rettraining the model.
 
 """
 function updateTreesWeights!(forest::Forest{Ty},x,y;β=50) where {Ty}
@@ -583,6 +585,13 @@ function updateTreesWeights!(forest::Forest{Ty},x,y;β=50) where {Ty}
     forest.weights = weights
 end
 
+"""
+   oobError(forest::Forest{Ty},x,y) where {Ty}
+
+Comute the Out-Of-Bag error, an estimation of the validation error.
+
+This function is called at time of train the forest if the parameter `oob` is `true`, or can be used later to get the oob error on an already trained forest.
+"""
 function oobError(forest::Forest{Ty},x,y) where {Ty}
     trees = forest.trees
     jobIsRegression = forest.isRegression
