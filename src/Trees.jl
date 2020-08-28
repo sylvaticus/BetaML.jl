@@ -61,7 +61,6 @@ end
 
 abstract type AbstractNode end
 abstract type AbstractDecisionNode <: AbstractNode end
-abstract type AbstractDecisionNodeTy{Ty} <: AbstractDecisionNode end
 abstract type AbstractLeaf <: AbstractNode end
 
 """
@@ -94,6 +93,14 @@ struct Leaf{Ty} <: AbstractLeaf
     end
 end
 
+struct TempNode
+    trueBranch::Bool
+    parentNode::AbstractDecisionNode
+    depth::Int64
+    x
+    y
+end
+
 """
 
 A Decision Node asks a question.
@@ -113,14 +120,14 @@ A tree's non-terminal node.
 - `falseBranch`: A reference to the "false" branch of the trees
 - `depth`: The nodes's depth in the tree
 """
-struct DecisionNode{Tx,Ty} <: AbstractDecisionNodeTy{Ty}
+mutable struct DecisionNode{Tx} <: AbstractDecisionNode
     # Note that a decision node is indeed type unstable, as it host other decision nodes whose X type could be different (different X features can have different type)
     question::Question{Tx}
-    trueBranch::Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}}
-    falseBranch::Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}}
+    trueBranch::Union{Nothing,AbstractNode}
+    falseBranch::Union{Nothing,AbstractNode}
     depth::Int64
-    function DecisionNode(question::Question{Tx},trueBranch::Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},falseBranch::Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}}, depth) where {Tx,Ty}
-        return new{Tx,Ty}(question,trueBranch,falseBranch, depth)
+    function DecisionNode(question::Question{Tx},trueBranch::Union{Nothing,AbstractNode},falseBranch::Union{Nothing,AbstractNode}, depth) where {Tx}
+        return new{Tx}(question,trueBranch,falseBranch, depth)
     end
 end
 
@@ -139,7 +146,7 @@ Individual trees are stored in the array `trees`. The "type" of the forest is gi
 - `weights`:      A weight for each tree depending on the tree's score on the oobData (see [`buildForest`](@ref))
 """
 mutable struct Forest{Ty}
-    trees::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1}
+    trees::Array{Union{AbstractDecisionNode,Leaf{Ty}},1}
     isRegression::Bool
     oobData::Array{Array{Int64,1},1}
     oobError::Float64
@@ -263,7 +270,9 @@ function findBestSplit(x,y::Array{Ty,1}, mCols;maxFeatures,splittingCriterion=gi
     currentUncertainty = splittingCriterion(y)
     (N,D)  = size(x)  # number of columns (the last column is the label)
 
-    for d in shuffle(1:D)[1:maxFeatures]      # for each feature (we consider only maxFeatures features randomly)
+    featuresToConsider = (maxFeatures == D) ? (1:D) : shuffle(1:D)[1:maxFeatures]
+
+    for d in featuresToConsider      # for each feature (we consider only maxFeatures features randomly)
         values = Set(skipmissing(x[:,d]))  # unique values in the column
         for val in values  # for each value
             question = Question(d, val)
@@ -316,6 +325,7 @@ Missing data (in the feature dataset) are supported.
 """
 function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, mCols=nothing) where {Ty}
 
+
     #println(depth)
     # Force what would be a regression task into a classification task
     if forceClassification && Ty <: Number
@@ -323,6 +333,11 @@ function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0
     end
 
     if(mCols == nothing) mCols = colsWithMissing(x) end
+
+
+    nodes = TempNode[]
+
+    # Deciding if the root node is a Leaf itself or not
 
     # Check if this branch has still the minimum number of records required and we are reached the maxDepth allowed. In case, declare it a leaf
     if size(x,1) <= minRecords || depth >= maxDepth return Leaf(y, depth) end
@@ -337,21 +352,42 @@ function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0
     # we'll return a leaf.
     if gain <= minGain  return Leaf(y, depth)  end
 
-    # If we reach here, we have found a useful feature / value
-    # to partition on.
+    rootNode = DecisionNode(question,nothing,nothing,1)
+
     trueIdx = partition(question,x,mCols)
 
-    # Recursively build the true branch.
-    trueBranch = buildTree(x[trueIdx,:], y[trueIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion, forceClassification=forceClassification, mCols=mCols)
+    push!(nodes,TempNode(true,rootNode,2,x[trueIdx,:],y[trueIdx]))
+    push!(nodes,TempNode(false,rootNode,2,x[.! trueIdx,:],y[.! trueIdx]))
 
-    # Recursively build the false branch.
-    falseBranch = buildTree(x[.! trueIdx,:], y[.! trueIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion, forceClassification=forceClassification, mCols=mCols)
+    while length(nodes) > 0
+        thisNode = pop!(nodes)
 
-    # Return a Question node.
-    # This records the best feature / value to ask at this point,
-    # as well as the branches to follow
-    # dependingo on the answer.
-    return DecisionNode(question, trueBranch, falseBranch, depth)
+        # Check if this branch has still the minimum number of records required, that we didn't reached the maxDepth allowed and that there is still a gain in splitting. In case, declare it a leaf
+        isLeaf = false
+        if size(thisNode.x,1) <= minRecords || thisNode.depth >= maxDepth
+            isLeaf = true
+        else
+            # Try partitioing the dataset on each of the unique attribute,
+            # calculate the information gain,
+            # and return the question that produces the highest gain.
+            gain, question = findBestSplit(thisNode.x,thisNode.y,mCols;maxFeatures=maxFeatures,splittingCriterion=splittingCriterion)
+            if gain <= minGain
+                isLeaf = true
+            end
+        end
+        if isLeaf
+            newNode = Leaf(thisNode.y, thisNode.depth)
+        else
+            trueIdx = partition(question,thisNode.x,mCols)
+            newNode = DecisionNode(question,nothing,nothing,thisNode.depth)
+            push!(nodes,TempNode(true,newNode,thisNode.depth+1,thisNode.x[trueIdx,:],thisNode.y[trueIdx]))
+            push!(nodes,TempNode(false,newNode,thisNode.depth+1,thisNode.x[.! trueIdx,:],thisNode.y[.! trueIdx]))
+        end
+        thisNode.trueBranch ? (thisNode.parentNode.trueBranch = newNode) : (thisNode.parentNode.falseBranch = newNode)
+    end
+
+    return rootNode
+
 end
 
 
@@ -399,7 +435,7 @@ predictSingle(tree,x)
 Predict the label of a single feature record. See [`predict`](@ref).
 
 """
-function predictSingle(node::Union{DecisionNode{Tx,Ty},Leaf{Ty}}, x) where {Tx,Ty}
+function predictSingle(node::Union{DecisionNode{Tx},Leaf{Ty}}, x) where {Tx,Ty}
     # Base case: we've reached a leaf
     if typeof(node) <: Leaf
         return node.predictions
@@ -425,7 +461,7 @@ If the labels were categorical, the prediction is a dictionary with the probabil
 
 In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 """
-function predict(tree::Union{DecisionNode{Tx,Ty}, Leaf{Ty}}, x) where {Tx,Ty}
+function predict(tree::Union{DecisionNode{Tx}, Leaf{Ty}}, x) where {Tx,Ty}
     predictions = predictSingle.(Ref(tree),eachrow(x))
     return predictions
 end
@@ -457,7 +493,7 @@ function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain
     if forceClassification && Ty <: Number
         y = string.(y)
     end
-    trees           = Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1}(undef,nTrees)
+    trees           = Array{Union{AbstractDecisionNode,Leaf{Ty}},1}(undef,nTrees)
     notSampledByTree = Array{Array{Int64,1},1}(undef,nTrees) # to later compute the Out of Bag Error
 
     errors = Float64[]
