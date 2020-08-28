@@ -69,13 +69,8 @@ end
 
 abstract type AbstractNode end
 abstract type AbstractDecisionNode <: AbstractNode end
-#abstract type AbstractDecisionNodeTy{Ty} <: AbstractDecisionNode end
+abstract type AbstractDecisionNodeTy{Ty} <: AbstractDecisionNode end
 abstract type AbstractLeaf <: AbstractNode end
-
-
-struct Tree
-    nodes::Array{AbstractNode,1}
-end
 
 """
    Leaf(y,depth)
@@ -94,13 +89,12 @@ A tree's leaf (terminal) node.
 struct Leaf{Ty} <: AbstractLeaf
     predictions::Union{Number,Dict{Ty,Float64}}
     depth::Int64
-    function Leaf(y::Array{Ty,1},rIds,depth::Int64) where {Ty}
-        thisNodeY = @view y[rIds]
+    function Leaf(y::Array{Ty,1},depth::Int64) where {Ty}
         if eltype(y) <: Number
-            rawPredictions = thisNodeY
+            rawPredictions = y
             predictions    = mean(rawPredictions)
         else
-            rawPredictions = classCounts(thisNodeY)
+            rawPredictions = classCounts(y)
             total = sum(values(rawPredictions))
             predictions = Dict{Ty,Float64}()
             [predictions[k] = rawPredictions[k] / total for k in keys(rawPredictions)]
@@ -128,14 +122,14 @@ A tree's non-terminal node.
 - `falseBranch`: A reference to the "false" branch of the trees
 - `depth`: The nodes's depth in the tree
 """
-mutable struct DecisionNode{Tx} <: AbstractDecisionNode
+struct DecisionNode{Tx,Ty} <: AbstractDecisionNodeTy{Ty}
     # Note that a decision node is indeed type unstable, as it host other decision nodes whose X type could be different (different X features can have different type)
     question::Question{Tx}
-    trueNodeId::Int64
-    falseNodeId::Int64
+    trueBranch::Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}}
+    falseBranch::Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}}
     depth::Int64
-    function DecisionNode(question::Question{Tx},trueNodeId,falseNodeId,depth) where {Tx}
-        return new{Tx}(question,trueNodeId,falseNodeId,depth)
+    function DecisionNode(question::Question{Tx},trueBranch::Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},falseBranch::Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}}, depth) where {Tx,Ty}
+        return new{Tx,Ty}(question,trueBranch,falseBranch, depth)
     end
 end
 
@@ -150,7 +144,8 @@ It compares the feature value in the given record to the value stored in the
 question.
 Numerical features are compared in terms of disequality (">="), while categorical features are compared in terms of equality ("==").
 """
-function match(question::Question{Tx}, val::Tx) where {Tx}
+function match(question::Question{Tx}, x) where {Tx}
+    val = x[question.column]
     if Tx <: Number
     #if isa(val, Number) # or isa(val, AbstractFloat) to consider "numeric" only floats
         return val >= question.value
@@ -160,40 +155,39 @@ function match(question::Question{Tx}, val::Tx) where {Tx}
 end
 
 """
-   partition(question,x,xids)
+   partition(question,x)
 
 Dicotomically partitions a dataset `x` given a question.
 
-For each of the rows xids in the dataset x, check if it matches the question. If so, add the row id to 'true rows', otherwise, add it to 'false rows'.
+For each row in the dataset, check if it matches the question. If so, add it to 'true rows', otherwise, add it to 'false rows'.
 Rows with missing values on the question column are assigned randomply proportionally to the assignment of the non-missing rows.
 """
-function partition(question::Question{Tx},x,rIds) where {Tx}
+function partition(question::Question{Tx},x) where {Tx}
     N = size(x,1)
-
-    trueRIds = Int64[]; falseRIds = Int64[]; missingRIds = Int64[]
-    for rid in rIds
-        value = x[rid,question.column]
+    trueIdx = fill(false,N); falseIdx = fill(false,N); missingIdx = fill(false,N)
+    for (rIdx,row) in enumerate(eachrow(x))
         #println(row)
-        if(ismissing(value))
-            push!(missingRIds,rid)
-        elseif match(question,value)
-            push!(trueRIds,rid)
+        if(ismissing(row[question.column]))
+            missingIdx[rIdx] = true
+        elseif match(question,row)
+            trueIdx[rIdx] = true
         else
-            push!(falseRIds,rid)
+            falseIdx[rIdx] = true
         end
     end
     # Assigning missing rows randomly proportionally to non-missing rows
-    p = length(trueRIds)/(length(trueRIds)+length(falseRIds))
-
-    for mRId in missingRIds
-        r = rand()
-        if r <= p
-            push!(trueRIds,mRId)
-        else
-            push!(falseRIds,mRId)
+    p = sum(trueIdx)/(sum(trueIdx)+sum(falseIdx))
+    r = rand(N)
+    for rIdx in 1:N
+        if missingIdx[rIdx]
+            if r[rIdx] <= p
+                trueIdx[rIdx] = true
+            else
+                falseIdx[rIdx] = true
+            end
         end
     end
-    return trueRIds, falseRIds
+    return trueIdx, falseIdx
 end
 
 
@@ -237,26 +231,26 @@ Find the best question to ask by iterating over every feature / value and calcul
 - `splittingCriterion`: The metric to define the "impurity" of the labels
 
 """
-function findBestSplit(x,y::AbstractArray{Ty,1},rIds;maxFeatures,splittingCriterion=gini) where {Ty}
+function findBestSplit(x,y::Array{Ty,1};maxFeatures,splittingCriterion=gini) where {Ty}
     bestGain           = 0  # keep track of the best information gain
     bestQuestion       = nothing  # keep train of the feature / value that produced it
-    currentUncertainty = splittingCriterion(y[rIds])
+    currentUncertainty = splittingCriterion(y)
     D  = size(x,2)  # number of columns (the last column is the label)
 
     for d in shuffle(1:D)[1:maxFeatures]      # for each feature (we consider only maxFeatures features randomly)
-        values = Set(skipmissing(@view x[rIds,d]))  # unique values in the column
+        values = Set(skipmissing(x[:,d]))  # unique values in the column
         for val in values  # for each value
             question = Question(d, val)
             # try splitting the dataset
             #println(question)
-            trueRIds, falseRIds = partition(question,x,rIds)
+            trueIdx, falseIdx = partition(question,x)
             # Skip this split if it doesn't divide the
             # dataset.
-            if length(trueRIds) == 0 || length(falseRIds) == 0
+            if sum(trueIdx) == 0 || sum(falseIdx) == 0
                 continue
             end
             # Calculate the information gain from this split
-            gain = infoGain(y[trueRIds], y[falseRIds], currentUncertainty, splittingCriterion=splittingCriterion)
+            gain = infoGain(y[trueIdx], y[falseIdx], currentUncertainty, splittingCriterion=splittingCriterion)
             # You actually can use '>' instead of '>=' here
             # but I wanted the tree to look a certain way for our
             # toy dataset.
@@ -295,73 +289,43 @@ Missing data (in the feature dataset) are supported.
 """
 function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini) where {Ty}
 
-    tree = Tree(Array{AbstractNode,1}[])
-    N    = size(x,1)
-
+    #println(depth)
+    # Force what would be a regression task into a classification task
     if forceClassification && Ty <: Number
         y = string.(y)
     end
 
-    idsToTreat = Tuple{Array{Int64,1},Int64,Bool}[] # feature ids, parent nodeid, branch type
+    # Check if this branch has still the minimum number of records required and we are reached the maxDepth allowed. In case, declare it a leaf
+    if size(x,1) <= minRecords || depth >= maxDepth return Leaf(y, depth) end
 
-    currentId = 1
-    depth = 1
+    # Try partitioing the dataset on each of the unique attribute,
+    # calculate the information gain,
+    # and return the question that produces the highest gain.
+    gain, question = findBestSplit(x,y;maxFeatures=maxFeatures,splittingCriterion=splittingCriterion)
 
-    # creating the root node
-    gain, question = findBestSplit(x,y,1:N;maxFeatures=maxFeatures,splittingCriterion=splittingCriterion)
+    # Base case: no further info gain
+    # Since we can ask no further questions,
+    # we'll return a leaf.
+    if gain <= minGain  return Leaf(y, depth)  end
 
-    if size(x,1) <= minRecords || depth >= maxDepth || gain <= minGain
-        push!(tree.nodes, Leaf(y, depth))
-    else
-        trueRIds, falseRIds = partition(question,x,1:N)
-        push!(tree.nodes, DecisionNode(question,0,0,depth))
-        push!(idsToTreat,  (trueRIds, length(tree.nodes), true))  # feature ids, parent nodeid, branch type
-        push!(idsToTreat,  (falseRIds, length(tree.nodes), false)) # feature ids, parent nodeid, branch type
-    end
+    # If we reach here, we have found a useful feature / value
+    # to partition on.
+    trueIdx, falseIdx = partition(question,x)
 
-    while length(idsToTreat) > 0
-        workingSet = popfirst!(idsToTreat)
-        thisNodeRIds = workingSet[1]
-        #nodex = @view x[workingSet[1],:]
-        #nodey = @view y[workingSet[1]]
-        thisDepth =  tree.nodes[workingSet[2]].depth + 1
+    # Recursively build the true branch.
+    trueBranch = buildTree(x[trueIdx,:], y[trueIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion, forceClassification=forceClassification)
 
-        # Check if this branch has still the minimum number of records required, that we didn't reached the maxDepth allowed and that there is still a gain in splitting. In case, declare it a leaf
-        isLeaf = false
-        if length(thisNodeRIds) <= minRecords || thisDepth >= maxDepth
-            isLeaf = true
-        else
-            # Try partitioing the dataset on each of the unique attribute,
-            # calculate the information gain,
-            # and return the question that produces the highest gain.
-            gain, question = findBestSplit(x,y,thisNodeRIds;maxFeatures=maxFeatures,splittingCriterion=splittingCriterion)
-            if gain <= minGain
-                isLeaf = true
-            end
-        end
+    # Recursively build the false branch.
+    falseBranch = buildTree(x[falseIdx,:], y[falseIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion, forceClassification=forceClassification)
 
-        if isLeaf
-            push!(tree.nodes, Leaf(y, thisNodeRIds, thisDepth))
-        else
-            trueRIds, falseRIds = partition(question,x,thisNodeRIds) # get the records ids matching or not the "best possible" question for this node
-            push!(tree.nodes, DecisionNode(question,0,0,thisDepth))   # add the node to the array. We don't yeat know the ids of the childs
-            push!(idsToTreat,  (trueRIds, length(tree.nodes), true))   # feature ids, parent nodeid, branch type
-            push!(idsToTreat,  (falseRIds, length(tree.nodes), false)) # feature ids, parent nodeid, branch type
-        end
-
-        # Whatever Leaf or DecisionNode, assign the ids of this node as the child id to the parent
-        if workingSet[3] # if it is a "true" branch
-            tree.nodes[workingSet[2]].trueNodeId = length(tree.nodes)
-        else
-            tree.nodes[workingSet[2]].falseNodeId = length(tree.nodes)
-        end
-    end
-
-    # Return the tree
-    return tree
+    # Return a Question node.
+    # This records the best feature / value to ask at this point,
+    # as well as the branches to follow
+    # dependingo on the answer.
+    return DecisionNode(question, trueBranch, falseBranch, depth)
 end
 
-#=
+
 """
   print(node)
 
@@ -579,5 +543,4 @@ function oobError(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1},no
     end
 end
 
-=#
 end

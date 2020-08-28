@@ -27,9 +27,6 @@ xtrain = [
 ytrain = ["Apple",  "Apple", "Grape", "Grape", "Lemon"]
 myTree = buildTree(xtrain,ytrain)
 
-
-b = xtrain[[false,false,true,true,false],:]
-
 #print(myTree)
 
 ŷtrain = Trees.predict(myTree, xtrain)
