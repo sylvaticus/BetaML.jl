@@ -160,7 +160,7 @@ end
 Dicotomically partitions a dataset `x` given a question.
 
 For each row in the dataset, check if it matches the question. If so, add it to 'true rows', otherwise, add it to 'false rows'.
-Rows with missing values on the question column are assigned randomply proportionally to the assignment of the non-missing rows.
+Rows with missing values on the question column are assigned randomly proportionally to the assignment of the non-missing rows.
 """
 function partition(question::Question{Tx},x) where {Tx}
     N = size(x,1)
@@ -177,9 +177,9 @@ function partition(question::Question{Tx},x) where {Tx}
     end
     # Assigning missing rows randomly proportionally to non-missing rows
     p = sum(trueIdx)/(sum(trueIdx)+sum(falseIdx))
-    r = rand(N)
     for rIdx in 1:N
         if missingIdx[rIdx]
+            r = rand()
             if r[rIdx] <= p
                 trueIdx[rIdx] = true
             else
@@ -232,8 +232,8 @@ Find the best question to ask by iterating over every feature / value and calcul
 
 """
 function findBestSplit(x,y::Array{Ty,1};maxFeatures,splittingCriterion=gini) where {Ty}
-    bestGain           = 0  # keep track of the best information gain
-    bestQuestion       = nothing  # keep train of the feature / value that produced it
+    bestGain           = 0.0  # keep track of the best information gain
+    bestQuestion       = nothing # keep train of the feature / value that produced it
     currentUncertainty = splittingCriterion(y)
     D  = size(x,2)  # number of columns (the last column is the label)
 
