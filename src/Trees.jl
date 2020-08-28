@@ -73,9 +73,8 @@ abstract type AbstractDecisionNode <: AbstractNode end
 abstract type AbstractLeaf <: AbstractNode end
 
 
-struct Tree{Ty}
+struct Tree
     nodes::Array{AbstractNode,1}
-    type::DataType
 end
 
 """
@@ -174,6 +173,7 @@ function partition(question::Question{Tx},x,rIds) where {Tx}
     trueRIds = Int64[]; falseRIds = Int64[]; missingRIds = Int64[]
     for rid in rIds
         value = x[rid,question.column]
+        #println(row)
         if(ismissing(value))
             push!(missingRIds,rid)
         elseif match(question,value)
@@ -295,7 +295,7 @@ Missing data (in the feature dataset) are supported.
 """
 function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini) where {Ty}
 
-    tree = Tree{Ty}(Array{Union{AbstractDecisionNode,Leaf{Ty}},1}[],Ty)
+    tree = Tree(Array{AbstractNode,1}[])
     N    = size(x,1)
 
     if forceClassification && Ty <: Number
@@ -320,7 +320,7 @@ function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0
     end
 
     while length(idsToTreat) > 0
-        workingSet = pop!(idsToTreat)
+        workingSet = popfirst!(idsToTreat)
         thisNodeRIds = workingSet[1]
         #nodex = @view x[workingSet[1],:]
         #nodey = @view y[workingSet[1]]
@@ -361,35 +361,29 @@ function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0
     return tree
 end
 
-#= TODO: need to think on how to print the tree without recursion..
+#=
 """
-  print(tree)
+  print(node)
 
 Print a Decision Tree (textual)
 
 """
-function print(tree::Tree)
+function print(node::AbstractNode, rootDepth="")
 
-    depth     = 1
+    depth     = node.depth
     fullDepth = rootDepth*string(depth)*"."
     spacing   = ""
-    rootDepth = ""
-    nId = 1
+    if depth  == 1
+        println("*** Printing Decision Tree: ***")
+    else
+        spacing = join(["\t" for i in 1:depth],"")
+    end
 
-    while true
-        node = tree.nodes[nID]
-        depth = node.depth
-        if depth  == 1
-            println("*** Printing Decision Tree: ***")
-        else
-            spacing = join(["\t" for i in 1:depth],"")
-        end
-
-        # Base case: we've reached a leaf
-        if typeof(node) <: Leaf
-            println("  $(node.predictions)")
-            continue
-        end
+    # Base case: we've reached a leaf
+    if typeof(node) <: Leaf
+        println("  $(node.predictions)")
+        return
+    end
 
     # Print the question at this node
     print("\n$spacing$fullDepth ")
@@ -403,9 +397,8 @@ function print(tree::Tree)
     # Call this function recursively on the false branch
     print(spacing * "--> False:")
     print(node.falseBranch, fullDepth)
-    end
 end
-=#
+
 
 """
 predictSingle(tree,x)
@@ -413,25 +406,18 @@ predictSingle(tree,x)
 Predict the label of a single feature record. See [`predict`](@ref).
 
 """
-function predictSingle(tree::Tree{Ty}, x) where {Ty}
-
-    N = size(x,1)
-    nId = 1
-    while true
-        node = tree.nodes[nId]
-        # Base case: we've reached a leaf
-        if typeof(node) <: Leaf
-            return node.predictions
-        end
-
-        # Decide whether to follow the true-branch or the false-branch.
-        # Compare the feature / value stored in the node,
-        # to the example we're considering.
-        if match(node.question,x[node.question.column])
-            nId = node.trueNodeId
-        else
-            nId = node.falseNodeId
-        end
+function predictSingle(node::Union{DecisionNode{Tx,Ty},Leaf{Ty}}, x) where {Tx,Ty}
+    # Base case: we've reached a leaf
+    if typeof(node) <: Leaf
+        return node.predictions
+    end
+    # Decide whether to follow the true-branch or the false-branch.
+    # Compare the feature / value stored in the node,
+    # to the example we're considering.
+    if match(node.question,x)
+        return predictSingle(node.trueBranch,x)
+    else
+        return predictSingle(node.falseBranch,x)
     end
 end
 
@@ -446,7 +432,7 @@ If the labels were categorical, the prediction is a dictionary with the probabil
 
 In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 """
-function predict(tree::Tree{Ty}, x) where {Ty}
+function predict(tree::Union{DecisionNode{Tx,Ty}, Leaf{Ty}}, x) where {Tx,Ty}
     predictions = predictSingle.(Ref(tree),eachrow(x))
     return predictions
 end
@@ -480,7 +466,7 @@ function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain
     if forceClassification && Ty <: Number
         y = string.(y)
     end
-    forest           = Array{Tree{Ty},1}(undef,nTrees)
+    forest           = Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1}(undef,nTrees)
     notSampledByTree = Array{Array{Int64,1},1}(undef,nTrees) # to later compute the Out of Bag Error
 
     errors = Float64[]
@@ -519,7 +505,7 @@ Predict the label of a single feature record. See [`predict`](@ref).
 Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 
 """
-function predictSingle(forest::Array{Tree{Ty},1}, x;weights=ones(length(forest))) where {Ty}
+function predictSingle(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1}, x;weights=ones(length(forest))) where {Ty}
     predictions  = predictSingle.(forest,Ref(x))
     if eltype(predictions) <: AbstractDict   # categorical
         #weights = 1 .- treesErrors # back to the accuracy
@@ -544,7 +530,7 @@ In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess th
 Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 
 """
-function predict(forest::Array{Tree{Ty},1}, x; weights=ones(length(forest))) where {Ty}
+function predict(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1}, x; weights=ones(length(forest))) where {Ty}
     predictions = predictSingle.(Ref(forest),eachrow(x); weights = weights)
     return predictions
 end
@@ -556,7 +542,7 @@ end
 Compute the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
 
 """
-function computeTreesWeights(forest::Array{Tree{Ty},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false,β=50) where {Ty}
+function computeTreesWeights(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false,β=50) where {Ty}
     weights = Float64[]
     jobIsRegression = (forceClassification || !(Ty <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     for (i,tree) in enumerate(forest)
@@ -571,7 +557,7 @@ function computeTreesWeights(forest::Array{Tree{Ty},1},notSampledByTree::Array{A
     return weights
 end
 
-function oobError(forest::Array{Tree{Ty},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false) where {Ty}
+function oobError(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false) where {Ty}
     jobIsRegression = (forceClassification || !(Ty <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     B = length(forest)
     N = size(x,1)
@@ -592,4 +578,6 @@ function oobError(forest::Array{Tree{Ty},1},notSampledByTree::Array{Array{Int64,
         return error(ŷ,y)
     end
 end
+
+=#
 end
