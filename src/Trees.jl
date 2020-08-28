@@ -283,6 +283,7 @@ The given tree is then returned.
 - `splittingCriterion`: Either `gini`, `entropy` or `variance` (see [`infoGain`](@ref) ) [def: `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]
 - `forceClassification`: Weather to force a classification task even if the labels are numerical (typically when labels are integers encoding some feature rather than representing a real cardinal measure) [def: `false`]
 
+
 # Notes:
 
 Missing data (in the feature dataset) are supported.
