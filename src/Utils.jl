@@ -23,7 +23,7 @@ using LinearAlgebra, Random, Statistics, Combinatorics, Zygote
 
 export @codeLocation,
        reshape, makeColVector, makeRowVector, makeMatrix,
-       oneHotEncoder, getScaleFactors, scale, scale!, batch, pca,
+       oneHotEncoder, colsWithMissing, getScaleFactors, scale, scale!, batch, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
@@ -267,6 +267,27 @@ function pca(X;K=nothing,error=0.05)
 
     return (X=X*P,K=K,error=1-propVarExplained,P=P,explVarByDim=explVarByDim)
 end
+
+
+"""
+    colsWithMissing(x)
+
+Retuyrn an array with the ids of the columns where there is at least a missing value.
+"""
+function colsWithMissing(x)
+    colsWithMissing = Int64[]
+    (N,D) = size(x)
+    for d in 1:D
+        for n in 1:N
+            if ismissing(x[n,d])
+                push!(colsWithMissing,d)
+                break
+            end
+        end
+    end
+    return colsWithMissing
+end
+
 
 # ------------------------------------------------------------------------------
 # Various neural network loss functions as well their derivatives
