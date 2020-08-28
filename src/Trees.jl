@@ -188,7 +188,7 @@ Dicotomically partitions a dataset `x` given a question.
 For each row in the dataset, check if it matches the question. If so, add it to 'true rows', otherwise, add it to 'false rows'.
 Rows with missing values on the question column are assigned randomly proportionally to the assignment of the non-missing rows.
 """
-function partition(question::Question{Tx},x,mCols) where {Tx}
+function partition(question::Question{Tx},x,mCols;sorted=false) where {Tx}
     N = size(x,1)
 
     trueIdx = fill(false,N);
@@ -216,11 +216,22 @@ function partition(question::Question{Tx},x,mCols) where {Tx}
             end
         end
     else
-        @inbounds for (rIdx,row) in enumerate(eachrow(x))
-            if match(question,row)
-                trueIdx[rIdx] = true
+        if sorted
+            #val = x[question.column]
+            idx = searchsorted(x[:,question.column], question.value)
+            if Tx <: Number
+                trueIdx[first(idx):end] .= true
+            else
+                trueIdx[idx] .= true
+            end
+        else
+            @inbounds for (rIdx,row) in enumerate(eachrow(x))
+                if match(question,row)
+                    trueIdx[rIdx] = true
+                end
             end
         end
+
     end
     return trueIdx
 end
@@ -274,18 +285,22 @@ function findBestSplit(x,y::Array{Ty,1}, mCols;maxFeatures,splittingCriterion=gi
 
     for d in featuresToConsider      # for each feature (we consider only maxFeatures features randomly)
         values = Set(skipmissing(x[:,d]))  # unique values in the column
+        sortIdx = sortperm(x[:,d])
+        sortedx = x[sortIdx,:]
+        sortedy = y[sortIdx]
+
         for val in values  # for each value
             question = Question(d, val)
             # try splitting the dataset
             #println(question)
-            trueIdx = partition(question,x,mCols)
+            trueIdx = partition(question,sortedx,mCols,sorted=true)
             # Skip this split if it doesn't divide the
             # dataset.
             if sum(trueIdx) == 0 || sum(trueIdx) == N
                 continue
             end
             # Calculate the information gain from this split
-            gain = infoGain(y[trueIdx], y[.! trueIdx], currentUncertainty, splittingCriterion=splittingCriterion)
+            gain = infoGain(sortedy[trueIdx], sortedy[.! trueIdx], currentUncertainty, splittingCriterion=splittingCriterion)
             # You actually can use '>' instead of '>=' here
             # but I wanted the tree to look a certain way for our
             # toy dataset.
