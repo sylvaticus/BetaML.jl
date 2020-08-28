@@ -184,28 +184,27 @@ Rows with missing values on the question column are assigned randomly proportion
 function partition(question::Question{Tx},x,mCols) where {Tx}
     N = size(x,1)
 
-    trueIdx = fill(false,N); falseIdx = fill(false,N);
+    trueIdx = fill(false,N);
 
     if  in(question.column,mCols) # do we have missings in this col ?
         missingIdx = fill(false,N)
+        nFalse = 0
         @inbounds for (rIdx,row) in enumerate(eachrow(x))
             if(ismissing(row[question.column]))
                 missingIdx[rIdx] = true
             elseif match(question,row)
                 trueIdx[rIdx] = true
             else
-                falseIdx[rIdx] = true
+                nFalse += 1
             end
         end
         # Assigning missing rows randomly proportionally to non-missing rows
-        p = sum(trueIdx)/(sum(trueIdx)+sum(falseIdx))
+        p = sum(trueIdx)/(sum(trueIdx)+nFalse)
         @inbounds for rIdx in 1:N
             if missingIdx[rIdx]
                 r = rand()
                 if r <= p
                     trueIdx[rIdx] = true
-                else
-                    falseIdx[rIdx] = true
                 end
             end
         end
@@ -213,15 +212,11 @@ function partition(question::Question{Tx},x,mCols) where {Tx}
         @inbounds for (rIdx,row) in enumerate(eachrow(x))
             if match(question,row)
                 trueIdx[rIdx] = true
-            else
-                falseIdx[rIdx] = true
             end
         end
     end
-    return trueIdx, falseIdx
+    return trueIdx
 end
-
-
 
 """
 
@@ -266,7 +261,7 @@ function findBestSplit(x,y::Array{Ty,1}, mCols;maxFeatures,splittingCriterion=gi
     bestGain           = 0.0  # keep track of the best information gain
     bestQuestion       = nothing # keep train of the feature / value that produced it
     currentUncertainty = splittingCriterion(y)
-    D  = size(x,2)  # number of columns (the last column is the label)
+    (N,D)  = size(x)  # number of columns (the last column is the label)
 
     for d in shuffle(1:D)[1:maxFeatures]      # for each feature (we consider only maxFeatures features randomly)
         values = Set(skipmissing(x[:,d]))  # unique values in the column
@@ -274,14 +269,14 @@ function findBestSplit(x,y::Array{Ty,1}, mCols;maxFeatures,splittingCriterion=gi
             question = Question(d, val)
             # try splitting the dataset
             #println(question)
-            trueIdx, falseIdx = partition(question,x,mCols)
+            trueIdx = partition(question,x,mCols)
             # Skip this split if it doesn't divide the
             # dataset.
-            if sum(trueIdx) == 0 || sum(falseIdx) == 0
+            if sum(trueIdx) == 0 || sum(trueIdx) == N
                 continue
             end
             # Calculate the information gain from this split
-            gain = infoGain(y[trueIdx], y[falseIdx], currentUncertainty, splittingCriterion=splittingCriterion)
+            gain = infoGain(y[trueIdx], y[.! trueIdx], currentUncertainty, splittingCriterion=splittingCriterion)
             # You actually can use '>' instead of '>=' here
             # but I wanted the tree to look a certain way for our
             # toy dataset.
@@ -344,13 +339,13 @@ function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0
 
     # If we reach here, we have found a useful feature / value
     # to partition on.
-    trueIdx, falseIdx = partition(question,x,mCols)
+    trueIdx = partition(question,x,mCols)
 
     # Recursively build the true branch.
     trueBranch = buildTree(x[trueIdx,:], y[trueIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion, forceClassification=forceClassification, mCols=mCols)
 
     # Recursively build the false branch.
-    falseBranch = buildTree(x[falseIdx,:], y[falseIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion, forceClassification=forceClassification, mCols=mCols)
+    falseBranch = buildTree(x[.! trueIdx,:], y[.! trueIdx], depth+1, maxDepth=maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion=splittingCriterion, forceClassification=forceClassification, mCols=mCols)
 
     # Return a Question node.
     # This records the best feature / value to ask at this point,
