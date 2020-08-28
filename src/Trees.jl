@@ -46,6 +46,12 @@ using LinearAlgebra, Random, Statistics, Reexport
 export buildTree, buildForest, updateTreesWeights!, predictSingle, predict, print
 import Base.print
 
+import Base.zero
+zero(x::AbstractString) = ""
+zero(x::Type{AbstractString}) = ""
+zero(x::Type{Any}) = undef
+zero(x::Any) = undef
+
 """
    Question
 
@@ -53,8 +59,8 @@ A question used to partition a dataset.
 
 This struct just records a 'column number' and a 'column value' (e.g., Green).
 """
-abstract type AbstractQuestion end
-struct Question{Tx} <: AbstractQuestion
+#abstract type AbstractQuestion end
+struct Question{Tx}
     column::Int64
     value::Tx
 end
@@ -67,44 +73,9 @@ function print(question::Question)
     print("Is col $(question.column) $condition $(question.value) ?")
 end
 
-abstract type AbstractNode end
-abstract type AbstractDecisionNode <: AbstractNode end
-abstract type AbstractLeaf <: AbstractNode end
-
-"""
-    Tree{Ty}
-
-Type representing an individual Decision Tree.
-
-Nodes are stored in the array `nodes`. The "type" of the tree is given by the type of its labels
-
-"""
-struct Tree{Ty}
-    nodes::Array{AbstractNode,1} # Array of nodes
-    type::DataType
-end
-
-"""
-    Forest{Ty}
-
-Type representing a Random Forest.
-
-Individual trees are stored in the array `trees`. The "type" of the forest is given by the type of the labels on which it has been trained.
-
-# Struct members:
-- `trees`:        The individual Decision Trees
-- `isRegression`: Wheter the forest is to be used for regression jobs or classification
-- `oobData`:      For each tree, the rows number if the data that have _not_ being used to train the specific tree
-- `oobError`:     The out of bag error (if it has been computed)
-- `weights`:      A weight for each tree depending on the tree's score on the oobData (see [`buildForest`](@ref))
-"""
-mutable struct Forest{Ty}
-    trees::Array{Tree{Ty},1}
-    isRegression::Bool
-    oobData::Array{Array{Int64,1},1}
-    oobError::Float64
-    weights::Array{Float64,1}
-end
+#abstract type AbstractNode end
+#abstract type AbstractDecisionNode <: AbstractNode end
+#abstract type AbstractLeaf <: AbstractNode end
 
 """
    Leaf(y,depth)
@@ -119,7 +90,7 @@ A tree's leaf (terminal) node.
 - `predictions`: Either the relative label's count (i.e. a PMF) or the mean
 - `depth`: The nodes's depth in the tree
 """
-struct Leaf{Ty} <: AbstractLeaf
+struct Leaf{Ty}
     predictions::Union{Number,Dict{Ty,Float64}}
     depth::Int64
     function Leaf(y::Array{Ty,1},rIds,depth::Int64) where {Ty}
@@ -148,7 +119,7 @@ A tree's non-terminal node.
 - `falseNodeId`: The position in the array of the node representing the  "false" branch of the trees
 - `depth`:       The nodes's depth in the tree
 """
-mutable struct DecisionNode{Tx} <: AbstractDecisionNode
+mutable struct DecisionNode{Tx}
     # Note that a decision node is indeed type unstable, as it host other decision nodes whose X type could be different (different X features can have different type)
     question::Question{Tx}
     trueNodeId::Int64
@@ -157,6 +128,40 @@ mutable struct DecisionNode{Tx} <: AbstractDecisionNode
     function DecisionNode(question::Question{Tx},trueNodeId,falseNodeId,depth) where {Tx}
         return new{Tx}(question,trueNodeId,falseNodeId,depth)
     end
+end
+
+"""
+    Tree{Tx,Ty}
+
+Type representing an individual Decision Tree.
+
+Nodes are stored in the array `nodes`. The "type" of the tree is given by the type of its labels
+
+"""
+struct Tree{Tx,Ty}
+    nodes::Array{Union{DecisionNode{Tx},Leaf{Ty}},1} # Array of nodes
+end
+
+"""
+    Forest{Ty}
+
+Type representing a Random Forest.
+
+Individual trees are stored in the array `trees`. The "type" of the forest is given by the type of the labels on which it has been trained.
+
+# Struct members:
+- `trees`:        The individual Decision Trees
+- `isRegression`: Wheter the forest is to be used for regression jobs or classification
+- `oobData`:      For each tree, the rows number if the data that have _not_ being used to train the specific tree
+- `oobError`:     The out of bag error (if it has been computed)
+- `weights`:      A weight for each tree depending on the tree's score on the oobData (see [`buildForest`](@ref))
+"""
+mutable struct Forest{Tx,Ty}
+    trees::Array{Tree{Tx,Ty},1}
+    isRegression::Bool
+    oobData::Array{Array{Int64,1},1}
+    oobError::Float64
+    weights::Array{Float64,1}
 end
 
 
@@ -186,15 +191,15 @@ Dicotomically partitions a dataset `x` given a question.
 For each of the rows rIds in the dataset x, check if they match the question. If so, add the row ids to 'true rows', otherwise, add them to the 'false rows'.
 Rows with missing values on the question column are assigned randomly, proportionally to the assignment of the non-missing rows.
 """
-function partition(question::Question,x,rIds)
+function partition(question::Question{Tx},x,rIds) where {Tx}
 
     N = size(x,1)
 
     trueRIds = Int64[]; falseRIds = Int64[]; missingRIds = Int64[]
-    
+
     #trueIdx = fill(false,N); falseIdx = fill(false,N); missingIdx = fill(false,N)
 
-    @inbounds for rid in rIds
+     for rid in rIds
         value = x[rid,question.column]
         if(ismissing(value))
             push!(missingRIds,rid)
@@ -278,16 +283,16 @@ Find the best question to ask by iterating over every feature / value and calcul
 - `splittingCriterion`: The metric to define the "impurity" of the labels
 
 """
-function findBestSplit(x,y::AbstractArray{Ty,1},rIds;maxFeatures,splittingCriterion=gini) where {Ty}
+function findBestSplit(x::AbstractArray{Tx,2},y::AbstractArray{Ty,1},rIds;maxFeatures,splittingCriterion=gini) where {Tx,Ty}
     bestGain           = 0.0  # keep track of the best information gain
-    bestQuestion       = Question(1,0.0)  # keep train of the feature / value that produced it
+    bestQuestion       = Question{Tx}(1,zero(Tx))  # keep train of the feature / value that produced it
     currentUncertainty = splittingCriterion(y[rIds])
     D  = size(x,2)  # number of columns (the last column is the label)
 
     for d in shuffle(1:D)[1:maxFeatures]      # for each feature (we consider only maxFeatures features randomly)
         values = Set(skipmissing(@view x[rIds,d]))  # unique values in the column
         for val in values  # for each value
-            question = Question(d, val)
+            question = Question{Tx}(d, val)
             # try splitting the dataset
             #println(question)
             trueRIds, falseRIds = partition(question,x,rIds)
@@ -332,9 +337,9 @@ The given tree is then returned.
 
 Missing data (in the feature dataset) are supported.
 """
-function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini) where {Ty}
+function buildTree(x::AbstractArray{Tx,2}, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini) where {Tx,Ty}
 
-    tree = Tree{Ty}(Array{Union{AbstractDecisionNode,Leaf{Ty}},1}[],Ty)
+    tree = Tree{Tx,Ty}(Array{Union{DecisionNode{Tx},Leaf{Ty}},1}[])
     N    = size(x,1)
 
     if forceClassification && Ty <: Number
@@ -350,7 +355,7 @@ function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0,
     gain, question = findBestSplit(x,y,1:N;maxFeatures=maxFeatures,splittingCriterion=splittingCriterion)
 
     if size(x,1) <= minRecords || depth >= maxDepth || gain <= minGain
-        push!(tree.nodes, Leaf(y, depth))
+        push!(tree.nodes, Leaf{Ty}(y, depth))
     else
         trueRIds, falseRIds = partition(question,x,1:N)
         push!(tree.nodes, DecisionNode(question,0,0,depth))
@@ -443,7 +448,7 @@ function print(tree::Tree)
     end
 end
 =#
-
+#=
 """
 predictSingle(tree,x)
 
@@ -639,4 +644,5 @@ function oobError(forest::Forest{Ty},x,y) where {Ty}
         return error(ŷ,y)
     end
 end
+=#
 end
