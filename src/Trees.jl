@@ -277,7 +277,7 @@ Find the best question to ask by iterating over every feature / value and calcul
 """
 function findBestSplit(x,y::Array{Ty,1}, mCols;maxFeatures,splittingCriterion=gini) where {Ty}
     bestGain           = 0.0  # keep track of the best information gain
-    bestQuestion       = nothing # keep train of the feature / value that produced it
+    bestQuestion       = Question(1,1.0) # keep train of the feature / value that produced it
     currentUncertainty = splittingCriterion(y)
     (N,D)  = size(x)  # number of columns (the last column is the label)
 
@@ -296,11 +296,11 @@ function findBestSplit(x,y::Array{Ty,1}, mCols;maxFeatures,splittingCriterion=gi
             trueIdx = partition(question,sortedx,mCols,sorted=true)
             # Skip this split if it doesn't divide the
             # dataset.
-            if sum(trueIdx) == 0 || sum(trueIdx) == N
+            if all(trueIdx) || ! any(trueIdx)
                 continue
             end
             # Calculate the information gain from this split
-            gain = infoGain(sortedy[trueIdx], sortedy[.! trueIdx], currentUncertainty, splittingCriterion=splittingCriterion)
+            gain = infoGain(sortedy[trueIdx], sortedy[map(!,trueIdx)], currentUncertainty, splittingCriterion=splittingCriterion)
             # You actually can use '>' instead of '>=' here
             # but I wanted the tree to look a certain way for our
             # toy dataset.
@@ -372,7 +372,7 @@ function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0
     trueIdx = partition(question,x,mCols)
 
     push!(nodes,TempNode(true,rootNode,2,x[trueIdx,:],y[trueIdx]))
-    push!(nodes,TempNode(false,rootNode,2,x[.! trueIdx,:],y[.! trueIdx]))
+    push!(nodes,TempNode(false,rootNode,2,x[map(!,trueIdx),:],y[map(!,trueIdx)]))
 
     while length(nodes) > 0
         thisNode = pop!(nodes)
@@ -396,7 +396,7 @@ function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0
             trueIdx = partition(question,thisNode.x,mCols)
             newNode = DecisionNode(question,nothing,nothing,thisNode.depth)
             push!(nodes,TempNode(true,newNode,thisNode.depth+1,thisNode.x[trueIdx,:],thisNode.y[trueIdx]))
-            push!(nodes,TempNode(false,newNode,thisNode.depth+1,thisNode.x[.! trueIdx,:],thisNode.y[.! trueIdx]))
+            push!(nodes,TempNode(false,newNode,thisNode.depth+1,thisNode.x[map(!,trueIdx),:],thisNode.y[map(!,trueIdx)]))
         end
         thisNode.trueBranch ? (thisNode.parentNode.trueBranch = newNode) : (thisNode.parentNode.falseBranch = newNode)
     end

@@ -143,9 +143,9 @@ mreTest  = meanRelError(ŷtest2,ytest)
 println("Testing all possible combinations...")
 xtrain = [1 "pippo" 1.5; 3 "topolino" 2.5; 1 "amanda" 5.2; 5 "zzz" 1.2]
 ytrain = [x[2][1] <= 'q' ? 5*x[1]-2*x[3] : -5*x[1]+2*x[3] for x in eachrow(xtrain)]
+xtrain[3,3] = missing
 ytrainInt = Int64.(round.(ytrain))
 myTree1 = buildTree(xtrain,ytrain)
 myTree2 = buildTree(xtrain,ytrainInt)
 myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true)
-
 @test typeof(myTree1) <: Trees.DecisionNode && typeof(myTree2) <: Trees.DecisionNode && typeof(myTree3) <: Trees.DecisionNode
