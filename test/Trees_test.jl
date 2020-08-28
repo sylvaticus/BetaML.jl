@@ -5,6 +5,10 @@ using StableRNGs
 rng = StableRNG(123)
 using BetaML.Trees
 
+import BetaML.Trees:Leaf
+
+Leaf([1.1,2.1,3.1],2)
+
 println("*** Testing Decision trees/Random Forest algorithms...")
 
 # ==================================
@@ -91,18 +95,17 @@ ytrain = y[1:ntrain]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-myForest = buildForest(xtrain,ytrain,β=0,oob=true)
-trees = myForest.trees
-treesWeights = myForest.weights
-oobError = myForest.oobError
+forestClassifier = buildForest(xtrain,ytrain,β=1,oob=true)
+myForest = forestClassifier[:forest]
+treesWeights = forestClassifier[:weights]
+oobError = forestClassifier[:oobError]
 ŷtrain = Trees.predict(myForest, xtrain)
 @test accuracy(ŷtrain,ytrain) >= 0.98
 ŷtest = Trees.predict(myForest, xtest)
 @test accuracy(ŷtest,ytest)  >= 0.96
-updateTreesWeights!(myForest,xtrain,ytrain;β=1)
-ŷtrain2 = Trees.predict(myForest, xtrain)
+ŷtrain2 = Trees.predict(myForest, xtrain,weights=treesWeights)
 @test accuracy(ŷtrain2,ytrain) >= 0.98
-ŷtest2 = Trees.predict(myForest, xtest)
+ŷtest2 = Trees.predict(myForest, xtest,weights=treesWeights)
 @test accuracy(ŷtest2,ytest)  >= 0.96
 @test oobError <= 0.1
 
@@ -118,9 +121,9 @@ ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtrain[i] for (i,x) in enumerate(eachrow(xtra
 xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
 ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest))]
 
-myForest         = buildForest(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3)
-trees            = myForest.trees
-treesWeights     = myForest.weights
+forestClassifier = buildForest(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3, β=100)
+myForest         = forestClassifier[:forest]
+treesWeights     = forestClassifier[:weights]
 
 ŷtrain           = Trees.predict(myForest, xtrain)
 ŷtest            = Trees.predict(myForest, xtest)
@@ -129,9 +132,8 @@ mreTrain         = meanRelError(ŷtrain,ytrain)
 mreTest  = meanRelError(ŷtest,ytest)
 @test mreTest <= 0.4
 
-updateTreesWeights!(myForest,xtrain,ytrain;β=50)
-ŷtrain2 = Trees.predict(myForest, xtrain)
-ŷtest2 = Trees.predict(myForest, xtest)
+ŷtrain2 = Trees.predict(myForest, xtrain,weights=treesWeights)
+ŷtest2 = Trees.predict(myForest, xtest,weights=treesWeights)
 mreTrain = meanRelError(ŷtrain2,ytrain)
 @test mreTrain <= 0.08
 mreTest  = meanRelError(ŷtest2,ytest)

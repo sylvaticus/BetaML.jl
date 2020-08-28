@@ -43,7 +43,7 @@ module Trees
 using LinearAlgebra, Random, Statistics, Reexport
 @reexport using ..Utils
 
-export buildTree, buildForest, updateTreesWeights!, predictSingle, predict, print
+export buildTree, buildForest, computeTreesWeights, oobEstimation, predictSingle, predict, print
 import Base.print
 
 """
@@ -76,14 +76,6 @@ abstract type AbstractLeaf <: AbstractNode end
 struct Tree{Ty}
     nodes::Array{AbstractNode,1}
     type::DataType
-end
-
-mutable struct Forest{Ty}
-    trees::Array{Tree{Ty},1}
-    isRegression::Bool
-    oobData::Array{Array{Int64,1},1}
-    oobError::Float64
-    weights::Array{Float64,1}
 end
 
 """
@@ -488,12 +480,12 @@ function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain
     if forceClassification && Ty <: Number
         y = string.(y)
     end
-    trees           = Array{Tree{Ty},1}(undef,nTrees)
+    forest           = Array{Tree{Ty},1}(undef,nTrees)
     notSampledByTree = Array{Array{Int64,1},1}(undef,nTrees) # to later compute the Out of Bag Error
 
     errors = Float64[]
 
-    jobIsRegression = (forceClassification || !(eltype(y) <: Number)) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
+    #jobIsRegression = (forceClassification || !(eltype(y) <: Number ) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     (N,D) = size(x)
 
     Threads.@threads for i in 1:nTrees
@@ -505,19 +497,19 @@ function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain
         #controly = y[notToSample]
         tree = buildTree(bootstrappedx, bootstrappedy; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion = splittingCriterion, forceClassification=forceClassification)
         #ŷ = predict(tree,controlx)
-        trees[i] = tree
+        forest[i] = tree
         notSampledByTree[i] = notToSample
     end
 
-    weights = ones(Float64,nTrees)
+    weigths = ones(Float64,nTrees)
     if β > 0
-        weights = updateTreesWeights!(Forest{Ty}(trees,jobIsRegression,notSampledByTree,0.0, weights), x, y, β=β)
+        weigths = computeTreesWeights(forest, notSampledByTree, x, y, forceClassification=forceClassification, β=β)
     end
     oobE = +Inf
     if oob
-        oobE = oobError(Forest{Ty}(trees,jobIsRegression,notSampledByTree,0.0,weights),x,y)
+        oobE = oobError(forest,notSampledByTree,x,y,forceClassification = forceClassification)
     end
-    return Forest{Ty}(trees,jobIsRegression,notSampledByTree,oobE,weights)
+    return (forest=forest,weights=weigths,oobError=oobE)
 end
 
 """
@@ -527,10 +519,8 @@ Predict the label of a single feature record. See [`predict`](@ref).
 Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 
 """
-function predictSingle(forest::Forest{Ty}, x) where {Ty}
-    trees   = forest.trees
-    weights = forest.weights
-    predictions  = predictSingle.(trees,Ref(x))
+function predictSingle(forest::Array{Tree{Ty},1}, x;weights=ones(length(forest))) where {Ty}
+    predictions  = predictSingle.(forest,Ref(x))
     if eltype(predictions) <: AbstractDict   # categorical
         #weights = 1 .- treesErrors # back to the accuracy
         return meanDicts(predictions,weights=weights)
@@ -541,7 +531,7 @@ function predictSingle(forest::Forest{Ty}, x) where {Ty}
 end
 
 """
-   predict(forest,x)
+   predict(forest,x;weights)
 
 Predict the labels of a feature dataset.
 
@@ -554,24 +544,22 @@ In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess th
 Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 
 """
-function predict(forest::Forest{Ty}, x) where {Ty}
-    predictions = predictSingle.(Ref(forest),eachrow(x))
+function predict(forest::Array{Tree{Ty},1}, x; weights=ones(length(forest))) where {Ty}
+    predictions = predictSingle.(Ref(forest),eachrow(x); weights = weights)
     return predictions
 end
 
 
 """
-   updateTreesWeights(forest,notSampledByTree,x,y;forceClassification,β)
+   computeTreesWeights(forest,notSampledByTree,x,y;forceClassification,β)
 
 Compute the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
 
 """
-function updateTreesWeights!(forest::Forest{Ty},x,y;β=50) where {Ty}
-    trees            = forest.trees
-    notSampledByTree = forest.oobData
-    jobIsRegression  = forest.isRegression
-    weights          = Float64[]
-    for (i,tree) in enumerate(trees)
+function computeTreesWeights(forest::Array{Tree{Ty},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false,β=50) where {Ty}
+    weights = Float64[]
+    jobIsRegression = (forceClassification || !(Ty <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
+    for (i,tree) in enumerate(forest)
         yoob = y[notSampledByTree[i]]
         ŷ = predict(tree,x[notSampledByTree[i],:])
         if jobIsRegression
@@ -580,16 +568,12 @@ function updateTreesWeights!(forest::Forest{Ty},x,y;β=50) where {Ty}
             push!(weights,accuracy(ŷ,yoob)*β)
         end
     end
-    forest.weights = weights
+    return weights
 end
 
-function oobError(forest::Forest{Ty},x,y) where {Ty}
-    trees = forest.trees
-    jobIsRegression = forest.isRegression
-    notSampledByTree = forest.oobData
-    weights=forest.weights
-
-    B = length(trees)
+function oobError(forest::Array{Tree{Ty},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false) where {Ty}
+    jobIsRegression = (forceClassification || !(Ty <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
+    B = length(forest)
     N = size(x,1)
     if jobIsRegression
         ŷ = Array{Float64,1}(undef,N)
@@ -598,9 +582,9 @@ function oobError(forest::Forest{Ty},x,y) where {Ty}
     end
 
     for (n,x) in enumerate(eachrow(x))
-        unseenTreesBools  = in.(n,notSampledByTree)
-        unseenTrees = trees[(1:B)[unseenTreesBools]]
-        ŷ[n] = predictSingle(Forest{Ty}(unseenTrees,jobIsRegression,forest.oobData,0.0,weights),x)
+        unseenTrees  = in.(n,notSampledByTree)
+        unseenForest = forest[(1:B)[unseenTrees]]
+        ŷ[n] = predictSingle(unseenForest,x)
     end
     if jobIsRegression
         return meanRelError(ŷ,y)
