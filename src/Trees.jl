@@ -16,11 +16,11 @@ Decision Trees implementation (Module BetaML.Trees)
 
 Implement the functionality required to build a Decision Tree or a whole Random Forest, predict data and assess its performances.
 
-Both Decision Trees and Random Forests can be used for regression or classification problems, based on the type of the labels (numerical or not). You can override the automatic selection with the parameter `forceClassification=true`, typically if your labels are integer representing some categories rather than numbers.
+Both Decision Trees and Random Forests can be used for regression or classification problems, based on the type of the labels (numerical or not). You can override the automatic selection with the parameter `forceClassification=true`, typically if your labels are integer representing some categories rather than numbers. For classification problems the output of `predictSingle` is a dictionary with the key being the labels with non-zero probabilitity and the corresponding value its proobability; for regression it is a numerical value.
 
-Missing data on features are supported.
+Please be aware that, differently from most other implementations, the Random Forest algorithm collects and averages the probabilities from the trees, rather than just repording the mode, i.e. no information is lost and the output of the forest classifier is still a PMF.
 
-Based originally on the [Josh Gordon's code](https://www.youtube.com/watch?v=LDRbO9a6XPU)
+Missing data on features are supported, both on training and on prediction.
 
 The module provide the following functions. Use `?[type or function]` to access their full signature and detailed documentation:
 
@@ -37,6 +37,8 @@ The module provide the following functions. Use `?[type or function]` to access 
 - `Utils.mearRelError(tree or forest,p)`: L-p norm based error
 
 Features are expected to be in the standard format (nRecords × nDimensions matrices) and the labels (either categorical or numerical) as a nRecords column vector.
+
+Acknowlegdments: originally based on the [Josh Gordon's code](https://www.youtube.com/watch?v=LDRbO9a6XPU)
 """
 module Trees
 
@@ -126,8 +128,9 @@ mutable struct DecisionNode{Tx} <: AbstractDecisionNode
     trueBranch::Union{Nothing,AbstractNode}
     falseBranch::Union{Nothing,AbstractNode}
     depth::Int64
-    function DecisionNode(question::Question{Tx},trueBranch::Union{Nothing,AbstractNode},falseBranch::Union{Nothing,AbstractNode}, depth) where {Tx}
-        return new{Tx}(question,trueBranch,falseBranch, depth)
+    pTrue::Float64
+    function DecisionNode(question::Question{Tx},trueBranch::Union{Nothing,AbstractNode},falseBranch::Union{Nothing,AbstractNode}, depth,pTrue) where {Tx}
+        return new{Tx}(question,trueBranch,falseBranch, depth,pTrue)
     end
 end
 
@@ -367,9 +370,8 @@ function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0
     # we'll return a leaf.
     if gain <= minGain  return Leaf(y, depth)  end
 
-    rootNode = DecisionNode(question,nothing,nothing,1)
-
     trueIdx = partition(question,x,mCols)
+    rootNode = DecisionNode(question,nothing,nothing,1,sum(trueIdx)/length(trueIdx))
 
     push!(nodes,TempNode(true,rootNode,2,x[trueIdx,:],y[trueIdx]))
     push!(nodes,TempNode(false,rootNode,2,x[map(!,trueIdx),:],y[map(!,trueIdx)]))
@@ -394,7 +396,7 @@ function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0
             newNode = Leaf(thisNode.y, thisNode.depth)
         else
             trueIdx = partition(question,thisNode.x,mCols)
-            newNode = DecisionNode(question,nothing,nothing,thisNode.depth)
+            newNode = DecisionNode(question,nothing,nothing,thisNode.depth,sum(trueIdx)/length(trueIdx))
             push!(nodes,TempNode(true,newNode,thisNode.depth+1,thisNode.x[trueIdx,:],thisNode.y[trueIdx]))
             push!(nodes,TempNode(false,newNode,thisNode.depth+1,thisNode.x[map(!,trueIdx),:],thisNode.y[map(!,trueIdx)]))
         end
@@ -458,6 +460,13 @@ function predictSingle(node::Union{DecisionNode{Tx},Leaf{Ty}}, x) where {Tx,Ty}
     # Decide whether to follow the true-branch or the false-branch.
     # Compare the feature / value stored in the node,
     # to the example we're considering.
+
+    # If the feature on which to base prediction is missing, we follow the true branch with a probability equal to the share of true
+    # records over all the records during this node training..
+    if ismissing(x[node.question.column])
+        r = rand()
+        return (node.pTrue >= r) ? predictSingle(node.trueBranch,x) : predictSingle(node.falseBranch,x)
+    end
     if match(node.question,x)
         return predictSingle(node.trueBranch,x)
     else
@@ -599,7 +608,7 @@ function updateTreesWeights!(forest::Forest{Ty},x,y;β=50) where {Ty}
         end
     end
     forest.weights = weights
-    return nothing
+    return weights
 end
 
 """
@@ -627,11 +636,7 @@ function oobError(forest::Forest{Ty},x,y) where {Ty}
         unseenTreesBools  = in.(n,notSampledByTree)
         unseenTrees = trees[(1:B)[unseenTreesBools]]
         unseenTreesWeights = weights[(1:B)[unseenTreesBools]]
-        if any(ismissing.(x))
-            ŷ[n]=y[n] # TODO: bad hack to correct
-        else
-            ŷ[n] = predictSingle(Forest{Ty}(unseenTrees,jobIsRegression,forest.oobData,0.0,unseenTreesWeights),x)
-        end
+        ŷ[n] = predictSingle(Forest{Ty}(unseenTrees,jobIsRegression,forest.oobData,0.0,unseenTreesWeights),x)
     end
     if jobIsRegression
         return meanRelError(ŷ,y)

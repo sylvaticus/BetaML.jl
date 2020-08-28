@@ -54,6 +54,7 @@ xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
 myTree = buildTree(xtrain,ytrain, splittingCriterion=entropy);
+@benchmark buildTree(xtrain,ytrain, splittingCriterion=gini)
 ŷtrain = Trees.predict(myTree, xtrain)
 @test accuracy(ŷtrain,ytrain) >= 0.99
 ŷtest = Trees.predict(myTree, xtest)
@@ -141,11 +142,30 @@ mreTest  = meanRelError(ŷtest2,ytest)
 # ==================================
 # NEW TEST
 println("Testing all possible combinations...")
-xtrain = [1 "pippo" 1.5; 3 "topolino" 2.5; 1 "amanda" 5.2; 5 "zzz" 1.2]
+xtrain = [1 "pippo" 1.5; 3 "topolino" 2.5; 1 "amanda" 5.2; 5 "zzz" 1.2; 7 "pippo" 2.2; 1 "zzz" 1.5; 3 "topolino" 2.1]
 ytrain = [x[2][1] <= 'q' ? 5*x[1]-2*x[3] : -5*x[1]+2*x[3] for x in eachrow(xtrain)]
-xtrain[3,3] = missing
+xtest = [2 "pippo" 3.4; 1 "amanda" 1.5; 4 "amanda" 0.5; 2 "topolino" 2.2; 7 "zzz" 3.2]
+ytest = [x[2][1] <= 'q' ? 5*x[1]-2*x[3] : -5*x[1]+2*x[3] for x in eachrow(xtest)]
 ytrainInt = Int64.(round.(ytrain))
+
 myTree1 = buildTree(xtrain,ytrain)
+myForest = buildForest(xtrain,ytrain,β=1,oob=true)
+oobError = myForest.oobError
+ŷtrain = predict(myForest,xtrain)
+ŷtest = predict(myForest,xtest)
+mreTrain = meanRelError(ŷtrain,ytrain)
+mreTest  = meanRelError(ŷtest,ytest)
+
+xtrain[3,3] = missing
+xtest[3,2] = missing
+myForest = buildForest(xtrain,ytrain,oob=true,β=1)
+oobError = myForest.oobError
+ŷtrain = predict(myForest,xtrain)
+ŷtest = predict(myForest,xtest)
+mreTrain2 = meanRelError(ŷtrain,ytrain)
+mreTest2  = meanRelError(ŷtest,ytest)
+@test mreTest2 <= mreTest * 1.4
+
 myTree2 = buildTree(xtrain,ytrainInt)
 myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true)
 @test typeof(myTree1) <: Trees.DecisionNode && typeof(myTree2) <: Trees.DecisionNode && typeof(myTree3) <: Trees.DecisionNode
