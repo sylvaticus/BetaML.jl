@@ -328,7 +328,6 @@ The given tree is then returned.
 # Parameters:
 - `x`: The dataset's features (N × D)
 - `y`: The dataset's labels (N × 1)
-- `depth`: The current tree's depth. Used when calling the function recursively [def: `1`]
 - `maxDepth`: The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `N`, i.e. no limits]
 - `minGain`: The minimum information gain to allow for a node's partition [def: `0`]
 - `minRecords`:  The minimum number of records a node must holds to consider for a partition of it [def: `2`]
@@ -341,7 +340,7 @@ The given tree is then returned.
 
 Missing data (in the feature dataset) are supported.
 """
-function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, mCols=nothing) where {Ty}
+function buildTree(x, y::Array{Ty,1}; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, mCols=nothing) where {Ty}
 
 
     #println(depth)
@@ -354,6 +353,7 @@ function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0
 
 
     nodes = TempNode[]
+    depth = 1
 
     # Deciding if the root node is a Leaf itself or not
 
@@ -373,8 +373,8 @@ function buildTree(x, y::Array{Ty,1}, depth=1; maxDepth = size(x,1), minGain=0.0
     trueIdx = partition(question,x,mCols)
     rootNode = DecisionNode(question,nothing,nothing,1,sum(trueIdx)/length(trueIdx))
 
-    push!(nodes,TempNode(true,rootNode,2,x[trueIdx,:],y[trueIdx]))
-    push!(nodes,TempNode(false,rootNode,2,x[map(!,trueIdx),:],y[map(!,trueIdx)]))
+    push!(nodes,TempNode(true,rootNode,depth+1,x[trueIdx,:],y[trueIdx]))
+    push!(nodes,TempNode(false,rootNode,depth+1,x[map(!,trueIdx),:],y[map(!,trueIdx)]))
 
     while length(nodes) > 0
         thisNode = pop!(nodes)
@@ -500,7 +500,7 @@ Builds (define and train) a "forest" of Decision Trees.
 See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with the `maxFeatures` defaulting to `√D` instead of `D`) plus the following parameters:
 - `nTrees`: Number of trees in the forest [def: `30`]
 - `β`: Parameter that regulate the weights of the scoring of each tree, to be (optionally) used in prediction (see later) [def: `0`, i.e. uniform weigths]
-- `oob`: Wheter to report the out-of-bag error, an estimation of the generalization accuracy [def: `false`]
+- `oob`: Wheter to coompute the out-of-bag error, an estimation of the generalization accuracy [def: `false`]
 
 # Output:
 - The function returns a Forest object (see [`Forest`](@ref)).
