@@ -186,20 +186,28 @@ Dicotomically partitions a dataset `x` given a question.
 For each of the rows rIds in the dataset x, check if they match the question. If so, add the row ids to 'true rows', otherwise, add them to the 'false rows'.
 Rows with missing values on the question column are assigned randomly, proportionally to the assignment of the non-missing rows.
 """
-function partition(question::Question{Tx},x,rIds) where {Tx}
+function partition(question::Question,x,rIds)
+
     N = size(x,1)
 
     trueRIds = Int64[]; falseRIds = Int64[]; missingRIds = Int64[]
-    for rid in rIds
+    
+    #trueIdx = fill(false,N); falseIdx = fill(false,N); missingIdx = fill(false,N)
+
+    @inbounds for rid in rIds
         value = x[rid,question.column]
         if(ismissing(value))
             push!(missingRIds,rid)
+            #missingIdx[rid] = true
         elseif match(question,value)
             push!(trueRIds,rid)
+            #trueIdx[rid] = true
         else
             push!(falseRIds,rid)
+            #falseIdx[rid] = true
         end
     end
+
     # Assigning missing rows randomly proportionally to non-missing rows
     p = length(trueRIds)/(length(trueRIds)+length(falseRIds))
 
@@ -212,6 +220,23 @@ function partition(question::Question{Tx},x,rIds) where {Tx}
         end
     end
     return trueRIds, falseRIds
+
+#=
+    p = sum(trueIdx)/(sum(trueIdx)+sum(falseIdx))
+    r = rand(N)
+    for rIdx in 1:N
+        if missingIdx[rIdx]
+            if r[rIdx] <= p
+                trueIdx[rIdx] = true
+            else
+                falseIdx[rIdx] = true
+            end
+        end
+    end
+
+    return findall(x -> x == true, trueIdx), findall(x -> x == true, falseIdx)
+=#
+
 end
 
 """
@@ -254,8 +279,8 @@ Find the best question to ask by iterating over every feature / value and calcul
 
 """
 function findBestSplit(x,y::AbstractArray{Ty,1},rIds;maxFeatures,splittingCriterion=gini) where {Ty}
-    bestGain           = 0  # keep track of the best information gain
-    bestQuestion       = nothing  # keep train of the feature / value that produced it
+    bestGain           = 0.0  # keep track of the best information gain
+    bestQuestion       = Question(1,0.0)  # keep train of the feature / value that produced it
     currentUncertainty = splittingCriterion(y[rIds])
     D  = size(x,2)  # number of columns (the last column is the label)
 
@@ -503,10 +528,7 @@ function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain
         notToSample = setdiff(1:N,toSample)
         bootstrappedx = x[toSample,:] # "boosted is different than "bootstrapped": https://towardsdatascience.com/random-forest-and-its-implementation-71824ced454f
         bootstrappedy = y[toSample]
-        #controlx = x[notToSample,:]
-        #controly = y[notToSample]
         tree = buildTree(bootstrappedx, bootstrappedy; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion = splittingCriterion, forceClassification=forceClassification)
-        #ŷ = predict(tree,controlx)
         trees[i] = tree
         notSampledByTree[i] = notToSample
     end
