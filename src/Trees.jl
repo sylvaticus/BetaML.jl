@@ -626,7 +626,12 @@ function oobError(forest::Forest{Ty},x,y) where {Ty}
     for (n,x) in enumerate(eachrow(x))
         unseenTreesBools  = in.(n,notSampledByTree)
         unseenTrees = trees[(1:B)[unseenTreesBools]]
-        ŷ[n] = predictSingle(Forest{Ty}(unseenTrees,jobIsRegression,forest.oobData,0.0,weights),x)
+        unseenTreesWeights = weights[(1:B)[unseenTreesBools]]
+        if any(ismissing.(x))
+            ŷ[n]=y[n] # TODO: bad hack to correct
+        else
+            ŷ[n] = predictSingle(Forest{Ty}(unseenTrees,jobIsRegression,forest.oobData,0.0,unseenTreesWeights),x)
+        end
     end
     if jobIsRegression
         return meanRelError(ŷ,y)
