@@ -43,7 +43,7 @@ module Trees
 using LinearAlgebra, Random, Statistics, Reexport
 @reexport using ..Utils
 
-export buildTree, buildForest, computeTreesWeights, oobEstimation, predictSingle, predict, print
+export buildTree, buildForest, updateTreesWeights!, predictSingle, predict, print
 import Base.print
 
 """
@@ -57,14 +57,6 @@ abstract type AbstractQuestion end
 struct Question{Tx} <: AbstractQuestion
     column::Int64
     value::Tx
-end
-
-function print(question::Question)
-    condition = "=="
-    if isa(question.value, Number)
-        condition = ">="
-    end
-    print("Is col $(question.column) $condition $(question.value) ?")
 end
 
 abstract type AbstractNode end
@@ -82,7 +74,6 @@ A tree's leaf (terminal) node.
 - `depth`: The nodes's depth in the tree
 
 # Struct members:
-- `rawPredictions`: Either the label's count or the numerical labels of the members of the node
 - `predictions`: Either the relative label's count (i.e. a PMF) or the mean
 - `depth`: The nodes's depth in the tree
 """
@@ -133,6 +124,35 @@ struct DecisionNode{Tx,Ty} <: AbstractDecisionNodeTy{Ty}
     end
 end
 
+"""
+    Forest{Ty}
+
+Type representing a Random Forest.
+
+Individual trees are stored in the array `trees`. The "type" of the forest is given by the type of the labels on which it has been trained.
+
+# Struct members:
+- `trees`:        The individual Decision Trees
+- `isRegression`: Wheter the forest is to be used for regression jobs or classification
+- `oobData`:      For each tree, the rows number if the data that have _not_ being used to train the specific tree
+- `oobError`:     The out of bag error (if it has been computed)
+- `weights`:      A weight for each tree depending on the tree's score on the oobData (see [`buildForest`](@ref))
+"""
+mutable struct Forest{Ty}
+    trees::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1}
+    isRegression::Bool
+    oobData::Array{Array{Int64,1},1}
+    oobError::Float64
+    weights::Array{Float64,1}
+end
+
+function print(question::Question)
+    condition = "=="
+    if isa(question.value, Number)
+        condition = ">="
+    end
+    print("Is col $(question.column) $condition $(question.value) ?")
+end
 
 """
 
@@ -147,7 +167,6 @@ Numerical features are compared in terms of disequality (">="), while categorica
 function match(question::Question{Tx}, x) where {Tx}
     val = x[question.column]
     if Tx <: Number
-    #if isa(val, Number) # or isa(val, AbstractFloat) to consider "numeric" only floats
         return val >= question.value
     else
         return val == question.value
@@ -415,28 +434,26 @@ See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with
 - `oob`: Wheter to report the out-of-bag error, an estimation of the generalization accuracy [def: `false`]
 
 # Output:
-The function returns a named touple with the following elements:
-- `forest`: the forest ityself (array of Trees)
-- `weights`: the per-tree weight based on their accuracy [def: to array of ones if `β ≤ 0`]
-- `oob`:   the estimate of the oob error [def: to `+Inf` if `oob` == `false`]
+- The function returns a Forest object (see [`Forest`](@ref)).
+- The forest weights default to array of ones if `β ≤ 0` and the oob error to `+Inf` if `oob` == `false`.
 
 # Notes :
 - Each individual decision tree is built using bootstrap over the data, i.e. "sampling N records with replacement" (hence, some records appear multiple times and some records do not appear in the specific tree training). The `maxFeature` injects further variability and reduces the correlation between the forest trees.
 - The predictions of the "forest" (using the function `predict()`) are then the aggregated predictions of the individual trees (from which the name "bagging": **b**oostrap **agg**regat**ing**).
 - This function optionally reports a weight distribution of the performances of eanch individual trees, as measured using the records he has not being trained with. These weights can then be (optionally) used in the `predict` function. The parameter `β ≥ 0` regulate the distribution of these weights: larger is `β`, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of β depends on the problem under exam (and the chosen caratteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
-- Note that this function uses muiltiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
+- Note that this function uses multiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
 """
 function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, β=0, oob=false) where {Ty}
     # Force what would be a regression task into a classification task
     if forceClassification && Ty <: Number
         y = string.(y)
     end
-    forest           = Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1}(undef,nTrees)
+    trees           = Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1}(undef,nTrees)
     notSampledByTree = Array{Array{Int64,1},1}(undef,nTrees) # to later compute the Out of Bag Error
 
     errors = Float64[]
 
-    #jobIsRegression = (forceClassification || !(eltype(y) <: Number ) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
+    jobIsRegression = (forceClassification || !(eltype(y) <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     (N,D) = size(x)
 
     Threads.@threads for i in 1:nTrees
@@ -448,30 +465,31 @@ function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain
         #controly = y[notToSample]
         tree = buildTree(bootstrappedx, bootstrappedy; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion = splittingCriterion, forceClassification=forceClassification)
         #ŷ = predict(tree,controlx)
-        forest[i] = tree
+        trees[i] = tree
         notSampledByTree[i] = notToSample
     end
 
-    weigths = ones(Float64,nTrees)
+    weights = ones(Float64,nTrees)
     if β > 0
-        weigths = computeTreesWeights(forest, notSampledByTree, x, y, forceClassification=forceClassification, β=β)
+        weights = updateTreesWeights!(Forest{Ty}(trees,jobIsRegression,notSampledByTree,0.0,weights), x, y, β=β)
     end
     oobE = +Inf
     if oob
-        oobE = oobError(forest,notSampledByTree,x,y,forceClassification = forceClassification)
+        oobE = oobError(Forest{Ty}(trees,jobIsRegression,notSampledByTree,0.0,weights),x,y)
     end
-    return (forest=forest,weights=weigths,oobError=oobE)
+    return Forest{Ty}(trees,jobIsRegression,notSampledByTree,oobE,weights)
 end
 
+# Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
 """
-predictSingle(forest,x;weights)
+predictSingle(forest,x)
 
 Predict the label of a single feature record. See [`predict`](@ref).
-Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
-
 """
-function predictSingle(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1}, x;weights=ones(length(forest))) where {Ty}
-    predictions  = predictSingle.(forest,Ref(x))
+function predictSingle(forest::Forest{Ty}, x) where {Ty}
+    trees   = forest.trees
+    weights = forest.weights
+    predictions  = predictSingle.(trees,Ref(x))
     if eltype(predictions) <: AbstractDict   # categorical
         #weights = 1 .- treesErrors # back to the accuracy
         return meanDicts(predictions,weights=weights)
@@ -481,8 +499,9 @@ function predictSingle(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},
     end
 end
 
+
 """
-   predict(forest,x;weights)
+   predict(forest,x)
 
 Predict the labels of a feature dataset.
 
@@ -491,26 +510,25 @@ If the labels the tree has been trained with are numeric, the prediction is also
 If the labels were categorical, the prediction is a dictionary with the probabilities of each item and in such case the probabilities of the different trees are averaged to compose the forest predictions. This is a bit different than most other implementations where the mode instead is reported.
 
 In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
-
-Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
-
 """
-function predict(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1}, x; weights=ones(length(forest))) where {Ty}
-    predictions = predictSingle.(Ref(forest),eachrow(x); weights = weights)
+function predict(forest::Forest{Ty}, x) where {Ty}
+    predictions = predictSingle.(Ref(forest),eachrow(x))
     return predictions
 end
 
 
 """
-   computeTreesWeights(forest,notSampledByTree,x,y;forceClassification,β)
+   updateTreesWeights!(forest,x,y;β)
 
-Compute the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
-
+Update the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
+As training a forest is expensive, this function can be used to "just" upgrade the trees weights using different betas, without rettraining the model.
 """
-function computeTreesWeights(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false,β=50) where {Ty}
-    weights = Float64[]
-    jobIsRegression = (forceClassification || !(Ty <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
-    for (i,tree) in enumerate(forest)
+function updateTreesWeights!(forest::Forest{Ty},x,y;β=50) where {Ty}
+    trees            = forest.trees
+    notSampledByTree = forest.oobData
+    jobIsRegression  = forest.isRegression
+    weights          = Float64[]
+    for (i,tree) in enumerate(trees)
         yoob = y[notSampledByTree[i]]
         ŷ = predict(tree,x[notSampledByTree[i],:])
         if jobIsRegression
@@ -519,13 +537,25 @@ function computeTreesWeights(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf
             push!(weights,accuracy(ŷ,yoob)*β)
         end
     end
-    return weights
+    forest.weights = weights
+    return nothing
 end
 
-function oobError(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1},notSampledByTree::Array{Array{Int64,1},1},x,y;forceClassification = false) where {Ty}
-    jobIsRegression = (forceClassification || !(Ty <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
-    B = length(forest)
-    N = size(x,1)
+"""
+   oobError(forest,x,y)
+
+Comute the Out-Of-Bag error, an estimation of the validation error.
+
+This function is called at time of train the forest if the parameter `oob` is `true`, or can be used later to get the oob error on an already trained forest.
+"""
+function oobError(forest::Forest{Ty},x,y) where {Ty}
+    trees            = forest.trees
+    jobIsRegression  = forest.isRegression
+    notSampledByTree = forest.oobData
+    weights          = forest.weights
+    B                = length(trees)
+    N                = size(x,1)
+
     if jobIsRegression
         ŷ = Array{Float64,1}(undef,N)
     else
@@ -533,9 +563,9 @@ function oobError(forest::Array{Union{AbstractDecisionNodeTy{Ty},Leaf{Ty}},1},no
     end
 
     for (n,x) in enumerate(eachrow(x))
-        unseenTrees  = in.(n,notSampledByTree)
-        unseenForest = forest[(1:B)[unseenTrees]]
-        ŷ[n] = predictSingle(unseenForest,x)
+        unseenTreesBools  = in.(n,notSampledByTree)
+        unseenTrees = trees[(1:B)[unseenTreesBools]]
+        ŷ[n] = predictSingle(Forest{Ty}(unseenTrees,jobIsRegression,forest.oobData,0.0,weights),x)
     end
     if jobIsRegression
         return meanRelError(ŷ,y)
