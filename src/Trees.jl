@@ -26,15 +26,16 @@ The module provide the following functions. Use `?[type or function]` to access 
 
 # Model definition and training:
 
-- `buildTree`: Build a single Decision Tree
-- `buildForest`: Build a "forest" of Decision Trees
+- `buildTree(xtrain,ytrain)`: Build a single Decision Tree
+- `buildForest(xtrain,ytrain)`: Build a "forest" of Decision Trees
 
 
 # Model predictions and assessment:
 
-- `predict`: Return the prediction given the feature matrix
-- `Utils.accuracy(tree or forest)`: Categorical output accuracy
-- `Utils.mearRelError(tree or forest,p)`: L-p norm based error
+- `predict(tree or forest, x)`: Return the prediction given the feature matrix
+- `oobError(forest,x,y)`: Return the out-of-bag error estimate
+- `Utils.accuracy(ŷ,y))`: Categorical output accuracy
+- `Utils.meanRelError(ŷ,y,p)`: L-p norm based error
 
 Features are expected to be in the standard format (nRecords × nDimensions matrices) and the labels (either categorical or numerical) as a nRecords column vector.
 """

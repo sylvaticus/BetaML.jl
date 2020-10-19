@@ -59,7 +59,7 @@ To define your own optimisation algorithm define a subtype of `OptimisationAlgor
 
 - `predict(nn)`: Return the output given the data
 - `loss(nn)`: Compute avg. network loss on a test set
-- `Utils.accuracy(nn)`: Categorical output accuracy
+- `Utils.accuracy(ŷ,y)`: Categorical output accuracy
 
 While high-level functions operating on the dataset expect it to be in the standard format (nRecords × nDimensions matrices) it is custom to represent the chain of a neural network as a flow of column vectors, so all low-level operations (operating on a single datapoint) expect both the input and the output as a column vector.
 """
