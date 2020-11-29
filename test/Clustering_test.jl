@@ -70,14 +70,14 @@ initMixtures!(mixtures,X,minVariance=0.25)
 # ==================================
 # New test
 # ==================================
-println("Testing em...")
-clusters = em([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3,verbosity=NONE)
+println("Testing gmm...")
+clusters = gmm([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3,verbosity=NONE)
 @test isapprox(clusters.BIC,119.04816608007282)
 
 # ==================================
 # New test
 # ==================================
-println("Testing em...")
+println("Testing predictMissing...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 out = predictMissing(X,3,mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE)
 @test isapprox(out.X̂[2,2],14.187187936786232)

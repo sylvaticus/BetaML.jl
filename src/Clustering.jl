@@ -20,10 +20,10 @@ The module provides the following functions. Use `?[function]` to access their f
 - [`initRepresentatives(X,K;initStrategy,Z₀)`](@ref initRepresentatives): Initialisation strategies for Kmean and Kmedoids
 - [`kmeans(X,K;dist,initStrategy,Z₀)](@ref kmeans)`: Classical KMean algorithm
 - [`kmedoids(X,K;dist,initStrategy,Z₀)](@ref kmedoids)`: Kmedoids algorithm
-- [`em(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initStrategy)](@ref em)`: EM algorithm over GMM
-- [`predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)](@ref predictMissing)`: Fill mixing values / collaborative filtering using EM as backbone
+- [`gmm(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initStrategy)](@ref gmm)`: gmm algorithm over GMM
+- [`predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)](@ref predictMissing)`: Fill mixing values / collaborative filtering using gmm as backbone
 
-{Spherical|Diagonal|Full}Gaussian mixtures for `em` / `predictMissing` are already provided. User defined mixtures can be used defining a struct as subtype of `Mixture` and implementing for that mixture the following functions:
+{Spherical|Diagonal|Full}Gaussian mixtures for `gmm` / `predictMissing` are already provided. User defined mixtures can be used defining a struct as subtype of `Mixture` and implementing for that mixture the following functions:
 - `initMixtures!(mixtures, X; minVariance, minCovariance, initStrategy)`
 - `lpdf(m,x,mask)` (for the e-step)
 - `updateParameters!(mixtures, X, pₙₖ; minVariance, minCovariance)` (the m-step)
@@ -36,7 +36,7 @@ using LinearAlgebra, Random, Statistics, Reexport
 
 @reexport using ..Utils
 
-export initRepresentatives, kmeans, kmedoids, em, predictMissing
+export initRepresentatives, kmeans, kmedoids, gmm, predictMissing
 
 abstract type Mixture end
 include("Mixtures.jl")
@@ -268,12 +268,12 @@ function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="shuffle",Z₀=nothin
 end
 
 
-## The EM algorithm (Lecture/segment 16.5 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
+## The gmm algorithm (Lecture/segment 16.5 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
 
 # no longer true with the numerical trick implemented
 # - For mixtures with full covariance matrix (i.e. `FullGaussian(μ,σ²)`) the minCovariance should NOT be set equal to the minVariance, or if the covariance matrix goes too low, it will become singular and not invertible.
 """
-  em(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initStrategy)
+  gmm(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initStrategy)
 
 Compute Expectation-Maximisation algorithm to identify K clusters of X data, i.e. employ a Generative Mixture Model as the underlying probabilistic model.
 
@@ -308,16 +308,16 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
  - For `initStrategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support either `grid` or `kmeans`. `grid` is faster (expecially if X contains missing values), but `kmeans` often provides better results.
 
  # Resources:
- - [Paper describing EM with missing values](https://doi.org/10.1016/j.csda.2006.10.002)
+ - [Paper describing gmm with missing values](https://doi.org/10.1016/j.csda.2006.10.002)
  - [Class notes from MITx 6.86x (Sec 15.9)](https://stackedit.io/viewer#!url=https://github.com/sylvaticus/MITx_6.86x/raw/master/Unit 04 - Unsupervised Learning/Unit 04 - Unsupervised Learning.md)
- - [Limitations of EM](https://www.r-craft.org/r-news/when-not-to-use-gaussian-mixture-model-em-clustering/)
+ - [Limitations of gmm](https://www.r-craft.org/r-news/when-not-to-use-gaussian-mixture-model-gmm-clustering/)
 
 # Example:
 ```julia
-julia> clusters = em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,verbosity=HIGH)
+julia> clusters = gmm([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,verbosity=HIGH)
 ```
 """
-function em(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="grid")
+function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="grid")
     if verbosity > STD
         @codeLocation
     end
@@ -423,9 +423,9 @@ end # end function
 #@benchmark clusters = emGMM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
 #@benchmark clusters = emGMM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
 #@benchmark clusters = emGMM([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3,msgStep=0)
-#@code_warntype em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
+#@code_warntype gmm([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
 #using Profile
-#Juno.@profiler (for i = 1:1000 em([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0) end)
+#Juno.@profiler (for i = 1:1000 gmm([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0) end)
 #Profile.clear()
 #Profile.print()
 
@@ -472,7 +472,7 @@ function predictMissing(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1
     if verbosity > STD
         @codeLocation
     end
-    emOut = em(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy)
+    emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy)
     (N,D) = size(X)
     #K = size(emOut.μ)[1]
     XMask = .! ismissing.(X)

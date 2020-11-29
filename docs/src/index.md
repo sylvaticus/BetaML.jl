@@ -104,10 +104,10 @@ y        = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iri
 minVarRange = collect(0.04:0.05:1.5)
 minCovarRange = collect(0:0.05:1.45)
 
-# Run the em algorithm for the various cases...
-sphOut  = [em(x,3,mixtures=[SphericalGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE) for v in minVarRange, cv in minCovarRange[1:1]]
-diagOut  = [em(x,3,mixtures=[DiagonalGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE)  for v in minVarRange, cv in minCovarRange[1:1]]
-fullOut = [em(x,3,mixtures=[FullGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE)  for v in minVarRange, cv in minCovarRange]
+# Run the gmm(em) algorithm for the various cases...
+sphOut  = [gmm(x,3,mixtures=[SphericalGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE) for v in minVarRange, cv in minCovarRange[1:1]]
+diagOut  = [gmm(x,3,mixtures=[DiagonalGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE)  for v in minVarRange, cv in minCovarRange[1:1]]
+fullOut = [gmm(x,3,mixtures=[FullGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE)  for v in minVarRange, cv in minCovarRange]
 
 # Get the Bayesian information criterion (AIC is also available)
 sphBIC = [sphOut[v,cv].BIC for v in 1:length(minVarRange), cv in 1:1]
