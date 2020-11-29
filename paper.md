@@ -67,7 +67,8 @@ Still BetaML offers a fair level of flexibility. As we didn't aim for heavy opti
 For example, one can implement its own neural network layer, optimisation algorithm, or mixture model, define the initial conditions in almost all the stochastic algorithms or specify its own distance metric in the clustering algorithms.
 To help beginners, many parameters and functions have pretty longer but more explicit names than usual. For example the Dense layer is a `DenseLayer`, the RBF kernel is `radialKernel`, etc.
 
-A few packages try to provide a common framework of the ML ecosystem of Julia packages. Notably MLJ.jl [@Blaom:2019] builds up on existing ML specialised packages. While avoiding the problem of "reinventing the wheel", the wrapping level unintentionally introduces some complications for the end-user, like the need to load the models and learn MLJ-specific concepts as _model_ or _machine_.
+A few packages try to provide a common Julia framework of the various ML algorithms available in Julia, like  ScikitLearn.jl[@St-Jean:2020], AutoMLPipeline.jl[@Paulito:2020] or MLJ.jl [@Blaom:2019]. They build up on existing Julia (and or Python) ML specialised packages. While avoiding the problem of "reinventing the wheel", the wrapping level unintentionally introduces some complications for the end-user, like the need to load the models and learn MLJ-specific concepts as _model_ or _machine_ in MLJ or `@pipeline` and `fit_transform!` in AutoMLPipeline.
+
 <!--Also it make difficult for the user to trace back the code performing the computations and modify for his own needs.-->
 
 We chose instead to bundle the main ML algorithms directly within the package. This offers a complementary approach that we feel is more beginner-friendly.
