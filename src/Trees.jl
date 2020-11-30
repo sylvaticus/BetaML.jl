@@ -518,7 +518,7 @@ function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain
     if forceClassification && Ty <: Number
         y = string.(y)
     end
-    trees           = Array{Union{AbstractDecisionNode,Leaf{Ty}},1}(undef,nTrees)
+    trees            = Array{Union{AbstractDecisionNode,Leaf{Ty}},1}(undef,nTrees)
     notSampledByTree = Array{Array{Int64,1},1}(undef,nTrees) # to later compute the Out of Bag Error
 
     errors = Float64[]
@@ -592,7 +592,7 @@ end
    updateTreesWeights!(forest,x,y;β)
 
 Update the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
-As training a forest is expensive, this function can be used to "just" upgrade the trees weights using different betas, without rettraining the model.
+As training a forest is expensive, this function can be used to "just" upgrade the trees weights using different betas, without retraining the model.
 """
 function updateTreesWeights!(forest::Forest{Ty},x,y;β=50) where {Ty}
     trees            = forest.trees
@@ -601,11 +601,15 @@ function updateTreesWeights!(forest::Forest{Ty},x,y;β=50) where {Ty}
     weights          = Float64[]
     for (i,tree) in enumerate(trees)
         yoob = y[notSampledByTree[i]]
-        ŷ = predict(tree,x[notSampledByTree[i],:])
-        if jobIsRegression
-            push!(weights,exp(- β*meanRelError(ŷ,yoob)))
-        else
-            push!(weights,accuracy(ŷ,yoob)*β)
+        if length(yoob) > 0
+            ŷ = predict(tree,x[notSampledByTree[i],:])
+            if jobIsRegression
+                push!(weights,exp(- β*meanRelError(ŷ,yoob)))
+            else
+                push!(weights,accuracy(ŷ,yoob)*β)
+            end
+        else  # there has been no data that has not being used for this tree, because by a (rare!) chance all the sampled data for this tree was on a different row
+            push!(weights,forest.weights[i])
         end
     end
     forest.weights = weights

@@ -148,7 +148,7 @@ ytest = [x[2][1] <= 'q' ? 5*x[1]-2*x[3] : -5*x[1]+2*x[3] for x in eachrow(xtest)
 ytrainInt = Int64.(round.(ytrain))
 
 myTree1 = buildTree(xtrain,ytrain)
-myForest = buildForest(xtrain,ytrain,oob=true) # TODO: If I add here β=1 I have no problem, but local testing gives a crazy error!!!
+myForest = buildForest(xtrain,ytrain,oob=true) # TO.DO solved 20201130: If I add here β=1 I have no problem, but local testing gives a crazy error!!!
 oobError = myForest.oobError
 ŷtrain = predict(myForest,xtrain)
 ŷtest = predict(myForest,xtest)
