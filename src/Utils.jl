@@ -23,7 +23,7 @@ using LinearAlgebra, Random, Statistics, Combinatorics, Zygote
 
 export @codeLocation,
        reshape, makeColVector, makeRowVector, makeMatrix,
-       oneHotEncoder, colsWithMissing, getScaleFactors, scale, scale!, batch, pca,
+       oneHotEncoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
@@ -131,6 +131,57 @@ function batch(n::Integer,bSize::Integer;sequential=false)
     end
     return batches
 end
+
+"""
+    partition(data,parts;shuffle=true)
+
+Partition (by rows) one or more matrices according to the shares in `parts`.
+
+# Parameters
+* `data`: A matrix/vector or a vector of matrices/vectors
+* `parts`: A vector of the required shares (must sum to 1)
+* `shufle`: Wheter to randomly shuffle the matrices (preserving the relative order between matrices)
+
+# Example:
+```julia
+julia> x = [1:10 11:20]
+julia> y = collect(31:40)
+julia> ((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3])
+ ```
+ """
+function partition(data::AbstractArray{T,1},parts::AbstractArray{Float64,1};shuffle=true) where T <: AbstractArray
+        n = size(data[1],1)
+        if !all(size.(data,1) .== n)
+            @error "All matrices passed to `partition` must have the same number of rows"
+        end
+        ridx = shuffle ? Random.shuffle(1:n) : collect(1:n)
+        return partition.(data,Ref(parts);shuffle=shuffle, fixedRIdx = ridx)
+end
+
+function partition(data::AbstractArray{T,N} where N, parts::AbstractArray{Float64,1};shuffle=true,fixedRIdx=Int64[]) where T
+    data = makeMatrix(data)
+    n = size(data,1)
+    nParts = size(parts)
+    toReturn = []
+    if !(sum(parts) ≈ 1)
+        @error "The sum of `parts` in `partition` should total to 1."
+    end
+    ridx = fixedRIdx
+    if (isempty(ridx))
+       ridx = shuffle ? Random.shuffle(1:n) : collect(1:n)
+    end
+    current = 1
+    cumPart = 0.0
+    for (i,p) in enumerate(parts)
+        cumPart += parts[i]
+        final = i == nParts ? n : Int64(round(cumPart*n))
+        push!(toReturn,data[ridx[current:final],:])
+        current = (final +=1)
+    end
+    return toReturn
+end
+
+
 
 """
     getScaleFactors(x;skip)

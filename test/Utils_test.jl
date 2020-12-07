@@ -212,3 +212,19 @@ c = Dict(5=>0.6,4=>0.4)
 d = Dict(2=>1)
 dicts = [a,b,c,d]
 @test meanDicts(dicts)  == Dict(4 => 0.175, 2 => 0.5, 3 => 0.125, 5 => 0.15, 1 => 0.05)
+
+# ==================================
+# New test
+println("** Testing partition()...")
+
+m1 = [1:10 11:20 31:40]
+m2 = convert(Array{Float64,2},[41:50 51:60])
+m3 = makeMatrix(collect(61:70))
+m4 = collect(71:80)
+parts = [0.33,0.27,0.4]
+out = partition([m1,m2,m3,m4],parts,shuffle=true)
+@test size(out,1) == 4 && size(out[1][3]) == (4,3)
+x = [1:10 11:20]
+y = collect(31:40)
+((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3], shuffle=false)
+@test xtest[2,2] == 19 && ytest[2] == 39
