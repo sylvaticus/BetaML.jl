@@ -32,10 +32,31 @@ We also provide some [notebooks](https://sylvaticus.github.io/BetaML.jl/dev/Note
 
 If you are looking for an introductory book on Julia, have a look on "[Julia Quick Syntax Reference](https://www.julia-book.com/)"(Apress,2019).
 
-The package can be easily used in R or Python employing [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) or [PyJulia](https://github.com/JuliaPy/pyjulia) respectively (see the Documentation).
+The package can be easily used in R or Python employing [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) or [PyJulia](https://github.com/JuliaPy/pyjulia) respectively.
 
 
 ### Examples
+
+We see how to use three different algorithms to learn the relation between floral sepals and petal measures (first 4 columns) and the specie's name (5th column) in the famous [iris flower dataset](https://en.wikipedia.org/wiki/Iris_flower_data_set).
+
+The first two algorithms are example of _supervised_ learning, the third one of _unsupervised_ learning.
+
+- **Using Random Forests for classification**
+
+```julia
+using DelimitedFiles, BetaML.Trees
+
+iris  = readdlm(joinpath(abspath("BetaML"),"test","data","iris.csv"),',',skipstart=1)
+x = iris[:,1:4]
+x = iris[:,1:4]
+((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3])
+(ytrain,ytest) = dropdims.([ytrain,ytest],dims=2)
+myForest       = buildForest(xtrain,ytrain,30)
+ŷtrain         = Trees.predict(myForest, xtrain)
+ŷtest          = Trees.predict(myForest, xtest)
+trainAccuracy  = accuracy(ŷtrain,ytrain) # 1.00
+testAccuracy   = accuracy(ŷtest,ytest)   # 0.956
+```
 
 - **Using an Artificial Neural Network for multinomial categorisation**
 
@@ -45,7 +66,7 @@ using BetaML.Nn, DelimitedFiles, Random, StatsPlots # Load the main module and a
 Random.seed!(123); # Fix the random seed (to obtain reproducible results)
 
 # Load the data
-iris     = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
+iris     = readdlm(joinpath(abspath("BetaML"),"test","data","iris.csv"),',',skipstart=1)
 iris     = iris[shuffle(axes(iris, 1)), :] # Shuffle the records, as they aren't by default
 x        = convert(Array{Float64,2}, iris[:,1:4])
 y        = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iris[:, 5]) # Convert the target column to numbers
@@ -75,7 +96,7 @@ trainAccuracy = accuracy(ŷtrain,ytrain,tol=1) # 0.983
 testAccuracy  = accuracy(ŷtest,ytest,tol=1)   # 1.0
 
 # Visualise results
-testSize = size(ŷtest,1)
+testSize    = size(ŷtest,1)
 ŷtestChosen =  [argmax(ŷtest[i,:]) for i in 1:testSize]
 groupedbar([ytest ŷtestChosen], label=["ytest" "ŷtest (est)"], title="True vs estimated categories") # All records correctly labelled !
 plot(0:res.epochs,res.ϵ_epochs, ylabel="epochs",xlabel="error",legend=nothing,title="Avg. error per epoch on the Sepal dataset")
@@ -90,23 +111,23 @@ using BetaML.Clustering, DelimitedFiles, Random, StatsPlots # Load the main modu
 Random.seed!(123); # Fix the random seed (to obtain reproducible results)
 
 # Load the data
-iris     = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
+iris     = readdlm(joinpath(abspath("BetaML"),"test","data","iris.csv"),',',skipstart=1)
 iris     = iris[shuffle(axes(iris, 1)), :] # Shuffle the records, as they aren't by default
 x        = convert(Array{Float64,2}, iris[:,1:4])
 x        = scale(x) # normalise all dimensions to (μ=0, σ=1)
 y        = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iris[:, 5]) # Convert the target column to numbers
 
 # Get some ranges of minVariance and minCovariance to test
-minVarRange = collect(0.04:0.05:1.5)
+minVarRange   = collect(0.04:0.05:1.5)
 minCovarRange = collect(0:0.05:1.45)
 
 # Run the gmm(em) algorithm for the various cases...
-sphOut  = [gmm(x,3,mixtures=[SphericalGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE) for v in minVarRange, cv in minCovarRange[1:1]]
+sphOut   = [gmm(x,3,mixtures=[SphericalGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE) for v in minVarRange, cv in minCovarRange[1:1]]
 diagOut  = [gmm(x,3,mixtures=[DiagonalGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE)  for v in minVarRange, cv in minCovarRange[1:1]]
-fullOut = [gmm(x,3,mixtures=[FullGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE)  for v in minVarRange, cv in minCovarRange]
+fullOut  = [gmm(x,3,mixtures=[FullGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE)  for v in minVarRange, cv in minCovarRange]
 
 # Get the Bayesian information criterion (AIC is also available)
-sphBIC = [sphOut[v,cv].BIC for v in 1:length(minVarRange), cv in 1:1]
+sphBIC  = [sphOut[v,cv].BIC for v in 1:length(minVarRange), cv in 1:1]
 diagBIC = [diagOut[v,cv].BIC for v in 1:length(minVarRange), cv in 1:1]
 fullBIC = [fullOut[v,cv].BIC for v in 1:length(minVarRange), cv in 1:length(minCovarRange)]
 
@@ -123,7 +144,7 @@ plot(minVarRange,[sphAcc diagAcc fullAcc[:,1] fullAcc[:,15] fullAcc[:,30]], mark
 
 - **Other examples**
 
-Further examples are provided as [Jupyter notebooks](https://sylvaticus.github.io/BetaML.jl/dev/Notebooks.html).
+Further examples, with more advanced techniques in order to improve predictions, are provided as [Jupyter notebooks](https://sylvaticus.github.io/BetaML.jl/dev/Notebooks.html).
 
 ## Alternative packages
 
