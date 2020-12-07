@@ -4,7 +4,7 @@ _Machine Learning made simple :-)_
 
 <img src="assets/BetaML_logo.png" width="300" valign="middle"/> &nbsp;&nbsp;&nbsp;<img src="assets/microExample_white.png" width="500" valign="middle"/>
 
-The **Beta Machine Learning Toolkit** is a repository with several Machine Learning algorithms, started from implementing in the Julia language the concepts taught in the [MITX 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://www.edx.org/course/machine-learning-with-python-from-linear-models-to) course.
+The **Beta Machine Learning Toolkit** is a repository with several Machine Learning algorithms, started from implementing in the Julia language the concepts taught in the [MITX 6.86x - Machine Learning with Python: from Linear Models to Deep Learning](https://www.edx.org/course/machine-learning-with-python-from-linear-models-to) course (note we bear no affiliation with that course).
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://sylvaticus.github.io/BetaML.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sylvaticus.github.io/BetaML.jl/dev)
@@ -14,10 +14,9 @@ The **Beta Machine Learning Toolkit** is a repository with several Machine Learn
 
 Theoretical notes describing most of these algorithms are at the companion repository https://github.com/sylvaticus/MITx_6.86x.
 
-The focus of the library is mostly didactic, as the code is not heavily optimised and GPU is not supported.
-For deep learning in Julia with huge datasets I suggest to use either [Flux](https://fluxml.ai/) or [Knet](https://github.com/denizyuret/Knet.jl) that both supports GPU and distributed computation; for Decision Trees and Random Forests a well-tested package in Julia is [DecisionTree](https://github.com/bensadeghi/DecisionTree.jl).
+The focus of the library is skewed toward user-friendliness rather than computational efficiency, the code is (relatively) easy to read but it is not heavily optimised (and GPU is not supported). For excellent and mature machine learning algorithms in Julia that support huge datasets or to organise complex and partially automated pipelines of algorithms please consider the packages in the above section "Alternative packages".
 
-As the focus is mainly didactic, functions have pretty longer but more explicit names than usual.. for example the `Dense` layer is a `DenseLayer`, the `RBF` kernel is `radialKernel`, etc.
+As the focus is on simplicity, functions have pretty longer but more explicit names than usual.. for example the `Dense` layer is a `DenseLayer`, the `RBF` kernel is `radialKernel`, etc.
 As we didn't aim for heavy optimisation, we were able to keep the API (Application Programming Interface) both beginner-friendly and flexible. Contrary to established packages, most methods provide reasonable defaults that can be overridden when needed (like the neural network optimiser, the verbosity level, or the loss function).
 For example, one can implement its own layer as a subtype of the abstract type `Layer` or its own optimisation algorithm as a subtype of `OptimisationAlgorithm` or even specify its own distance metric in the clustering `Kmedoids` algorithm..
 
@@ -27,11 +26,13 @@ That said, Julia is a relatively fast language and most hard job is done in mult
 
 Please refer to the package documentation ([stable](https://sylvaticus.github.io/BetaML.jl/stable) | [dev](https://sylvaticus.github.io/BetaML.jl/dev)) or use the Julia inline package system (just press the question mark `?` and then, on the special help prompt `help?>`, type the module or function name).
 
-We currently implemented the following modules: [Perceptron](https://sylvaticus.github.io/BetaML.jl/dev/Perceptron.html) (linear and kernel-based classifiers), [Trees](https://sylvaticus.github.io/BetaML.jl/dev/Trees.html) (Decision Trees and Random Forests), [Nn](https://sylvaticus.github.io/BetaML.jl/dev/Nn.html) (Neural Networks), [Clustering](https://sylvaticus.github.io/BetaML.jl/dev/Clustering.html) (Kmean, Kmenoids, Expectation-Maximisation, ...) and [Utils](https://sylvaticus.github.io/BetaML.jl/dev/Utils.html).
+We currently implemented the following modules: [Perceptron](https://sylvaticus.github.io/BetaML.jl/dev/Perceptron.html) (linear and kernel-based classifiers), [Trees](https://sylvaticus.github.io/BetaML.jl/dev/Trees.html) (Decision Trees and Random Forests), [Nn](https://sylvaticus.github.io/BetaML.jl/dev/Nn.html) (Neural Networks), [Clustering](https://sylvaticus.github.io/BetaML.jl/dev/Clustering.html) (Kmean, Kmenoids, Expectation-Maximisation, Missing value imputation, ...) and [Utils](https://sylvaticus.github.io/BetaML.jl/dev/Utils.html).
 
 We also provide some [notebooks](https://sylvaticus.github.io/BetaML.jl/dev/Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
 
 If you are looking for an introductory book on Julia, have a look on "[Julia Quick Syntax Reference](https://www.julia-book.com/)"(Apress,2019).
+
+The package can be easily used in R or Python employing [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) or [PyJulia](https://github.com/JuliaPy/pyjulia) respectively (see the Documentation).
 
 
 ### Examples
@@ -124,11 +125,23 @@ plot(minVarRange,[sphAcc diagAcc fullAcc[:,1] fullAcc[:,15] fullAcc[:,30]], mark
 
 Further examples are provided as [Jupyter notebooks](https://sylvaticus.github.io/BetaML.jl/dev/Notebooks.html).
 
+## Alternative packages
+
+Category         | Packages
+-----------------|-----------------
+ML toolkits/pipelines | [ScikitLearn.jl](https://github.com/cstjean/ScikitLearn.jl), [AutoMLPipeline.jl](https://github.com/IBM/AutoMLPipeline.jl), [MLJ.jl](https://joss.theoj.org/papers/10.21105/joss.02704)
+Neural Networks |  [Flux.jl](https://fluxml.ai/), [Knet](https://github.com/denizyuret/Knet.jl)
+Decision Trees | [DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl)
+Clustering | [Clustering.jl](https://github.com/JuliaStats/Clustering.jl), [GaussianMixtures.jl](https://github.com/davidavdav/GaussianMixtures.jl)
+Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl)
+
+
+
 ## TODO
 
 ### Short term
 
-- Improve documentation
+- Improve documentation, utility functions to partition data and/or cross-validate
 
 ### Mid/Long term
 
