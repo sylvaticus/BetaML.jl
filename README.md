@@ -46,9 +46,9 @@ The first two algorithms are example of _supervised_ learning, the third one of 
 ```julia
 using DelimitedFiles, BetaML.Trees
 
-iris  = readdlm(joinpath(abspath("BetaML"),"test","data","iris.csv"),',',skipstart=1)
+iris  = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
 x = iris[:,1:4]
-x = iris[:,1:4]
+y = iris[:,5]
 ((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3])
 (ytrain,ytest) = dropdims.([ytrain,ytest],dims=2)
 myForest       = buildForest(xtrain,ytrain,30)
@@ -66,19 +66,16 @@ using BetaML.Nn, DelimitedFiles, Random, StatsPlots # Load the main module and a
 Random.seed!(123); # Fix the random seed (to obtain reproducible results)
 
 # Load the data
-iris     = readdlm(joinpath(abspath("BetaML"),"test","data","iris.csv"),',',skipstart=1)
+iris  = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
 iris     = iris[shuffle(axes(iris, 1)), :] # Shuffle the records, as they aren't by default
 x        = convert(Array{Float64,2}, iris[:,1:4])
 y        = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iris[:, 5]) # Convert the target column to numbers
 y_oh     = oneHotEncoder(y) # Convert to One-hot representation (e.g. 2 => [0 1 0], 3 => [0 0 1])
 
 # Split the data in training/testing sets
-ntrain    = Int64(round(size(x,1)*0.8))
-xtrain    = x[1:ntrain,:]
-ytrain    = y[1:ntrain]
-ytrain_oh = y_oh[1:ntrain,:]
-xtest     = x[ntrain+1:end,:]
-ytest     = y[ntrain+1:end]
+((xtrain,xtest),(ytrain,ytest),(ytrain_oh,ytest_oh)) = Utils.partition([x,y,y_oh],[0.8,0.2],shuffle=false)
+(ytrain,ytest)  = dropdims.([ytrain,ytest],dims=2)
+(ntrain, ntest) = size.([xtrain,xtest],1)
 
 # Define the Artificial Neural Network model
 l1   = DenseLayer(4,10,f=relu) # Activation function is ReLU
@@ -111,7 +108,7 @@ using BetaML.Clustering, DelimitedFiles, Random, StatsPlots # Load the main modu
 Random.seed!(123); # Fix the random seed (to obtain reproducible results)
 
 # Load the data
-iris     = readdlm(joinpath(abspath("BetaML"),"test","data","iris.csv"),',',skipstart=1)
+iris     = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
 iris     = iris[shuffle(axes(iris, 1)), :] # Shuffle the records, as they aren't by default
 x        = convert(Array{Float64,2}, iris[:,1:4])
 x        = scale(x) # normalise all dimensions to (μ=0, σ=1)
@@ -162,7 +159,7 @@ Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl)
 
 ### Short term
 
-- Improve documentation, utility functions to partition data and/or cross-validate
+- Improve documentation, utility functions to do cross-validate
 
 ### Mid/Long term
 

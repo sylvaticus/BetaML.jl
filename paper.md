@@ -40,8 +40,7 @@ bibliography: docs/paper/paper.bib
 # Summary
 
 A serie of _machine learning_ algorithms has been implemented and bundled in a single package for the Julia programming language.
-Currently, algorithms are available in the areas of classification (perceptron, kernel perceptron, pegasos), neural networks (feed-forward), clustering (kmeans, kmenoids, EM, missing values attribution) and decision trees/random forests. Development of these algorithms started following the theoretical notes of the
-MOOC class "Machine Learning with Python: from Linear Models to Deep Learning" from MITx/edX.
+Currently, algorithms are available in the areas of classification (perceptron, kernel perceptron, pegasos), neural networks (feed-forward), clustering (kmeans, kmenoids, EM, missing values attribution) and decision trees/random forests. Development of these algorithms started following the theoretical notes of the MOOC class "Machine Learning with Python: from Linear Models to Deep Learning" from MITx/edX.
 
 This paper presents the motivations and the general approach of the package and gives an overview of its organisation. We refer the reader to the [package documentation](https://sylvaticus.github.io/BetaML.jl/stable) for instructions on how to use the various algorithms provided or to the MOOC notes available on GitHub [@Lobianco:2020] for their mathematical backgrounds.
 

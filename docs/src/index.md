@@ -42,23 +42,20 @@ For a list of supported algorithms please look at the individual modules:
 
 ```julia
 # Load Modules
-using BetaML.Nn, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
+using BetaML.Nn, BetaML, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
 Random.seed!(123); # Fix the random seed (to obtain reproducible results)
 
 # Load the data
-iris     = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
+iris     = readdlm(joinpath(dirname(pathof(BetaML)),"..","test","data","iris.csv"),',',skipstart=1)
 iris     = iris[shuffle(axes(iris, 1)), :] # Shuffle the records, as they aren't by default
 x        = convert(Array{Float64,2}, iris[:,1:4])
 y        = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iris[:, 5]) # Convert the target column to numbers
 y_oh     = oneHotEncoder(y) # Convert to One-hot representation (e.g. 2 => [0 1 0], 3 => [0 0 1])
 
 # Split the data in training/testing sets
-ntrain    = Int64(round(size(x,1)*0.8))
-xtrain    = x[1:ntrain,:]
-ytrain    = y[1:ntrain]
-ytrain_oh = y_oh[1:ntrain,:]
-xtest     = x[ntrain+1:end,:]
-ytest     = y[ntrain+1:end]
+((xtrain,xtest),(ytrain,ytest),(ytrain_oh,ytest_oh)) = Utils.partition([x,y,y_oh],[0.8,0.2],shuffle=false)
+(ytrain,ytest)  = dropdims.([ytrain,ytest],dims=2)
+(ntrain, ntest) = size.([xtrain,xtest],1)
 
 # Define the Artificial Neural Network model
 l1   = DenseLayer(4,10,f=relu) # Activation function is ReLU
@@ -90,18 +87,18 @@ plot(0:res.epochs,res.ϵ_epochs, ylabel="epochs",xlabel="error",legend=nothing,t
 - **Using the Expectation-Maximisation algorithm for clustering**
 
 ```julia
-using BetaML.Clustering, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
+using BetaML.Clustering, BetaML, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
 Random.seed!(123); # Fix the random seed (to obtain reproducible results)
 
 # Load the data
-iris     = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
+iris     = readdlm(joinpath(dirname(pathof(BetaML)),"..","test","data","iris.csv"),',',skipstart=1)
 iris     = iris[shuffle(axes(iris, 1)), :] # Shuffle the records, as they aren't by default
 x        = convert(Array{Float64,2}, iris[:,1:4])
 x        = scale(x) # normalise all dimensions to (μ=0, σ=1)
 y        = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iris[:, 5]) # Convert the target column to numbers
 
 # Get some ranges of minVariance and minCovariance to test
-minVarRange = collect(0.04:0.05:1.5)
+minVarRange   = collect(0.04:0.05:1.5)
 minCovarRange = collect(0:0.05:1.45)
 
 # Run the gmm(em) algorithm for the various cases...
