@@ -1,4 +1,6 @@
-I would like to thanks the reviewer for having taken the time to provide the review and the useful suggestions in it. I have implemented most of them.
+# Author's response to @ablaom review 1
+
+Above all, I would like to thanks the reviewer for having taken the time to provide the review and the useful suggestions he brings. I have implemented most of them, as they helped improving the software.
 
 My detailed response is below.
 
@@ -13,7 +15,7 @@ variations) and a basic neural network model. In passing, it should be
 noted that all or almost all of these algorithms have existing julia
 implementations (e.g., DecisionTree.jl, Clustering.jl, Flux.jl).
 ```
-While "most" of the functionality is indeed already present, from the user point of view, they are not necessarily accessed in the same way and for some functionality, like missing imputation using GMM models, I am not aware of implementations in Julia. Also the kind of output is often different from current implementations. For example most classifiers report the whole PMF of the various items rather than the mode. Together with the fact that the function `accuracy` has an extra optional parameter for selecting the range of items to consider the estimate correct, one can train a classifier that is best in returning a correct value for example within the most probable 2 results (rather than the single most probable one). This can be useful in some applications where the second-best is also acceptable.
+While "most" of the functionality is indeed already present, from the user point of view, they are not necessarily accessed in the same way and for some functionality, like missing imputation using GMM models, I am not aware of implementations in Julia. Also the kind of output is often different from current implementations. For example most classifiers in BetaML report the whole PMF of the various items rather than the mode. Together with the fact that the function `accuracy` has an extra optional parameter for selecting the range of items to consider the estimate correct, one can train a classifier that is best in returning a correct value for example within the most probable 2 results (rather than the single most probable one). This can be useful in some applications where the second-best is also an acceptable value.
 
 ```
 The package
@@ -35,7 +37,7 @@ us that "the code is not heavily optimized and GPU [for neural
 networks] is not supported "
 ```
 While tools for automatic sampling and cross-validation may be in scope with BetaML, I believe that the added value for pipeling in a language like Julia is not so strong like it is for other programming languages.
-In R and Python for example loops are slow, and it definitely helps having a fast library implementing them in the workload.
+In R and Python for example loops are slow, and it definitely helps having a fast library implementing for example hyper-parameters tuning.
 Julia is instead highly expressive and has fast loops at the same time. The computational and convenience benefits to use a specific framework to build a chain of models or tune the hyper-parameters balance again the flexibility and easiness of using just the "core" Julia functionalities to do the same, so that the advantage is partially shaded and depends from the situation.
 
 ```
@@ -166,6 +168,7 @@ community would be to integrate the author's course materials with one
 of the mature ML toolboxes. In the case of MLJ, I would be more than
 happy to provide guidance for such a project.
 ```
+
 I do appreciate both the Reviewer comments and the MLJ as a mature, state-of-the art framework, I just believe that there is space for a different approach with different user cases.
 
 ---
@@ -182,7 +185,7 @@ environment (see commment below).
   is true, the paper should state this clearly in the "Summary" (not
   just that it was developed in response to the course).
 ```
-I specified that the focus is on usability, whether for didactic or applied research purposes.
+As specified on a previous comment, the focus is on usability, whether this is important for didactic or applied research purposes.
 
 ```
 - **added** The authors should reference for comparison the toolboxes
@@ -209,7 +212,7 @@ Being a much smaller package than MLJ, I believe the "Installation" and "Loading
   model. A more "Hello World" example might be to train a Decision
   Tree.
 ```
-I added a basilar Random Forest example so to provide the reader of an overview of different techniques to analyse the same dataset (the iris one).
+I added a basic Random Forest example in the Readme.md so to provide the readers of an overview of different techniques to analyse the same dataset (iris).
 
 ```
 - The way users load the built-in datasets seems pretty awkward. Maybe
@@ -217,7 +220,7 @@ I added a basilar Random Forest example so to provide the reader of an overview 
   `load_bike_sharing()`. Might be instructive to have examples where
   data is pulled in using `RDatasets`, `UrlDownload` or similar?
 ```
-I simplify the function to call and using a path relative to the package base path I made sure the script "works" wherever it is called by the user
+I now load the data using a path relative to the package base path. In this way the script should load the correct data whichever is the current directory from which it is called by the user.
 
 ```
 - I found it pretty annoying to split data by hand the way this is
@@ -227,7 +230,8 @@ I simplify the function to call and using a path relative to the package base pa
   MLJ, which you are welcome to lift).
 ```
 Thank you. I did indeed add a simple partition function to allow partition multiple matrices in one line, e.g.
-`((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3])`
+`((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3])`.
+Note that a release of the software including the new `partition` function has still to be made.
 
 ```
 - The notebooks are not portable as they do not come with a
@@ -238,8 +242,8 @@ Thank you. I did indeed add a simple partition function to allow partition multi
   think an even better solution is provided by InstantiateFromUrl.jl
   but I haven't tried this yet.
 ```
-Having a manifest means I need to keep it updated and the user understand what it is.
-Instead the notebooks all have a section at the beginning where the required packages are loaded. In this way even if the user just copy and paste the code to his/her own IDE, it will likely work.
+Having a manifest means that I need to keep it updated and the user understand what it is.
+Instead the notebooks all have a section at the beginning where the required packages are loaded. In this way even if the user just copy and paste the code to his/her own IDE, it will likely works.
 
 A related issue is to guarantee that notebooks are kept in sync with the code. I noticed that the reviewer use Literate.jl, I may consider it, as it helps keeping the examples under testing control.
 
