@@ -44,7 +44,6 @@ Acknowlegdments: originally based on the [Josh Gordon's code](https://www.youtub
 module Trees
 
 using LinearAlgebra, Random, Statistics, Reexport
-
 @reexport using ..Utils
 
 export buildTree, buildForest, updateTreesWeights!, predictSingle, predict, print
@@ -83,7 +82,7 @@ A tree's leaf (terminal) node.
 struct Leaf{Ty} <: AbstractLeaf
     predictions::Union{Number,Dict{Ty,Float64}}
     depth::Int64
-    function Leaf(y::AbstractArray{Ty,1},depth::Int64) where {Ty}
+    function Leaf(y::Array{Ty,1},depth::Int64) where {Ty}
         if eltype(y) <: Number
             rawPredictions = y
             predictions    = mean(rawPredictions)
@@ -256,15 +255,14 @@ Compare the "information gain" my measuring the difference betwwen the "impurity
 - `splittingCriterion`: Metric to adopt to determine the "impurity" (see below)
 
 You can use your own function as the metric. We provide the following built-in metrics:
-- `:gini` (categorical)
-- `:entropy` (categorical)
-- `:variance` (numerical)
+- `gini` (categorical)
+- `entropy` (categorical)
+- `variance` (numerical)
 
 """
-function infoGain(leftY, rightY, parentUncertainty; splittingCriterion=:gini)
+function infoGain(leftY, rightY, parentUncertainty; splittingCriterion=gini)
     p = size(leftY,1) / (size(leftY,1) + size(rightY,1))
-    #return parentUncertainty - p * splittingCriterion(leftY) - (1 - p) * splittingCriterion(rightY)
-    return parentUncertainty - p * getfield(Trees, Symbol(splittingCriterion))(leftY) - (1 - p) * getfield(Trees, Symbol(splittingCriterion))(rightY)
+    return parentUncertainty - p * splittingCriterion(leftY) - (1 - p) * splittingCriterion(rightY)
 end
 
 """
@@ -281,13 +279,13 @@ Find the best question to ask by iterating over every feature / value and calcul
 - `splittingCriterion`: The metric to define the "impurity" of the labels
 
 """
-function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;maxFeatures,splittingCriterion=:gini) where {Ty}
+function findBestSplit(x,y::Array{Ty,1}, mCols;maxFeatures,splittingCriterion=gini) where {Ty}
     bestGain           = 0.0  # keep track of the best information gain
     bestQuestion       = Question(1,1.0) # keep train of the feature / value that produced it
-    currentUncertainty = getfield(Trees, Symbol(splittingCriterion))(y)
+    currentUncertainty = splittingCriterion(y)
     (N,D)  = size(x)  # number of columns (the last column is the label)
 
-    featuresToConsider = (maxFeatures >= D) ? (1:D) : shuffle(1:D)[1:maxFeatures]
+    featuresToConsider = (maxFeatures == D) ? (1:D) : shuffle(1:D)[1:maxFeatures]
 
     for d in featuresToConsider      # for each feature (we consider only maxFeatures features randomly)
         values  = Set(skipmissing(x[:,d]))  # unique values in the column
@@ -335,7 +333,7 @@ The given tree is then returned.
 - `minGain`: The minimum information gain to allow for a node's partition [def: `0`]
 - `minRecords`:  The minimum number of records a node must holds to consider for a partition of it [def: `2`]
 - `maxFeatures`: The maximum number of (random) features to consider at each partitioning [def: `D`, i.e. look at all features]
-- `splittingCriterion`: Either `:gini`, `:entropy` or `:variance` (see [`infoGain`](@ref) ) [def: `:gini` for categorical labels (classification task) and `:variance` for numerical labels(regression task)]
+- `splittingCriterion`: Either `gini`, `entropy` or `variance` (see [`infoGain`](@ref) ) [def: `:gini` for categorical labels (classification task) and `:variance` for numerical labels(regression task)]
 - `forceClassification`: Weather to force a classification task even if the labels are numerical (typically when labels are integers encoding some feature rather than representing a real cardinal measure) [def: `false`]
 
 
@@ -343,7 +341,7 @@ The given tree is then returned.
 
 Missing data (in the feature dataset) are supported.
 """
-function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? :variance : :gini, mCols=nothing) where {Ty}
+function buildTree(x, y::Array{Ty,1}; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, mCols=nothing) where {Ty}
 
 
     #println(depth)
@@ -515,7 +513,7 @@ See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with
 - This function optionally reports a weight distribution of the performances of eanch individual trees, as measured using the records he has not being trained with. These weights can then be (optionally) used in the `predict` function. The parameter `β ≥ 0` regulate the distribution of these weights: larger is `β`, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of β depends on the problem under exam (and the chosen caratteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
 - Note that this function uses multiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
 """
-function buildForest(x, y::AbstractArray{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? :variance : :gini, β=0, oob=false) where {Ty}
+function buildForest(x, y::Array{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, β=0, oob=false) where {Ty}
     # Force what would be a regression task into a classification task
     if forceClassification && Ty <: Number
         y = string.(y)
@@ -652,67 +650,4 @@ function oobError(forest::Forest{Ty},x,y) where {Ty}
     end
 end
 
-
-
-
-# MLJ interface
-import MLJModelInterface
-const MMI = MLJModelInterface
-export BetaMLDecisionTreeRegressor, BetaMLRandomForestRegressor
-
-mutable struct BetaMLDecisionTreeRegressor <: MMI.Deterministic
-    maxDepth::Int64
-    minGain::Float64
-    minRecords::Int64
-    maxFeatures::Int64
-    splittingCriterion::Function
 end
-BetaMLDecisionTreeRegressor(;
-   maxDepth=typemax(Int),
-   minGain=0.0,
-   minRecords=2,
-   maxFeatures=typemax(Int),
-   splittingCriterion=variance
-   ) = BetaMLDecisionTreeRegressor(maxDepth,minGain,minRecords,maxFeatures,splittingCriterion)
-
-#function buildForest(x, y::AbstractArray{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, β=0, oob=false) where {Ty}
-
-mutable struct BetaMLRandomForestRegressor <: MMI.Deterministic
-   nTrees::Int64
-   maxDepth::Int64
-   minGain::Float64
-   minRecords::Int64
-   maxFeatures::Int64
-   splittingCriterion::Function
-   β::Float64
-end
-BetaMLRandomForestRegressor(;
-  nTrees=30,
-  maxDepth=typemax(Int),
-  minGain=0.0,
-  minRecords=2,
-  maxFeatures=typemax(Int),
-  splittingCriterion=variance,
-  β=0.0
-  ) = BetaMLRandomForestRegressor(nTrees,maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,β)
-
-function MMI.fit(model::BetaMLDecisionTreeRegressor, verbosity, X, y)
-   x = MMI.matrix(X)                     # convert table to matrix
-   fitresult = buildTree(x, y, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion)
-   cache=nothing
-   report=nothing
-   return fitresult, cache, report
-end
-function MMI.fit(model::BetaMLRandomForestRegressor, verbosity, X, y)
-   x = MMI.matrix(X)                     # convert table to matrix
-   fitresult = buildForest(x, y, model.nTrees, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion, β=model.β)
-   cache=nothing
-   report=nothing
-   return fitresult, cache, report
-end
-
-# predict uses coefficients to make new prediction:
-MMI.predict(model::BetaMLDecisionTreeRegressor, fitresult, Xnew) = Trees.predict(fitresult, MMI.matrix(Xnew))
-MMI.predict(model::BetaMLRandomForestRegressor, fitresult, Xnew) = Trees.predict(fitresult, MMI.matrix(Xnew))
-
-end # end module
