@@ -323,7 +323,7 @@ end
 """
     colsWithMissing(x)
 
-Retuyrn an array with the ids of the columns where there is at least a missing value.
+Return an array with the ids of the columns where there is at least one missing value.
 """
 function colsWithMissing(x)
     colsWithMissing = Int64[]
