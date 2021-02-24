@@ -53,7 +53,7 @@ ytrain = y[1:ntrain]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-myTree = buildTree(xtrain,ytrain, splittingCriterion=entropy);
+myTree = buildTree(xtrain,ytrain, splittingCriterion=:entropy)
 ŷtrain = Trees.predict(myTree, xtrain)
 @test accuracy(ŷtrain,ytrain) >= 0.99
 ŷtest = Trees.predict(myTree, xtest)

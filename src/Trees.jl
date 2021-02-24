@@ -18,7 +18,7 @@ Implement the functionality required to build a Decision Tree or a whole Random 
 
 Both Decision Trees and Random Forests can be used for regression or classification problems, based on the type of the labels (numerical or not). You can override the automatic selection with the parameter `forceClassification=true`, typically if your labels are integer representing some categories rather than numbers. For classification problems the output of `predictSingle` is a dictionary with the key being the labels with non-zero probabilitity and the corresponding value its proobability; for regression it is a numerical value.
 
-Please be aware that, differently from most other implementations, the Random Forest algorithm collects and averages the probabilities from the trees, rather than just repording the mode, i.e. no information is lost and the output of the forest classifier is still a PMF.
+Please be aware that, differently from most other implementations, the Random Forest algorithm collects and averages the probabilities from the trees, rather than just reporting the mode, i.e. no information is lost and the output of the forest classifier is still a PMF.
 
 Missing data on features are supported, both on training and on prediction.
 
@@ -256,14 +256,15 @@ Compare the "information gain" my measuring the difference betwwen the "impurity
 - `splittingCriterion`: Metric to adopt to determine the "impurity" (see below)
 
 You can use your own function as the metric. We provide the following built-in metrics:
-- `gini` (categorical)
-- `entropy` (categorical)
-- `variance` (numerical)
+- `:gini` (categorical)
+- `:entropy` (categorical)
+- `:variance` (numerical)
 
 """
-function infoGain(leftY, rightY, parentUncertainty; splittingCriterion=gini)
+function infoGain(leftY, rightY, parentUncertainty; splittingCriterion=:gini)
     p = size(leftY,1) / (size(leftY,1) + size(rightY,1))
-    return parentUncertainty - p * splittingCriterion(leftY) - (1 - p) * splittingCriterion(rightY)
+    #return parentUncertainty - p * splittingCriterion(leftY) - (1 - p) * splittingCriterion(rightY)
+    return parentUncertainty - p * getfield(Trees, Symbol(splittingCriterion))(leftY) - (1 - p) * getfield(Trees, Symbol(splittingCriterion))(rightY)
 end
 
 """
@@ -280,16 +281,16 @@ Find the best question to ask by iterating over every feature / value and calcul
 - `splittingCriterion`: The metric to define the "impurity" of the labels
 
 """
-function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;maxFeatures,splittingCriterion=gini) where {Ty}
+function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;maxFeatures,splittingCriterion=:gini) where {Ty}
     bestGain           = 0.0  # keep track of the best information gain
     bestQuestion       = Question(1,1.0) # keep train of the feature / value that produced it
-    currentUncertainty = splittingCriterion(y)
+    currentUncertainty = getfield(Trees, Symbol(splittingCriterion))(y)
     (N,D)  = size(x)  # number of columns (the last column is the label)
 
     featuresToConsider = (maxFeatures >= D) ? (1:D) : shuffle(1:D)[1:maxFeatures]
 
     for d in featuresToConsider      # for each feature (we consider only maxFeatures features randomly)
-        values = Set(skipmissing(x[:,d]))  # unique values in the column
+        values  = Set(skipmissing(x[:,d]))  # unique values in the column
         sortIdx = sortperm(x[:,d])
         sortedx = x[sortIdx,:]
         sortedy = y[sortIdx]
@@ -334,7 +335,7 @@ The given tree is then returned.
 - `minGain`: The minimum information gain to allow for a node's partition [def: `0`]
 - `minRecords`:  The minimum number of records a node must holds to consider for a partition of it [def: `2`]
 - `maxFeatures`: The maximum number of (random) features to consider at each partitioning [def: `D`, i.e. look at all features]
-- `splittingCriterion`: Either `gini`, `entropy` or `variance` (see [`infoGain`](@ref) ) [def: `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]
+- `splittingCriterion`: Either `:gini`, `:entropy` or `:variance` (see [`infoGain`](@ref) ) [def: `:gini` for categorical labels (classification task) and `:variance` for numerical labels(regression task)]
 - `forceClassification`: Weather to force a classification task even if the labels are numerical (typically when labels are integers encoding some feature rather than representing a real cardinal measure) [def: `false`]
 
 
@@ -342,7 +343,7 @@ The given tree is then returned.
 
 Missing data (in the feature dataset) are supported.
 """
-function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, mCols=nothing) where {Ty}
+function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? :variance : :gini, mCols=nothing) where {Ty}
 
 
     #println(depth)
@@ -514,7 +515,7 @@ See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with
 - This function optionally reports a weight distribution of the performances of eanch individual trees, as measured using the records he has not being trained with. These weights can then be (optionally) used in the `predict` function. The parameter `β ≥ 0` regulate the distribution of these weights: larger is `β`, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of β depends on the problem under exam (and the chosen caratteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
 - Note that this function uses multiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
 """
-function buildForest(x, y::AbstractArray{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, β=0, oob=false) where {Ty}
+function buildForest(x, y::AbstractArray{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? :variance : :gini, β=0, oob=false) where {Ty}
     # Force what would be a regression task into a classification task
     if forceClassification && Ty <: Number
         y = string.(y)
