@@ -1,6 +1,7 @@
 using Test
 using DelimitedFiles, LinearAlgebra
-
+import MLJBase
+const Mlj = MLJBase
 using StableRNGs
 rng = StableRNG(123)
 using BetaML.Trees
@@ -53,7 +54,7 @@ ytrain = y[1:ntrain]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-myTree = buildTree(xtrain,ytrain, splittingCriterion=entropy)
+myTree = buildTree(xtrain,ytrain, splittingCriterion=entropy);
 ŷtrain = Trees.predict(myTree, xtrain)
 @test accuracy(ŷtrain,ytrain) >= 0.99
 ŷtest = Trees.predict(myTree, xtest)
@@ -168,3 +169,19 @@ mreTest2  = meanRelError(ŷtest,ytest)
 myTree2 = buildTree(xtrain,ytrainInt)
 myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true)
 @test typeof(myTree1) <: Trees.DecisionNode && typeof(myTree2) <: Trees.DecisionNode && typeof(myTree3) <: Trees.DecisionNode
+
+
+# NEW Test
+X, y                           = Mlj.@load_boston
+model_dtr                      = BetaMLDecisionTreeRegressor()
+regressor_dtr                  = Mlj.machine(model_dtr, X, y)
+(fitresult_dtr, cache, report) =  Mlj.fit(model_dtr, 0, X, y)
+yhat_dtr                       = Mlj.predict(model_dtr, fitresult_dtr, X)
+@test meanRelError(yhat_dtr,y) < 0.02
+#(l1_distance(y,yhat)/length(y))/mean(y)
+#evaluate!(regressor, resampling=CV(), measure=rms, verbosity=0)
+model_rfr                      = BetaMLRandomForestRegressor()
+regressor_rfr                  = Mlj.machine(model_rfr, X, y)
+(fitresult_rfr, cache, report) = Mlj.fit(model_rfr, 0, X, y)
+yhat_rfr                       = Mlj.predict(model_rfr, fitresult_rfr, X)
+@test meanRelError(yhat_rfr,y) < 0.05
