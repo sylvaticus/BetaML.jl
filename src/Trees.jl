@@ -43,7 +43,7 @@ Acknowlegdments: originally based on the [Josh Gordon's code](https://www.youtub
 """
 module Trees
 
-using LinearAlgebra, Random, Statistics, Reexport
+using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays, Distributions
 
 @reexport using ..Utils
 
@@ -689,8 +689,6 @@ BetaMLDecisionTreeClassifier(;
   splittingCriterion=gini
   ) = BetaMLDecisionTreeClassifier(maxDepth,minGain,minRecords,maxFeatures,splittingCriterion)
 
-#function buildForest(x, y::AbstractArray{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, β=0, oob=false) where {Ty}
-
 mutable struct BetaMLRandomForestRegressor <: MMI.Deterministic
    nTrees::Int64
    maxDepth::Int64
@@ -737,13 +735,16 @@ function MMI.fit(model::BetaMLDecisionTreeRegressor, verbosity, X, y)
    return fitresult, cache, report
 end
 function MMI.fit(model::BetaMLDecisionTreeClassifier, verbosity, X, y)
-   x = MMI.matrix(X)                     # convert table to matrix
-   fitresult = buildTree(x, y, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true)
+   x           = MMI.matrix(X)                     # convert table to matrix
+   decode      = y[1]
+   y_plain     = MMI.int(y)
+   fittedmodel = buildTree(x, y_plain, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true)
+   #levels = levels(y)
    cache=nothing
    report=nothing
-   return fitresult, cache, report
+   fitresults=(fittedmodel,decode)  # (fittedmodel,levels)
+   return fitresults, cache, report
 end
-
 
 function MMI.fit(model::BetaMLRandomForestRegressor, verbosity, X, y)
    x = MMI.matrix(X)                     # convert table to matrix
@@ -756,7 +757,9 @@ end
 # predict uses coefficients to make new prediction:
 MMI.predict(model::BetaMLDecisionTreeRegressor, fitresult, Xnew) = Trees.predict(fitresult, MMI.matrix(Xnew))
 MMI.predict(model::BetaMLRandomForestRegressor, fitresult, Xnew) = Trees.predict(fitresult, MMI.matrix(Xnew))
-MMI.predict(model::BetaMLDecisionTreeClassifier, fitresult, Xnew) = Trees.predict(fitresult, MMI.matrix(Xnew))
+function MMI.predict(model::BetaMLDecisionTreeClassifier, fitresult, Xnew)
+     yhatdicts = Trees.predict(fitresult[1], MMI.matrix(Xnew))
+end
 
 
 end # end module

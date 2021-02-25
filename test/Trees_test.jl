@@ -185,3 +185,12 @@ regressor_rfr                  = Mlj.machine(model_rfr, X, y)
 (fitresult_rfr, cache, report) = Mlj.fit(model_rfr, 0, X, y)
 yhat_rfr                       = Mlj.predict(model_rfr, fitresult_rfr, X)
 @test meanRelError(yhat_rfr,y) < 0.05
+
+X, y                           = Mlj.@load_iris
+model_dtc                      = BetaMLDecisionTreeClassifier()
+regressor_dtc                  = Mlj.machine(model_dtc, X, y)
+(fitresult_dtc, cache, report) = Mlj.fit(model_dtc, 0, X, y)
+yhat_dtc                       = Mlj.predict(model_dtc, fitresult_dtc, X)
+#Mlj.evaluate!(regressor_dtc, resampling=Mlj.CV(), measure=Mlj.rms, verbosity=0)
+#typeof(y)
+#CategoricalArrays.levels(y)
