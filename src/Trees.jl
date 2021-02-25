@@ -43,7 +43,7 @@ Acknowlegdments: originally based on the [Josh Gordon's code](https://www.youtub
 """
 module Trees
 
-using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays, Distributions
+using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays
 
 @reexport using ..Utils
 
@@ -727,38 +727,58 @@ BetaMLRandomForestClassifier(;
     β=0.0
 ) = BetaMLRandomForestClassifier(nTrees,maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,β)
 
-function MMI.fit(model::BetaMLDecisionTreeRegressor, verbosity, X, y)
+# Fit functions...
+function MMI.fit(model::Union{BetaMLDecisionTreeRegressor,BetaMLRandomForestRegressor}, verbosity, X, y)
    x = MMI.matrix(X)                     # convert table to matrix
-   fitresult = buildTree(x, y, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion)
-   cache=nothing
-   report=nothing
-   return fitresult, cache, report
-end
-function MMI.fit(model::BetaMLDecisionTreeClassifier, verbosity, X, y)
-   x           = MMI.matrix(X)                     # convert table to matrix
-   decode      = y[1]
-   y_plain     = MMI.int(y)
-   fittedmodel = buildTree(x, y_plain, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true)
-   #levels = levels(y)
-   cache=nothing
-   report=nothing
-   fitresults=(fittedmodel,decode)  # (fittedmodel,levels)
-   return fitresults, cache, report
-end
-
-function MMI.fit(model::BetaMLRandomForestRegressor, verbosity, X, y)
-   x = MMI.matrix(X)                     # convert table to matrix
-   fitresult = buildForest(x, y, model.nTrees, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion, β=model.β)
+   if (typeof(model) == BetaMLDecisionTreeRegressor)
+       fitresult = buildTree(x, y, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion)
+   else
+       fitresult = buildForest(x, y, model.nTrees, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion, β=model.β)
+   end
    cache=nothing
    report=nothing
    return fitresult, cache, report
 end
 
+function MMI.fit(model::Union{BetaMLDecisionTreeClassifier,BetaMLRandomForestClassifier}, verbosity, X, y)
+   x                = MMI.matrix(X)                        # convert table to matrix
+   a_target_element = y[1]                                 # a CategoricalValue or CategoricalString
+   #y_plain          = MMI.int(y) .- 1                     # integer relabeling should start at 0
+   yarray           = convert(Vector{eltype(levels(y))},y) # convert to a simple Array{T}
+   if (typeof(model) == BetaMLDecisionTreeClassifier)
+       fittedmodel      = buildTree(x, yarray, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true)
+   else
+       fittedmodel      = buildForest(x, yarray, model.nTrees, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true, β=model.β)
+   end
+   cache            = nothing
+   report           = nothing
+   fitresult        = (fittedmodel,a_target_element)
+   return (fitresult, cache, report)
+end
+
+
+# Predict functions....
 # predict uses coefficients to make new prediction:
-MMI.predict(model::BetaMLDecisionTreeRegressor, fitresult, Xnew) = Trees.predict(fitresult, MMI.matrix(Xnew))
-MMI.predict(model::BetaMLRandomForestRegressor, fitresult, Xnew) = Trees.predict(fitresult, MMI.matrix(Xnew))
-function MMI.predict(model::BetaMLDecisionTreeClassifier, fitresult, Xnew)
-     yhatdicts = Trees.predict(fitresult[1], MMI.matrix(Xnew))
+MMI.predict(model::Union{BetaMLDecisionTreeRegressor,BetaMLRandomForestRegressor}, fitresult, Xnew) = Trees.predict(fitresult, MMI.matrix(Xnew))
+function MMI.predict(model::Union{BetaMLDecisionTreeClassifier,BetaMLRandomForestClassifier}, fitresult, Xnew)
+    fittedModel      = fitresult[1]
+    a_target_element = fitresult[2]
+    decode           = MMI.decoder(a_target_element)
+    classes          = MMI.classes(a_target_element)
+    nLevels          = length(classes)
+    nRecords         = MMI.nrows(Xnew)
+    treePredictions  = Trees.predict(fittedModel, MMI.matrix(Xnew))
+    predMatrix       = zeros(Float64,(nRecords,nLevels))
+    # Transform the predictions from a vector of dictionaries to a matrix
+    # where the rows are the PMF of each record
+    for n in 1:nRecords
+        for (c,cl) in enumerate(classes)
+            predMatrix[n,c] = get(treePredictions[n],cl,0.0)
+        end
+    end
+    predictions = [MMI.UnivariateFinite(classes, predMatrix[i,:])
+                   for i in 1:nRecords]
+    return predictions
 end
 
 

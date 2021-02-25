@@ -172,10 +172,11 @@ myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true)
 
 
 # NEW Test
+println("Testing MLJ interface for Trees models....")
 X, y                           = Mlj.@load_boston
 model_dtr                      = BetaMLDecisionTreeRegressor()
 regressor_dtr                  = Mlj.machine(model_dtr, X, y)
-(fitresult_dtr, cache, report) =  Mlj.fit(model_dtr, 0, X, y)
+(fitresult_dtr, cache, report) = Mlj.fit(model_dtr, 0, X, y)
 yhat_dtr                       = Mlj.predict(model_dtr, fitresult_dtr, X)
 @test meanRelError(yhat_dtr,y) < 0.02
 #(l1_distance(y,yhat)/length(y))/mean(y)
@@ -191,6 +192,29 @@ model_dtc                      = BetaMLDecisionTreeClassifier()
 regressor_dtc                  = Mlj.machine(model_dtc, X, y)
 (fitresult_dtc, cache, report) = Mlj.fit(model_dtc, 0, X, y)
 yhat_dtc                       = Mlj.predict(model_dtc, fitresult_dtc, X)
-#Mlj.evaluate!(regressor_dtc, resampling=Mlj.CV(), measure=Mlj.rms, verbosity=0)
-#typeof(y)
-#CategoricalArrays.levels(y)
+@test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_dtc, y)) < 0.0002
+#Mlj.evaluate!(regressor_dtc, resampling=Mlj.CV(), measure=Mlj.LogLoss())
+
+model_rfc                      = BetaMLRandomForestClassifier()
+regressor_rfc                  = Mlj.machine(model_rfc, X, y)
+(fitresult_rfc, cache, report) = Mlj.fit(model_rfc, 0, X, y)
+yhat_rfc                       = Mlj.predict(model_rfc, fitresult_rfc, X)
+@test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_rfc, y)) < 0.03
+#Mlj.evaluate!(regressor_rfc, resampling=Mlj.CV(), measure=Mlj.LogLoss())
+
+# Other MLJ classifier models
+#=
+import MLJ
+X, y                       = Mlj.@load_iris
+MLJ.models(MLJ.matching(X,y))
+Model                      = MLJ.@load XGBoostClassifier #  DecisionTreeClassifier    #    XGBoostClassifier
+model                      = Model()
+regressor                  = MLJ.machine(model, X, y)
+(fitresult, cache, report) = MLJ.fit(model, 0, X, y)
+yhat                       = MLJ.predict(model, fitresult, X)
+MLJ.mean(MLJ.LogLoss(tol=1e-4)(yhat, y))
+MLJ.evaluate!(regressor, measure=MLJ.LogLoss())
+#XGBoostClassifier:
+#- fit: https://github.com/alan-turing-institute/MLJModels.jl/blob/3687491b132be8493b6f7a322aedf66008caaab1/src/XGBoost.jl#L600
+#- predict :
+=#
