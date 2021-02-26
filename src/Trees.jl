@@ -657,39 +657,39 @@ end
 # MLJ interface
 import MLJModelInterface
 const MMI = MLJModelInterface
-export BetaMLDecisionTreeRegressor, BetaMLRandomForestRegressor, BetaMLDecisionTreeClassifier, BetaMLRandomForestClassifier
+export DecisionTreeRegressor, RandomForestRegressor, DecisionTreeClassifier, RandomForestClassifier
 
-mutable struct BetaMLDecisionTreeRegressor <: MMI.Deterministic
+mutable struct DecisionTreeRegressor <: MMI.Deterministic
     maxDepth::Int64
     minGain::Float64
     minRecords::Int64
     maxFeatures::Int64
     splittingCriterion::Function
 end
-BetaMLDecisionTreeRegressor(;
-   maxDepth=typemax(Int),
+DecisionTreeRegressor(;
+   maxDepth=0, #typemax(Int)
    minGain=0.0,
    minRecords=2,
-   maxFeatures=typemax(Int),
+   maxFeatures=0,
    splittingCriterion=variance
-   ) = BetaMLDecisionTreeRegressor(maxDepth,minGain,minRecords,maxFeatures,splittingCriterion)
+   ) = DecisionTreeRegressor(maxDepth,minGain,minRecords,maxFeatures,splittingCriterion)
 
-mutable struct BetaMLDecisionTreeClassifier <: MMI.Probabilistic
+mutable struct DecisionTreeClassifier <: MMI.Probabilistic
    maxDepth::Int64
    minGain::Float64
    minRecords::Int64
    maxFeatures::Int64
    splittingCriterion::Function
 end
-BetaMLDecisionTreeClassifier(;
-  maxDepth=typemax(Int),
+DecisionTreeClassifier(;
+  maxDepth=0,
   minGain=0.0,
   minRecords=2,
-  maxFeatures=typemax(Int),
+  maxFeatures=0,
   splittingCriterion=gini
-  ) = BetaMLDecisionTreeClassifier(maxDepth,minGain,minRecords,maxFeatures,splittingCriterion)
+  ) = DecisionTreeClassifier(maxDepth,minGain,minRecords,maxFeatures,splittingCriterion)
 
-mutable struct BetaMLRandomForestRegressor <: MMI.Deterministic
+mutable struct RandomForestRegressor <: MMI.Deterministic
    nTrees::Int64
    maxDepth::Int64
    minGain::Float64
@@ -698,17 +698,17 @@ mutable struct BetaMLRandomForestRegressor <: MMI.Deterministic
    splittingCriterion::Function
    β::Float64
 end
-BetaMLRandomForestRegressor(;
+RandomForestRegressor(;
   nTrees=30,
-  maxDepth=typemax(Int),
+  maxDepth=0,
   minGain=0.0,
   minRecords=2,
-  maxFeatures=typemax(Int),
+  maxFeatures=0,
   splittingCriterion=variance,
   β=0.0
-  ) = BetaMLRandomForestRegressor(nTrees,maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,β)
+  ) = RandomForestRegressor(nTrees,maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,β)
 
-mutable struct BetaMLRandomForestClassifier <: MMI.Probabilistic
+mutable struct RandomForestClassifier <: MMI.Probabilistic
     nTrees::Int64
     maxDepth::Int64
     minGain::Float64
@@ -717,38 +717,44 @@ mutable struct BetaMLRandomForestClassifier <: MMI.Probabilistic
     splittingCriterion::Function
     β::Float64
 end
-BetaMLRandomForestClassifier(;
+RandomForestClassifier(;
     nTrees=30,
-    maxDepth=typemax(Int),
+    maxDepth=0,
     minGain=0.0,
     minRecords=2,
-    maxFeatures=typemax(Int),
+    maxFeatures=0,
     splittingCriterion=gini,
     β=0.0
-) = BetaMLRandomForestClassifier(nTrees,maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,β)
+) = RandomForestClassifier(nTrees,maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,β)
 
 # Fit functions...
-function MMI.fit(model::Union{BetaMLDecisionTreeRegressor,BetaMLRandomForestRegressor}, verbosity, X, y)
+function MMI.fit(model::Union{DecisionTreeRegressor,RandomForestRegressor}, verbosity, X, y)
    x = MMI.matrix(X)                     # convert table to matrix
-   if (typeof(model) == BetaMLDecisionTreeRegressor)
-       fitresult = buildTree(x, y, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion)
+   maxDepth         = model.maxDepth == 0 ? size(x,1) : model.maxDepth
+   if (typeof(model) == DecisionTreeRegressor)
+       maxFeatures = model.maxFeatures == 0 ? size(x,2) : model.maxFeatures
+       fitresult   = buildTree(x, y, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion)
    else
-       fitresult = buildForest(x, y, model.nTrees, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion, β=model.β)
+       maxFeatures = model.maxFeatures == 0 ? Int(round(sqrt(size(x,2)))) : model.maxFeatures
+       fitresult   = buildForest(x, y, model.nTrees, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion, β=model.β)
    end
    cache=nothing
    report=nothing
    return fitresult, cache, report
 end
 
-function MMI.fit(model::Union{BetaMLDecisionTreeClassifier,BetaMLRandomForestClassifier}, verbosity, X, y)
+function MMI.fit(model::Union{DecisionTreeClassifier,RandomForestClassifier}, verbosity, X, y)
    x                = MMI.matrix(X)                        # convert table to matrix
    a_target_element = y[1]                                 # a CategoricalValue or CategoricalString
    #y_plain          = MMI.int(y) .- 1                     # integer relabeling should start at 0
    yarray           = convert(Vector{eltype(levels(y))},y) # convert to a simple Array{T}
-   if (typeof(model) == BetaMLDecisionTreeClassifier)
-       fittedmodel      = buildTree(x, yarray, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true)
+   maxDepth         = model.maxDepth == 0 ? size(x,1) : model.maxDepth
+   if (typeof(model) == DecisionTreeClassifier)
+       maxFeatures   = model.maxFeatures == 0 ? size(x,2) : model.maxFeatures
+       fittedmodel   = buildTree(x, yarray, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true)
    else
-       fittedmodel      = buildForest(x, yarray, model.nTrees, maxDepth=model.maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=model.maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true, β=model.β)
+       maxFeatures   = model.maxFeatures == 0 ? Int(round(sqrt(size(x,2)))) : model.maxFeatures
+       fittedmodel   = buildForest(x, yarray, model.nTrees, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true, β=model.β)
    end
    cache            = nothing
    report           = nothing
@@ -759,8 +765,8 @@ end
 
 # Predict functions....
 # predict uses coefficients to make new prediction:
-MMI.predict(model::Union{BetaMLDecisionTreeRegressor,BetaMLRandomForestRegressor}, fitresult, Xnew) = Trees.predict(fitresult, MMI.matrix(Xnew))
-function MMI.predict(model::Union{BetaMLDecisionTreeClassifier,BetaMLRandomForestClassifier}, fitresult, Xnew)
+MMI.predict(model::Union{DecisionTreeRegressor,RandomForestRegressor}, fitresult, Xnew) = Trees.predict(fitresult, MMI.matrix(Xnew))
+function MMI.predict(model::Union{DecisionTreeClassifier,RandomForestClassifier}, fitresult, Xnew)
     fittedModel      = fitresult[1]
     a_target_element = fitresult[2]
     decode           = MMI.decoder(a_target_element)
