@@ -31,6 +31,8 @@ myLayer = BetaML.DenseLayer(2,3)
 """
 module BetaML
 
+using MLJModelInterface
+
 include("Utils.jl")
 using .Utils
 include("Nn.jl")
@@ -41,5 +43,21 @@ include("Trees.jl")
 using .Trees
 include("Clustering.jl")
 using .Clustering
+
+
+#MLJ interface
+const ALL_MODELS = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
+
+MLJModelInterface.metadata_pkg.(ALL_MODELS,
+    name       = "BetaML",
+    uuid       = "024491cd-cc6b-443e-8034-08ea7eb7db2b", # see your Project.toml
+    url        = "https://github.com/sylvaticus/BetaML.jl",  # URL to your package repo
+    julia      = true,          # is it written entirely in Julia?
+    license    = "MIT",       # your package license
+    is_wrapper = false,    # does it wrap around some other package?
+)
+
+
+
 
 end # module
