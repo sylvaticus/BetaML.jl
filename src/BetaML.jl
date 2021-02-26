@@ -31,8 +31,8 @@ myLayer = BetaML.DenseLayer(2,3)
 """
 module BetaML
 
-#import MLJModelInterface
-#const MMI = MLJModelInterface
+import MLJModelInterface
+const MMI = MLJModelInterface
 
 include("Utils.jl")
 using .Utils
