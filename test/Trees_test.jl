@@ -170,7 +170,7 @@ myTree2 = buildTree(xtrain,ytrainInt)
 myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true)
 @test typeof(myTree1) <: Trees.DecisionNode && typeof(myTree2) <: Trees.DecisionNode && typeof(myTree3) <: Trees.DecisionNode
 
-
+#=
 # NEW Test
 println("Testing MLJ interface for Trees models....")
 X, y                           = Mlj.@load_boston
@@ -179,8 +179,7 @@ regressor_dtr                  = Mlj.machine(model_dtr, X, y)
 (fitresult_dtr, cache, report) = Mlj.fit(model_dtr, 0, X, y)
 yhat_dtr                       = Mlj.predict(model_dtr, fitresult_dtr, X)
 @test meanRelError(yhat_dtr,y) < 0.02
-#(l1_distance(y,yhat)/length(y))/mean(y)
-#evaluate!(regressor, resampling=CV(), measure=rms, verbosity=0)
+
 model_rfr                      = RandomForestRegressor()
 regressor_rfr                  = Mlj.machine(model_rfr, X, y)
 (fitresult_rfr, cache, report) = Mlj.fit(model_rfr, 0, X, y)
@@ -193,14 +192,13 @@ regressor_dtc                  = Mlj.machine(model_dtc, X, y)
 (fitresult_dtc, cache, report) = Mlj.fit(model_dtc, 0, X, y)
 yhat_dtc                       = Mlj.predict(model_dtc, fitresult_dtc, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_dtc, y)) < 0.0002
-#Mlj.evaluate!(regressor_dtc, resampling=Mlj.CV(), measure=Mlj.LogLoss())
 
 model_rfc                      = RandomForestClassifier(maxFeatures=3)
 regressor_rfc                  = Mlj.machine(model_rfc, X, y)
 (fitresult_rfc, cache, report) = Mlj.fit(model_rfc, 0, X, y)
 yhat_rfc                       = Mlj.predict(model_rfc, fitresult_rfc, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_rfc, y)) < 0.04
-#Mlj.evaluate!(regressor_rfc, resampling=Mlj.CV(), measure=Mlj.LogLoss())
+=#
 
 # Other MLJ classifier models
 #=
