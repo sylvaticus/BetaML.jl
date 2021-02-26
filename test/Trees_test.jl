@@ -170,7 +170,7 @@ myTree2 = buildTree(xtrain,ytrainInt)
 myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true)
 @test typeof(myTree1) <: Trees.DecisionNode && typeof(myTree2) <: Trees.DecisionNode && typeof(myTree3) <: Trees.DecisionNode
 
-#=
+
 # NEW Test
 println("Testing MLJ interface for Trees models....")
 X, y                           = Mlj.@load_boston
@@ -198,7 +198,7 @@ regressor_rfc                  = Mlj.machine(model_rfc, X, y)
 (fitresult_rfc, cache, report) = Mlj.fit(model_rfc, 0, X, y)
 yhat_rfc                       = Mlj.predict(model_rfc, fitresult_rfc, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_rfc, y)) < 0.04
-=#
+
 
 # Other MLJ classifier models
 #=
