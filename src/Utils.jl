@@ -458,10 +458,10 @@ end
 # ------------------------------------------------------------------------------
 # Various error/accuracy measures
 import Base.error
-""" error(ŷ,y) - Categorical error (Int vs Int)"""
-error(ŷ::Array{Int64,1},y::Array{Int64,1}) = sum(ŷ .!= y)/length(ŷ)
-""" accuracy(ŷ,y) - Categorical accuracy (Int vs Int)"""
-accuracy(ŷ::Array{Int64,1},y::Array{Int64,1}) = sum(ŷ .== y)/length(ŷ)
+""" error(ŷ,y) - Categorical error (T vs T)"""
+error(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}) where {T} = sum(ŷ .!= y)/length(ŷ)
+""" accuracy(ŷ,y) - Categorical accuracy (T vs T)"""
+accuracy(ŷ::AbstractArray{T,1},y::AbstractArray{T,1})  where {T} = sum(ŷ .== y)/length(ŷ)
 """
     accuracy(ŷ,y;tol)
 Categorical accuracy with probabilistic prediction of a single datapoint (PMF vs Int).
