@@ -1,5 +1,8 @@
 # MLJ interface for Decision Trees/Random Forests models
 
+import MLJModelInterface       # It seems that having done this in the top module is not enought
+const MMI = MLJModelInterface  # We need to repoeat it here
+
 export DecisionTreeRegressor, RandomForestRegressor, DecisionTreeClassifier, RandomForestClassifier
 
 
@@ -141,30 +144,30 @@ end
 # Model metadata for registration in MLJ...
 
 MMI.metadata_model(DecisionTreeRegressor,
-    input_scitype    = MMI.Table{<: Union{MMI.Missing, MMI.Known}}, # MMI.Table(MMI.Continuous),  # what input data is supported?
+    input_scitype    = MMI.Table(MMI.Missing, MMI.Known),           # also ok: MMI.Table(Union{MMI.Missing, MMI.Known}),
     target_scitype   = AbstractVector{<: MMI.Continuous},           # for a supervised model, what target?
     supports_weights = false,                                       # does the model support sample weights?
     descr            = "A simple Decision Tree for regression with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Trees.DecisionTreeRegressor"
     )
 MMI.metadata_model(RandomForestRegressor,
-    input_scitype    = MMI.Table{<: Union{MMI.Missing,MMI.Known}}, # MMI.Table(MMI.Continuous),  # what input data is supported?
-    target_scitype   = AbstractVector{<: MMI.Continuous},          # for a supervised model, what target?
-    supports_weights = false,                                      # does the model support sample weights?
+    input_scitype    = MMI.Table(MMI.Missing, MMI.Known),
+    target_scitype   = AbstractVector{<: MMI.Continuous},
+    supports_weights = false,
     descr            = "A simple Random Forest ensemble for regression with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Trees.RandomForestRegressor"
     )
 MMI.metadata_model(DecisionTreeClassifier,
-    input_scitype    = MMI.Table{<: Union{MMI.Missing, MMI.Known}},                 # MMI.Table(MMI.Continuous),  # what input data is supported?
-    target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite,MMI.Count}},  # for a supervised model, what target?
-    supports_weights = false,                                                       # does the model support sample weights?
+    input_scitype    = MMI.Table(MMI.Missing, MMI.Known),
+    target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite,MMI.Count}},
+    supports_weights = false,
     descr            = "A simple Decision Tree for classification with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Trees.DecisionTreeClassifier"
     )
 MMI.metadata_model(RandomForestClassifier,
-    input_scitype    = MMI.Table{<: Union{MMI.Missing,MMI.Known}},                  # MMI.Table(MMI.Continuous),  # what input data is supported?
-    target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite,MMI.Count}},  # for a supervised model, what target?
-    supports_weights = false,                                                       # does the model support sample weights?
+    input_scitype    = MMI.Table(MMI.Missing, MMI.Known),                     
+    target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite,MMI.Count}},
+    supports_weights = false,
     descr            = "A simple Random Forest ensemble for classification with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Trees.RandomForestClassifier"
     )
