@@ -56,10 +56,11 @@ jobs:
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
+      # Test the documentation itself
       - run: |
           julia --project=docs -e '
             using Documenter: doctest
-            using BetaML
+            using BetaML.Perceptron, BetaML.Nn, BetaML.Clustering, BetaML.Trees
             doctest(BetaML)' # change MYPACKAGE to the name of your package
       - run: julia --project=docs docs/make.jl
         env:
