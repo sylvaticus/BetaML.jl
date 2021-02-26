@@ -652,6 +652,6 @@ function oobError(forest::Forest{Ty},x,y) where {Ty}
 end
 
 # MLJ interface
-include("Trees_MLJ.jl")
+#include("Trees_MLJ.jl")
 
 end # end module
