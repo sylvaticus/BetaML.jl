@@ -51,14 +51,14 @@ using .Clustering
 const MLJ_INTERFACED_MODELS = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
 
 function __init__()
-MMI.metadata_pkg.(MLJ_INTERFACED_MODELS,
-    name       = "BetaML",
-    uuid       = "024491cd-cc6b-443e-8034-08ea7eb7db2b", # see your Project.toml
-    url        = "https://github.com/sylvaticus/BetaML.jl",  # URL to your package repo
-    julia      = true,          # is it written entirely in Julia?
-    license    = "MIT",       # your package license
-    is_wrapper = false,    # does it wrap around some other package?
-)
+    MMI.metadata_pkg.(MLJ_INTERFACED_MODELS,
+        name       = "BetaML",
+        uuid       = "024491cd-cc6b-443e-8034-08ea7eb7db2b", # see your Project.toml
+        url        = "https://github.com/sylvaticus/BetaML.jl",  # URL to your package repo
+        julia      = true,          # is it written entirely in Julia?
+        license    = "MIT",       # your package license
+        is_wrapper = false,    # does it wrap around some other package?
+    )
 end
 
 end # module
