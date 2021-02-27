@@ -98,7 +98,7 @@ trees = myForest.trees
 treesWeights = myForest.weights
 oobError = myForest.oobError
 ŷtrain = Trees.predict(myForest, xtrain)
-@test accuracy(ŷtrain,ytrain) >= 0.98
+@test accuracy(ŷtrain,ytrain) >= 0.96
 ŷtest = Trees.predict(myForest, xtest)
 @test accuracy(ŷtest,ytest)  >= 0.96
 updateTreesWeights!(myForest,xtrain,ytrain;β=1)
@@ -170,8 +170,62 @@ myTree2 = buildTree(xtrain,ytrainInt)
 myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true)
 @test typeof(myTree1) <: Trees.DecisionNode && typeof(myTree2) <: Trees.DecisionNode && typeof(myTree3) <: Trees.DecisionNode
 
+# ==================================
+# NEW TEST
+println("Testing trees with unsortable and missing X values...")
 
-# NEW Test
+abstract type AType end
+mutable struct SortableType<:AType
+    x::Int64
+    y::Int64
+end
+
+mutable struct UnsortableType<:AType
+    x::Int64
+    y::Int64
+end
+isless(x::SortableType,y::SortableType) = x.x < y.x
+
+SortableVector = [SortableType(2,4),SortableType(1,5),SortableType(1,8),SortableType(12,5),
+SortableType(6,2),SortableType(2,2),SortableType(2,2),SortableType(2,4),
+SortableType(6,2),SortableType(1,5),missing,SortableType(2,4),
+SortableType(1,8),SortableType(12,5)]
+UnSortableVector = [UnsortableType(2,5),UnsortableType(1,3),UnsortableType(1,8),UnsortableType(2,6),
+UnsortableType(6,3),UnsortableType(7,9),UnsortableType(2,5),UnsortableType(2,6),
+missing,UnsortableType(3,2),UnsortableType(6,3),UnsortableType(2,5),
+UnsortableType(7,9),UnsortableType(7,9)]
+
+data = Union{Missing,Float64, String,AType}[
+    0.9 0.6 "black" "monitor" 10.1
+    0.3 missing "white" "paper sheet" 2.3
+    4.0 2.2 missing "monitor"  12.5
+    0.6 0.5 "white" "monitor" 12.5
+    3.8 2.1 "gray" "car" 54.2
+    0.3 0.2 "red" "paper sheet" 2.6
+    0.1 0.1 "white" "paper sheet" 2.5
+    0.3 0.2 "black" "monitor" 11.3
+    0.1 0.2 "black" "monitor" 9.8
+    0.31 0.2 "white" "paper sheet" 3.7
+    3.2 1.9 "gray" "car" 64.3
+    0.4 0.25 "white" "paper" 2.7
+    0.9 0.4 "black" "monitor" 12.5
+    4.1 2.1 "gray" "monitor" 13.2
+]
+
+X = hcat(data[:,[1,2,3]],UnSortableVector)
+y = convert(Vector{String},  data[:,4])
+
+((xtrain,xtest),(ytrain,ytest)) = Utils.partition([X,y],[0.7,0.3],shuffle=false)
+ytrain = dropdims(ytrain,dims=2)
+ytest  = dropdims(ytest,dims=2)
+
+modelβ = buildForest(xtrain,ytrain,5)
+ŷtestβ = Trees.predict(modelβ,xtest)
+accβ = Trees.accuracy(ŷtestβ,ytest)
+@test accβ >= 0.4
+
+# ==================================
+# NEW TEST
 println("Testing MLJ interface for Trees models....")
 X, y                           = Mlj.@load_boston
 model_dtr                      = DecisionTreeRegressor()

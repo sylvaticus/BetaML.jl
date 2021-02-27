@@ -290,15 +290,22 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;maxFeatures,splittingCrit
 
     for d in featuresToConsider      # for each feature (we consider only maxFeatures features randomly)
         values = Set(skipmissing(x[:,d]))  # unique values in the column
-        sortIdx = sortperm(x[:,d])
-        sortedx = x[sortIdx,:]
-        sortedy = y[sortIdx]
+        sortable = Utils.issortable(x[:,d])
+        if(sortable)
+            sortIdx = sortperm(x[:,d])
+            sortedx = x[sortIdx,:]
+            sortedy = y[sortIdx]
+        else
+            sortIdx = 1:N
+            sortedx = x
+            sortedy = y
+        end
 
         for val in values  # for each value
             question = Question(d, val)
             # try splitting the dataset
             #println(question)
-            trueIdx = partition(question,sortedx,mCols,sorted=true)
+            trueIdx = partition(question,sortedx,mCols,sorted=sortable)
             # Skip this split if it doesn't divide the
             # dataset.
             if all(trueIdx) || ! any(trueIdx)

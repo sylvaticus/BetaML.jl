@@ -48,10 +48,10 @@ using .Clustering
 # ------------------------------------------------------------------------------
 #MLJ interface...
 
-function __init__()
-const ALL_MODELS = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
+const MLJ_INTERFACED_MODELS = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
 
-MMI.metadata_pkg.(ALL_MODELS,
+function __init__()
+MMI.metadata_pkg.(MLJ_INTERFACED_MODELS,
     name       = "BetaML",
     uuid       = "024491cd-cc6b-443e-8034-08ea7eb7db2b", # see your Project.toml
     url        = "https://github.com/sylvaticus/BetaML.jl",  # URL to your package repo

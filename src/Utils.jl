@@ -22,7 +22,7 @@ module Utils
 using LinearAlgebra, Random, Statistics, Combinatorics, Zygote
 
 export @codeLocation,
-       reshape, makeColVector, makeRowVector, makeMatrix,
+       reshape, makeColVector, makeRowVector, makeMatrix, issortable,
        oneHotEncoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
@@ -71,6 +71,9 @@ makeRowVector(x::T) where {T <: Number} = return [x]'
 makeRowVector(x::T) where {T <: AbstractArray} =  reshape(x,1,length(x))
 """Transform an Array{T,1} in an Array{T,2} and leave unchanged Array{T,2}."""
 makeMatrix(x::AbstractArray) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
+"""Return wheather an array is sortable, i.e. has methos issort defined"""
+issortable(::Array{T,N})  where {T,N} = hasmethod(isless, Tuple{nonmissingtype(T),nonmissingtype(T)})
+
 
 
 function oneHotEncoderRow(y,d;count = false)

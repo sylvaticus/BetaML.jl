@@ -57,11 +57,14 @@ jobs:
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
       # Test the documentation itself
+      # The problem is that in the test I should call stuff like
+      # BetaML.kernelPerceptron(.) or use "meta"
+      # https://juliadocs.github.io/Documenter.jl/stable/man/doctests/
       #- run: |
       #    julia --project=docs -e '
       #      using Documenter: doctest
       #      using BetaML.Perceptron, BetaML.Nn, BetaML.Clustering, BetaML.Trees
-      #      doctest(BetaML)' # change MYPACKAGE to the name of your package
+      #      doctest(BetaML)' #this can't be changed to doctest(BetaML.Perceptron)
       - run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
