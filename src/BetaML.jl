@@ -48,6 +48,7 @@ using .Clustering
 # ------------------------------------------------------------------------------
 #MLJ interface...
 
+function __init__()
 const ALL_MODELS = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
 
 MMI.metadata_pkg.(ALL_MODELS,
@@ -58,5 +59,6 @@ MMI.metadata_pkg.(ALL_MODELS,
     license    = "MIT",       # your package license
     is_wrapper = false,    # does it wrap around some other package?
 )
+end
 
 end # module
