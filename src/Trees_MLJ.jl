@@ -77,6 +77,23 @@ RandomForestClassifier(;
     β=0.0
 ) = RandomForestClassifier(nTrees,maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,β)
 
+#=
+# skipped for now..
+# ------------------------------------------------------------------------------
+# Hyperparameters ranges definition (for automatic tuning)
+
+MMI.hyperparameter_ranges(::Type{<:DecisionTreeRegressor}) = (
+#    (range(Float64, :alpha, lower=0, upper=1, scale=:log),
+#     range(Int, :beta, lower=1, upper=Inf, origin=100, unit=50, scale=:log),
+#         nothing)
+    range(Int64,:maxDepth,lower=0,upper=Inf,scale=:log),
+    range(Float64,:minGain,lower=0,upper=Inf,scale=:log),
+    range(Int64,:minRecords,lower=0,upper=Inf,scale=:log),
+    range(Int64,:maxFeatures,lower=0,upper=Inf,scale=:log),
+    nothing
+)
+=#
+
 # ------------------------------------------------------------------------------
 # Fit functions...
 
@@ -165,7 +182,7 @@ MMI.metadata_model(DecisionTreeClassifier,
 	load_path        = "BetaML.Trees.DecisionTreeClassifier"
     )
 MMI.metadata_model(RandomForestClassifier,
-    input_scitype    = MMI.Table(MMI.Missing, MMI.Known),                     
+    input_scitype    = MMI.Table(MMI.Missing, MMI.Known),
     target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite,MMI.Count}},
     supports_weights = false,
     descr            = "A simple Random Forest ensemble for classification with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).",
