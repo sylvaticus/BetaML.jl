@@ -221,8 +221,8 @@ ytest  = dropdims(ytest,dims=2)
 
 modelβ = buildForest(xtrain,ytrain,5)
 ŷtestβ = Trees.predict(modelβ,xtest)
-accβ = Trees.accuracy(ŷtestβ,ytest)
-@test accβ >= 0.4
+accβ   = Trees.accuracy(ŷtestβ,ytest)
+@test accβ >= 0.25
 
 # ==================================
 # NEW TEST

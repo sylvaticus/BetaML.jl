@@ -141,6 +141,7 @@ function MMI.predict(model::Union{DecisionTreeClassifier,RandomForestClassifier}
     a_target_element = fitresult[2]
     decode           = MMI.decoder(a_target_element)
     classes          = MMI.classes(a_target_element)
+    #println(typeof(classes))
     nLevels          = length(classes)
     nRecords         = MMI.nrows(Xnew)
     treePredictions  = Trees.predict(fittedModel, MMI.matrix(Xnew))
@@ -176,14 +177,14 @@ MMI.metadata_model(RandomForestRegressor,
     )
 MMI.metadata_model(DecisionTreeClassifier,
     input_scitype    = MMI.Table(MMI.Missing, MMI.Known),
-    target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite,MMI.Count}},
+    target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite}},
     supports_weights = false,
     descr            = "A simple Decision Tree for classification with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Trees.DecisionTreeClassifier"
     )
 MMI.metadata_model(RandomForestClassifier,
     input_scitype    = MMI.Table(MMI.Missing, MMI.Known),
-    target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite,MMI.Count}},
+    target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite}},
     supports_weights = false,
     descr            = "A simple Random Forest ensemble for classification with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Trees.RandomForestClassifier"

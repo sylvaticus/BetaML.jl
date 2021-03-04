@@ -51,7 +51,7 @@ Initialisate the representatives for a K-Mean or K-Medoids algorithm
 # Parameters:
 * `X`: a (N x D) data to clusterise
 * `K`: Number of cluster wonted
-* `initStrategy`: Wheter to select the initial representative vectors:
+* `initStrategy`: Whether to select the initial representative vectors:
   * `random`: randomly in the X space
   * `grid`: using a grid approach [default]
   * `shuffle`: selecting randomly within the available points
@@ -108,7 +108,7 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 * `X`: a (N x D) data to clusterise
 * `K`: Number of cluster wonted
 * `dist`: Function to employ as distance (see notes). Default to Euclidean distance.
-* `initStrategy`: Wheter to select the initial representative vectors:
+* `initStrategy`: Whether to select the initial representative vectors:
   * `random`: randomly in the X space
   * `grid`: using a grid approach [default]
   * `shuffle`: selecting randomly within the available points
@@ -192,7 +192,7 @@ Compute K-Medoids algorithm to identify K clusters of X using distance definitio
 * `X`: a (n x d) data to clusterise
 * `K`: Number of cluster wonted
 * `dist`: Function to employ as distance (see notes). Default to Euclidean distance.
-* `initStrategy`: Wheter to select the initial representative vectors:
+* `initStrategy`: Whether to select the initial representative vectors:
   * `random`: randomly in the X space
   * `grid`: using a grid approach
   * `shuffle`: selecting randomly within the available points [default]

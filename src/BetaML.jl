@@ -48,7 +48,9 @@ using .Clustering
 # ------------------------------------------------------------------------------
 #MLJ interface...
 
-const MLJ_INTERFACED_MODELS = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
+const MLJ_PERCEPTRON_MODELS = (PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier)
+const MLJ_TREES_MODELS = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
+const MLJ_INTERFACED_MODELS = (MLJ_PERCEPTRON_MODELS..., MLJ_TREES_MODELS...)
 
 function __init__()
     MMI.metadata_pkg.(MLJ_INTERFACED_MODELS,

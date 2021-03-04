@@ -145,7 +145,7 @@ Individual trees are stored in the array `trees`. The "type" of the forest is gi
 
 # Struct members:
 - `trees`:        The individual Decision Trees
-- `isRegression`: Wheter the forest is to be used for regression jobs or classification
+- `isRegression`: Whether the forest is to be used for regression jobs or classification
 - `oobData`:      For each tree, the rows number if the data that have _not_ being used to train the specific tree
 - `oobError`:     The out of bag error (if it has been computed)
 - `weights`:      A weight for each tree depending on the tree's score on the oobData (see [`buildForest`](@ref))
@@ -509,7 +509,7 @@ Builds (define and train) a "forest" of Decision Trees.
 See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with the `maxFeatures` defaulting to `√D` instead of `D`) plus the following parameters:
 - `nTrees`: Number of trees in the forest [def: `30`]
 - `β`: Parameter that regulate the weights of the scoring of each tree, to be (optionally) used in prediction (see later) [def: `0`, i.e. uniform weigths]
-- `oob`: Wheter to coompute the out-of-bag error, an estimation of the generalization accuracy [def: `false`]
+- `oob`: Whether to coompute the out-of-bag error, an estimation of the generalization accuracy [def: `false`]
 
 # Output:
 - The function returns a Forest object (see [`Forest`](@ref)).

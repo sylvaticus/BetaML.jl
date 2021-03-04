@@ -28,5 +28,6 @@ end
 
 if "all" in ARGS
     # run optional long tests
+    include("Perceptron_test_additional.jl")
     include("Trees_test_additional.jl")
 end

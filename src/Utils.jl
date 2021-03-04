@@ -23,12 +23,12 @@ using LinearAlgebra, Random, Statistics, Combinatorics, Zygote
 
 export @codeLocation,
        reshape, makeColVector, makeRowVector, makeMatrix, issortable,
-       oneHotEncoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, pca,
+       oneHotEncoder, integerEncoder, integerDecoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
        autoJacobian,
-       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, classCounts, meanDicts, gini, entropy, variance,
+       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, classCounts, meanDicts, mode, gini, entropy, variance,
        error, accuracy, meanRelError,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
@@ -107,6 +107,59 @@ function oneHotEncoder(Y,d=maximum(maximum.(Y));count=false)
     return out
 end
 
+import Base.findfirst, Base.findall
+findfirst(el::T,cont::Array{T};returnTuple=true) where {T} = ndims(cont) > 1 && returnTuple ? Tuple(findfirst(x -> isequal(x,el),cont)) : findfirst(x -> isequal(x,el),cont)
+findall(el::T, cont::Array{T};returnTuple=true) where {T} = ndims(cont) > 1 && returnTuple ? Tuple.(findall(x -> isequal(x,el),cont)) : findall(x -> isequal(x,el),cont)
+
+
+"""
+    integerEncoder(y;unique)
+
+Encode an array of T to an array of integers using the their position in the unique vector if the input array
+
+# Parameters:
+- `y`: The vector to encode
+- `unique`: Wether the vector to encode is already made of unique elements [def: `false`]
+# Return:
+- A vector of [1,length(Y)] integers corresponding to the position of each element in the "unique" version of the original input
+# Note:
+- Attention that while this function creates a ordered (and sortable) set, it is up to the user to be sure that this "property" is not indeed used in his code if the unencoded data is indeed unordered.
+# Example:
+```
+julia> integerEncoder(["aa","cc","cc","bb","cc","aa"]) # out: [1, 2, 2, 3, 2, 1]
+```
+"""
+function integerEncoder(Y::AbstractVector;unique=false)
+    uniqueY = unique ? Y :  Base.unique(Y)
+    nY      = length(Y)
+    nU      = length(uniqueY)
+    O       = findfirst.(Y,Ref(uniqueY))
+    return O
+end
+
+"""
+    integerDecoder(y,target::AbstractVector{T};unique)
+
+Decode an array of integers to an array of T corresponding to the elements of `target`
+
+# Parameters:
+- `y`: The vector to decode
+- `target`: The vector of elements to use for the encoding
+- `unique`: Wether `target` is already made of unique elements [def: `true`]
+# Return:
+- A vector of length(y) elements corresponding to the (unique) target elements at the position y
+# Example:
+```
+julia> integerDecoder([1, 2, 2, 3, 2, 1],["aa","cc","bb"]) # out: ["aa","cc","cc","bb","cc","aa"]
+```
+"""
+function integerDecoder(Y,target::AbstractVector{T};unique=true) where{T}
+    uniqueTarget =  unique ? target :  Base.unique(target)
+    nY           =  length(Y)
+    nU           =  length(uniqueTarget)
+    return map(i -> uniqueTarget[i], Y )
+end
+
 """
   batch(n,bSize;sequential=false)
 
@@ -143,7 +196,7 @@ Partition (by rows) one or more matrices according to the shares in `parts`.
 # Parameters
 * `data`: A matrix/vector or a vector of matrices/vectors
 * `parts`: A vector of the required shares (must sum to 1)
-* `shufle`: Wheter to randomly shuffle the matrices (preserving the relative order between matrices)
+* `shufle`: Whether to randomly shuffle the matrices (preserving the relative order between matrices)
 
 # Example:
 ```julia
@@ -221,7 +274,7 @@ Perform a linear scaling of x using scaling factors `scaleFactors`.
 - `x`: The (n × d) dimension matrix to scale on each dimension d
 - `scalingFactors`: A tuple of the constant and multiplicative scaling factor
 respectively [def: the scaling factors needed to scale x to mean 0 and variance 1]
-- `rev`: Wheter to invert the scaling [def: `false`]
+- `rev`: Whether to invert the scaling [def: `false`]
 
 # Return
 - The scaled matrix
@@ -509,7 +562,7 @@ Categorical accuracy with probabilistic predictions of a dataset (PMF vs Int).
 - `ŷ`: An (N,K) matrix of probabilities that each ``\hat y_n`` record with ``n \in 1,....,N``  being of category ``k`` with $k \in 1,...,K$.
 - `y`: The N array with the correct category for each point $n$.
 - `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
-- `ignoreLabels`: Wheter to ignore the specific label order in y. Useful for unsupervised learning algorithms where the specific label order don't make sense [def: false]
+- `ignoreLabels`: Whether to ignore the specific label order in y. Useful for unsupervised learning algorithms where the specific label order don't make sense [def: false]
 
 """
 function accuracy(ŷ::Array{T,2},y::Array{Int64,1};tol=1,ignoreLabels=false) where {T <: Number}
@@ -614,6 +667,18 @@ function classCounts(x)
         end
     end
     return counts
+end
+
+"""
+  mode(dicts)
+
+Given a vector of dictionaries representing probabilities it returns the mode of each element in terms of the key
+
+Use it to return a unique value from a multiclass classifier returning probabilities.
+
+"""
+function mode(dicts::AbstractArray{Dict{T,Float64}}) where {T}
+    return getindex.(findmax.(dicts),2)
 end
 
 """

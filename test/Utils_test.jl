@@ -18,6 +18,26 @@ ce = oneHotEncoder(c,6)
 @test sum(ae*be*ce') == 4
 
 # ==================================
+# NEW TEST
+println("Testing findFirst/ findall / integerEncoder / integerDecoder...")
+
+a = ["aa","cc","cc","bb","cc","aa"]
+A = [3 2 1; 2 3 1; 1 2 3]
+@test findfirst("cc",a)  == 2
+@test findall("cc",a)    == [2,3,5]
+@test findfirst(2,A)     == (2,1)
+@test findall(2,A)       == [(2,1),(1,2),(3,2)]
+@test findfirst(2,A;returnTuple=false) == CartesianIndex(2,1)
+
+encoded  = integerEncoder(a)
+uniquea  = unique(a)
+decoded  = integerDecoder(encoded,a,unique=false)
+decoded2 = integerDecoder(encoded,uniquea)
+@test a == decoded == decoded2
+
+
+
+# ==================================
 # TEST 2: softMax
 println("** Going through Test2 (softmax and other activation functions)...")
 @test isapprox(softmax([2,3,4],β=0.1),[0.3006096053557272,0.3322249935333472,0.36716540111092544])
@@ -157,6 +177,16 @@ ŷ = [ŷ1,ŷ2,ŷ3,ŷ4]
 y = ["Lemon","Lemon","Apple","Lemon"]
 @test accuracy(ŷ,y) == 0.5
 @test accuracy(ŷ,y,tol=2) == 0.75
+
+# ==================================
+# New test
+println("** Testing mode(dicts)...")
+ŷ1 = Dict("Lemon" => 0.6, "Apple" => 0.4)
+ŷ2 = Dict("Lemon" => 0.33, "Apple" => 0.2, "Grape" => 0.47)
+ŷ3 = Dict("Lemon" => 0.2, "Apple" => 0.5, "Grape" => 0.3)
+ŷ4 = Dict("Apple" => 0.2, "Grape" => 0.8)
+ŷ = [ŷ1,ŷ2,ŷ3,ŷ4]
+@test mode(ŷ) == ["Lemon","Grape","Apple","Grape"]
 
 # ==================================
 # New test
