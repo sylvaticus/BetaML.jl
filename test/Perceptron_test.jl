@@ -104,10 +104,8 @@ ŷtest  = Perceptron.predict(xtest,out.x,out.y,out.α, out.classes,K=out.K)
 ϵtrain = error(ytrain, mode(ŷtrain))
 ϵtest  = error(ytest, mode(ŷtest))
 
-@test ϵtrain  < 0.03
-@test ϵtest   < 0.3
-
-
+@test ϵtrain  < 0.1
+@test ϵtest   < 0.8
 
 # ==================================
 # Test 3: Pegasos
