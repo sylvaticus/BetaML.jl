@@ -153,8 +153,9 @@ function MMI.predict(model::Union{DecisionTreeClassifier,RandomForestClassifier}
             predMatrix[n,c] = get(treePredictions[n],cl,0.0)
         end
     end
-    predictions = [MMI.UnivariateFinite(classes, predMatrix[i,:])
-                   for i in 1:nRecords]
+    #predictions = [MMI.UnivariateFinite(classes, predMatrix[i,:])
+    #               for i in 1:nRecords]
+    predictions = MMI.UnivariateFinite(classes, predMatrix)
     return predictions
 end
 

@@ -97,7 +97,8 @@ end
 
 function MMI.predict(model::Union{PerceptronClassifier,PegasosClassifier}, fitresult, Xnew)
     fittedModel      = fitresult
-    classes          = CategoricalVector(fittedModel.classes)
+    #classes          = CategoricalVector(fittedModel.classes)
+    classes          = fittedModel.classes
     nLevels          = length(classes)
     nRecords         = MMI.nrows(Xnew)
     modelPredictions = Perceptron.predict(MMI.matrix(Xnew), fittedModel.θ, fittedModel.θ₀, fittedModel.classes)
@@ -109,14 +110,16 @@ function MMI.predict(model::Union{PerceptronClassifier,PegasosClassifier}, fitre
             predMatrix[n,c] = get(modelPredictions[n],cl,0.0)
         end
     end
-    predictions = [MMI.UnivariateFinite(classes, predMatrix[i,:])
-                   for i in 1:nRecords]
+    #predictions = [MMI.UnivariateFinite(classes, predMatrix[i,:])
+    #               for i in 1:nRecords]
+    predictions = MMI.UnivariateFinite(fittedModel.classes,predMatrix,pool=missing)
     return predictions
 end
 
 function MMI.predict(model::KernelPerceptronClassifier, fitresult, Xnew)
     fittedModel      = fitresult
-    classes          = CategoricalVector(fittedModel.classes)
+    #classes          = CategoricalVector(fittedModel.classes)
+    classes          = fittedModel.classes
     nLevels          = length(classes)
     nRecords         = MMI.nrows(Xnew)
     #ŷtrain = Perceptron.predict([10 10; 2.2 2.5],model.x,model.y,model.α, model.classes,K=model.K)
@@ -129,8 +132,12 @@ function MMI.predict(model::KernelPerceptronClassifier, fitresult, Xnew)
             predMatrix[n,c] = get(modelPredictions[n],cl,0.0)
         end
     end
-    predictions = [MMI.UnivariateFinite(classes, predMatrix[i,:])
-                   for i in 1:nRecords]
+    #predictions = [MMI.UnivariateFinite(classes, predMatrix[i,:])
+    #              for i in 1:nRecords]
+    #predictions = MMI.UnivariateFinite(classes, predMatrix)
+    predictions = MMI.UnivariateFinite(fittedModel.classes,predMatrix,pool=missing)
+    #predictions4 = MMI.UnivariateFinite(modelPredictions,pool=classes,ordered=false)
+    #predictions = MMI.UnivariateFinite(modelPredictions,pool=fittedModel.classes)
     return predictions
 end
 

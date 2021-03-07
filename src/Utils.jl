@@ -71,6 +71,9 @@ makeRowVector(x::T) where {T <: Number} = return [x]'
 makeRowVector(x::T) where {T <: AbstractArray} =  reshape(x,1,length(x))
 """Transform an Array{T,1} in an Array{T,2} and leave unchanged Array{T,2}."""
 makeMatrix(x::AbstractArray) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
+#makeMatrix(x::AbstractArray{T,1}) where {T} =  reshape(x, (size(x)...,1))
+#makeMatrix(x::AbstractArray{T}) where {T} = x
+
 """Return wheather an array is sortable, i.e. has methos issort defined"""
 issortable(::AbstractArray{T,N})  where {T,N} = hasmethod(isless, Tuple{nonmissingtype(T),nonmissingtype(T)})
 
