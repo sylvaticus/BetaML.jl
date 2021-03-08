@@ -31,7 +31,7 @@ The module provides the following functions. Use `?[function]` to access their f
 """
 module Clustering
 
-using LinearAlgebra, Random, Statistics, Reexport
+using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays
 #using Distributions
 
 @reexport using ..Utils
@@ -487,5 +487,9 @@ function predictMissing(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1
     end
     return (X̂=X̂,nFill=nFill,lL=emOut.lL,BIC=emOut.BIC,AIC=emOut.AIC)
 end
+
+
+# MLJ interface
+include("Clustering_MLJ.jl")
 
 end

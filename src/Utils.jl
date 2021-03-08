@@ -19,7 +19,7 @@ Provide shared utility functions for various machine learning algorithms. You do
 """
 module Utils
 
-using LinearAlgebra, Random, Statistics, Combinatorics, Zygote
+using LinearAlgebra, Random, Statistics, Combinatorics, Zygote, CategoricalArrays
 
 export @codeLocation,
        reshape, makeColVector, makeRowVector, makeMatrix, issortable,
@@ -517,10 +517,35 @@ end
 # ------------------------------------------------------------------------------
 # Various error/accuracy measures
 import Base.error
-""" error(ŷ,y) - Categorical error (T vs T)"""
-error(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}) where {T} = sum(ŷ .!= y)/length(ŷ)
-""" accuracy(ŷ,y) - Categorical accuracy (T vs T)"""
-accuracy(ŷ::AbstractArray{T,1},y::AbstractArray{T,1})  where {T} = sum(ŷ .== y)/length(ŷ)
+
+""" accuracy(ŷ,y;ignoreLabels=false) - Categorical accuracy between two vectors (T vs T). If """
+
+function accuracy(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignoreLabels=false)  where {T}
+    if(!ignoreLabels)
+        return sum(ŷ .== y)/length(ŷ)
+    else
+        classes = unique(y)
+        nCl = length(classes)
+        N = size(y,1)
+        pSet =  collect(permutations(1:nCl))
+        bestAcc = -Inf
+        yOrigIdx = [findfirst(x -> x == y[i] , classes) for i in 1:N]
+        ŷToTest = typeof(ŷ) <: CategoricalArray ? convert(Array{CategoricalArrays.leveltype(ŷ),1},ŷ) : ŷ # convert the categorical array if needed
+        for perm in pSet
+            py = classes[perm[yOrigIdx]] # permuted specific version
+                acc = accuracy(ŷToTest,py,ignoreLabels=false)
+            if acc > bestAcc
+                bestAcc = acc
+            end
+        end
+        return bestAcc
+    end
+end
+
+""" error(ŷ,y;ignoreLabels=false) - Categorical error (T vs T)"""
+error(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignoreLabels=false) where {T} = (1 - accuracy(ŷ,y;ignoreLabels=ignoreLabels) )
+
+
 """
     accuracy(ŷ,y;tol)
 Categorical accuracy with probabilistic prediction of a single datapoint (PMF vs Int).

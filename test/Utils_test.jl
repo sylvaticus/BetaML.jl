@@ -86,6 +86,26 @@ dest = crossEntropy([0.8+δ,0.101,0.001],[1.0,0,0],weight = [2,1,1])
 # New test
 println("** Going through testing accuracy...")
 
+
+y = ["a","a","a","b","b","c","c","c"]
+ŷ = ["b","b","a","c","c","a","a","c"]
+
+accuracyConsideringClassLabels = accuracy(ŷ,y) # 2 out of 8
+accuracyConsideringAnyClassLabel = accuracy(ŷ,y,ignoreLabels=true) # 6 out of 8
+
+@test accuracyConsideringClassLabels == 2/8
+@test accuracyConsideringAnyClassLabel == 6/8
+
+# with categorical arrays..
+y = CategoricalArray(y)
+ŷ = CategoricalArray(ŷ)
+
+accuracyConsideringClassLabels = accuracy(ŷ,y) # 2 out of 8
+accuracyConsideringAnyClassLabel = accuracy(ŷ,y,ignoreLabels=true) # 6 out of 8
+
+@test accuracyConsideringClassLabels == 2/8
+@test accuracyConsideringAnyClassLabel == 6/8
+
 x = [0.01 0.02 0.1 0.05 0.2 0.1  0.05 0.27  0.2;
      0.05 0.01 0.2 0.02 0.1 0.27 0.1  0.05  0.2]
 y = [3,3]
