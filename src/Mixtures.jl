@@ -6,7 +6,7 @@ export SphericalGaussian, DiagonalGaussian, FullGaussian,
 initVariances!, initMixtures!,lpdf,updateVariances!,lpdf
 
 
-abstract type AbstractGaussian <: Mixture end
+abstract type AbstractGaussian <: AbstractMixture end
 
 mutable struct SphericalGaussian{T <:Number} <: AbstractGaussian
         μ  ::Union{Array{T,1},Nothing}

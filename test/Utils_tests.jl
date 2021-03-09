@@ -84,6 +84,21 @@ dest = crossEntropy([0.8+δ,0.101,0.001],[1.0,0,0],weight = [2,1,1])
 
 # ==================================
 # New test
+println("** Testing permutations...")
+y = ["a","a","a","b","b","c","c","c"]
+yp = getPermutations(y,keepStructure=true)
+ypExpected = [
+  ["a", "a", "a", "b", "b", "c", "c", "c"],
+  ["a", "a", "a", "c", "c", "b", "b", "b"],
+  ["b", "b", "b", "a", "a", "c", "c", "c"],
+  ["b", "b", "b", "c", "c", "a", "a", "a"],
+  ["c", "c", "c", "a", "a", "b", "b", "b"],
+  ["c", "c", "c", "b", "b", "a", "a", "a"],
+]
+@test yp == ypExpected
+
+# ==================================
+# New test
 println("** Going through testing accuracy...")
 
 

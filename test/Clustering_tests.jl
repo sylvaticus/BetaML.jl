@@ -104,3 +104,19 @@ distances                      = Mlj.transform(model,fitResults,X)
 yhat                           = Mlj.predict(model, fitResults, X)
 acc = accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
 @test acc > 0.8
+
+model                          = KMedoids()
+modelMachine                   = Mlj.machine(model, X)
+(fitResults, cache, report)    = Mlj.fit(model, 0, X)
+distances                      = Mlj.transform(model,fitResults,X)
+yhat                           = Mlj.predict(model, fitResults, X)
+acc = accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
+@test acc > 0.8
+
+model                          = Clustering.GMM()
+modelMachine                   = Mlj.machine(model, X)
+(fitResults, cache, report)    = Mlj.fit(model, 0, X)
+distances                      = Mlj.transform(model,fitResults,X)
+yhat                           = Mlj.predict(model, fitResults, X)
+acc = accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
+@test acc > 0.8

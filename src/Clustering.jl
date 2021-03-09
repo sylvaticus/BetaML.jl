@@ -38,7 +38,7 @@ using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays
 
 export initRepresentatives, kmeans, kmedoids, gmm, predictMissing
 
-abstract type Mixture end
+abstract type AbstractMixture end
 include("Mixtures.jl")
 
 ## Helper functions
@@ -289,7 +289,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 * `verbosity`:     A verbosity parameter regulating the information messages frequency [def: `STD`]
 * `minVariance`:   Minimum variance for the mixtures [default: 0.05]
 * `minCovariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes).
-* `initStrategy`:  Mixture initialisation algorithm [def: `grid`]
+* `initStrategy`:  Mixture initialisation algorithm [def: `kmeans`]
 
 # Returns:
 * A named touple of:
@@ -317,7 +317,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 julia> clusters = gmm([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,verbosity=HIGH)
 ```
 """
-function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="grid")
+function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans")
     if verbosity > STD
         @codeLocation
     end

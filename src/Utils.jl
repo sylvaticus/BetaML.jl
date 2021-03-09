@@ -77,6 +77,31 @@ makeMatrix(x::AbstractArray) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
 """Return wheather an array is sortable, i.e. has methos issort defined"""
 issortable(::AbstractArray{T,N})  where {T,N} = hasmethod(isless, Tuple{nonmissingtype(T),nonmissingtype(T)})
 
+"""
+    getPermutations(v::AbstractArray{T,1};keepStructure=false)
+
+Return a vector of either (a) all possible permutations (uncollected) or (b) just those based on the unique values of the vector
+
+Useful to measure accuracy where you don't care about the actual name of the labels, like in unsupervised classifications (e.g. clustering)
+
+"""
+function getPermutations(v::AbstractArray{T,1};keepStructure=false) where {T}
+    if !keepStructure
+        return Combinatorics.permutations(v)
+    else
+        classes       = unique(v)
+        nCl           = length(classes)
+        N             = size(v,1)
+        pSet          = Combinatorics.permutations(1:nCl)
+        nP            = length(pSet)
+        vPermutations = fill(similar(v),nP)
+        vOrigIdx      = [findfirst(x -> x == v[i] , classes) for i in 1:N]
+        for (pIdx,perm) in enumerate(pSet)
+            vPermutations[pIdx] = classes[perm[vOrigIdx]] # permuted specific version
+        end
+        return vPermutations
+    end
+end
 
 
 function oneHotEncoderRow(y,d;count = false)
