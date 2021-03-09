@@ -22,7 +22,7 @@ module Utils
 using LinearAlgebra, Random, Statistics, Combinatorics, Zygote, CategoricalArrays
 
 export @codeLocation,
-       reshape, makeColVector, makeRowVector, makeMatrix, issortable,
+       reshape, makeColVector, makeRowVector, makeMatrix, issortable, getPermutations,
        oneHotEncoder, integerEncoder, integerDecoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
@@ -544,7 +544,6 @@ end
 import Base.error
 
 """ accuracy(ŷ,y;ignoreLabels=false) - Categorical accuracy between two vectors (T vs T). If """
-
 function accuracy(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignoreLabels=false)  where {T}
     if(!ignoreLabels)
         return sum(ŷ .== y)/length(ŷ)

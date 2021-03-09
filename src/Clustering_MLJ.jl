@@ -3,7 +3,7 @@
 import MLJModelInterface       # It seems that having done this in the top module is not enought
 const MMI = MLJModelInterface  # We need to repoeat it here
 
-export KMeans, KMedoids, GMM
+export KMeans, KMedoids, GMM, MissingImputator
 
 # ------------------------------------------------------------------------------
 # Model Structure declarations..
@@ -39,6 +39,7 @@ mutable struct GMM{TM <: AbstractMixture} <: MMI.Unsupervised
   K::Int64
   p₀::Union{Nothing,AbstractArray{Float64,1}}
   mixtures::AbstractArray{TM,1}
+  tol::Float64
   minVariance::Float64
   minCovariance::Float64
   initStrategy::String
@@ -47,10 +48,31 @@ GMM(;
     K             = 3,
     p₀            = nothing,
     mixtures      = [DiagonalGaussian() for i in 1:K],
+    tol           = 10^(-6),
     minVariance   = 0.05,
     minCovariance = 0.0,
     initStrategy  = "kmeans",
-) = GMM(K,p₀,mixtures, minVariance, minCovariance,initStrategy)
+) = GMM(K,p₀,mixtures, tol, minVariance, minCovariance,initStrategy)
+
+mutable struct MissingImputator{TM <: AbstractMixture} <: MMI.Static
+    K::Int64
+    p₀::Union{Nothing,AbstractArray{Float64,1}}
+    mixtures::AbstractArray{TM,1}
+    tol::Float64
+    minVariance::Float64
+    minCovariance::Float64
+    initStrategy::String
+end
+MissingImputator(;
+    K             = 3,
+    p₀            = nothing,
+    mixtures      = [DiagonalGaussian() for i in 1:K],
+    tol           = 10^(-6),
+    minVariance   = 0.05,
+    minCovariance = 0.0,
+    initStrategy  = "kmeans",
+) = MissingImputator(K,p₀,mixtures, tol, minVariance, minCovariance,initStrategy)
+
 
 # ------------------------------------------------------------------------------
 # Fit functions...
@@ -110,9 +132,22 @@ function MMI.predict(m::GMM, fitResults, X)
     (N,D)           = size(x)
     (pₙₖ,pₖ,mixtures) = fitResults
     nCl             = length(pₖ)
-    prob            = Array{Float64,2}(undef,N,nCl)
+    thisOut         = gmm(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1)
+    classes         = CategoricalArray(1:nCl)
+    predictions     = MMI.UnivariateFinite(classes, thisOut.pₙₖ)
+    return predictions
+end
 
-    return prob
+""" transform(m::GMM, fitResults, X) - Given a trained clustering model and some observations, predict the class of the observation"""
+function MMI.transform(m::GMM, fitResults, X)
+    return MMI.predict(m::GMM, fitResults, X)
+end
+
+""" transform(m::MissingImputator, X) - Given a matrix with missing value, impute them using an EM algorithm"""
+function MMI.transform(m::MissingImputator, X)
+    x    = MMI.matrix(X) # convert table to matrix
+    xout = predictMissing(x,m.K;p₀=m.p₀,mixtures=m.mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy=m.initStrategy)
+    return MMI.table(xout.X̂)
 end
 
 # ------------------------------------------------------------------------------
@@ -132,4 +167,20 @@ MMI.metadata_model(KMedoids,
     supports_weights = false,                               # does the model support sample weights?
     descr            = "The K-medoids clustering algorithm with customisable distance function, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Clustering.KMedoids"
+)
+
+MMI.metadata_model(GMM,
+    input_scitype    = MMI.Table(MMI.Continuous,MMI.Missing),
+    output_scitype   = AbstractArray{<:MMI.Multiclass},     # for an unsupervised, what output?
+    supports_weights = false,                               # does the model support sample weights?
+    descr            = "A Expectation-Maximisation clustering algorithm with customisable mixtures, from the Beta Machine Learning Toolkit (BetaML).",
+	load_path        = "BetaML.Clustering.GMM"
+)
+
+MMI.metadata_model(MissingImputator,
+    input_scitype    = MMI.Table(MMI.Continuous,MMI.Missing),
+    output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
+    supports_weights = false,                         # does the model support sample weights?
+    descr            = "Impute missing values using an Expectation-Maximisation clustering algorithm, from the Beta Machine Learning Toolkit (BetaML).",
+	load_path        = "BetaML.Clustering.MissingImputator"
 )

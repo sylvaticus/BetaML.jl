@@ -1,4 +1,4 @@
-using Test, Statistics
+using Test, Statistics, CategoricalArrays
 using StableRNGs
 rng = StableRNG(123)
 using BetaML.Utils

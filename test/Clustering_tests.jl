@@ -82,15 +82,15 @@ clusters = gmm([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 
 # ==================================
 println("Testing predictMissing...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out = predictMissing(X,3,mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE)
+out = predictMissing(X,3,mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid")
 @test isapprox(out.X̂[2,2],14.187187936786232)
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out2 = predictMissing(X,3,mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE)
+out2 = predictMissing(X,3,mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid")
 @test out2.X̂[2,2] ≈ 11.438358350316872
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out3 = predictMissing(X,3,mixtures=[FullGaussian() for i in 1:3],verbosity=NONE)
+out3 = predictMissing(X,3,mixtures=[FullGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid")
 @test out3.X̂[2,2] ≈ 11.166652292936876
 
 # ==================================
@@ -113,10 +113,30 @@ yhat                           = Mlj.predict(model, fitResults, X)
 acc = accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
 @test acc > 0.8
 
-model                          = Clustering.GMM()
-modelMachine                   = Mlj.machine(model, X)
-(fitResults, cache, report)    = Mlj.fit(model, 0, X)
-distances                      = Mlj.transform(model,fitResults,X)
-yhat                           = Mlj.predict(model, fitResults, X)
+model                       =  Clustering.GMM()
+modelMachine                =  Mlj.machine(model, X)
+(fitResults, cache, report) =  Mlj.fit(model, 0, X)
+yhat_prob                   =  Mlj.transform(model,fitResults,X)
+yhat_prob                   =  Mlj.predict(model, fitResults, X)
+@test length(yhat_prob)     == size(Mlj.matrix(X),1)
+
+X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+model                       =  Clustering.MissingImputator()
+modelMachine                =  Mlj.machine(model)
+Xdense                      =  Mlj.transform(model,X)
+xdensematrix = Mlj.matrix(Xdense)
+@test isapprox(xdensematrix[2,2],11.166666666667362)
+#=
+@test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_prob, y)) < 0.0002
+Mlj.predict_mode(yhat_prob)
+N = size(Mlj.matrix(X),1)
+nCl = size(fitResults[2],1)
+yhat_matrix = Array{Float64,2}(undef,N,nCl)
+[yhat_matrix[n,c]= yhat_prob[n][c] for n in 1:N for c in 1:nCl]
+yhat_prob[2]
+ Mlj.matrix(yhat_prob)
 acc = accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
+ynorm = Mlj.levelcode.(y)
+accuracy(yhat_prob,ynorm,ignoreLabels=true)
 @test acc > 0.8
+=#

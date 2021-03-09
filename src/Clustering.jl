@@ -348,7 +348,7 @@ function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^
 
     # Checking dimensions only once (but adding then inbounds doesn't change anything. Still good
     # to provide a nice informative message)
-    if size(pₖ) != (K,) || length(mixtures) != K
+    if size(pₖ,1) != K || length(mixtures) != K
         error("Error in the dimensions of the inputs. Please check them.")
     end
 
@@ -464,19 +464,21 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 
   # Notes:
   - The mixtures currently implemented are `SphericalGaussian(μ,σ²)`,`DiagonalGaussian(μ,σ²)` and `FullGaussian(μ,σ²)`
-   - For `initStrategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support either `grid` or `kmeans`. `grid` is faster, but `kmeans` often provides better results.
+   - For `initStrategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support `grid`, `kmeans` or `given`. `grid` is faster, but `kmeans` often provides better results.
 
 # Example:
 ```julia
 julia>  cFOut = predictMissing([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3)
 ```
 """
-function predictMissing(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="grid")
+function predictMissing(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans")
     if verbosity > STD
         @codeLocation
     end
     emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy)
     (N,D) = size(X)
+    nDim  = ndims(X)
+    nmT = nonmissingtype(eltype(X))
     #K = size(emOut.μ)[1]
     XMask = .! ismissing.(X)
     nFill = (N * D) - sum(XMask)
@@ -488,6 +490,7 @@ function predictMissing(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1
             end
         end
     end
+    X̂ = convert(Array{nmT,nDim},X̂)
     return (X̂=X̂,nFill=nFill,lL=emOut.lL,BIC=emOut.BIC,AIC=emOut.AIC)
 end
 
