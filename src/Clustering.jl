@@ -290,22 +290,22 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 * `minVariance`:   Minimum variance for the mixtures [default: 0.05]
 * `minCovariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes).
 * `initStrategy`:  Mixture initialisation algorithm [def: `kmeans`]
+* `maxIter`:       Maximum number of iterations [def: `-1`, i.e. ∞]
 
 # Returns:
 * A named touple of:
-  * `pⱼₓ`: Matrix of size (N x K) of the probabilities of each point i to belong to cluster j
-  * `pⱼ` : Probabilities of the categorical distribution (K x 1)
-  * `μ`  : Means (K x d) of the Gaussian
-  * `σ²` : Variance of the gaussian (K x 1). We assume here that the gaussian has the same variance across all the dimensions
-  * `ϵ`  : Vector of the discrepancy (matrix norm) between pⱼₓ and the lagged pⱼₓ at each iteration
-  * `lL` : The log-likelihood (without considering the last mixture optimisation)
-  * `BIC` : The Bayesian Information Criterion (lower is better)
-  * `AIC` : The Akaike Information Criterion (lower is better)
+  * `pₙₖ`:      Matrix of size (N x K) of the probabilities of each point i to belong to cluster j
+  * `pₖ`:       Probabilities of the categorical distribution (K x 1)
+  * `mixtures`: Vector (K x 1) of the estimated underlying distributions
+  * `ϵ`:        Vector of the discrepancy (matrix norm) between pⱼₓ and the lagged pⱼₓ at each iteration
+  * `lL`:       The log-likelihood (without considering the last mixture optimisation)
+  * `BIC`:      The Bayesian Information Criterion (lower is better)
+  * `AIC`:      The Akaike Information Criterion (lower is better)
 
  # Notes:
  - The mixtures currently implemented are `SphericalGaussian(μ,σ²)`,`DiagonalGaussian(μ,σ²)` and `FullGaussian(μ,σ²)`
  - Reasonable choices for the minVariance/Covariance depends on the mixture. For example 0.25 seems a reasonable value for the SphericalGaussian, 0.05 seems better for the DiagonalGaussian, and FullGaussian seems to prefer either very low values of variance/covariance (e.g. `(0.05,0.05)` ) or very big but similar ones (e.g. `(100,100)` ).
- - For `initStrategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support either `grid` or `kmeans`. `grid` is faster (expecially if X contains missing values), but `kmeans` often provides better results.
+ - For `initStrategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support `grid`, `kmeans` or `given`. `grid` is faster (expecially if X contains missing values), but `kmeans` often provides better results.
 
  # Resources:
  - [Paper describing gmm with missing values](https://doi.org/10.1016/j.csda.2006.10.002)
@@ -317,7 +317,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 julia> clusters = gmm([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,verbosity=HIGH)
 ```
 """
-function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans")
+function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans",maxIter=-1)
     if verbosity > STD
         @codeLocation
     end
@@ -357,6 +357,7 @@ function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^
     #XdimCount = sum(Xmask, dims=2)
 
     lL = -Inf
+    iter = 1
     while(true)
         oldlL = lL
         # E Step: assigning the posterior prob p(j|xi) and computing the log-Likelihood of the parameters given the set of data
@@ -407,14 +408,18 @@ function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^
         end
 
         # Closing conditions. Note that the logLikelihood is those without considering the new mu,sigma
-        if (lL - oldlL) <= (tol * abs(lL))
+        #if ((lL - oldlL) <= (tol * abs(lL))) || (maxIter > 0 && iter == maxIter)
+        if ((lL - oldlL) <= (tol * abs(lL))) 
             npars = npar(mixtures) + (K-1)
             #BIC  = lL - (1/2) * npars * log(N)
             BICv = bic(lL,npars,N)
             AICv = aic(lL,npars)
         #if (ϵ[end] < tol)
            return (pₙₖ=pₙₖ,pₖ=pₖ,mixtures=mixtures,ϵ=ϵ,lL=lL,BIC=BICv,AIC=AICv)
+       else
+           iter += 1
         end
+
     end # end while loop
 end # end function
 

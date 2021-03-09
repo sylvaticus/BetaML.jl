@@ -75,9 +75,6 @@ function MMI.fit(m::GMM, verbosity, X)
     return (fitResults, cache, report)
 end
 
-
-
-
 # ------------------------------------------------------------------------------
 # Transform functions...
 
@@ -95,6 +92,7 @@ function MMI.transform(m::Union{KMeans,KMedoids}, fitResults, X)
     return MMI.table(distances)
 end
 
+
 """ predict(m::KMeans, fitResults, X) - Given a trained clustering model and some observations, predict the class of the observation"""
 function MMI.predict(m::Union{KMeans,KMedoids}, fitResults, X)
     x               = MMI.matrix(X) # convert table to matrix
@@ -104,6 +102,17 @@ function MMI.predict(m::Union{KMeans,KMedoids}, fitResults, X)
     mindist         = argmin(distances,dims=2)
     assignedClasses = [Tuple(mindist[n,1])[2]  for n in 1:N]
     return CategoricalArray(assignedClasses)
+end
+
+""" predict(m::GMM, fitResults, X) - Given a trained clustering model and some observations, predict the class of the observation"""
+function MMI.predict(m::GMM, fitResults, X)
+    x               = MMI.matrix(X) # convert table to matrix
+    (N,D)           = size(x)
+    (pₙₖ,pₖ,mixtures) = fitResults
+    nCl             = length(pₖ)
+    prob            = Array{Float64,2}(undef,N,nCl)
+
+    return prob
 end
 
 # ------------------------------------------------------------------------------

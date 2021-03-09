@@ -3,7 +3,7 @@ import Distributions: IsoNormal, DiagNormal, FullNormal, logpdf
 import PDMats: ScalMat, PDiagMat, PDMat
 
 export SphericalGaussian, DiagonalGaussian, FullGaussian,
-initVariances!, initMixtures!,lpdf,updateVariances!,lpdf
+initVariances!, initMixtures!,lpdf,updateVariances!
 
 
 abstract type AbstractGaussian <: AbstractMixture end
@@ -92,16 +92,24 @@ end
 
 
 """
-initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid")
+    initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid")
 
- TThe parameter `initStrategy` can be either `grid` or `kmeans`.
- If the data contains missing values, a first run of `predictMissing` is done under init=`grid` to impute the missing values just to allow the kmeans algorithm. Then the em algorithm is used with the output of kmean as init values.
+
+ The parameter `initStrategy` can be `grid`, `kmeans` or `given`:
+ - `grid`: Uniformly cover the space observed by the data
+ - `kmeans`: Use the kmeans algorithm. If the data contains missing values, a first run of `predictMissing` is done under init=`grid` to impute the missing values just to allow the kmeans algorithm. Then the em algorithm is used with the output of kmean as init values.
+ - `given`: Leave the provided set of initial mixtures
+
 """
 function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid") where {T <: AbstractGaussian}
     # debug..
     #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing 2; 3.3 38; missing -2.3; 5.2 -2.4]
     #mixtures = [SphericalGaussian() for i in 1:3]
     # ---
+    #if initStrategy == "given"
+    #    return
+    #end
+
     (N,D) = size(X)
     K = length(mixtures)
 
