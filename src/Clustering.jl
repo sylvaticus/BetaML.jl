@@ -408,8 +408,7 @@ function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^
         end
 
         # Closing conditions. Note that the logLikelihood is those without considering the new mu,sigma
-        #if ((lL - oldlL) <= (tol * abs(lL))) || (maxIter > 0 && iter == maxIter)
-        if ((lL - oldlL) <= (tol * abs(lL))) 
+        if ((lL - oldlL) <= (tol * abs(lL))) || (maxIter > 0 && iter == maxIter)
             npars = npar(mixtures) + (K-1)
             #BIC  = lL - (1/2) * npars * log(N)
             BICv = bic(lL,npars,N)
@@ -417,9 +416,8 @@ function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^
         #if (ϵ[end] < tol)
            return (pₙₖ=pₙₖ,pₖ=pₖ,mixtures=mixtures,ϵ=ϵ,lL=lL,BIC=BICv,AIC=AICv)
        else
-           iter += 1
-        end
-
+            iter += 1
+       end
     end # end while loop
 end # end function
 

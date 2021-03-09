@@ -106,9 +106,9 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
     #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing 2; 3.3 38; missing -2.3; 5.2 -2.4]
     #mixtures = [SphericalGaussian() for i in 1:3]
     # ---
-    #if initStrategy == "given"
-    #    return
-    #end
+    if initStrategy == "given"
+        return
+    end
 
     (N,D) = size(X)
     K = length(mixtures)
