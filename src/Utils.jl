@@ -545,19 +545,20 @@ import Base.error
 
 """ accuracy(ŷ,y;ignoreLabels=false) - Categorical accuracy between two vectors (T vs T). If """
 function accuracy(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignoreLabels=false)  where {T}
+    # See here for better performances: https://discourse.julialang.org/t/permutations-of-a-vector-that-retain-the-vector-structure/56790/7
     if(!ignoreLabels)
         return sum(ŷ .== y)/length(ŷ)
     else
-        classes = unique(y)
-        nCl = length(classes)
-        N = size(y,1)
-        pSet =  collect(permutations(1:nCl))
-        bestAcc = -Inf
+        classes  = unique(y)
+        nCl      = length(classes)
+        N        = size(y,1)
+        pSet     =  collect(permutations(1:nCl))
+        bestAcc  = -Inf
         yOrigIdx = [findfirst(x -> x == y[i] , classes) for i in 1:N]
-        ŷToTest = typeof(ŷ) <: CategoricalArray ? convert(Array{CategoricalArrays.leveltype(ŷ),1},ŷ) : ŷ # convert the categorical array if needed
+        ŷOrigIdx = [findfirst(x -> x == ŷ[i] , classes) for i in 1:N]
         for perm in pSet
-            py = classes[perm[yOrigIdx]] # permuted specific version
-                acc = accuracy(ŷToTest,py,ignoreLabels=false)
+            py = perm[yOrigIdx] # permuted specific version
+            acc = sum(ŷOrigIdx .== py)/N
             if acc > bestAcc
                 bestAcc = acc
             end

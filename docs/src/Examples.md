@@ -1,3 +1,33 @@
+
+# Examples
+
+
+## Supervised learning
+
+### Regression
+
+#### Estimating the bike sharing demand
+
+The task is to estimate the influence of several variables (like the weather, the season, the day of the week..) on the demand of shared bicycles, so that the authority in charge of the service can organise the service in the best way.
+
+Data origin:
+- original full dataset (by hour, not used here): https://archive.ics.uci.edu/ml/datasets/Bike+Sharing+Dataset
+- simplified dataset (by day, with some simple scaling): https://www.hds.utc.fr/~tdenoeux/dokuwiki/en/aec
+  - description: https://www.hds.utc.fr/~tdenoeux/dokuwiki/_media/en/exam_2019_ace_.pdf
+  - data: https://www.hds.utc.fr/~tdenoeux/dokuwiki/_media/en/bike_sharing_day.csv.zip
+
+Note that even if we are estimating a time serie, we are not using here a recurrent neural network as we assume the temporal dependence to be negligible (i.e. $Y_t = f(X_t)$ alone).
+
+
+
+
+
+### Classification
+
+
+## Unsupervised lerarning
+
+
 # Notebooks
 The following notebooks provide runnable examples of the package functionality:
 

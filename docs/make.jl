@@ -1,4 +1,4 @@
-using Documenter, BetaML.Utils, BetaML.Nn, BetaML.Perceptron, BetaML.Clustering, BetaML.Trees
+using Documenter, Literate, BetaML.Utils, BetaML.Nn, BetaML.Perceptron, BetaML.Clustering, BetaML.Trees
 
 push!(LOAD_PATH,"../src/")
 makedocs(sitename="BetaML.jl Documentation",
@@ -12,7 +12,7 @@ makedocs(sitename="BetaML.jl Documentation",
             "Nn"   => "Nn.md",
             "Clustering" => "Clustering.md",
             "Utils" => "Utils.md",
-            "Notebooks" => "Notebooks.md"
+            "Examples" => "Examples.md"
          ],
          format = Documenter.HTML(prettyurls = false)
 )
