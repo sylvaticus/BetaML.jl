@@ -69,11 +69,11 @@ mutable struct ADAM <: OptimisationAlgorithm
 end
 
 """
-   initOptAlg!(optAlg::ADAM;θ,batchSize,x,y)
+   initOptAlg!(optAlg::ADAM;θ,batchSize,x,y,rng)
 
 Initialize the ADAM algorithm with the parameters m and v as zeros and check parameter bounds
 """
-function initOptAlg!(optAlg::ADAM;θ,batchSize,x,y)
+function initOptAlg!(optAlg::ADAM;θ,batchSize,x,y,rng = Random.GLOBAL_RNG)
     optAlg.m = θ .- θ # setting to zeros
     optAlg.v = θ .- θ # setting to zeros
     if optAlg.β₁ <= 0 || optAlg.β₁ >= 1 @error "The parameter β₁ must be ∈ [0,1]" end

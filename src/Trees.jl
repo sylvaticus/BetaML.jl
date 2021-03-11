@@ -193,7 +193,7 @@ Dicotomically partitions a dataset `x` given a question.
 For each row in the dataset, check if it matches the question. If so, add it to 'true rows', otherwise, add it to 'false rows'.
 Rows with missing values on the question column are assigned randomly proportionally to the assignment of the non-missing rows.
 """
-function partition(question::Question{Tx},x,mCols;sorted=false) where {Tx}
+function partition(question::Question{Tx},x,mCols;sorted=false,rng = Random.GLOBAL_RNG) where {Tx}
     N = size(x,1)
 
     trueIdx = fill(false,N);
@@ -214,7 +214,7 @@ function partition(question::Question{Tx},x,mCols;sorted=false) where {Tx}
         p = sum(trueIdx)/(sum(trueIdx)+nFalse)
         @inbounds for rIdx in 1:N
             if missingIdx[rIdx]
-                r = rand()
+                r = rand(rng)
                 if r <= p
                     trueIdx[rIdx] = true
                 end
@@ -278,9 +278,10 @@ Find the best question to ask by iterating over every feature / value and calcul
 - `y`: The labels dataset
 - `maxFeatures`: Maximum number of (random) features to look up for the "best split"
 - `splittingCriterion`: The metric to define the "impurity" of the labels
+- `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 """
-function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;maxFeatures,splittingCriterion=gini) where {Ty}
+function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;maxFeatures,splittingCriterion=gini,rng = Random.GLOBAL_RNG) where {Ty}
     bestGain           = 0.0  # keep track of the best information gain
     bestQuestion       = Question(1,1.0) # keep train of the feature / value that produced it
     currentUncertainty = splittingCriterion(y)
@@ -305,7 +306,7 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;maxFeatures,splittingCrit
             question = Question(d, val)
             # try splitting the dataset
             #println(question)
-            trueIdx = partition(question,sortedx,mCols,sorted=sortable)
+            trueIdx = partition(question,sortedx,mCols,sorted=sortable,rng=rng)
             # Skip this split if it doesn't divide the
             # dataset.
             if all(trueIdx) || ! any(trueIdx)
@@ -343,13 +344,13 @@ The given tree is then returned.
 - `maxFeatures`: The maximum number of (random) features to consider at each partitioning [def: `D`, i.e. look at all features]
 - `splittingCriterion`: Either `gini`, `entropy` or `variance` (see [`infoGain`](@ref) ) [def: `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]
 - `forceClassification`: Weather to force a classification task even if the labels are numerical (typically when labels are integers encoding some feature rather than representing a real cardinal measure) [def: `false`]
-
+- `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Notes:
 
 Missing data (in the feature dataset) are supported.
 """
-function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, mCols=nothing) where {Ty}
+function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, mCols=nothing, rng = Random.GLOBAL_RNG) where {Ty}
 
 
     #println(depth)
@@ -372,14 +373,14 @@ function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0,
     # Try partitioing the dataset on each of the unique attribute,
     # calculate the information gain,
     # and return the question that produces the highest gain.
-    gain, question = findBestSplit(x,y,mCols;maxFeatures=maxFeatures,splittingCriterion=splittingCriterion)
+    gain, question = findBestSplit(x,y,mCols;maxFeatures=maxFeatures,splittingCriterion=splittingCriterion,rng=rng)
 
     # Base case: no further info gain
     # Since we can ask no further questions,
     # we'll return a leaf.
     if gain <= minGain  return Leaf(y, depth)  end
 
-    trueIdx = partition(question,x,mCols)
+    trueIdx  = partition(question,x,mCols,rng=rng)
     rootNode = DecisionNode(question,nothing,nothing,1,sum(trueIdx)/length(trueIdx))
 
     push!(nodes,TempNode(true,rootNode,depth+1,x[trueIdx,:],y[trueIdx]))
@@ -396,7 +397,7 @@ function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0,
             # Try partitioing the dataset on each of the unique attribute,
             # calculate the information gain,
             # and return the question that produces the highest gain.
-            gain, question = findBestSplit(thisNode.x,thisNode.y,mCols;maxFeatures=maxFeatures,splittingCriterion=splittingCriterion)
+            gain, question = findBestSplit(thisNode.x,thisNode.y,mCols;maxFeatures=maxFeatures,splittingCriterion=splittingCriterion,rng=rng)
             if gain <= minGain
                 isLeaf = true
             end
@@ -404,7 +405,7 @@ function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0,
         if isLeaf
             newNode = Leaf(thisNode.y, thisNode.depth)
         else
-            trueIdx = partition(question,thisNode.x,mCols)
+            trueIdx = partition(question,thisNode.x,mCols,rng=rng)
             newNode = DecisionNode(question,nothing,nothing,thisNode.depth,sum(trueIdx)/length(trueIdx))
             push!(nodes,TempNode(true,newNode,thisNode.depth+1,thisNode.x[trueIdx,:],thisNode.y[trueIdx]))
             push!(nodes,TempNode(false,newNode,thisNode.depth+1,thisNode.x[map(!,trueIdx),:],thisNode.y[map(!,trueIdx)]))
@@ -461,7 +462,7 @@ predictSingle(tree,x)
 Predict the label of a single feature record. See [`predict`](@ref).
 
 """
-function predictSingle(node::Union{DecisionNode{Tx},Leaf{Ty}}, x) where {Tx,Ty}
+function predictSingle(node::Union{DecisionNode{Tx},Leaf{Ty}}, x;rng = Random.GLOBAL_RNG) where {Tx,Ty}
     # Base case: we've reached a leaf
     if typeof(node) <: Leaf
         return node.predictions
@@ -473,13 +474,13 @@ function predictSingle(node::Union{DecisionNode{Tx},Leaf{Ty}}, x) where {Tx,Ty}
     # If the feature on which to base prediction is missing, we follow the true branch with a probability equal to the share of true
     # records over all the records during this node training..
     if ismissing(x[node.question.column])
-        r = rand()
-        return (node.pTrue >= r) ? predictSingle(node.trueBranch,x) : predictSingle(node.falseBranch,x)
+        r = rand(rng)
+        return (node.pTrue >= r) ? predictSingle(node.trueBranch,x,rng=rng) : predictSingle(node.falseBranch,x,rng=rng)
     end
     if match(node.question,x)
-        return predictSingle(node.trueBranch,x)
+        return predictSingle(node.trueBranch,x,rng=rng)
     else
-        return predictSingle(node.falseBranch,x)
+        return predictSingle(node.falseBranch,x,rng=rng)
     end
 end
 
@@ -494,8 +495,8 @@ If the labels were categorical, the prediction is a dictionary with the probabil
 
 In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 """
-function predict(tree::Union{DecisionNode{Tx}, Leaf{Ty}}, x) where {Tx,Ty}
-    predictions = predictSingle.(Ref(tree),eachrow(x))
+function predict(tree::Union{DecisionNode{Tx}, Leaf{Ty}}, x; rng = Random.GLOBAL_RNG) where {Tx,Ty}
+    predictions = predictSingle.(Ref(tree),eachrow(x),rng=rng)
     return predictions
 end
 
@@ -510,6 +511,7 @@ See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with
 - `nTrees`: Number of trees in the forest [def: `30`]
 - `β`: Parameter that regulate the weights of the scoring of each tree, to be (optionally) used in prediction (see later) [def: `0`, i.e. uniform weigths]
 - `oob`: Whether to coompute the out-of-bag error, an estimation of the generalization accuracy [def: `false`]
+- `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Output:
 - The function returns a Forest object (see [`Forest`](@ref)).
@@ -521,7 +523,7 @@ See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with
 - This function optionally reports a weight distribution of the performances of eanch individual trees, as measured using the records he has not being trained with. These weights can then be (optionally) used in the `predict` function. The parameter `β ≥ 0` regulate the distribution of these weights: larger is `β`, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of β depends on the problem under exam (and the chosen caratteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
 - Note that this function uses multiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
 """
-function buildForest(x, y::AbstractArray{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, β=0, oob=false) where {Ty}
+function buildForest(x, y::AbstractArray{Ty,1}, nTrees=30; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=Int(round(sqrt(size(x,2)))), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, β=0, oob=false,rng = Random.GLOBAL_RNG) where {Ty}
     # Force what would be a regression task into a classification task
     if forceClassification && Ty <: Number
         y = string.(y)
@@ -536,13 +538,13 @@ function buildForest(x, y::AbstractArray{Ty,1}, nTrees=30; maxDepth = size(x,1),
 
     #for i in 1:nTrees # for easier debugging/profiling...
      Threads.@threads for i in 1:nTrees
-        toSample = rand(1:N,N)
+        toSample = rand(rng, 1:N,N)
         notToSample = setdiff(1:N,toSample)
         bootstrappedx = x[toSample,:] # "boosted is different than "bootstrapped": https://towardsdatascience.com/random-forest-and-its-implementation-71824ced454f
         bootstrappedy = y[toSample]
         #controlx = x[notToSample,:]
         #controly = y[notToSample]
-        tree = buildTree(bootstrappedx, bootstrappedy; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion = splittingCriterion, forceClassification=forceClassification)
+        tree = buildTree(bootstrappedx, bootstrappedy; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion = splittingCriterion, forceClassification=forceClassification, rng = rng)
         #ŷ = predict(tree,controlx)
         trees[i] = tree
         notSampledByTree[i] = notToSample
@@ -550,11 +552,11 @@ function buildForest(x, y::AbstractArray{Ty,1}, nTrees=30; maxDepth = size(x,1),
 
     weights = ones(Float64,nTrees)
     if β > 0
-        weights = updateTreesWeights!(Forest{Ty}(trees,jobIsRegression,notSampledByTree,0.0,weights), x, y, β=β)
+        weights = updateTreesWeights!(Forest{Ty}(trees,jobIsRegression,notSampledByTree,0.0,weights), x, y, β=β, rng=rng)
     end
     oobE = +Inf
     if oob
-        oobE = oobError(Forest{Ty}(trees,jobIsRegression,notSampledByTree,0.0,weights),x,y)
+        oobE = oobError(Forest{Ty}(trees,jobIsRegression,notSampledByTree,0.0,weights),x,y,rng=rng)
     end
     return Forest{Ty}(trees,jobIsRegression,notSampledByTree,oobE,weights)
 end
@@ -565,10 +567,10 @@ predictSingle(forest,x)
 
 Predict the label of a single feature record. See [`predict`](@ref).
 """
-function predictSingle(forest::Forest{Ty}, x) where {Ty}
+function predictSingle(forest::Forest{Ty}, x; rng = Random.GLOBAL_RNG) where {Ty}
     trees   = forest.trees
     weights = forest.weights
-    predictions  = predictSingle.(trees,Ref(x))
+    predictions  = predictSingle.(trees,Ref(x),rng=rng)
     if eltype(predictions) <: AbstractDict   # categorical
         #weights = 1 .- treesErrors # back to the accuracy
         return meanDicts(predictions,weights=weights)
@@ -590,8 +592,8 @@ If the labels were categorical, the prediction is a dictionary with the probabil
 
 In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 """
-function predict(forest::Forest{Ty}, x) where {Ty}
-    predictions = predictSingle.(Ref(forest),eachrow(x))
+function predict(forest::Forest{Ty}, x;rng = Random.GLOBAL_RNG) where {Ty}
+    predictions = predictSingle.(Ref(forest),eachrow(x),rng=rng)
     return predictions
 end
 
@@ -602,7 +604,7 @@ end
 Update the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
 As training a forest is expensive, this function can be used to "just" upgrade the trees weights using different betas, without retraining the model.
 """
-function updateTreesWeights!(forest::Forest{Ty},x,y;β=50) where {Ty}
+function updateTreesWeights!(forest::Forest{Ty},x,y;β=50,rng = Random.GLOBAL_RNG) where {Ty}
     trees            = forest.trees
     notSampledByTree = forest.oobData
     jobIsRegression  = forest.isRegression
@@ -610,7 +612,7 @@ function updateTreesWeights!(forest::Forest{Ty},x,y;β=50) where {Ty}
     for (i,tree) in enumerate(trees)
         yoob = y[notSampledByTree[i]]
         if length(yoob) > 0
-            ŷ = predict(tree,x[notSampledByTree[i],:])
+            ŷ = predict(tree,x[notSampledByTree[i],:],rng=rng)
             if jobIsRegression
                 push!(weights,exp(- β*meanRelError(ŷ,yoob)))
             else
@@ -631,7 +633,7 @@ Comute the Out-Of-Bag error, an estimation of the validation error.
 
 This function is called at time of train the forest if the parameter `oob` is `true`, or can be used later to get the oob error on an already trained forest.
 """
-function oobError(forest::Forest{Ty},x,y) where {Ty}
+function oobError(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
     trees            = forest.trees
     jobIsRegression  = forest.isRegression
     notSampledByTree = forest.oobData
@@ -649,7 +651,7 @@ function oobError(forest::Forest{Ty},x,y) where {Ty}
         unseenTreesBools  = in.(n,notSampledByTree)
         unseenTrees = trees[(1:B)[unseenTreesBools]]
         unseenTreesWeights = weights[(1:B)[unseenTreesBools]]
-        ŷ[n] = predictSingle(Forest{Ty}(unseenTrees,jobIsRegression,forest.oobData,0.0,unseenTreesWeights),x)
+        ŷ[n] = predictSingle(Forest{Ty}(unseenTrees,jobIsRegression,forest.oobData,0.0,unseenTreesWeights),x,rng=rng)
     end
     if jobIsRegression
         return meanRelError(ŷ,y)

@@ -57,6 +57,7 @@ Initialisate the representatives for a K-Mean or K-Medoids algorithm
   * `shuffle`: selecting randomly within the available points
   * `given`: using a provided set of initial representatives provided in the `Z₀` parameter
  * `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initStrategy) [default: `nothing`]
+ * `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
 * A (K x D) matrix of initial representatives
@@ -66,7 +67,7 @@ Initialisate the representatives for a K-Mean or K-Medoids algorithm
 julia> Z₀ = initRepresentatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2,initStrategy="given",Z₀=[1.7 15; 3.6 40])
 ```
 """
-function initRepresentatives(X,K;initStrategy="grid",Z₀=nothing)
+function initRepresentatives(X,K;initStrategy="grid",Z₀=nothing,rng = Random.GLOBAL_RNG)
     X  = makeMatrix(X)
     (N,D) = size(X)
     # Random choice of initial representative vectors (any point, not just in X!)
@@ -76,7 +77,7 @@ function initRepresentatives(X,K;initStrategy="grid",Z₀=nothing)
     if initStrategy == "random"
         for i in 1:K
             for j in 1:D
-                Z[i,j] = rand(Uniform(minX[j],maxX[j]))
+                Z[i,j] = rand(rng,Uniform(minX[j],maxX[j]))
             end
         end
     elseif initStrategy == "grid"
@@ -88,7 +89,7 @@ function initRepresentatives(X,K;initStrategy="grid",Z₀=nothing)
         Z₀ = makeMatrix(Z₀)
         Z = Z₀
     elseif initStrategy == "shuffle"
-        zIdx = shuffle(1:size(X)[1])[1:K]
+        zIdx = shuffle(rng,1:size(X)[1])[1:K]
         Z = X[zIdx, :]
     else
         error("initStrategy \"$initStrategy\" not implemented")
@@ -114,6 +115,7 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
   * `shuffle`: selecting randomly within the available points
   * `given`: using a provided set of initial representatives provided in the `Z₀` parameter
 * `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initStrategy) [default: `nothing`]
+* `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
 * A tuple of two items, the first one being a vector of size N of ids of the clusters associated to each point and the second one the (K x D) matrix of representatives
@@ -130,13 +132,13 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 julia> (clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3)
 ```
 """
-function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing)
+function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing,rng = Random.GLOBAL_RNG)
     X  = makeMatrix(X)
     (N,D) = size(X)
     # Random choice of initial representative vectors (any point, not just in X!)
     minX = minimum(X,dims=1)
     maxX = maximum(X,dims=1)
-    Z₀ = initRepresentatives(X,K,initStrategy=initStrategy,Z₀=Z₀)
+    Z₀ = initRepresentatives(X,K,initStrategy=initStrategy,Z₀=Z₀,rng=rng)
     Z  = Z₀
     cIdx_prev = zeros(Int64,N)
 
@@ -198,6 +200,7 @@ Compute K-Medoids algorithm to identify K clusters of X using distance definitio
   * `shuffle`: selecting randomly within the available points [default]
   * `given`: using a provided set of initial representatives provided in the `Z₀` parameter
  * `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initStrategy) [default: `nothing`]
+ * `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
 * A tuple of two items, the first one being a vector of size N of ids of the clusters associated to each point and the second one the (K x D) matrix of representatives
@@ -214,11 +217,11 @@ Compute K-Medoids algorithm to identify K clusters of X using distance definitio
 julia> (clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initStrategy="grid")
 ```
 """
-function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="shuffle",Z₀=nothing)
+function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="shuffle",Z₀=nothing,rng = Random.GLOBAL_RNG)
     X  = makeMatrix(X)
     (n,d) = size(X)
     # Random choice of initial representative vectors
-    Z₀ = initRepresentatives(X,K,initStrategy=initStrategy,Z₀=Z₀)
+    Z₀ = initRepresentatives(X,K,initStrategy=initStrategy,Z₀=Z₀,rng=rng)
     Z = Z₀
     cIdx_prev = zeros(Int64,n)
 
@@ -291,6 +294,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 * `minCovariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes).
 * `initStrategy`:  Mixture initialisation algorithm [def: `kmeans`]
 * `maxIter`:       Maximum number of iterations [def: `-1`, i.e. ∞]
+* `rng`:           Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
 * A named touple of:
@@ -317,7 +321,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 julia> clusters = gmm([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,verbosity=HIGH)
 ```
 """
-function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans",maxIter=-1)
+function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans",maxIter=-1,rng = Random.GLOBAL_RNG)
     if verbosity > STD
         @codeLocation
     end
@@ -341,7 +345,7 @@ function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^
 
 
     # Initialisation of the parameters of the mixtures
-    initMixtures!(mixtures,X,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy)
+    initMixtures!(mixtures,X,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,rng=rng)
 
     pₙₖ = zeros(Float64,N,K) # The posteriors, i.e. the prob that item n belong to cluster k
     ϵ = Float64[]
@@ -453,6 +457,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 * `minVariance`:   Minimum variance for the mixtures [default: 0.05]
 * `minCovariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes).
 * `initStrategy`:  Mixture initialisation algorithm [def: `grid`]
+* `rng`:           Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
 * A named touple of:
@@ -471,14 +476,14 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 julia>  cFOut = predictMissing([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3)
 ```
 """
-function predictMissing(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans")
+function predictMissing(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans",rng = Random.GLOBAL_RNG)
     if verbosity > STD
         @codeLocation
     end
-    emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy)
+    emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,rng=rng)
     (N,D) = size(X)
     nDim  = ndims(X)
-    nmT = nonmissingtype(eltype(X))
+    nmT   = nonmissingtype(eltype(X))
     #K = size(emOut.μ)[1]
     XMask = .! ismissing.(X)
     nFill = (N * D) - sum(XMask)

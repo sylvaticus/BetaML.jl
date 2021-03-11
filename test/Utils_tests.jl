@@ -1,6 +1,6 @@
 using Test, Statistics, CategoricalArrays
-using StableRNGs
-rng = StableRNG(123)
+#using StableRNGs
+#rng = StableRNG(123)
 using BetaML.Utils
 
 println("*** Testing individual utility functions (module `Utils`)...")
@@ -150,8 +150,8 @@ x3 = scale(y,scaleFactors,rev=true)
 # New test
 println("** Testing batch()...")
 
-@test size.(batch(10,3),1) == [3,3,3]
-@test size.(batch(10,12),1) == [10]
+@test size.(batch(10,3,rng=FIXEDRNG),1) == [3,3,3]
+@test size.(batch(10,12,rng=FIXEDRNG),1) == [10]
 
 # ==================================
 # New test
@@ -287,9 +287,9 @@ m2 = convert(Array{Float64,2},[41:50 51:60])
 m3 = makeMatrix(collect(61:70))
 m4 = collect(71:80)
 parts = [0.33,0.27,0.4]
-out = partition([m1,m2,m3,m4],parts,shuffle=true)
+out = partition([m1,m2,m3,m4],parts,shuffle=true,rng=FIXEDRNG)
 @test size(out,1) == 4 && size(out[1][3]) == (4,3)
 x = [1:10 11:20]
 y = collect(31:40)
-((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3], shuffle=false)
+((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3], shuffle=false,rng=FIXEDRNG)
 @test xtest[2,2] == 19 && ytest[2] == 39

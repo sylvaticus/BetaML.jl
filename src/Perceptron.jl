@@ -62,9 +62,10 @@ The perceptron is a _linear_ classifier. Multiclass is supported using a one-vs-
 * `T`:           Maximum number of iterations across the whole set (if the set
                  is not fully classified earlier) [def: 1000]
 * `nMsg`:        Maximum number of messages to show if all iterations are done [def: `0`]
-* `shuffle`:    Whether to randomly shuffle the data at each iteration [def: `false`]
+* `shuffle`:     Whether to randomly shuffle the data at each iteration [def: `false`]
 * `forceOrigin`: Whether to force `θ₀` to remain zero [def: `false`]
 * `returnMeanHyperplane`: Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]
+* `rng`:         Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
 * `θ`:          The weights of the classifier
@@ -81,7 +82,7 @@ julia> model = perceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 julia> ŷ     = predict([2.1 3.1; 7.3 5.2], model.θ, model.θ₀, model.classes)
 ```
 """
-function perceptron(x::AbstractMatrix, y::AbstractVector; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=0, shuffle=false, forceOrigin=false, returnMeanHyperplane=false)
+function perceptron(x::AbstractMatrix, y::AbstractVector; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=0, shuffle=false, forceOrigin=false, returnMeanHyperplane=false, rng = Random.GLOBAL_RNG)
     yclasses = unique(y)
     nCl      = length(yclasses)
     if nCl == 2
@@ -93,7 +94,7 @@ function perceptron(x::AbstractMatrix, y::AbstractVector; θ=zeros(size(x,2)),θ
     end
     for (i,c) in enumerate(yclasses)
         ybin = ((y .== c) .*2 .-1)  # conversion to -1/+1
-        outBinary = perceptronBinary(x, ybin; θ=θ,θ₀=θ₀, T=T, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin)
+        outBinary = perceptronBinary(x, ybin; θ=θ,θ₀=θ₀, T=T, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, rng=rng)
         if returnMeanHyperplane
             outθ[i]  = outBinary.avgθ
             outθ₀[i] = outBinary.avgθ₀
@@ -124,6 +125,7 @@ Train the binary classifier "perceptron" algorithm based on x and y (labels)
 * `nMsg`:        Maximum number of messages to show if all iterations are done
 * `shuffle`:     Whether to randomly shuffle the data at each iteration [def: `false`]
 * `forceOrigin`: Whether to force `θ₀` to remain zero [def: `false`]
+* `rng`:         Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
 * `θ`:          The final weights of the classifier
@@ -143,7 +145,7 @@ Train the binary classifier "perceptron" algorithm based on x and y (labels)
 julia> model = perceptronBinary([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 """
-function perceptronBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=10, shuffle=false, forceOrigin=false)
+function perceptronBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=10, shuffle=false, forceOrigin=false, rng = Random.GLOBAL_RNG)
    if nMsgs != 0
        @codeLocation
        println("***\n*** Training perceptron for maximum $T iterations. Random shuffle: $shuffle")
@@ -158,7 +160,7 @@ function perceptronBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=10,
        ϵ = 0
        if shuffle
           # random shuffle x and y
-          ridx = Base.shuffle(1:size(x)[1])
+          ridx = Base.shuffle(rng, 1:size(x)[1])
           x = x[ridx, :]
           y = y[ridx]
        end
@@ -202,6 +204,7 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
 * `α`:        Initial distribution of the errors [def: `zeros(length(y))`]
 * `nMsg`:     Maximum number of messages to show if all iterations are done [def: `0`]
 * `shuffle`:  Whether to randomly shuffle the data at each iteration [def: `false`]
+* `rng`:      Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
 * `x`: The x data (eventually shuffled if `shuffle=true`)
@@ -220,7 +223,7 @@ julia> ŷtrain = Perceptron.predict(xtrain,model.x,model.y,model.α, model.clas
 julia> ϵtrain = error(ytrain, mode(ŷtrain))
 ```
 """
-function kernelPerceptron(x, y; K=radialKernel, T=100, α=zeros(Int64,length(y)), nMsgs=0, shuffle=false)
+function kernelPerceptron(x, y; K=radialKernel, T=100, α=zeros(Int64,length(y)), nMsgs=0, shuffle=false, rng = Random.GLOBAL_RNG)
     x         = makeMatrix(x)
     yclasses  = unique(y)
     nCl       = length(yclasses)
@@ -239,7 +242,7 @@ function kernelPerceptron(x, y; K=radialKernel, T=100, α=zeros(Int64,length(y))
             thisy = y[ids]
             thisα = α[ids]
             ybin = ((thisy .== c) .*2 .-1)  # conversion to +1 (if c) or -1 (if c2)
-            outBinary = kernelPerceptronBinary(thisx, ybin; K=K, T=T, α=thisα, nMsgs=nMsgs, shuffle=shuffle)
+            outBinary = kernelPerceptronBinary(thisx, ybin; K=K, T=T, α=thisα, nMsgs=nMsgs, shuffle=shuffle, rng = rng)
             outX[modelCounter] = outBinary.x
             outY[modelCounter] = outBinary.y
             outα[modelCounter] = outBinary.α
@@ -262,6 +265,7 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y
 * `α`:        Initial distribution of the errors [def: `zeros(length(y))`]
 * `nMsg`:     Maximum number of messages to show if all iterations are done
 * `shuffle`:  Whether to randomly shuffle the data at each iteration [def: `false`]
+* `rng`:      Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
 * `x`: the x data (eventually shuffled if `shuffle=true`)
@@ -280,7 +284,7 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y
 julia> model = kernelPerceptronBinary([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 """
-function kernelPerceptronBinary(x, y; K=radialKernel, T=1000, α=zeros(Int64,length(y)), nMsgs=10, shuffle=false)
+function kernelPerceptronBinary(x, y; K=radialKernel, T=1000, α=zeros(Int64,length(y)), nMsgs=10, shuffle=false, rng = Random.GLOBAL_RNG)
     if nMsgs != 0
         @codeLocation
         println("***\n*** Training kernel perceptron for maximum $T iterations. Random shuffle: $shuffle")
@@ -293,7 +297,7 @@ function kernelPerceptronBinary(x, y; K=radialKernel, T=1000, α=zeros(Int64,len
         ϵ = 0
         if shuffle
            # random shuffle x, y and alpha
-           ridx = Random.shuffle(1:size(x)[1])
+           ridx = Random.shuffle(rng, 1:size(x)[1])
            x = x[ridx, :]
            y = y[ridx]
            α = α[ridx]
@@ -340,6 +344,7 @@ Pegasos is a _linear_, gradient-based classifier. Multiclass is supported using 
 * `shuffle`:     Whether to randomly shuffle the data at each iteration [def: `false`]
 * `forceOrigin`: Whehter to force `θ₀` to remain zero [def: `false`]
 * `returnMeanHyperplane`: Whether to return the average hyperplane coefficients instead of the average ones  [def: `false`]
+* `rng`:         Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
 * `θ`:          The weights of the classifier
@@ -356,7 +361,7 @@ julia> model = pegasos([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 julia> ŷ     = predict([2.1 3.1; 7.3 5.2], model.θ, model.θ₀, model.classes)
 ```
 """
-function pegasos(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=0, shuffle=false, forceOrigin=false,returnMeanHyperplane=false)
+function pegasos(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=0, shuffle=false, forceOrigin=false,returnMeanHyperplane=false, rng = Random.GLOBAL_RNG)
     yclasses = unique(y)
     nCl      = length(yclasses)
     if nCl == 2
@@ -368,7 +373,7 @@ function pegasos(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)
     end
     for (i,c) in enumerate(yclasses)
         ybin = ((y .== c) .*2 .-1)  # conversion to -1/+1
-        outBinary = pegasosBinary(x, ybin; θ=θ,θ₀=θ₀, λ=λ,η=η, T=T, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin)
+        outBinary = pegasosBinary(x, ybin; θ=θ,θ₀=θ₀, λ=λ,η=η, T=T, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, rng=rng)
         if returnMeanHyperplane
             outθ[i]  = outBinary.avgθ
             outθ₀[i] = outBinary.avgθ₀
@@ -420,7 +425,7 @@ Train the peagasos algorithm based on x and y (labels)
 julia> pegasos([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 """
-function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, shuffle=false, forceOrigin=false)
+function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, shuffle=false, forceOrigin=false, rng = Random.GLOBAL_RNG)
   if nMsgs != 0
       @codeLocation
       println("***\n*** Training pegasos for maximum $T iterations. Random shuffle: $shuffle")
@@ -436,7 +441,7 @@ function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/s
       ηₜ = η(t)
       if shuffle
          # random shuffle x and y
-         ridx = Base.shuffle(1:size(x)[1])
+         ridx = Base.shuffle(rng, 1:size(x)[1])
          x = x[ridx, :]
          y = y[ridx]
       end

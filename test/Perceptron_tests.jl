@@ -3,9 +3,7 @@ using Test
 using DelimitedFiles
 import MLJBase
 const Mlj = MLJBase
-
-using StableRNGs
-rng = StableRNG(123)
+#using StableRNGs
 using BetaML.Perceptron
 
 println("*** Testing Perceptron algorithms...")
@@ -37,11 +35,11 @@ ŷavgtest = Perceptron.predict(xtest,outTest.θ,outTest.θ₀,outTest.classes)
 println("Testing multiple classes...")
 
 #xtrain = [3 4 5; 5 3 5; 3 7 2; 8 5 3; 4 2 3; 3 2 1; 8 3 4; 3 5 1; 1 9 3; 4 2 1]
-xtrain = rand(100,3)
+xtrain = rand(FIXEDRNG,100,3)
 ytt    = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtrain))]
 ytrain = [i > median(ytt)*1.1 ? "big" :  i > median(ytt)*0.9 ? "avg" : "small" for i in ytt]
 #xtest  = [2 2 3; 3 2 2; 4 1 2; 4 3 2; 3 7 2]
-xtest = rand(20,3)
+xtest = rand(FIXEDRNG,20,3)
 ytt2   = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest))]
 ytest  = [i > median(ytt2)*1.1 ? "big" :  i > median(ytt2)*0.9 ? "avg" : "small" for i in ytt2]
 
@@ -90,11 +88,11 @@ ŷtestExpected = [1,-1,-1,-1,-1]
 @test any(ŷtestExpected == mode(ŷtest) )
 
 
-xtrain = rand(100,3)
+xtrain = rand(FIXEDRNG,100,3)
 ytt    = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtrain))]
 ytrain = [i > median(ytt)*1.1 ? "big" :  i > median(ytt)*0.9 ? "avg" : "small" for i in ytt]
 #xtest  = [2 2 3; 3 2 2; 4 1 2; 4 3 2; 3 7 2]
-xtest = rand(20,3)
+xtest = rand(FIXEDRNG,20,3)
 ytt2   = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest))]
 ytest  = [i > median(ytt2)*1.1 ? "big" :  i > median(ytt2)*0.9 ? "avg" : "small" for i in ytt2]
 
@@ -133,11 +131,11 @@ ŷavgtest = Perceptron.predict(xtest,outAvg.θ,outAvg.θ₀,outAvg.classes)
 println("Testing pegasos with multiple classes...")
 
 #xtrain = [3 4 5; 5 3 5; 3 7 2; 8 5 3; 4 2 3; 3 2 1; 8 3 4; 3 5 1; 1 9 3; 4 2 1]
-xtrain = rand(100,3)
+xtrain = rand(FIXEDRNG,100,3)
 ytt    = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtrain))]
 ytrain = [i > median(ytt)*1.1 ? "big" :  i > median(ytt)*0.9 ? "avg" : "small" for i in ytt]
 #xtest  = [2 2 3; 3 2 2; 4 1 2; 4 3 2; 3 7 2]
-xtest = rand(20,3)
+xtest = rand(FIXEDRNG,20,3)
 ytt2   = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest))]
 ytest  =  [i > median(ytt2)*1.1 ? "big" :  i > median(ytt)*0.9 ? "avg" : "small" for i in ytt2]
 
@@ -187,19 +185,19 @@ println("Testing MLJ interface for Perceptron models....")
 
 X, y                           = Mlj.@load_iris
 
-model                          = PerceptronClassifier()
+model                          = PerceptronClassifier(rng=FIXEDRNG)
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat, y)) < 3.1
 
-model                          = KernelPerceptronClassifier()
+model                          = KernelPerceptronClassifier(rng=FIXEDRNG)
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat, y)) < 0.5
 
-model                          = PegasosClassifier()
+model                          = PegasosClassifier(rng=FIXEDRNG)
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)

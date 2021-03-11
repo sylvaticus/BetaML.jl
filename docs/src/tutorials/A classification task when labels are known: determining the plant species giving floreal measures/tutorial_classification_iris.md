@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/docs/src/tutorials/A classification task when labels are known: determining the plant species giving floreal measures/tutorial_classification_iris.jl"
+EditURL = "<unknown>/src/tutorials/A classification task when labels are known: determining the plant species giving floreal measures/tutorial_classification_iris.jl"
 ```
 
 ## This is markdown title
@@ -15,7 +15,7 @@ b = a + 1
 println(b)
 ```
 
-[View this file on Github](<unknown>/docs/src/tutorials/A classification task when labels are known: determining the plant species giving floreal measures/tutorial_classification_iris.jl).
+[View this file on Github](<unknown>/src/tutorials/A classification task when labels are known: determining the plant species giving floreal measures/tutorial_classification_iris.jl).
 
 ---
 

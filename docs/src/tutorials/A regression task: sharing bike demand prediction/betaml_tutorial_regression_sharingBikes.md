@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/docs/src/tutorials/A regression task: sharing bike demand prediction/betaml_tutorial_regression_sharingBikes.jl"
+EditURL = "<unknown>/src/tutorials/A regression task: sharing bike demand prediction/betaml_tutorial_regression_sharingBikes.jl"
 ```
 
 ## This is markdown title
@@ -15,7 +15,7 @@ b = a + 1
 println(b)
 ```
 
-[View this file on Github](<unknown>/docs/src/tutorials/A regression task: sharing bike demand prediction/betaml_tutorial_regression_sharingBikes.jl).
+[View this file on Github](<unknown>/src/tutorials/A regression task: sharing bike demand prediction/betaml_tutorial_regression_sharingBikes.jl).
 
 ---
 

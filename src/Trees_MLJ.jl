@@ -15,14 +15,16 @@ mutable struct DecisionTreeRegressor <: MMI.Deterministic
     minRecords::Int64
     maxFeatures::Int64
     splittingCriterion::Function
+    rng::AbstractRNG
 end
 DecisionTreeRegressor(;
    maxDepth=0, #typemax(Int)
    minGain=0.0,
    minRecords=2,
    maxFeatures=0,
-   splittingCriterion=variance
-   ) = DecisionTreeRegressor(maxDepth,minGain,minRecords,maxFeatures,splittingCriterion)
+   splittingCriterion=variance,
+   rng = Random.GLOBAL_RNG,
+   ) = DecisionTreeRegressor(maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,rng)
 
 mutable struct DecisionTreeClassifier <: MMI.Probabilistic
    maxDepth::Int64
@@ -30,14 +32,16 @@ mutable struct DecisionTreeClassifier <: MMI.Probabilistic
    minRecords::Int64
    maxFeatures::Int64
    splittingCriterion::Function
+   rng::AbstractRNG
 end
 DecisionTreeClassifier(;
   maxDepth=0,
   minGain=0.0,
   minRecords=2,
   maxFeatures=0,
-  splittingCriterion=gini
-  ) = DecisionTreeClassifier(maxDepth,minGain,minRecords,maxFeatures,splittingCriterion)
+  splittingCriterion=gini,
+  rng = Random.GLOBAL_RNG,
+  ) = DecisionTreeClassifier(maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,rng)
 
 mutable struct RandomForestRegressor <: MMI.Deterministic
    nTrees::Int64
@@ -47,6 +51,7 @@ mutable struct RandomForestRegressor <: MMI.Deterministic
    maxFeatures::Int64
    splittingCriterion::Function
    β::Float64
+   rng::AbstractRNG
 end
 RandomForestRegressor(;
   nTrees=30,
@@ -55,8 +60,9 @@ RandomForestRegressor(;
   minRecords=2,
   maxFeatures=0,
   splittingCriterion=variance,
-  β=0.0
-  ) = RandomForestRegressor(nTrees,maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,β)
+  β=0.0,
+  rng = Random.GLOBAL_RNG,
+  ) = RandomForestRegressor(nTrees,maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,β,rng)
 
 mutable struct RandomForestClassifier <: MMI.Probabilistic
     nTrees::Int64
@@ -66,6 +72,7 @@ mutable struct RandomForestClassifier <: MMI.Probabilistic
     maxFeatures::Int64
     splittingCriterion::Function
     β::Float64
+    rng::AbstractRNG
 end
 RandomForestClassifier(;
     nTrees=30,
@@ -74,8 +81,9 @@ RandomForestClassifier(;
     minRecords=2,
     maxFeatures=0,
     splittingCriterion=gini,
-    β=0.0
-) = RandomForestClassifier(nTrees,maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,β)
+    β=0.0,
+    rng = Random.GLOBAL_RNG,
+) = RandomForestClassifier(nTrees,maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,β,rng)
 
 #=
 # skipped for now..
@@ -102,10 +110,10 @@ function MMI.fit(model::Union{DecisionTreeRegressor,RandomForestRegressor}, verb
    maxDepth         = model.maxDepth == 0 ? size(x,1) : model.maxDepth
    if (typeof(model) == DecisionTreeRegressor)
        maxFeatures = model.maxFeatures == 0 ? size(x,2) : model.maxFeatures
-       fitresult   = buildTree(x, y, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion)
+       fitresult   = buildTree(x, y, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion,rng=model.rng)
    else
        maxFeatures = model.maxFeatures == 0 ? Int(round(sqrt(size(x,2)))) : model.maxFeatures
-       fitresult   = buildForest(x, y, model.nTrees, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion, β=model.β)
+       fitresult   = buildForest(x, y, model.nTrees, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion, β=model.β,rng=model.rng)
    end
    cache=nothing
    report=nothing
@@ -120,10 +128,10 @@ function MMI.fit(model::Union{DecisionTreeClassifier,RandomForestClassifier}, ve
    maxDepth         = model.maxDepth == 0 ? size(x,1) : model.maxDepth
    if (typeof(model) == DecisionTreeClassifier)
        maxFeatures   = model.maxFeatures == 0 ? size(x,2) : model.maxFeatures
-       fittedmodel   = buildTree(x, yarray, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true)
+       fittedmodel   = buildTree(x, yarray, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true,rng=model.rng)
    else
        maxFeatures   = model.maxFeatures == 0 ? Int(round(sqrt(size(x,2)))) : model.maxFeatures
-       fittedmodel   = buildForest(x, yarray, model.nTrees, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true, β=model.β)
+       fittedmodel   = buildForest(x, yarray, model.nTrees, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true, β=model.β,rng=model.rng)
    end
    cache            = nothing
    report           = nothing
@@ -144,7 +152,7 @@ function MMI.predict(model::Union{DecisionTreeClassifier,RandomForestClassifier}
     #println(typeof(classes))
     nLevels          = length(classes)
     nRecords         = MMI.nrows(Xnew)
-    treePredictions  = Trees.predict(fittedModel, MMI.matrix(Xnew))
+    treePredictions  = Trees.predict(fittedModel, MMI.matrix(Xnew),rng=model.rng)
     predMatrix       = zeros(Float64,(nRecords,nLevels))
     # Transform the predictions from a vector of dictionaries to a matrix
     # where the rows are the PMF of each record

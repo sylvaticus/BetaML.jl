@@ -1,8 +1,8 @@
 using Test
 #using DelimitedFiles, LinearAlgebra
 
-using StableRNGs
-rng = StableRNG(123)
+#using StableRNGs
+#rng = StableRNG(123)
 
 import MLJBase
 const Mlj = MLJBase
@@ -25,7 +25,7 @@ Z₀ = initRepresentatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 
 # ==================================
 println("Testing kmeans...")
 
-(clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3)
+(clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,rng=FIXEDRNG)
 
 @test clIdx == [2, 2, 2, 2, 3, 3, 3, 1, 1]
 #@test (clIdx,Z) .== ([2, 2, 2, 2, 3, 3, 3, 1, 1], [5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664])
@@ -48,7 +48,7 @@ m2 = SphericalGaussian([1.1,2,3])
 m3 = SphericalGaussian(nothing,10.2)
 mixtures = [m1,m2,m3]
 X = [1 10 20; 1.2 12 missing; 3.1 21 41; 2.9 18 39; 1.5 15 25]
-initMixtures!(mixtures,X,minVariance=0.25)
+initMixtures!(mixtures,X,minVariance=0.25,rng=FIXEDRNG)
 @test sum([sum(m.μ) for m in mixtures]) ≈ 102.2
 @test sum([sum(m.σ²) for m in mixtures]) ≈ 19.651086419753085
 mask = [true, true, false]
@@ -58,7 +58,7 @@ m1 = DiagonalGaussian()
 m2 = DiagonalGaussian([1.1,2,3])
 m3 = DiagonalGaussian(nothing,[0.1,11,25.0])
 mixtures = [m1,m2,m3]
-initMixtures!(mixtures,X,minVariance=0.25)
+initMixtures!(mixtures,X,minVariance=0.25,rng=FIXEDRNG)
 @test sum([sum(m.σ²) for m in mixtures]) ≈ 291.27933333333334
 @test lpdf(m1,X[2,:][mask],mask) ≈ -3.4365786131066063
 
@@ -66,7 +66,7 @@ m1 = FullGaussian()
 m2 = FullGaussian([1.1,2,3])
 m3 = FullGaussian(nothing,[0.1 0.2 0.5; 0 2 0.8; 1 0 5])
 mixtures = [m1,m2,m3]
-initMixtures!(mixtures,X,minVariance=0.25)
+initMixtures!(mixtures,X,minVariance=0.25,rng=FIXEDRNG)
 @test sum([sum(m.σ²) for m in mixtures]) ≈ 264.77933333333334
 @test lpdf(m1,X[2,:][mask],mask) ≈ -3.4365786131066063
 
@@ -74,7 +74,7 @@ initMixtures!(mixtures,X,minVariance=0.25)
 # New test
 # ==================================
 println("Testing gmm...")
-clusters = gmm([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3,verbosity=NONE, initStrategy="grid")
+clusters = gmm([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3,verbosity=NONE, initStrategy="grid",rng=FIXEDRNG)
 @test isapprox(clusters.BIC,119.04816608007282)
 
 # ==================================
@@ -82,22 +82,22 @@ clusters = gmm([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 
 # ==================================
 println("Testing predictMissing...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out = predictMissing(X,3,mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid")
+out = predictMissing(X,3,mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=FIXEDRNG)
 @test isapprox(out.X̂[2,2],14.187187936786232)
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out2 = predictMissing(X,3,mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid")
+out2 = predictMissing(X,3,mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=FIXEDRNG)
 @test out2.X̂[2,2] ≈ 11.438358350316872
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out3 = predictMissing(X,3,mixtures=[FullGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid")
+out3 = predictMissing(X,3,mixtures=[FullGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=FIXEDRNG)
 @test out3.X̂[2,2] ≈ 11.166652292936876
 
 # ==================================
 # NEW TEST
 println("Testing MLJ interface for Clustering models....")
 X, y                           = Mlj.@load_iris
-model                          = KMeans()
+model                          = KMeans(rng=FIXEDRNG)
 modelMachine                   = Mlj.machine(model, X)
 (fitResults, cache, report)    = Mlj.fit(model, 0, X)
 distances                      = Mlj.transform(model,fitResults,X)
@@ -105,7 +105,7 @@ yhat                           = Mlj.predict(model, fitResults, X)
 acc = accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
 @test acc > 0.8
 
-model                          = KMedoids()
+model                          = KMedoids(rng=FIXEDRNG)
 modelMachine                   = Mlj.machine(model, X)
 (fitResults, cache, report)    = Mlj.fit(model, 0, X)
 distances                      = Mlj.transform(model,fitResults,X)
@@ -113,7 +113,7 @@ yhat                           = Mlj.predict(model, fitResults, X)
 acc = accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
 @test acc > 0.8
 
-model                       =  Clustering.GMM()
+model                       =  Clustering.GMM(rng=FIXEDRNG)
 modelMachine                =  Mlj.machine(model, X)
 (fitResults, cache, report) =  Mlj.fit(model, 0, X)
 yhat_prob                   =  Mlj.transform(model,fitResults,X)
@@ -121,7 +121,7 @@ yhat_prob                   =  Mlj.predict(model, fitResults, X)
 @test length(yhat_prob)     == size(Mlj.matrix(X),1)
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-model                       =  Clustering.MissingImputator()
+model                       =  Clustering.MissingImputator(rng=FIXEDRNG)
 modelMachine                =  Mlj.machine(model)
 Xdense                      =  Mlj.transform(model,X)
 xdensematrix = Mlj.matrix(Xdense)

@@ -606,6 +606,7 @@ Train a neural network with the given x,y data
 * `optAlg`:     The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]
 * `verbosity`:  A verbosity parameter for the trade off information / efficiency [def: `STD`]
 * `cb`:         A callback to provide information. [def: `trainingInfo`]
+* `rng`:        Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Return:
 - A named tuple with the following information
@@ -624,7 +625,7 @@ Train a neural network with the given x,y data
 - The verbosity can be set to any of `NONE`,`LOW`,`STD`,`HIGH`,`FULL`.
 - The update is done computing the average gradient for each batch and then calling `singleUpdate!` to let the optimisation algorithm perform the parameters update
 """
-function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=false, verbosity::Verbosity=STD, cb=trainingInfo, optAlg::OptimisationAlgorithm=ADAM())#,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0optAlg::SD=SD())
+function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=false, verbosity::Verbosity=STD, cb=trainingInfo, optAlg::OptimisationAlgorithm=ADAM(),rng = Random.GLOBAL_RNG)#,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0optAlg::SD=SD())
     if verbosity > STD
         @codeLocation
     end
@@ -646,7 +647,7 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
 
     timetoShowProgress = verbosity > NONE ? 1 : typemax(Int64)
     @showprogress timetoShowProgress "Training the Neural Network..." for t in 1:epochs
-       batches = batch(n,batchSize,sequential=sequential)
+       batches = batch(n,batchSize,sequential=sequential,rng=rng)
        nBatches = length(batches)
        if t == 1
            if (verbosity >= STD) push!(ϵ_epochs,ϵ_epoch); end
@@ -728,13 +729,14 @@ Initialize the optimisation algorithm
 - `optAlg`:    The Optimisation algorithm to use
 - `θ`:         Current parameters
 - `batchSize`:    The size of the batch
-- `x`:  The training (input) data
-- `y`:  The training "labels" to match
+- `x`:   The training (input) data
+- `y`:   The training "labels" to match
+* `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Notes:
 - Only a few optimizers need this function and consequently ovverride it. By default it does nothing, so if you want write your own optimizer and don't need to initialise it, you don't have to override this method
 """
-initOptAlg!(optAlg::OptimisationAlgorithm;θ,batchSize,x,y) = nothing
+initOptAlg!(optAlg::OptimisationAlgorithm;θ,batchSize,x,y,rng = Random.GLOBAL_RNG) = nothing
 
 #=
         if rShuffle

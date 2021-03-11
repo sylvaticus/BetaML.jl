@@ -13,26 +13,30 @@ mutable struct KMeans <: MMI.Unsupervised
    dist::Function
    initStrategy::String
    Z₀::Union{Nothing,Matrix{Float64}}
+   rng::AbstractRNG
 end
 KMeans(;
    K            = 3,
    dist         = dist=(x,y) -> norm(x-y),
    initStrategy = "grid",
-   Z₀           = nothing
- ) = KMeans(K,dist,initStrategy,Z₀)
+   Z₀           = nothing,
+   rng          = Random.GLOBAL_RNG,
+ ) = KMeans(K,dist,initStrategy,Z₀,rng)
 
  mutable struct KMedoids <: MMI.Unsupervised
     K::Int64
     dist::Function
     initStrategy::String
     Z₀::Union{Nothing,Matrix{Float64}}
+    rng::AbstractRNG
  end
  KMedoids(;
     K            = 3,
     dist         = dist=(x,y) -> norm(x-y),
     initStrategy = "grid",
-    Z₀           = nothing
-  ) = KMedoids(K,dist,initStrategy,Z₀)
+    Z₀           = nothing,
+    rng          = Random.GLOBAL_RNG,
+  ) = KMedoids(K,dist,initStrategy,Z₀,rng)
 
 # function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="grid")
 mutable struct GMM{TM <: AbstractMixture} <: MMI.Unsupervised
@@ -43,6 +47,7 @@ mutable struct GMM{TM <: AbstractMixture} <: MMI.Unsupervised
   minVariance::Float64
   minCovariance::Float64
   initStrategy::String
+  rng::AbstractRNG
 end
 GMM(;
     K             = 3,
@@ -52,7 +57,8 @@ GMM(;
     minVariance   = 0.05,
     minCovariance = 0.0,
     initStrategy  = "kmeans",
-) = GMM(K,p₀,mixtures, tol, minVariance, minCovariance,initStrategy)
+    rng           = Random.GLOBAL_RNG,
+) = GMM(K,p₀,mixtures, tol, minVariance, minCovariance,initStrategy,rng)
 
 mutable struct MissingImputator{TM <: AbstractMixture} <: MMI.Static
     K::Int64
@@ -62,6 +68,7 @@ mutable struct MissingImputator{TM <: AbstractMixture} <: MMI.Static
     minVariance::Float64
     minCovariance::Float64
     initStrategy::String
+    rng::AbstractRNG
 end
 MissingImputator(;
     K             = 3,
@@ -71,7 +78,8 @@ MissingImputator(;
     minVariance   = 0.05,
     minCovariance = 0.0,
     initStrategy  = "kmeans",
-) = MissingImputator(K,p₀,mixtures, tol, minVariance, minCovariance,initStrategy)
+    rng           = Random.GLOBAL_RNG,
+) = MissingImputator(K,p₀,mixtures, tol, minVariance, minCovariance,initStrategy,rng)
 
 
 # ------------------------------------------------------------------------------

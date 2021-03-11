@@ -213,7 +213,7 @@ function integerDecoder(Y,target::AbstractVector{T};unique=true) where{T}
 end
 
 """
-  batch(n,bSize;sequential=false)
+  batch(n,bSize;sequential=false,rng)
 
 Return a vector of `bSize` vectors of indeces from `1` to `n`.
 Randomly unless the optional parameter `sequential` is used.
@@ -227,8 +227,8 @@ julia> Utils.batch(6,2,sequential=true)
  [5, 6]
  ```
 """
-function batch(n::Integer,bSize::Integer;sequential=false)
-    ridx = sequential ? collect(1:n) : shuffle(1:n)
+function batch(n::Integer,bSize::Integer;sequential=false,rng = Random.GLOBAL_RNG)
+    ridx = sequential ? collect(1:n) : shuffle(rng,1:n)
     if bSize > n
         return [ridx]
     end
@@ -249,6 +249,7 @@ Partition (by rows) one or more matrices according to the shares in `parts`.
 * `data`: A matrix/vector or a vector of matrices/vectors
 * `parts`: A vector of the required shares (must sum to 1)
 * `shufle`: Whether to randomly shuffle the matrices (preserving the relative order between matrices)
+* `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
 
 # Example:
 ```julia
@@ -257,16 +258,16 @@ julia> y = collect(31:40)
 julia> ((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3])
  ```
  """
-function partition(data::AbstractArray{T,1},parts::AbstractArray{Float64,1};shuffle=true) where T <: AbstractArray
+function partition(data::AbstractArray{T,1},parts::AbstractArray{Float64,1};shuffle=true,rng = Random.GLOBAL_RNG) where T <: AbstractArray
         n = size(data[1],1)
         if !all(size.(data,1) .== n)
             @error "All matrices passed to `partition` must have the same number of rows"
         end
-        ridx = shuffle ? Random.shuffle(1:n) : collect(1:n)
-        return partition.(data,Ref(parts);shuffle=shuffle, fixedRIdx = ridx)
+        ridx = shuffle ? Random.shuffle(rng,1:n) : collect(1:n)
+        return partition.(data,Ref(parts);shuffle=shuffle, fixedRIdx = ridx,rng=rng)
 end
 
-function partition(data::AbstractArray{T,N} where N, parts::AbstractArray{Float64,1};shuffle=true,fixedRIdx=Int64[]) where T
+function partition(data::AbstractArray{T,N} where N, parts::AbstractArray{Float64,1};shuffle=true,fixedRIdx=Int64[],rng = Random.GLOBAL_RNG) where T
     data = makeMatrix(data)
     n = size(data,1)
     nParts = size(parts)
@@ -276,7 +277,7 @@ function partition(data::AbstractArray{T,N} where N, parts::AbstractArray{Float6
     end
     ridx = fixedRIdx
     if (isempty(ridx))
-       ridx = shuffle ? Random.shuffle(1:n) : collect(1:n)
+       ridx = shuffle ? Random.shuffle(rng, 1:n) : collect(1:n)
     end
     current = 1
     cumPart = 0.0

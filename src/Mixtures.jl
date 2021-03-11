@@ -33,10 +33,10 @@ mutable struct FullGaussian{T <:Number} <: AbstractGaussian
     FullGaussian(::Type{T}=Float64) where {T} = new{T}(nothing, nothing)
 end
 
-function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0,) where {T <: SphericalGaussian}
-    (N,D) = size(X)
-    K = length(mixtures)
-    varX_byD = fill(0.0,D)
+function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0,rng = Random.GLOBAL_RNG) where {T <: SphericalGaussian}
+    (N,D)         = size(X)
+    K             = length(mixtures)
+    varX_byD      = fill(0.0,D)
     for d in 1:D
       varX_byD[d] = var(skipmissing(X[:,d]))
     end
@@ -49,10 +49,10 @@ function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance
     end
 end
 
-function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0) where {T <: DiagonalGaussian}
-    (N,D) = size(X)
-    K = length(mixtures)
-    varX_byD = fill(0.0,D)
+function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0,rng = Random.GLOBAL_RNG) where {T <: DiagonalGaussian}
+    (N,D)         = size(X)
+    K             = length(mixtures)
+    varX_byD      = fill(0.0,D)
     for d in 1:D
       varX_byD[d] = max(minVariance, var(skipmissing(X[:,d])))
     end
@@ -65,7 +65,7 @@ function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance
 
 end
 
-function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0) where {T <: FullGaussian}
+function initVariances!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0,rng = Random.GLOBAL_RNG) where {T <: FullGaussian}
     (N,D) = size(X)
     K = length(mixtures)
     varX_byD = fill(0.0,D)
@@ -92,7 +92,7 @@ end
 
 
 """
-    initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid")
+    initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid",rng=Random.GLOBAL_RNG)
 
 
  The parameter `initStrategy` can be `grid`, `kmeans` or `given`:
@@ -101,7 +101,7 @@ end
  - `given`: Leave the provided set of initial mixtures
 
 """
-function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid") where {T <: AbstractGaussian}
+function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid",rng = Random.GLOBAL_RNG) where {T <: AbstractGaussian}
     # debug..
     #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing 2; 3.3 38; missing -2.3; 5.2 -2.4]
     #mixtures = [SphericalGaussian() for i in 1:3]
@@ -111,7 +111,7 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
     end
 
     (N,D) = size(X)
-    K = length(mixtures)
+    K     = length(mixtures)
 
     # count nothing mean mixtures
     nMM = 0
@@ -148,7 +148,7 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
 
     elseif initStrategy == "kmeans"
         if !any(ismissing.(X)) # there are no missing
-            kmμ = kmeans(X,K)[2]
+            kmμ = kmeans(X,K,rng=rng)[2]
             for (k,m) in enumerate(mixtures)
                if isnothing(m.μ)
                    m.μ = kmμ[k,:]
@@ -156,8 +156,8 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
             end
         else # missings are present
             # First pass of predictMissing using initStrategy=grid
-            emOut1 = predictMissing(X,K;mixtures=mixtures,verbosity=NONE,minVariance=minVariance,minCovariance=minCovariance,initStrategy="grid")
-            kmμ = kmeans(emOut1.X̂,K)[2]
+            emOut1 = predictMissing(X,K;mixtures=mixtures,verbosity=NONE,minVariance=minVariance,minCovariance=minCovariance,initStrategy="grid",rng=rng)
+            kmμ = kmeans(emOut1.X̂,K,rng=rng)[2]
             for (k,m) in enumerate(mixtures)
                if isnothing(m.μ)
                    m.μ = kmμ[k,:]
@@ -168,7 +168,7 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
         @error "initStrategy $initStrategy not supported by this mixture type"
     end
 
-    initVariances!(mixtures,X,minVariance=minVariance, minCovariance=minCovariance)
+    initVariances!(mixtures,X,minVariance=minVariance, minCovariance=minCovariance,rng=rng)
 
 end
 

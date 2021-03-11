@@ -2,8 +2,8 @@ using Test
 using DelimitedFiles, LinearAlgebra
 import MLJBase
 const Mlj = MLJBase
-using StableRNGs
-rng = StableRNG(123)
+#using StableRNGs
+#rng = StableRNG(123)
 using BetaML.Trees
 
 println("*** Testing Decision trees/Random Forest algorithms...")
@@ -22,9 +22,9 @@ xtrain = [
 ]
 
 ytrain = ["Apple",  "Apple", "Grape", "Grape", "Lemon"]
-myTree = buildTree(xtrain,ytrain)
+myTree = buildTree(xtrain,ytrain,rng=FIXEDRNG)
 
-ŷtrain = Trees.predict(myTree, xtrain)
+ŷtrain = Trees.predict(myTree, xtrain,rng=FIXEDRNG)
 @test accuracy(ŷtrain,ytrain) >= 0.8
 
 xtest = [
@@ -36,7 +36,7 @@ xtest = [
 ]
 
 ytest = ["Apple","Apple","Grape","Grape","Lemon"]
-ŷtest = Trees.predict(myTree, xtest)
+ŷtest = Trees.predict(myTree, xtest,rng=FIXEDRNG)
 @test accuracy(ŷtest,ytest) >= 0.8
 
 #print(myTree)
@@ -54,10 +54,10 @@ ytrain = y[1:ntrain]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-myTree = buildTree(xtrain,ytrain, splittingCriterion=entropy);
-ŷtrain = Trees.predict(myTree, xtrain)
+myTree = buildTree(xtrain,ytrain, splittingCriterion=entropy,rng=FIXEDRNG)
+ŷtrain = Trees.predict(myTree, xtrain,rng=FIXEDRNG)
 @test accuracy(ŷtrain,ytrain) >= 0.99
-ŷtest = Trees.predict(myTree, xtest)
+ŷtest = Trees.predict(myTree, xtest,rng=FIXEDRNG)
 @test accuracy(ŷtest,ytest)  >= 0.95
 
 # ==================================
@@ -71,9 +71,9 @@ ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtrain[i] for (i,x) in enumerate(eachrow(xtra
 xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
 ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest))]
 
-myTree = buildTree(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3)
-ŷtrain = Trees.predict(myTree, xtrain)
-ŷtest = Trees.predict(myTree, xtest)
+myTree = buildTree(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3,rng=FIXEDRNG)
+ŷtrain = Trees.predict(myTree, xtrain,rng=FIXEDRNG)
+ŷtest = Trees.predict(myTree, xtest,rng=FIXEDRNG)
 mreTrain = meanRelError(ŷtrain,ytrain)
 @test mreTrain <= 0.06
 mreTest  = meanRelError(ŷtest,ytest)
@@ -92,19 +92,19 @@ ytrain = y[1:ntrain]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-myForest = buildForest(xtrain,ytrain,β=0,maxDepth=20,oob=true)
+myForest = buildForest(xtrain,ytrain,β=0,maxDepth=20,oob=true,rng=FIXEDRNG)
 
 trees = myForest.trees
 treesWeights = myForest.weights
 oobError = myForest.oobError
-ŷtrain = Trees.predict(myForest, xtrain)
+ŷtrain = Trees.predict(myForest, xtrain,rng=FIXEDRNG)
 @test accuracy(ŷtrain,ytrain) >= 0.96
-ŷtest = Trees.predict(myForest, xtest)
+ŷtest = Trees.predict(myForest, xtest,rng=FIXEDRNG)
 @test accuracy(ŷtest,ytest)  >= 0.96
 updateTreesWeights!(myForest,xtrain,ytrain;β=1)
-ŷtrain2 = Trees.predict(myForest, xtrain)
+ŷtrain2 = Trees.predict(myForest, xtrain,rng=FIXEDRNG)
 @test accuracy(ŷtrain2,ytrain) >= 0.98
-ŷtest2 = Trees.predict(myForest, xtest)
+ŷtest2 = Trees.predict(myForest, xtest,rng=FIXEDRNG)
 @test accuracy(ŷtest2,ytest)  >= 0.96
 @test oobError <= 0.1
 
@@ -120,20 +120,20 @@ ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtrain[i] for (i,x) in enumerate(eachrow(xtra
 xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
 ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest))]
 
-myForest         = buildForest(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3)
+myForest         = buildForest(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3,rng=FIXEDRNG)
 trees            = myForest.trees
 treesWeights     = myForest.weights
 
-ŷtrain           = Trees.predict(myForest, xtrain)
-ŷtest            = Trees.predict(myForest, xtest)
+ŷtrain           = Trees.predict(myForest, xtrain,rng=FIXEDRNG)
+ŷtest            = Trees.predict(myForest, xtest,rng=FIXEDRNG)
 mreTrain         = meanRelError(ŷtrain,ytrain)
 @test mreTrain <= 0.08
 mreTest  = meanRelError(ŷtest,ytest)
 @test mreTest <= 0.4
 
 updateTreesWeights!(myForest,xtrain,ytrain;β=50)
-ŷtrain2 = Trees.predict(myForest, xtrain)
-ŷtest2 = Trees.predict(myForest, xtest)
+ŷtrain2 = Trees.predict(myForest, xtrain,rng=FIXEDRNG)
+ŷtest2 = Trees.predict(myForest, xtest,rng=FIXEDRNG)
 mreTrain = meanRelError(ŷtrain2,ytrain)
 @test mreTrain <= 0.08
 mreTest  = meanRelError(ŷtest2,ytest)
@@ -148,26 +148,26 @@ xtest = [2 "pippo" 3.4; 1 "amanda" 1.5; 4 "amanda" 0.5; 2 "topolino" 2.2; 7 "zzz
 ytest = [x[2][1] <= 'q' ? 5*x[1]-2*x[3] : -5*x[1]+2*x[3] for x in eachrow(xtest)]
 ytrainInt = Int64.(round.(ytrain))
 
-myTree1 = buildTree(xtrain,ytrain)
-myForest = buildForest(xtrain,ytrain,oob=true) # TO.DO solved 20201130: If I add here β=1 I have no problem, but local testing gives a crazy error!!!
+myTree1 = buildTree(xtrain,ytrain,rng=FIXEDRNG)
+myForest = buildForest(xtrain,ytrain,oob=true,rng=FIXEDRNG) # TO.DO solved 20201130: If I add here β=1 I have no problem, but local testing gives a crazy error!!!
 oobError = myForest.oobError
-ŷtrain = predict(myForest,xtrain)
-ŷtest = predict(myForest,xtest)
+ŷtrain = predict(myForest,xtrain,rng=FIXEDRNG)
+ŷtest = predict(myForest,xtest,rng=FIXEDRNG)
 mreTrain = meanRelError(ŷtrain,ytrain)
 mreTest  = meanRelError(ŷtest,ytest)
 
 xtrain[3,3] = missing
 xtest[3,2] = missing
-myForest = buildForest(xtrain,ytrain,oob=true,β=1)
+myForest = buildForest(xtrain,ytrain,oob=true,β=1,rng=FIXEDRNG)
 oobError = myForest.oobError
-ŷtrain = predict(myForest,xtrain)
-ŷtest = predict(myForest,xtest)
+ŷtrain = predict(myForest,xtrain,rng=FIXEDRNG)
+ŷtest = predict(myForest,xtest,rng=FIXEDRNG)
 mreTrain2 = meanRelError(ŷtrain,ytrain)
 mreTest2  = meanRelError(ŷtest,ytest)
 @test mreTest2 <= mreTest * 1.5
 
-myTree2 = buildTree(xtrain,ytrainInt)
-myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true)
+myTree2 = buildTree(xtrain,ytrainInt,rng=FIXEDRNG)
+myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true,rng=FIXEDRNG)
 @test typeof(myTree1) <: Trees.DecisionNode && typeof(myTree2) <: Trees.DecisionNode && typeof(myTree3) <: Trees.DecisionNode
 
 # ==================================
@@ -215,12 +215,12 @@ data = Union{Missing,Float64, String,AType}[
 X = hcat(data[:,[1,2,3]],UnSortableVector)
 y = convert(Vector{String},  data[:,4])
 
-((xtrain,xtest),(ytrain,ytest)) = Utils.partition([X,y],[0.7,0.3],shuffle=false)
+((xtrain,xtest),(ytrain,ytest)) = Utils.partition([X,y],[0.7,0.3],shuffle=false,rng=FIXEDRNG)
 ytrain = dropdims(ytrain,dims=2)
 ytest  = dropdims(ytest,dims=2)
 
-modelβ = buildForest(xtrain,ytrain,5)
-ŷtestβ = Trees.predict(modelβ,xtest)
+modelβ = buildForest(xtrain,ytrain,5,rng=FIXEDRNG)
+ŷtestβ = Trees.predict(modelβ,xtest,rng=FIXEDRNG)
 accβ   = Trees.accuracy(ŷtestβ,ytest)
 @test accβ >= 0.25
 
@@ -228,26 +228,26 @@ accβ   = Trees.accuracy(ŷtestβ,ytest)
 # NEW TEST
 println("Testing MLJ interface for Trees models....")
 X, y                           = Mlj.@load_boston
-model_dtr                      = DecisionTreeRegressor()
+model_dtr                      = DecisionTreeRegressor(rng=FIXEDRNG)
 regressor_dtr                  = Mlj.machine(model_dtr, X, y)
 (fitresult_dtr, cache, report) = Mlj.fit(model_dtr, 0, X, y)
 yhat_dtr                       = Mlj.predict(model_dtr, fitresult_dtr, X)
 @test meanRelError(yhat_dtr,y) < 0.02
 
-model_rfr                      = RandomForestRegressor()
+model_rfr                      = RandomForestRegressor(rng=FIXEDRNG)
 regressor_rfr                  = Mlj.machine(model_rfr, X, y)
 (fitresult_rfr, cache, report) = Mlj.fit(model_rfr, 0, X, y)
 yhat_rfr                       = Mlj.predict(model_rfr, fitresult_rfr, X)
 @test meanRelError(yhat_rfr,y) < 0.06
 
 X, y                           = Mlj.@load_iris
-model_dtc                      = DecisionTreeClassifier()
+model_dtc                      = DecisionTreeClassifier(rng=FIXEDRNG)
 regressor_dtc                  = Mlj.machine(model_dtc, X, y)
 (fitresult_dtc, cache, report) = Mlj.fit(model_dtc, 0, X, y)
 yhat_dtc                       = Mlj.predict(model_dtc, fitresult_dtc, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_dtc, y)) < 0.0002
 
-model_rfc                      = RandomForestClassifier(maxFeatures=3)
+model_rfc                      = RandomForestClassifier(maxFeatures=3,rng=FIXEDRNG)
 regressor_rfc                  = Mlj.machine(model_rfc, X, y)
 (fitresult_rfc, cache, report) = Mlj.fit(model_rfc, 0, X, y)
 yhat_rfc                       = Mlj.predict(model_rfc, fitresult_rfc, X)
