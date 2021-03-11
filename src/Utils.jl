@@ -19,9 +19,10 @@ Provide shared utility functions for various machine learning algorithms. You do
 """
 module Utils
 
-using LinearAlgebra, Random, Statistics, Combinatorics, Zygote, CategoricalArrays
+using LinearAlgebra, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, StableRNGs
 
-export @codeLocation,
+export Verbosity, NONE, LOW, STD, HIGH, FULL,
+       FIXEDSEED, FIXEDRNG, @codeLocation,
        reshape, makeColVector, makeRowVector, makeMatrix, issortable, getPermutations,
        oneHotEncoder, integerEncoder, integerDecoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
@@ -32,8 +33,7 @@ export @codeLocation,
        error, accuracy, meanRelError,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
-       radialKernel, polynomialKernel,
-       Verbosity, NONE, LOW, STD, HIGH, FULL
+       radialKernel, polynomialKernel
 
 
 #export @reexport
@@ -41,6 +41,30 @@ export @codeLocation,
 
 
 @enum Verbosity NONE=0 LOW=10 STD=20 HIGH=30 FULL=40
+
+"""
+    FIXEDSEED
+
+Fixed seed to allow reproducible results.
+This is the seed used to obtain the same results under unit tests.
+
+Use it with:
+- `myAlgorithm(;rng=FIXEDRNG)`             # always produce the same sequence of results on each run of the script ("pulling" from the same rng object on different calls)
+- `myAlgorithm(;rng=StableRNG(FIXEDSEED))` # always produce the same result (new rng object on each call)
+"""
+const FIXEDSEED = 123
+
+"""
+    FIXEDRNG
+
+Fixed ring to allow reproducible results
+
+Use it with:
+- `myAlgorithm(;rng=FIXEDRNG)`             # always produce the same sequence of results on each run of the script ("pulling" from the same rng object on different calls)
+- `myAlgorithm(;rng=StableRNG(FIXEDSEED))` # always produce the same result (new rng object on each call)
+
+"""
+const FIXEDRNG  = StableRNG(FIXEDSEED)
 
 macro codeLocation()
     return quote
