@@ -122,10 +122,16 @@ yhat_prob                   =  Mlj.predict(model, fitResults, X)
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 model                       =  Clustering.MissingImputator(rng=FIXEDRNG)
-modelMachine                =  Mlj.machine(model)
+modelMachine                =  Mlj.machine(model,X)
 Xdense                      =  Mlj.transform(model,X)
 xdensematrix = Mlj.matrix(Xdense)
 @test isapprox(xdensematrix[2,2],11.166666666667362)
+(fitResults, cache, report)  = Mlj.fit(model, 0, X)
+XDenseNew                    = Mlj.predict(model, fitResults, X)
+xdensematrix = Mlj.matrix(XDenseNew)
+@test isapprox(xdensematrix[2,2],11.166666666667362)
+
+
 #=
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_prob, y)) < 0.0002
 Mlj.predict_mode(yhat_prob)

@@ -156,7 +156,7 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
             end
         else # missings are present
             # First pass of predictMissing using initStrategy=grid
-            emOut1 = predictMissing(X,K;mixtures=mixtures,verbosity=NONE,minVariance=minVariance,minCovariance=minCovariance,initStrategy="grid",rng=rng)
+            emOut1 = predictMissing(X,K;mixtures=mixtures,verbosity=NONE,minVariance=minVariance,minCovariance=minCovariance,initStrategy="grid",rng=rng,maxIter=10)
             kmμ = kmeans(emOut1.X̂,K,rng=rng)[2]
             for (k,m) in enumerate(mixtures)
                if isnothing(m.μ)

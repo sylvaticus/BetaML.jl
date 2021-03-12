@@ -457,6 +457,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 * `minVariance`:   Minimum variance for the mixtures [default: 0.05]
 * `minCovariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes).
 * `initStrategy`:  Mixture initialisation algorithm [def: `grid`]
+* `maxIter`:       Maximum number of iterations [def: `-1`, i.e. ∞]
 * `rng`:           Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
@@ -476,11 +477,11 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 julia>  cFOut = predictMissing([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3)
 ```
 """
-function predictMissing(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans",rng = Random.GLOBAL_RNG)
+function predictMissing(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans",maxIter=-1,rng = Random.GLOBAL_RNG)
     if verbosity > STD
         @codeLocation
     end
-    emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,rng=rng)
+    emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,maxIter=maxIter,rng=rng)
     (N,D) = size(X)
     nDim  = ndims(X)
     nmT   = nonmissingtype(eltype(X))
