@@ -39,7 +39,7 @@ KMeans(;
   ) = KMedoids(K,dist,initStrategy,Z₀,rng)
 
 # function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="grid")
-mutable struct GMM{TM <: AbstractMixture} <: MMI.Unsupervised
+mutable struct GMM{TM <: AbstractMixture} <: MMI.Probabilistic
   K::Int64
   p₀::Union{Nothing,AbstractArray{Float64,1}}
   mixtures::AbstractArray{TM,1}
@@ -96,9 +96,10 @@ function MMI.fit(m::Union{KMeans,KMedoids}, verbosity, X)
     return ((assignedClasses,representatives,m.dist), cache, report)
 end
 
-function MMI.fit(m::GMM, verbosity, X)
-    x          = MMI.matrix(X) # convert table to matrix
-    res        = gmm(x,m.K,p₀=m.p₀,mixtures=m.mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE)
+function MMI.fit(m::GMM, verbosity, X, y)
+    # X is nothing, y is the data: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/#Models-that-learn-a-probability-distribution-1
+    y          = MMI.matrix(y) # convert table to matrix
+    res        = gmm(y,m.K,p₀=m.p₀,mixtures=m.mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE)
     fitResults = (res.pₙₖ,res.pₖ,res.mixtures)
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
@@ -140,6 +141,7 @@ function MMI.predict(m::GMM, fitResults, X)
     (N,D)           = size(x)
     (pₙₖ,pₖ,mixtures) = fitResults
     nCl             = length(pₖ)
+    # Compute the probabilities that maximise the likelihood given existing mistures and a single iteration (i.e. doesn't update the mixtures)
     thisOut         = gmm(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1)
     classes         = CategoricalArray(1:nCl)
     predictions     = MMI.UnivariateFinite(classes, thisOut.pₙₖ)
@@ -178,8 +180,8 @@ MMI.metadata_model(KMedoids,
 )
 
 MMI.metadata_model(GMM,
-    input_scitype    = MMI.Table(MMI.Continuous,MMI.Missing),
-    output_scitype   = AbstractArray{<:MMI.Multiclass},     # for an unsupervised, what output?
+    input_scitype    = Nothing, # MMI.Table(MMI.Continuous,MMI.Missing),
+    target_scitype   = MMI.Table(MMI.Continuous,MMI.Missing), #AbstractArray{<:MMI.Multiclass},
     supports_weights = false,                               # does the model support sample weights?
     descr            = "A Expectation-Maximisation clustering algorithm with customisable mixtures, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Clustering.GMM"

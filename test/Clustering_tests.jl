@@ -114,8 +114,8 @@ acc = accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
 @test acc > 0.8
 
 model                       =  Clustering.GMM(rng=FIXEDRNG)
-modelMachine                =  Mlj.machine(model, X)
-(fitResults, cache, report) =  Mlj.fit(model, 0, X)
+# modelMachine                =  Mlj.machine(model, nothing, X) # DimensionMismatch
+(fitResults, cache, report) =  Mlj.fit(model, 0, nothing, X)
 yhat_prob                   =  Mlj.transform(model,fitResults,X)
 yhat_prob                   =  Mlj.predict(model, fitResults, X)
 @test length(yhat_prob)     == size(Mlj.matrix(X),1)

@@ -42,7 +42,7 @@ mutable struct DenseLayer <: Layer
      * `wb`:  Initial weigths with respect to bias [default: Xavier initialisation, dims = (n)]
      * `f`:   Activation function [def: `identity`]
      * `df`:  Derivative of the activation function [default: `nothing` (i.e. use AD)]
-     * `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+     * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
      # Notes:
      - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n))`
@@ -128,7 +128,7 @@ mutable struct DenseNoBiasLayer <: Layer
      * `w`:   Initial weigths with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
      * `f`:   Activation function [def: `identity`]
      * `df`:  Derivative of the activation function [def: `nothing` (i.e. use AD)]
-     * `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+     * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
      # Notes:
      - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ,n))`
      """
