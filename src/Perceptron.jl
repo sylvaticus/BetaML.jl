@@ -65,7 +65,7 @@ The perceptron is a _linear_ classifier. Multiclass is supported using a one-vs-
 * `shuffle`:     Whether to randomly shuffle the data at each iteration [def: `false`]
 * `forceOrigin`: Whether to force `θ₀` to remain zero [def: `false`]
 * `returnMeanHyperplane`: Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]
-* `rng`:         Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+* `rng`:         Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
 * `θ`:          The weights of the classifier
@@ -125,7 +125,7 @@ Train the binary classifier "perceptron" algorithm based on x and y (labels)
 * `nMsg`:        Maximum number of messages to show if all iterations are done
 * `shuffle`:     Whether to randomly shuffle the data at each iteration [def: `false`]
 * `forceOrigin`: Whether to force `θ₀` to remain zero [def: `false`]
-* `rng`:         Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+* `rng`:         Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
 * `θ`:          The final weights of the classifier
@@ -204,7 +204,7 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
 * `α`:        Initial distribution of the errors [def: `zeros(length(y))`]
 * `nMsg`:     Maximum number of messages to show if all iterations are done [def: `0`]
 * `shuffle`:  Whether to randomly shuffle the data at each iteration [def: `false`]
-* `rng`:      Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+* `rng`:      Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
 * `x`: The x data (eventually shuffled if `shuffle=true`)
@@ -265,7 +265,7 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y
 * `α`:        Initial distribution of the errors [def: `zeros(length(y))`]
 * `nMsg`:     Maximum number of messages to show if all iterations are done
 * `shuffle`:  Whether to randomly shuffle the data at each iteration [def: `false`]
-* `rng`:      Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+* `rng`:      Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
 * `x`: the x data (eventually shuffled if `shuffle=true`)
@@ -344,7 +344,7 @@ Pegasos is a _linear_, gradient-based classifier. Multiclass is supported using 
 * `shuffle`:     Whether to randomly shuffle the data at each iteration [def: `false`]
 * `forceOrigin`: Whehter to force `θ₀` to remain zero [def: `false`]
 * `returnMeanHyperplane`: Whether to return the average hyperplane coefficients instead of the average ones  [def: `false`]
-* `rng`:         Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+* `rng`:         Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
 * `θ`:          The weights of the classifier

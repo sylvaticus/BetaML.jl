@@ -57,7 +57,7 @@ Initialisate the representatives for a K-Mean or K-Medoids algorithm
   * `shuffle`: selecting randomly within the available points
   * `given`: using a provided set of initial representatives provided in the `Z₀` parameter
  * `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initStrategy) [default: `nothing`]
- * `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+ * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
 * A (K x D) matrix of initial representatives
@@ -115,7 +115,7 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
   * `shuffle`: selecting randomly within the available points
   * `given`: using a provided set of initial representatives provided in the `Z₀` parameter
 * `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initStrategy) [default: `nothing`]
-* `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+* `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
 * A tuple of two items, the first one being a vector of size N of ids of the clusters associated to each point and the second one the (K x D) matrix of representatives
@@ -200,7 +200,7 @@ Compute K-Medoids algorithm to identify K clusters of X using distance definitio
   * `shuffle`: selecting randomly within the available points [default]
   * `given`: using a provided set of initial representatives provided in the `Z₀` parameter
  * `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initStrategy) [default: `nothing`]
- * `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+ * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
 * A tuple of two items, the first one being a vector of size N of ids of the clusters associated to each point and the second one the (K x D) matrix of representatives
@@ -294,7 +294,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 * `minCovariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes).
 * `initStrategy`:  Mixture initialisation algorithm [def: `kmeans`]
 * `maxIter`:       Maximum number of iterations [def: `-1`, i.e. ∞]
-* `rng`:           Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+* `rng`:           Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
 * A named touple of:
@@ -457,7 +457,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 * `minVariance`:   Minimum variance for the mixtures [default: 0.05]
 * `minCovariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes).
 * `initStrategy`:  Mixture initialisation algorithm [def: `grid`]
-* `rng`:           Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+* `rng`:           Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
 * A named touple of:

@@ -606,7 +606,7 @@ Train a neural network with the given x,y data
 * `optAlg`:     The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]
 * `verbosity`:  A verbosity parameter for the trade off information / efficiency [def: `STD`]
 * `cb`:         A callback to provide information. [def: `trainingInfo`]
-* `rng`:        Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+* `rng`:        Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Return:
 - A named tuple with the following information
@@ -731,7 +731,7 @@ Initialize the optimisation algorithm
 - `batchSize`:    The size of the batch
 - `x`:   The training (input) data
 - `y`:   The training "labels" to match
-* `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+* `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Notes:
 - Only a few optimizers need this function and consequently ovverride it. By default it does nothing, so if you want write your own optimizer and don't need to initialise it, you don't have to override this method

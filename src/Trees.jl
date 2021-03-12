@@ -278,7 +278,7 @@ Find the best question to ask by iterating over every feature / value and calcul
 - `y`: The labels dataset
 - `maxFeatures`: Maximum number of (random) features to look up for the "best split"
 - `splittingCriterion`: The metric to define the "impurity" of the labels
-- `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+- `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 """
 function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;maxFeatures,splittingCriterion=gini,rng = Random.GLOBAL_RNG) where {Ty}
@@ -344,7 +344,7 @@ The given tree is then returned.
 - `maxFeatures`: The maximum number of (random) features to consider at each partitioning [def: `D`, i.e. look at all features]
 - `splittingCriterion`: Either `gini`, `entropy` or `variance` (see [`infoGain`](@ref) ) [def: `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]
 - `forceClassification`: Weather to force a classification task even if the labels are numerical (typically when labels are integers encoding some feature rather than representing a real cardinal measure) [def: `false`]
-- `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+- `rng`: Random Number Generator ((see [`FIXEDSEED`](@ref))) [deafult: `Random.GLOBAL_RNG`]
 
 # Notes:
 
@@ -511,7 +511,7 @@ See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with
 - `nTrees`: Number of trees in the forest [def: `30`]
 - `β`: Parameter that regulate the weights of the scoring of each tree, to be (optionally) used in prediction (see later) [def: `0`, i.e. uniform weigths]
 - `oob`: Whether to coompute the out-of-bag error, an estimation of the generalization accuracy [def: `false`]
-- `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+- `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Output:
 - The function returns a Forest object (see [`Forest`](@ref)).

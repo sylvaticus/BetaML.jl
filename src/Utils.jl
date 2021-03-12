@@ -249,7 +249,7 @@ Partition (by rows) one or more matrices according to the shares in `parts`.
 * `data`: A matrix/vector or a vector of matrices/vectors
 * `parts`: A vector of the required shares (must sum to 1)
 * `shufle`: Whether to randomly shuffle the matrices (preserving the relative order between matrices)
-* `rng`: Random Number Generator (@see Utils.FIXEDSEED) [deafult: `Random.GLOBAL_RNG`]
+* `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Example:
 ```julia
