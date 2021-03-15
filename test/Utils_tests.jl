@@ -1,7 +1,9 @@
-using Test, Statistics, CategoricalArrays
+using Test, Statistics, CategoricalArrays, Random
 #using StableRNGs
 #rng = StableRNG(123)
 using BetaML.Utils
+
+TESTRNG = FIXEDRNG # This could change...
 
 println("*** Testing individual utility functions (module `Utils`)...")
 
@@ -150,8 +152,8 @@ x3 = scale(y,scaleFactors,rev=true)
 # New test
 println("** Testing batch()...")
 
-@test size.(batch(10,3,rng=FIXEDRNG),1) == [3,3,3]
-@test size.(batch(10,12,rng=FIXEDRNG),1) == [10]
+@test size.(batch(10,3,rng=copy(TESTRNG)),1) == [3,3,3]
+@test size.(batch(10,12,rng=copy(TESTRNG)),1) == [10]
 
 # ==================================
 # New test
@@ -287,9 +289,52 @@ m2 = convert(Array{Float64,2},[41:50 51:60])
 m3 = makeMatrix(collect(61:70))
 m4 = collect(71:80)
 parts = [0.33,0.27,0.4]
-out = partition([m1,m2,m3,m4],parts,shuffle=true,rng=FIXEDRNG)
+out = Utils.partition([m1,m2,m3,m4],parts,shuffle=true,rng=copy(TESTRNG))
 @test size(out,1) == 4 && size(out[1][3]) == (4,3)
 x = [1:10 11:20]
 y = collect(31:40)
-((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3], shuffle=false,rng=FIXEDRNG)
+((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3], shuffle=false,rng=copy(TESTRNG))
 @test xtest[2,2] == 19 && ytest[2] == 39
+
+
+# ==================================
+# New test
+println("** Testing generateParallelRngs()...")
+x = rand(100)
+
+function innerFunction(bootstrappedx; rng=Random.GLOBAL_RNG)
+     sum(bootstrappedx .* rand(rng) ./ 0.5)
+end
+function outerFunction(x;rng = Random.GLOBAL_RNG)
+    rngs = generateParallelRngs(rng,Threads.nthreads()) # make new copy instances
+    results = Array{Float64,1}(undef,30)
+    Threads.@threads for i in 1:30
+        tsrng = rngs[Threads.threadid()] # Thread safe random number generator
+        toSample = rand(tsrng, 1:100,100)
+        bootstrappedx = x[toSample]
+        innerResult = innerFunction(bootstrappedx, rng=tsrng)
+        results[i] = innerResult
+    end
+    overallResult = mean(results)
+    return overallResult
+end
+
+# Different sequences..
+@test outerFunction(x) != outerFunction(x)
+
+# Different values, but same sequence
+mainRng = copy(FIXEDRNG)
+a = outerFunction(x, rng=mainRng)
+b = outerFunction(x, rng=mainRng)
+
+mainRng = copy(FIXEDRNG)
+A = outerFunction(x, rng=mainRng)
+B = outerFunction(x, rng=mainRng)
+
+@test a != b && a == A && b == B
+
+
+# Same value at each call
+a = outerFunction(x,rng=copy(FIXEDRNG))
+b = outerFunction(x,rng=copy(FIXEDRNG))
+@test a == b

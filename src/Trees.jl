@@ -287,7 +287,7 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;maxFeatures,splittingCrit
     currentUncertainty = splittingCriterion(y)
     (N,D)  = size(x)  # number of columns (the last column is the label)
 
-    featuresToConsider = (maxFeatures >= D) ? (1:D) : shuffle(1:D)[1:maxFeatures]
+    featuresToConsider = (maxFeatures >= D) ? (1:D) : shuffle(rng, 1:D)[1:maxFeatures]
 
     for d in featuresToConsider      # for each feature (we consider only maxFeatures features randomly)
         values = Set(skipmissing(x[:,d]))  # unique values in the column
@@ -536,15 +536,20 @@ function buildForest(x, y::AbstractArray{Ty,1}, nTrees=30; maxDepth = size(x,1),
     jobIsRegression = (forceClassification || !(eltype(y) <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     (N,D) = size(x)
 
+    #rngs = fill(deepcopy(rng),Threads.nthreads()) # One random number generator per thread. No, then each treee would be the same
+    #unused = rand(rng,100000) # I have a bad feeling with this. Is there a better way for  "Different values, but same sequence" ? 
+    rngs = generateParallelRngs(rng,Threads.nthreads())
+
     #for i in 1:nTrees # for easier debugging/profiling...
-     Threads.@threads for i in 1:nTrees
-        toSample = rand(rng, 1:N,N)
+    Threads.@threads for i in 1:nTrees
+        tsrng = rngs[Threads.threadid()] # Thread safe random number generator
+        toSample = rand(tsrng, 1:N,N)
         notToSample = setdiff(1:N,toSample)
         bootstrappedx = x[toSample,:] # "boosted is different than "bootstrapped": https://towardsdatascience.com/random-forest-and-its-implementation-71824ced454f
         bootstrappedy = y[toSample]
         #controlx = x[notToSample,:]
         #controly = y[notToSample]
-        tree = buildTree(bootstrappedx, bootstrappedy; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion = splittingCriterion, forceClassification=forceClassification, rng = rng)
+        tree = buildTree(bootstrappedx, bootstrappedy; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, splittingCriterion = splittingCriterion, forceClassification=forceClassification, rng = tsrng)
         #ŷ = predict(tree,controlx)
         trees[i] = tree
         notSampledByTree[i] = notToSample

@@ -657,7 +657,9 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
            xbatch = x[batch, :]
            ybatch = y[batch, :]
            θ   = getParams(nn)
-           gradients   = @spawn getGradient(nn,xbatch,ybatch) # remove @spawn and fetch (on next row) to get single thread code
+           # remove @spawn and fetch (on next row) to get single thread code
+           # note that there is no random number issue here..
+           gradients   = @spawn getGradient(nn,xbatch,ybatch)
            sumGradient = sum(fetch(gradients))
            ▽   = sumGradient / length(batch)
            #▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)

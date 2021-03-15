@@ -19,10 +19,10 @@ Provide shared utility functions for various machine learning algorithms. You do
 """
 module Utils
 
-using LinearAlgebra, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, StableRNGs
+using LinearAlgebra, Random, Statistics, Future, Combinatorics, Zygote, CategoricalArrays, StableRNGs
 
 export Verbosity, NONE, LOW, STD, HIGH, FULL,
-       FIXEDSEED, FIXEDRNG, @codeLocation,
+       FIXEDSEED, FIXEDRNG, @codeLocation, generateParallelRngs,
        reshape, makeColVector, makeRowVector, makeMatrix, issortable, getPermutations,
        oneHotEncoder, integerEncoder, integerDecoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
@@ -60,11 +60,11 @@ const FIXEDSEED = 123
 Fixed ring to allow reproducible results
 
 Use it with:
-- `myAlgorithm(;rng=FIXEDRNG)`             # always produce the same sequence of results on each run of the script ("pulling" from the same rng object on different calls)
-- `myAlgorithm(;rng=StableRNG(FIXEDSEED))` # always produce the same result (new rng object on each call)
+- `myAlgorithm(;rng=FIXEDRNG)`         # always produce the same sequence of results on each run of the script ("pulling" from the same rng object on different calls)
+- `myAlgorithm(;rng=copy(FIXEDRNG))`   # always produce the same result (new rng object on each function call)
 
 """
-const FIXEDRNG  = StableRNG(FIXEDSEED)
+const FIXEDRNG  = MersenneTwister(FIXEDSEED) #StableRNG(FIXEDSEED) Random.default_rng()
 
 macro codeLocation()
     return quote
@@ -81,7 +81,28 @@ macro codeLocation()
         println("Type `]dev BetaML` to modify the source code (this would change its location on disk)")
     end
 end
+"""
+    generateParallelRngs(rng::AbstractRNG, n::Integer)
 
+For multi-threaded models return n rings (one per thread) to be used in threaded comutations.
+
+Note that each ring is a _copy_, at different state, of the original random ring.
+This means that code that _use_ these RNGs will not change the original RNGF state.
+
+Works only for the default Julia RNG.
+
+Use it with `rngs = generateParallelRngs(rng,Threads.nthreads())`
+
+"""
+function generateParallelRngs(rng::AbstractRNG, n::Integer)
+    step = rand(rng,big(10)^20:big(10)^40) # making the step random too !
+    rngs = Vector{Union{MersenneTwister,Random._GLOBAL_RNG,StableRNGs.LehmerRNG}}(undef, n) # Vector{typeof(rng)}(undef, n)
+    rngs[1] = copy(rng)
+    for i = 2:n
+        rngs[i] = Future.randjump(rngs[i-1], step)
+    end
+    return rngs
+end
 
 # ------------------------------------------------------------------------------
 # Various reshaping functions
@@ -259,6 +280,7 @@ julia> ((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3])
  ```
  """
 function partition(data::AbstractArray{T,1},parts::AbstractArray{Float64,1};shuffle=true,rng = Random.GLOBAL_RNG) where T <: AbstractArray
+        # the sets of vector/matrices
         n = size(data[1],1)
         if !all(size.(data,1) .== n)
             @error "All matrices passed to `partition` must have the same number of rows"
@@ -267,7 +289,8 @@ function partition(data::AbstractArray{T,1},parts::AbstractArray{Float64,1};shuf
         return partition.(data,Ref(parts);shuffle=shuffle, fixedRIdx = ridx,rng=rng)
 end
 
-function partition(data::AbstractArray{T,N} where N, parts::AbstractArray{Float64,1};shuffle=true,fixedRIdx=Int64[],rng = Random.GLOBAL_RNG) where T
+function partition(data::AbstractArray{T,N}, parts::AbstractArray{Float64,1};shuffle=true,fixedRIdx=Int64[],rng = Random.GLOBAL_RNG) where {T,N}
+    # the individual vecto/matrix
     data = makeMatrix(data)
     n = size(data,1)
     nParts = size(parts)
@@ -284,7 +307,11 @@ function partition(data::AbstractArray{T,N} where N, parts::AbstractArray{Float6
     for (i,p) in enumerate(parts)
         cumPart += parts[i]
         final = i == nParts ? n : Int64(round(cumPart*n))
-        push!(toReturn,data[ridx[current:final],:])
+        if N == 1
+            push!(toReturn,data[ridx[current:final]])
+        else
+            push!(toReturn,data[ridx[current:final],:])
+        end
         current = (final +=1)
     end
     return toReturn

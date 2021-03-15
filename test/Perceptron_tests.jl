@@ -6,6 +6,8 @@ const Mlj = MLJBase
 #using StableRNGs
 using BetaML.Perceptron
 
+TESTRNG = FIXEDRNG # This could change...
+
 println("*** Testing Perceptron algorithms...")
 
 # ==================================
@@ -185,19 +187,19 @@ println("Testing MLJ interface for Perceptron models....")
 
 X, y                           = Mlj.@load_iris
 
-model                          = PerceptronClassifier(rng=FIXEDRNG)
+model                          = PerceptronClassifier(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat, y)) < 3.1
 
-model                          = KernelPerceptronClassifier(rng=FIXEDRNG)
+model                          = KernelPerceptronClassifier(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat, y)) < 0.5
 
-model                          = PegasosClassifier(rng=FIXEDRNG)
+model                          = PegasosClassifier(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
