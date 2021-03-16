@@ -10,10 +10,11 @@
 
 # Note that even if we are estimating a time serie, we are not using here a recurrent neural network as we assume the temporal dependence to be negligible (i.e. $Y_t = f(X_t)$ alone).
 
-## Library and data loading
+# ## Library and data loading
 
 using LinearAlgebra, Random, DataFrames, CSV, StatsPlots, StableRNGs, BetaML.Perceptron, BetaML.Nn, BetaML.Trees
 import Distributions: Uniform
+using DecisionTree # for comparision
 
 using BetaML  # only needed to get the relative path in importing data
 baseDir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","A regression task: sharing bike demand prediction")
@@ -22,60 +23,84 @@ baseDir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","A regr
 data = CSV.File(joinpath(baseDir,"data","bike_sharing_day.csv"),delim=',') |> DataFrame
 describe(data)
 
-The variable we want to learn to predict is `cnt`, the total demand of bikes for a given day. Even if it is indeed an integer, we treat it as a continuous variale.
+# The variable we want to learn to predict is `cnt`, the total demand of bikes for a given day. Even if it is indeed an integer, we treat it as a continuous variable, so each single prediction will be a scalar $$Y \in R$$.
 
 
-
-## Data preparation
-The first step is to prepare the data for the analysis. This indeed depends already on the model we want to employ, as some models "accept" everything as input, no matter if the data is numerical or categorical, if it has missing values or not... Other models are instead more exigents, and require more or less work.
-Here we start with a Decision Tree and a Random Forest models that belong to the first category, those of the models for which any kind of input is fine.
-Hence, the only things we have to do is to select the variables in input and those representing our output:
+# ## Data preparation
+# The first step is to prepare the data for the analysis. This indeed depends already on the model we want to employ, as some models "accept" everything as input, no matter if the data is numerical or categorical, if it has missing values or not... Other models are instead more exigents, and require more or less work.
+# Here we use Decision Tree and Random Forest models that belong to the first category, those of the models for which any kind of input is fine.
+# Hence, the only things we have to do is to select the variables in input and those representing our output:
 
 x    = convert(Matrix,hcat(data[:,[:instant,:season,:yr,:mnth,:holiday,:weekday,:workingday,:weathersit,:temp,:atemp,:hum,:windspeed]]))
 y    = data[:,16]
 
-We can now split the dataset between the data we will use for training the algorithm (xtrain/ytrain), those for selecting the hyperparameters (xval/yval) and finally those for testing the quality of the algoritm with the optimal hyperparameters (xtest/ytest). For doing that we use the function `Utils.partition` specifying the share we want to use for these shares. As our data represent indeed a time serie, we want our model to be able to predict _future_ demand of bike sharing from _past_, observed rented bikes, so we do not shuffle the datasets as it would be by default.
+# We can now split the dataset between the data we will use for training the algorithm (xtrain/ytrain), those for selecting the hyperparameters (xval/yval) and finally those for testing the quality of the algoritm with the optimal hyperparameters (xtest/ytest). For doing that we use the function `Utils.partition` specifying the share we want to use for these three different jobs. As our data represent indeed a time serie, we want our model to be able to predict _future_ demand of bike sharing from _past_, observed rented bikes, so we do not shuffle the datasets as it would be the default.
 
 ((xtrain,xval,xtest),(ytrain,yval,ytest)) = Utils.partition([x,y],[0.75,0.125,1-0.75-0.125],shuffle=false)
 (ntrain, nval, ntest) = size.([ytrain,yval,ytest],1)
 
-function findBestDepth(model,xtrain,ytrain,xval,yval,attemptedDepths)
-    bestDepth = 1
-    bestMre   = +Inf
-    rng=StableRNG(FIXEDSEED)
-    repetitions = 3
-    for ad in attemptedDepths
-        totAttemptError = 0.0
-        for r in repetitions
-            if model == "DecisionTree"
-                myTrainedModel = buildTree(xtrain,ytrain, maxDepth=ad, rng=rng)
-            else
-                myTrainedModel = buildForest(xtrain,ytrain, 20, maxDepth=ad, rng=StableRNG(FIXEDSEED))
-            end
-            ŷval   = Trees.predict(myTrainedModel, xval)
-            mreVal = meanRelError(ŷval,yval)
-            totAttemptError += mreVal
-        end
-        avgAttemptedDepthError = totAttemptError / repetitions
-        println("$ad : $avgAttemptedDepthError")
-        if avgAttemptedDepthError < bestMre
-            bestDepth = ad
-            bestMre   = avgAttemptedDepthError
-        end
+# We can now "tune" our model so-called hyperparameters, i.e. choose the best exogenous parameters of our algorithm, where "best" refer to some minimisation of a "loss" function between the true and the predicted value, where a dedicated "validation" subset of the input is used (xval and yval) in our case.
+# BetaML doesn't have a diedicated function for hyperparameters optimisation, but it is easy to write some custom julia code, at least for a simple grid-based "search". Indeed the reason that a dedicated function exists in other Machine Learning libraries is that loops in other languages are slow, but this is not a problem in Julia, so you can retain the flexibility to write the kind of hyperparameter tuning that best fits your needs.
+# Below if an example of a possible such function. Note there are more "elegant" ways to code it, but this one does the job. We will see the various functions inside `tuneHyperParameters()` in a moment. For now let's going just to observe that `tuneHyperParameters` just loops over all the possible hyperparameter and select the one where the error between xval and yval is minimised.
+
+function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthsRange=1:15,maxFeaturesRange=5:12,nTreesRange=20:20,repetitions=5,rng=Random.GLOBAL_RNG)
+    # We start with an infinititly high error
+    bestMre         = +Inf
+    bestMaxDepth    = 1
+    bestMaxFeatures = 1
+    bestNTrees      = 1
+    # We loop over all possible hyperparameter combinations...
+    for maxDepth in maxDepthsRange
+        for maxFeatures in maxFeaturesRange
+            for nTrees in nTreesRange
+               totAttemptError = 0.0
+               # We run several repetitions with the same hyperparameter combination to account for stochasticity...
+               for r in 1:repetitions
+                  if model == "DecisionTree"
+                     # here we train the Decition Tree model
+                     myTrainedModel = buildTree(xtrain,ytrain, maxDepth=maxDepth,maxFeatures=maxFeatures,rng=rng)
+                  else
+                     # Here we train the Random Forest model
+                     myTrainedModel = buildForest(xtrain,ytrain,nTrees,maxDepth=maxDepth,maxFeatures=maxFeatures, rng=rng)
+                  end
+                  # Here we make prediciton with this trained model and we compute its error
+                  ŷval   = Trees.predict(myTrainedModel, xval)
+                  mreVal = meanRelError(ŷval,yval)
+                  totAttemptError += mreVal
+               end
+               avgAttemptedDepthError = totAttemptError / repetitions
+               # Select this specific combination of hyperparameters if its error is the lowest
+               if avgAttemptedDepthError < bestMre
+                 bestMre         = avgAttemptedDepthError
+                 bestMaxDepth    = maxDepth
+                 bestMaxFeatures = maxFeatures
+                 bestNTrees      = nTrees
+               end
+           end
+      end
     end
-    return (bestDepth, bestMre)
+    return (bestMre,bestMaxDepth,bestMaxFeatures,bestNTrees)
 end
 
+# We can now run the hyperparameter optimisation function with some "reasonable" range:
+(bestMre,bestMaxDepth,bestMaxFeatures,bestNTrees) = tuneHyperParameters("DecisionTree",xtrain,ytrain,xval,yval,
+           maxDepthsRange=1:15,maxFeaturesRange=8:12,repetitions=5,rng=copy(FIXEDRNG))
 
-bestDepth, bestMre = findBestDepth("DecisionTree",xtrain,ytrain,xval,yval,1:15)
+# Now that we have the "optimal" hyperparameters we can build ("train") our model using them:
+myTree = buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,rng=copy(FIXEDRNG))
 
-myTree = buildTree(xtrain,ytrain, maxDepth=bestDepth)
+# The above function produce a DecisionTree object that can now be used to make predictions given some features, i.e. given some X matrix of (number of observations x dimensions) predict the relative Y vector of scalers in R.
+(ŷtrain,ŷval,ŷtest) = Trees.predict.([myTree], [xtrain,xval,xtest])
+
+Note that the above code uses the "dot syntax" to "broadcast" `Trees.predict()` over an array of label matrices. It is exactly equivalent to:
 
 
-
-ŷtrain = Trees.predict(myTree, xtrain)
+ŷtrain = predict(myTree, xtrain)
 ŷval   = Trees.predict(myTree, xval)
 ŷtest  = Trees.predict(myTree, xtest)
+
+Also note that we use the fully qualified name `Trees.predict` as we loaded other
+
 
 mreTrain = meanRelError(ŷtrain,ytrain)
 
@@ -109,27 +134,23 @@ endc = size(x,1)
 plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period")
 
 
-bestDepth, bestMre = findBestDepth("RandomForest",xtrain,ytrain,xval,yval,1:20)
+(bestMre,bestMaxDepth,bestMaxFeatures,bestNTrees) = tuneHyperParameters("RandomForest",xtrain,ytrain,xval,yval,
+           maxDepthsRange=13:2:21,maxFeaturesRange=8:2:12,nTreesRange=15:5:30,repetitions=5,rng=copy(FIXEDRNG))
 
-myForest = buildForest(convert(Matrix,xtrain),ytrain, 100, maxDepth=bestDepth,β=0,oob=true)
+
+myForest = buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatures=bestMaxFeatures,oob=true,rng=copy(FIXEDRNG))
 oobError = myForest.oobError # note: Here the oob reported is different than the testing error. Why? Because the division between training/validation a,d testing is not random, but has a temporal basis. It seems in this example that data in validation/testing feel a different pattern/variance than those in training
 
 ŷtrain = Trees.predict(myForest, xtrain)
 ŷval   = Trees.predict(myForest, xval)
 ŷtest  = Trees.predict(myForest, xtest)
-
-updateTreesWeights!(myForest,xtrain,ytrain,β=500)
-
-ŷtrain2 = Trees.predict(myForest, xtrain)
-ŷval2   = Trees.predict(myForest, xval)
-ŷtest2  = Trees.predict(myForest, xtest)
-
-
-
 (mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest])
 
 
-
+updateTreesWeights!(myForest,xtrain,ytrain;β=500)
+ŷtrain2 = Trees.predict(myForest, xtrain)
+ŷval2   = Trees.predict(myForest, xval)
+ŷtest2  = Trees.predict(myForest, xtest)
 (mreTrain2, mreVal2, mreTest2) = meanRelError.([ŷtrain2,ŷval2,ŷtest2],[ytrain,yval,ytest])
 
 
