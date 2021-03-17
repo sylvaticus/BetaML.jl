@@ -12,9 +12,9 @@
 
 # ## Library and data loading
 
-using LinearAlgebra, Random, DataFrames, CSV, StatsPlots, StableRNGs, BetaML.Perceptron, BetaML.Nn, BetaML.Trees
+using LinearAlgebra, Random, DataFrames, CSV, StatsPlots,  BetaML
 import Distributions: Uniform
-using DecisionTree # for comparision
+import DecisionTree # for comparision
 
 using BetaML  # only needed to get the relative path in importing data
 baseDir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","A regression task: sharing bike demand prediction")
@@ -43,63 +43,71 @@ y    = data[:,16]
 # BetaML doesn't have a diedicated function for hyperparameters optimisation, but it is easy to write some custom julia code, at least for a simple grid-based "search". Indeed the reason that a dedicated function exists in other Machine Learning libraries is that loops in other languages are slow, but this is not a problem in Julia, so you can retain the flexibility to write the kind of hyperparameter tuning that best fits your needs.
 # Below if an example of a possible such function. Note there are more "elegant" ways to code it, but this one does the job. We will see the various functions inside `tuneHyperParameters()` in a moment. For now let's going just to observe that `tuneHyperParameters` just loops over all the possible hyperparameter and select the one where the error between xval and yval is minimised.
 
-function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthsRange=1:15,maxFeaturesRange=5:12,nTreesRange=20:20,repetitions=5,rng=Random.GLOBAL_RNG)
+function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthsRange=15:15,maxFeaturesRange=size(xtrain,2):size(xtrain,2),nTreesRange=20:20,βRange=0:0,minRecordsRange=2:2,repetitions=5,rng=Random.GLOBAL_RNG)
     # We start with an infinititly high error
     bestMre         = +Inf
     bestMaxDepth    = 1
     bestMaxFeatures = 1
+    bestMinRecords  = 2
     bestNTrees      = 1
+    bestβ           = 0
     # We loop over all possible hyperparameter combinations...
     for maxDepth in maxDepthsRange
         for maxFeatures in maxFeaturesRange
-            for nTrees in nTreesRange
-               totAttemptError = 0.0
-               # We run several repetitions with the same hyperparameter combination to account for stochasticity...
-               for r in 1:repetitions
-                  if model == "DecisionTree"
-                     # here we train the Decition Tree model
-                     myTrainedModel = buildTree(xtrain,ytrain, maxDepth=maxDepth,maxFeatures=maxFeatures,rng=rng)
-                  else
-                     # Here we train the Random Forest model
-                     myTrainedModel = buildForest(xtrain,ytrain,nTrees,maxDepth=maxDepth,maxFeatures=maxFeatures, rng=rng)
-                  end
-                  # Here we make prediciton with this trained model and we compute its error
-                  ŷval   = Trees.predict(myTrainedModel, xval)
-                  mreVal = meanRelError(ŷval,yval)
-                  totAttemptError += mreVal
-               end
-               avgAttemptedDepthError = totAttemptError / repetitions
-               # Select this specific combination of hyperparameters if its error is the lowest
-               if avgAttemptedDepthError < bestMre
-                 bestMre         = avgAttemptedDepthError
-                 bestMaxDepth    = maxDepth
-                 bestMaxFeatures = maxFeatures
-                 bestNTrees      = nTrees
+            for minRecords in minRecordsRange
+                for nTrees in nTreesRange
+                   for β in βRange
+                       totAttemptError = 0.0
+                       # We run several repetitions with the same hyperparameter combination to account for stochasticity...
+                       for r in 1:repetitions
+                          if model == "DecisionTree"
+                             # here we train the Decition Tree model
+                             myTrainedModel = buildTree(xtrain,ytrain, maxDepth=maxDepth,maxFeatures=maxFeatures,minRecords=minRecords,rng=rng)
+                          else
+                             # Here we train the Random Forest model
+                             myTrainedModel = buildForest(xtrain,ytrain,nTrees,maxDepth=maxDepth,maxFeatures=maxFeatures,minRecords=minRecords,β=β,rng=rng)
+                          end
+                          # Here we make prediciton with this trained model and we compute its error
+                          ŷval   = predict(myTrainedModel, xval,rng=rng)
+                          mreVal = meanRelError(ŷval,yval)
+                          totAttemptError += mreVal
+                       end
+                       avgAttemptedDepthError = totAttemptError / repetitions
+                       # Select this specific combination of hyperparameters if its error is the lowest
+                       if avgAttemptedDepthError < bestMre
+                         bestMre         = avgAttemptedDepthError
+                         bestMaxDepth    = maxDepth
+                         bestMaxFeatures = maxFeatures
+                         bestNTrees      = nTrees
+                         bestβ           = β
+                         bestMinRecords  = minRecords
+                       end
+                   end
                end
            end
       end
     end
-    return (bestMre,bestMaxDepth,bestMaxFeatures,bestNTrees)
+
+    return (bestMre,bestMaxDepth,bestMaxFeatures,bestMinRecords,bestNTrees,bestβ)
 end
 
 # We can now run the hyperparameter optimisation function with some "reasonable" range:
-(bestMre,bestMaxDepth,bestMaxFeatures,bestNTrees) = tuneHyperParameters("DecisionTree",xtrain,ytrain,xval,yval,
-           maxDepthsRange=1:15,maxFeaturesRange=8:12,repetitions=5,rng=copy(FIXEDRNG))
+(bestMre,bestMaxDepth,bestMaxFeatures,bestMinRecords) = tuneHyperParameters("DecisionTree",xtrain,ytrain,xval,yval,
+           maxDepthsRange=3:7,maxFeaturesRange=10:12,minRecordsRange=2:6,repetitions=5,rng=copy(FIXEDRNG))
 
 # Now that we have the "optimal" hyperparameters we can build ("train") our model using them:
-myTree = buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,rng=copy(FIXEDRNG))
+myTree = buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,rng=copy(FIXEDRNG))
 
 # The above function produce a DecisionTree object that can now be used to make predictions given some features, i.e. given some X matrix of (number of observations x dimensions) predict the relative Y vector of scalers in R.
-(ŷtrain,ŷval,ŷtest) = Trees.predict.([myTree], [xtrain,xval,xtest])
+(ŷtrain,ŷval,ŷtest) = predict.([myTree], [xtrain,xval,xtest])
 
-Note that the above code uses the "dot syntax" to "broadcast" `Trees.predict()` over an array of label matrices. It is exactly equivalent to:
-
+# Note that the above code uses the "dot syntax" to "broadcast" `predict()` over an array of label matrices. It is exactly equivalent to:
 
 ŷtrain = predict(myTree, xtrain)
-ŷval   = Trees.predict(myTree, xval)
-ŷtest  = Trees.predict(myTree, xtest)
+ŷval   = predict(myTree, xval)
+ŷtest  = predict(myTree, xtest)
 
-Also note that we use the fully qualified name `Trees.predict` as we loaded other
+# Also note that we use the fully qualified name `predict` as we loaded other
 
 
 mreTrain = meanRelError(ŷtrain,ytrain)
@@ -134,36 +142,27 @@ endc = size(x,1)
 plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period")
 
 
-(bestMre,bestMaxDepth,bestMaxFeatures,bestNTrees) = tuneHyperParameters("RandomForest",xtrain,ytrain,xval,yval,
-           maxDepthsRange=13:2:21,maxFeaturesRange=8:2:12,nTreesRange=15:5:30,repetitions=5,rng=copy(FIXEDRNG))
+(bestMre,bestMaxDepth,bestMaxFeatures,bestMinRecords,bestNTrees,bestβ) = tuneHyperParameters("RandomForest",xtrain,ytrain,xval,yval,
+          maxDepthsRange=size(x,1):size(x,1),maxFeaturesRange=Int(round(sqrt(size(x,2)))):Int(round(sqrt(size(x,2)))),
+          minRecordsRange=4:6,nTreesRange=15:5:25,βRange=[0;10;50;100:100:500],repetitions=5,rng=copy(FIXEDRNG))
 
-
-myForest = buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatures=bestMaxFeatures,oob=true,rng=copy(FIXEDRNG))
+myForest = buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,β=bestβ,oob=true,rng=copy(FIXEDRNG))
 oobError = myForest.oobError # note: Here the oob reported is different than the testing error. Why? Because the division between training/validation a,d testing is not random, but has a temporal basis. It seems in this example that data in validation/testing feel a different pattern/variance than those in training
 
-ŷtrain = Trees.predict(myForest, xtrain)
-ŷval   = Trees.predict(myForest, xval)
-ŷtest  = Trees.predict(myForest, xtest)
+(ŷtrain,ŷval,ŷtest)         = predict.([myForest], [xtrain,xval,xtest])
 (mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest])
 
 
-updateTreesWeights!(myForest,xtrain,ytrain;β=500)
-ŷtrain2 = Trees.predict(myForest, xtrain)
-ŷval2   = Trees.predict(myForest, xval)
-ŷtest2  = Trees.predict(myForest, xtest)
-(mreTrain2, mreVal2, mreTest2) = meanRelError.([ŷtrain2,ŷval2,ŷtest2],[ytrain,yval,ytest])
+scatter(ytrain,ŷtrain,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in training period")
 
+scatter(yval,ŷval,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in validation period")
 
-scatter(ytrain,ŷtrain2,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in training period")
-
-scatter(yval,ŷval2,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in validation period")
-
-scatter(ytest,ŷtest2,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in testing period")
+scatter(ytest,ŷtest,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in testing period")
 
 # Full period plot (2 years)
-ŷtrainfull = vcat(ŷtrain2,fill(missing,nval+ntest))
-ŷvalfull = vcat(fill(missing,ntrain), ŷval2, fill(missing,ntest))
-ŷtestfull = vcat(fill(missing,ntrain+nval), ŷtest2)
+ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
+ŷvalfull = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
+ŷtestfull = vcat(fill(missing,ntrain+nval), ŷtest)
 plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period")
 
 # Focus on testing data
@@ -171,12 +170,12 @@ stc = 620
 endc = size(x,1)
 plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period")
 
-Comparision with DecisionTree
+# ##Comparision with DecisionTree
 
 n_subfeatures=-1; n_trees=30; partial_sampling=1; max_depth=26
 min_samples_leaf=2; min_samples_split=2; min_purity_increase=0.0; seed=3
 
-model = build_forest(ytrain, convert(Matrix,xtrain),
+model = DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
                      n_subfeatures,
                      n_trees,
                      partial_sampling,
@@ -186,11 +185,15 @@ model = build_forest(ytrain, convert(Matrix,xtrain),
                      min_purity_increase;
                      rng = seed)
 
-
-
-ŷtrain = apply_forest(model,convert(Matrix,xtrain))
-ŷval = apply_forest(model,convert(Matrix,xval))
-ŷtest = apply_forest(model,convert(Matrix,xtest))
-
-
+(ŷtrain,ŷval,ŷtest) = DecisionTree.apply_forest.([model],[xtrain,xval,xtest])
 (mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest])
+
+ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
+ŷvalfull = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
+ŷtestfull = vcat(fill(missing,ntrain+nval), ŷtest)
+plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period")
+
+# Focus on testing data
+stc = 620
+endc = size(x,1)
+plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period")

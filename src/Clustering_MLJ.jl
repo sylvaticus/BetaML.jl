@@ -100,7 +100,7 @@ function MMI.fit(m::GMM, verbosity, X, y)
     # X is nothing, y is the data: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/#Models-that-learn-a-probability-distribution-1
     y          = MMI.matrix(y) # convert table to matrix
     res        = gmm(y,m.K,p₀=m.p₀,mixtures=m.mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE)
-    fitResults = (res.pₙₖ,res.pₖ,res.mixtures)
+    fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
     return (fitResults, cache, report)
@@ -109,7 +109,7 @@ end
 function MMI.fit(m::MissingImputator, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
     res        = gmm(x,m.K,p₀=m.p₀,mixtures=m.mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE)
-    fitResults = (res.pₙₖ,res.pₖ,res.mixtures)
+    fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # pₙₖ=res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
     return (fitResults, cache, report)
@@ -148,7 +148,7 @@ end
 function MMI.predict(m::GMM, fitResults, X)
     x               = MMI.matrix(X) # convert table to matrix
     (N,D)           = size(x)
-    (pₙₖ,pₖ,mixtures) = fitResults
+    (pₖ,mixtures)   = (fitResults.pₖ, fitResults.mixtures)
     nCl             = length(pₖ)
     # Compute the probabilities that maximise the likelihood given existing mistures and a single iteration (i.e. doesn't update the mixtures)
     thisOut         = gmm(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1)
@@ -157,14 +157,14 @@ function MMI.predict(m::GMM, fitResults, X)
     return predictions
 end
 
-""" predict(m::MissingImputator, fitResults, X) - Given a trained imputator model fill the missing data of some new observations"""
-function MMI.predict(m::MissingImputator, fitResults, X)
-    x               = MMI.matrix(X) # convert table to matrix
-    (N,D)           = size(x)
-    (pₙₖ,pₖ,mixtures) = fitResults
-    nCl             = length(pₖ)
+""" transform(m::MissingImputator, fitResults, X) - Given a trained imputator model fill the missing data of some new observations"""
+function MMI.transform(m::MissingImputator, fitResults, X)
+    x             = MMI.matrix(X) # convert table to matrix
+    (N,D)         = size(x)
+    (pₖ,mixtures) = fitResults.pₖ, fitResults.mixtures   #
+    nCl           = length(pₖ)
     # Fill the missing data of this "new X" using the mixtures computed in the fit stage
-    xout         = predictMissing(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1)
+    xout          = predictMissing(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1)
     return MMI.table(xout.X̂)
 end
 
@@ -173,12 +173,12 @@ function MMI.transform(m::GMM, fitResults, X)
     return MMI.predict(m::GMM, fitResults, X)
 end
 
-""" transform(m::MissingImputator, X) - Given a matrix with missing value, impute them using an EM algorithm"""
-function MMI.transform(m::MissingImputator, X)
-    x    = MMI.matrix(X) # convert table to matrix
-    xout = predictMissing(x,m.K;p₀=m.p₀,mixtures=m.mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy=m.initStrategy)
-    return MMI.table(xout.X̂)
-end
+#""" transform(m::MissingImputator, X) - Given a matrix with missing value, impute them using an EM algorithm"""
+#function MMI.transform(m::MissingImputator, X)
+#    x    = MMI.matrix(X) # convert table to matrix
+#    xout = predictMissing(x,m.K;p₀=m.p₀,mixtures=m.mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy=m.initStrategy)
+#    return MMI.table(xout.X̂)
+#end
 
 # ------------------------------------------------------------------------------
 # Model metadata for registration in MLJ...

@@ -28,7 +28,7 @@ Please refer to the package documentation ([stable](https://sylvaticus.github.io
 
 We currently implemented the following modules: [Perceptron](https://sylvaticus.github.io/BetaML.jl/dev/Perceptron.html) (linear and kernel-based classifiers), [Trees](https://sylvaticus.github.io/BetaML.jl/dev/Trees.html) (Decision Trees and Random Forests), [Nn](https://sylvaticus.github.io/BetaML.jl/dev/Nn.html) (Neural Networks), [Clustering](https://sylvaticus.github.io/BetaML.jl/dev/Clustering.html) (Kmean, Kmenoids, Expectation-Maximisation, Missing value imputation, ...) and [Utils](https://sylvaticus.github.io/BetaML.jl/dev/Utils.html).
 
-We also provide some [notebooks](https://sylvaticus.github.io/BetaML.jl/dev/Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
+We also provide some [notebooks](https://sylvaticus.github.io/BetaML.jl/dev/Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes. [under re-arrangement]
 
 If you are looking for an introductory book on Julia, have a look on "[Julia Quick Syntax Reference](https://www.julia-book.com/)"(Apress,2019).
 
@@ -44,7 +44,7 @@ The first two algorithms are example of _supervised_ learning, the third one of 
 - **Using Random Forests for classification**
 
 ```julia
-using DelimitedFiles, BetaML.Trees
+using DelimitedFiles, BetaML
 
 iris  = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
 x = iris[:,1:4]
@@ -52,8 +52,8 @@ y = iris[:,5]
 ((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3])
 (ytrain,ytest) = dropdims.([ytrain,ytest],dims=2)
 myForest       = buildForest(xtrain,ytrain,30)
-ŷtrain         = Trees.predict(myForest, xtrain)
-ŷtest          = Trees.predict(myForest, xtest)
+ŷtrain         = predict(myForest, xtrain)
+ŷtest          = predict(myForest, xtest)
 trainAccuracy  = accuracy(ŷtrain,ytrain) # 1.00
 testAccuracy   = accuracy(ŷtest,ytest)   # 0.956
 ```
@@ -62,19 +62,18 @@ testAccuracy   = accuracy(ŷtest,ytest)   # 0.956
 
 ```julia
 # Load Modules
-using BetaML.Nn, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
+using BetaML, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
 Random.seed!(123); # Fix the random seed (to obtain reproducible results)
 
 # Load the data
-iris  = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
+iris     = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
 iris     = iris[shuffle(axes(iris, 1)), :] # Shuffle the records, as they aren't by default
 x        = convert(Array{Float64,2}, iris[:,1:4])
 y        = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iris[:, 5]) # Convert the target column to numbers
 y_oh     = oneHotEncoder(y) # Convert to One-hot representation (e.g. 2 => [0 1 0], 3 => [0 0 1])
 
 # Split the data in training/testing sets
-((xtrain,xtest),(ytrain,ytest),(ytrain_oh,ytest_oh)) = Utils.partition([x,y,y_oh],[0.8,0.2],shuffle=false)
-(ytrain,ytest)  = dropdims.([ytrain,ytest],dims=2)
+((xtrain,xtest),(ytrain,ytest),(ytrain_oh,ytest_oh)) = partition([x,y,y_oh],[0.8,0.2],shuffle=false)
 (ntrain, ntest) = size.([xtrain,xtest],1)
 
 # Define the Artificial Neural Network model
@@ -104,7 +103,7 @@ plot(0:res.epochs,res.ϵ_epochs, ylabel="epochs",xlabel="error",legend=nothing,t
 - **Using the Expectation-Maximisation algorithm for clustering**
 
 ```julia
-using BetaML.Clustering, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
+using BetaML, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
 Random.seed!(123); # Fix the random seed (to obtain reproducible results)
 
 # Load the data

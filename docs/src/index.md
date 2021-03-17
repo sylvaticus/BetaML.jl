@@ -20,18 +20,13 @@ The BetaML package is now included in the standard Julia register, install it wi
 
 ## Loading the module(s)
 
-This package is split in several submodules. You can access its functionality either by `using` the specific submodule of interest and then directly the provided functionality (utilities are re-exported by each of the other submodules, so normally you don't need to implicitly import them) or by `using` the root module `BetaML` and then prefix with `BetaML.` each object/function you want to use, e.g.:
-
-```julia
-using BetaML.Nn
-myLayer = DenseLayer(2,3)
-```
-
-or, equivalently,
+This package is split in several submodules, but all modules are re-exported at the root module level. This means that you can access their functionality by simply `using BetaML`.
 
 ```julia
 using BetaML
-res = BetaML.kernelPerceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
+myLayer = DenseLayer(2,3) # DenseLayer is defined in the Nn submodule
+res     = kernelPerceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1]) # kernelPerceptron is defined in the Perceptron module
+@edit DenseLayer(2,3)     # Open a text editor with to the relevant source code
 ```
 
 ## Usage
@@ -48,11 +43,13 @@ For a list of supported algorithms please look at the individual modules:
 
 ## Examples
 
+See the tutorial page for a more hand-to-hand to the below and other examples
+
 - **Using an Artificial Neural Network for multinomial categorisation**
 
 ```julia
 # Load Modules
-using BetaML.Nn, BetaML, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
+using BetaML, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
 Random.seed!(123); # Fix the random seed (to obtain reproducible results)
 
 # Load the data
@@ -63,8 +60,7 @@ y        = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iri
 y_oh     = oneHotEncoder(y) # Convert to One-hot representation (e.g. 2 => [0 1 0], 3 => [0 0 1])
 
 # Split the data in training/testing sets
-((xtrain,xtest),(ytrain,ytest),(ytrain_oh,ytest_oh)) = Utils.partition([x,y,y_oh],[0.8,0.2],shuffle=false)
-(ytrain,ytest)  = dropdims.([ytrain,ytest],dims=2)
+((xtrain,xtest),(ytrain,ytest),(ytrain_oh,ytest_oh)) = partition([x,y,y_oh],[0.8,0.2],shuffle=false)
 (ntrain, ntest) = size.([xtrain,xtest],1)
 
 # Define the Artificial Neural Network model
@@ -83,7 +79,7 @@ trainAccuracy = accuracy(ŷtrain,ytrain,tol=1) # 0.983
 testAccuracy  = accuracy(ŷtest,ytest,tol=1)   # 1.0
 
 # Visualise results
-testSize = size(ŷtest,1)
+testSize    = size(ŷtest,1)
 ŷtestChosen =  [argmax(ŷtest[i,:]) for i in 1:testSize]
 groupedbar([ytest ŷtestChosen], label=["ytest" "ŷtest (est)"], title="True vs estimated categories") # All records correctly labelled !
 plot(0:res.epochs,res.ϵ_epochs, ylabel="epochs",xlabel="error",legend=nothing,title="Avg. error per epoch on the Sepal dataset")
@@ -97,7 +93,7 @@ plot(0:res.epochs,res.ϵ_epochs, ylabel="epochs",xlabel="error",legend=nothing,t
 - **Using the Expectation-Maximisation algorithm for clustering**
 
 ```julia
-using BetaML.Clustering, BetaML, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
+using BetaML, DelimitedFiles, Random, StatsPlots # Load the main module and ausiliary modules
 Random.seed!(123); # Fix the random seed (to obtain reproducible results)
 
 # Load the data
