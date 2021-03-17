@@ -45,7 +45,10 @@ module Trees
 
 using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays
 
-@reexport using ..Utils
+using  ForceImport
+@force using ..Api
+@force using ..Utils
+
 
 export buildTree, buildForest, updateTreesWeights!, predictSingle, predict, print
 import Base.print
@@ -537,7 +540,7 @@ function buildForest(x, y::AbstractArray{Ty,1}, nTrees=30; maxDepth = size(x,1),
     (N,D) = size(x)
 
     #rngs = fill(deepcopy(rng),Threads.nthreads()) # One random number generator per thread. No, then each treee would be the same
-    #unused = rand(rng,100000) # I have a bad feeling with this. Is there a better way for  "Different values, but same sequence" ? 
+    #unused = rand(rng,100000) # I have a bad feeling with this. Is there a better way for  "Different values, but same sequence" ?
     rngs = generateParallelRngs(rng,Threads.nthreads())
 
     #for i in 1:nTrees # for easier debugging/profiling...

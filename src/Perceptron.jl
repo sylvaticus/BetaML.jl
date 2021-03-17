@@ -34,13 +34,15 @@ The multi-class versions are available in the MLJ framework as `PerceptronClassi
 module Perceptron
 
 using LinearAlgebra, Random, ProgressMeter, Reexport, CategoricalArrays
-import ..Utils: radialKernel, polynomialKernel, makeMatrix, makeColVector, error, accuracy
 
-@reexport using ..Utils
+using ForceImport
+@force using ..Api
+@force using ..Utils
+
 
 export perceptron, perceptronBinary, kernelPerceptron, kernelPerceptronBinary, pegasos, pegasosBinary, predict
 
-#export radialKernel, polynomialKernel, makeMatrix, error, accuracy
+
 
 # Todo (breaking): change the API so that a struct kernelPerceptronModel or linearModel is reported
 # instead of a named tuple

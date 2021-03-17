@@ -10,6 +10,7 @@ else
     println("Running normal testing")
 end
 
+
 if "all" in ARGS || "Utils" in ARGS || nArgs == 0
     include("Utils_tests.jl")
 end

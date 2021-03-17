@@ -4,7 +4,7 @@ using DelimitedFiles
 import MLJBase
 const Mlj = MLJBase
 #using StableRNGs
-using BetaML.Perceptron
+using BetaML
 
 TESTRNG = FIXEDRNG # This could change...
 
@@ -24,11 +24,11 @@ xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 classes = unique(y)
 out      = perceptron(xtrain, ytrain, shuffle=false,nMsgs=0)
-ŷtrain    = Perceptron.predict(xtrain,out.θ,out.θ₀,out.classes)
+ŷtrain    = predict(xtrain,out.θ,out.θ₀,out.classes)
 ϵtrain    = error(ytrain, mode(ŷtrain))
-ŷtest    = Perceptron.predict(xtest,out.θ,out.θ₀,classes)
+ŷtest    = predict(xtest,out.θ,out.θ₀,classes)
 outTest  = perceptron(xtrain, ytrain, shuffle=false,nMsgs=0,returnMeanHyperplane=true)
-ŷavgtest = Perceptron.predict(xtest,outTest.θ,outTest.θ₀,outTest.classes)
+ŷavgtest = predict(xtest,outTest.θ,outTest.θ₀,outTest.classes)
 ϵ        = error(ytest, mode(ŷtest))
 ϵavg     = error(ytest, mode(ŷavgtest))
 @test ϵ    < 0.03
@@ -46,8 +46,8 @@ ytt2   = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest)
 ytest  = [i > median(ytt2)*1.1 ? "big" :  i > median(ytt2)*0.9 ? "avg" : "small" for i in ytt2]
 
 out    = perceptron(xtrain,  ytrain, shuffle=false,nMsgs=0)
-ŷtrain = Perceptron.predict(xtrain,out.θ,out.θ₀,out.classes)
-ŷtest  = Perceptron.predict(xtest,out.θ,out.θ₀,out.classes)
+ŷtrain = predict(xtrain,out.θ,out.θ₀,out.classes)
+ŷtest  = predict(xtest,out.θ,out.θ₀,out.classes)
 ϵtrain = error(ytrain, mode(ŷtrain))
 ϵtest  = error(ytest, mode(ŷtest))
 
@@ -73,7 +73,7 @@ ytest = [i > median(ytt2) ? 1 : -1 for i in ytt2]
 #ŷtest = predict(xtest,out[1][1],out[1][2],out[1][3], K=polynomialKernel)
 out   = kernelPerceptronBinary(xtrain, ytrain, K=radialKernel,shuffle=false,nMsgs=0,α=ones(Int64,length(ytrain)))
 # the same: out   = kernelPerceptronBinary(xtrain, ytrain, K=radialKernel,shuffle=false,nMsgs=0)
-ŷtest = Perceptron.predict(xtest,out.x,out.y,out.α, K=out.K)
+ŷtest = predict(xtest,out.x,out.y,out.α, K=out.K)
 ϵ = error(ytest, ŷtest)
 ŷtestExpected = [1,-1,-1,-1,-1]
 @test ϵ ≈ 0.2
@@ -82,7 +82,7 @@ ŷtestExpected = [1,-1,-1,-1,-1]
 
 # Multiclass..
 outMultiClass   = kernelPerceptron(xtrain, ytrain, K=radialKernel,shuffle=false,nMsgs=0)
-ŷtest = Perceptron.predict(xtest,outMultiClass.x,outMultiClass.y,outMultiClass.α, outMultiClass.classes,K=outMultiClass.K)
+ŷtest = predict(xtest,outMultiClass.x,outMultiClass.y,outMultiClass.α, outMultiClass.classes,K=outMultiClass.K)
 ϵ = error(ytest, mode(ŷtest))
 ŷtestExpected = [1,-1,-1,-1,-1]
 @test ϵ ≈ 0.2
@@ -99,8 +99,8 @@ ytt2   = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest)
 ytest  = [i > median(ytt2)*1.1 ? "big" :  i > median(ytt2)*0.9 ? "avg" : "small" for i in ytt2]
 
 out    = kernelPerceptron(xtrain,  ytrain, shuffle=false,nMsgs=0,T=1000)
-ŷtrain = Perceptron.predict(xtrain,out.x,out.y,out.α, out.classes,K=out.K)
-ŷtest  = Perceptron.predict(xtest,out.x,out.y,out.α, out.classes,K=out.K)
+ŷtrain = predict(xtrain,out.x,out.y,out.α, out.classes,K=out.K)
+ŷtest  = predict(xtest,out.x,out.y,out.α, out.classes,K=out.K)
 ϵtrain = error(ytrain, mode(ŷtrain))
 ϵtest  = error(ytest, mode(ŷtest))
 
@@ -122,9 +122,9 @@ xtest  = x[161:end,:]
 ytest  = y[161:end]
 
 out   = pegasos(xtrain, ytrain, shuffle=false, nMsgs=0)
-ŷtest = Perceptron.predict(xtest,out.θ,out.θ₀,out.classes)
+ŷtest = predict(xtest,out.θ,out.θ₀,out.classes)
 outAvg   = pegasos(xtrain, ytrain, shuffle=false, nMsgs=0, returnMeanHyperplane=true)
-ŷavgtest = Perceptron.predict(xtest,outAvg.θ,outAvg.θ₀,outAvg.classes)
+ŷavgtest = predict(xtest,outAvg.θ,outAvg.θ₀,outAvg.classes)
 ϵ = error(ytest, mode(ŷtest))
 ϵavg = error(ytest, mode(ŷavgtest))
 @test ϵ ≈ 0.025
@@ -142,8 +142,8 @@ ytt2   = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest)
 ytest  =  [i > median(ytt2)*1.1 ? "big" :  i > median(ytt)*0.9 ? "avg" : "small" for i in ytt2]
 
 out    = pegasos(xtrain,  ytrain, shuffle=false,nMsgs=0)
-ŷtrain = Perceptron.predict(xtrain,out.θ,out.θ₀,out.classes)
-ŷtest  = Perceptron.predict(xtest,out.θ,out.θ₀,out.classes)
+ŷtrain = predict(xtrain,out.θ,out.θ₀,out.classes)
+ŷtest  = predict(xtest,out.θ,out.θ₀,out.classes)
 ϵtrain = error(ytrain, mode(ŷtrain))
 ϵtest  = error(ytest, mode(ŷtest))
 
@@ -164,21 +164,21 @@ xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
 model = perceptron(xtrain,ytrain)
-ŷtrain = Perceptron.predict(xtrain,model.θ,model.θ₀,model.classes)
+ŷtrain = predict(xtrain,model.θ,model.θ₀,model.classes)
 @test accuracy(mode(ŷtrain),ytrain) >= 0.79
-ŷtest = Perceptron.predict(xtest,model.θ,model.θ₀,model.classes)
+ŷtest = predict(xtest,model.θ,model.θ₀,model.classes)
 @test accuracy(mode(ŷtest),ytest)  >= 0.9
 
 model = kernelPerceptron(xtrain,ytrain)
-ŷtrain = Perceptron.predict(xtrain,model.x,model.y,model.α,model.classes)
+ŷtrain = predict(xtrain,model.x,model.y,model.α,model.classes)
 @test accuracy(mode(ŷtrain),ytrain) >= 0.9
-ŷtest = Perceptron.predict(xtest,model.x,model.y,model.α,model.classes)
+ŷtest = predict(xtest,model.x,model.y,model.α,model.classes)
 @test accuracy(mode(ŷtest),ytest)  >= 0.9
 
 model = pegasos(xtrain,ytrain)
-ŷtrain = Perceptron.predict(xtrain,model.θ,model.θ₀,model.classes)
+ŷtrain = predict(xtrain,model.θ,model.θ₀,model.classes)
 @test accuracy(mode(ŷtrain),ytrain) >= 0.64
-ŷtest = Perceptron.predict(xtest,model.θ,model.θ₀,model.classes)
+ŷtest = predict(xtest,model.θ,model.θ₀,model.classes)
 @test accuracy(mode(ŷtest),ytest)  >= 0.76
 
 # ==================================

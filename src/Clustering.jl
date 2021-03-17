@@ -32,9 +32,10 @@ The module provides the following functions. Use `?[function]` to access their f
 module Clustering
 
 using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays
-#using Distributions
 
-@reexport using ..Utils
+using  ForceImport
+@force using ..Api
+@force using ..Utils
 
 export initRepresentatives, kmeans, kmedoids, gmm, predictMissing
 

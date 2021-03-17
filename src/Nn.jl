@@ -70,20 +70,10 @@ import Base.Threads.@spawn
 using Random, Zygote, ProgressMeter, Reexport
 import Distributions: Uniform
 
+using ForceImport
+@force using ..Api
+@force using ..Utils
 
-@reexport using ..Utils
-
-#=
-@reexport import ..Utils: relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax,
-      dSoftMax, autoJacobian,
-      squaredCost,dSquaredCost,
-      accuracy,
-      makeMatrix, makeColVector,
-      #gradientDescentSingleUpdate,
-      oneHotEncoder,
-      getScaleFactors, scale, batch,
-      Verbosity, NONE, LOW, STD, HIGH, FULL
-=#
 import Base.size
 import Base: +, -, *, /, sum, sqrt
 
@@ -93,16 +83,6 @@ export Layer, forward, backward, getParams, getNParams, getGradient, setParams!,
        DenseLayer, DenseNoBiasLayer, VectorFunctionLayer,
        Learnable,
        show
-
-#=
-#reexport from utils   :
-export relu, drelu, didentity, dtanh, sigmoid, dsigmoid, softMax, dSoftMax,
-       autoJacobian,
-       accuracy,
-       squaredCost, dSquaredCost, makeMatrix, makeColVector, oneHotEncoder,
-       getScaleFactors, scale, batch,
-       Verbosity, NONE, LOW, STD, HIGH, FULL,
-=#
 
 # for working on gradient as e.g [([1.0 2.0; 3.0 4.0], [1.0,2.0,3.0]),([1.0,2.0,3.0],1.0)]
 """

@@ -6,7 +6,7 @@ using Test
 
 import MLJBase
 const Mlj = MLJBase
-using BetaML.Clustering
+using BetaML
 
 TESTRNG = FIXEDRNG # This could change...
 
@@ -114,7 +114,7 @@ yhat                           = Mlj.predict(model, fitResults, X)
 acc = accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
 @test acc > 0.8
 
-model                       =  Clustering.GMM(rng=copy(TESTRNG))
+model                       =  GMM(rng=copy(TESTRNG))
 modelMachine                =  Mlj.machine(model, nothing, X) # DimensionMismatch
 (fitResults, cache, report) =  Mlj.fit(model, 0, nothing, X)
 yhat_prob                   =  Mlj.transform(model,fitResults,X)
@@ -123,7 +123,7 @@ yhat_prob                   =  Mlj.predict(model, fitResults, X)
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 X = Mlj.table(X)
-model                       =  Clustering.MissingImputator(rng=copy(TESTRNG))
+model                       =  MissingImputator(rng=copy(TESTRNG))
 modelMachine                =  Mlj.machine(model,X)
 XD                          =  Mlj.transform(model,X)
 XDM                         =  Mlj.matrix(XD)

@@ -34,20 +34,31 @@ module BetaML
 import MLJModelInterface
 const MMI = MLJModelInterface
 
-include("Utils.jl")
-using .Utils
-include("Nn.jl")
-using .Nn
-include("Perceptron.jl")
-using .Perceptron
-include("Trees.jl")
-using .Trees
-include("Clustering.jl")
-using .Clustering
+using ForceImport, Reexport
+
+include("Api.jl")        # Shared names across modules
+include("Utils.jl")      # Utility function
+include("Nn.jl")         # Neural Networks
+include("Perceptron.jl") # Perceptron-like algorithms
+include("Trees.jl")      # Decision Trees and ensembles (Random Forests)
+include("Clustering.jl") # Clustering algorithms
+
+# "Merging" of the modules...
+@force    using .Api
+@reexport using .Api
+@force    using .Utils
+@reexport using .Utils
+@force    using .Nn
+@reexport using .Nn
+@force    using .Perceptron
+@reexport using .Perceptron
+@force    using .Trees
+@reexport using .Trees
+@force    using .Clustering
+@reexport using .Clustering
 
 # ------------------------------------------------------------------------------
 #MLJ interface...
-
 const MLJ_PERCEPTRON_MODELS = (PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier)
 const MLJ_TREES_MODELS      = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
 const MLJ_CLUSTERING_MODELS = (KMeans, KMedoids, GMM, MissingImputator)
@@ -63,5 +74,6 @@ function __init__()
         is_wrapper = false,    # does it wrap around some other package?
     )
 end
+
 
 end # module

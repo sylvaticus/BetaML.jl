@@ -19,7 +19,10 @@ Provide shared utility functions for various machine learning algorithms. You do
 """
 module Utils
 
-using LinearAlgebra, Random, Statistics, Future, Combinatorics, Zygote, CategoricalArrays, StableRNGs
+using LinearAlgebra, Random, Statistics, Future, Combinatorics, Zygote, CategoricalArrays
+
+using ForceImport
+@force using ..Api
 
 export Verbosity, NONE, LOW, STD, HIGH, FULL,
        FIXEDSEED, FIXEDRNG, @codeLocation, generateParallelRngs,
@@ -36,10 +39,6 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        radialKernel, polynomialKernel
 
 
-#export @reexport
-
-
-
 @enum Verbosity NONE=0 LOW=10 STD=20 HIGH=30 FULL=40
 
 """
@@ -50,7 +49,7 @@ This is the seed used to obtain the same results under unit tests.
 
 Use it with:
 - `myAlgorithm(;rng=FIXEDRNG)`             # always produce the same sequence of results on each run of the script ("pulling" from the same rng object on different calls)
-- `myAlgorithm(;rng=StableRNG(FIXEDSEED))` # always produce the same result (new rng object on each call)
+- `myAlgorithm(;rng=copy(FIXEDRNG)`        # always produce the same result (new rng object on each call)
 """
 const FIXEDSEED = 123
 
@@ -96,7 +95,7 @@ Use it with `rngs = generateParallelRngs(rng,Threads.nthreads())`
 """
 function generateParallelRngs(rng::AbstractRNG, n::Integer)
     step = rand(rng,big(10)^20:big(10)^40) # making the step random too !
-    rngs = Vector{Union{MersenneTwister,Random._GLOBAL_RNG,StableRNGs.LehmerRNG}}(undef, n) # Vector{typeof(rng)}(undef, n)
+    rngs = Vector{Union{MersenneTwister,Random._GLOBAL_RNG}}(undef, n) # Vector{typeof(rng)}(undef, n)
     rngs[1] = copy(rng)
     for i = 2:n
         rngs[i] = Future.randjump(rngs[i-1], step)

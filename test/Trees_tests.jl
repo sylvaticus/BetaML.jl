@@ -4,7 +4,7 @@ import MLJBase
 const Mlj = MLJBase
 #using StableRNGs
 #rng = StableRNG(123)
-using BetaML.Trees
+using BetaML
 
 TESTRNG = FIXEDRNG # This could change...
 
@@ -26,7 +26,7 @@ xtrain = [
 ytrain = ["Apple",  "Apple", "Grape", "Grape", "Lemon"]
 myTree = buildTree(xtrain,ytrain,rng=copy(TESTRNG))
 
-ŷtrain = Trees.predict(myTree, xtrain,rng=copy(TESTRNG))
+ŷtrain = predict(myTree, xtrain,rng=copy(TESTRNG))
 @test accuracy(ŷtrain,ytrain) >= 0.8
 
 xtest = [
@@ -38,7 +38,7 @@ xtest = [
 ]
 
 ytest = ["Apple","Apple","Grape","Grape","Lemon"]
-ŷtest = Trees.predict(myTree, xtest,rng=copy(TESTRNG))
+ŷtest = predict(myTree, xtest,rng=copy(TESTRNG))
 @test accuracy(ŷtest,ytest) >= 0.8
 
 #print(myTree)
@@ -57,9 +57,9 @@ xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
 myTree = buildTree(xtrain,ytrain, splittingCriterion=entropy,rng=copy(TESTRNG))
-ŷtrain = Trees.predict(myTree, xtrain,rng=copy(TESTRNG))
+ŷtrain = predict(myTree, xtrain,rng=copy(TESTRNG))
 @test accuracy(ŷtrain,ytrain) >= 0.99
-ŷtest = Trees.predict(myTree, xtest,rng=copy(TESTRNG))
+ŷtest = predict(myTree, xtest,rng=copy(TESTRNG))
 @test accuracy(ŷtest,ytest)  >= 0.95
 
 # ==================================
@@ -74,8 +74,8 @@ xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
 ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest))]
 
 myTree = buildTree(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3,rng=copy(TESTRNG))
-ŷtrain = Trees.predict(myTree, xtrain,rng=copy(TESTRNG))
-ŷtest = Trees.predict(myTree, xtest,rng=copy(TESTRNG))
+ŷtrain = predict(myTree, xtrain,rng=copy(TESTRNG))
+ŷtest = predict(myTree, xtest,rng=copy(TESTRNG))
 mreTrain = meanRelError(ŷtrain,ytrain)
 @test mreTrain <= 0.06
 mreTest  = meanRelError(ŷtest,ytest)
@@ -99,14 +99,14 @@ myForest = buildForest(xtrain,ytrain,β=0,maxDepth=20,oob=true,rng=copy(TESTRNG)
 trees = myForest.trees
 treesWeights = myForest.weights
 oobError = myForest.oobError
-ŷtrain = Trees.predict(myForest, xtrain,rng=copy(TESTRNG))
+ŷtrain = predict(myForest, xtrain,rng=copy(TESTRNG))
 @test accuracy(ŷtrain,ytrain) >= 0.96
-ŷtest = Trees.predict(myForest, xtest,rng=copy(TESTRNG))
+ŷtest = predict(myForest, xtest,rng=copy(TESTRNG))
 @test accuracy(ŷtest,ytest)  >= 0.96
 updateTreesWeights!(myForest,xtrain,ytrain;β=1)
-ŷtrain2 = Trees.predict(myForest, xtrain,rng=copy(TESTRNG))
+ŷtrain2 = predict(myForest, xtrain,rng=copy(TESTRNG))
 @test accuracy(ŷtrain2,ytrain) >= 0.98
-ŷtest2 = Trees.predict(myForest, xtest,rng=copy(TESTRNG))
+ŷtest2 = predict(myForest, xtest,rng=copy(TESTRNG))
 @test accuracy(ŷtest2,ytest)  >= 0.96
 @test oobError <= 0.1
 
@@ -126,16 +126,16 @@ myForest         = buildForest(xtrain,ytrain, minGain=0.001, minRecords=2, maxDe
 trees            = myForest.trees
 treesWeights     = myForest.weights
 
-ŷtrain           = Trees.predict(myForest, xtrain,rng=copy(TESTRNG))
-ŷtest            = Trees.predict(myForest, xtest,rng=copy(TESTRNG))
+ŷtrain           = predict(myForest, xtrain,rng=copy(TESTRNG))
+ŷtest            = predict(myForest, xtest,rng=copy(TESTRNG))
 mreTrain         = meanRelError(ŷtrain,ytrain)
 @test mreTrain <= 0.08
 mreTest  = meanRelError(ŷtest,ytest)
 @test mreTest <= 0.4
 
 updateTreesWeights!(myForest,xtrain,ytrain;β=50)
-ŷtrain2 = Trees.predict(myForest, xtrain,rng=copy(TESTRNG))
-ŷtest2 = Trees.predict(myForest, xtest,rng=copy(TESTRNG))
+ŷtrain2 = predict(myForest, xtrain,rng=copy(TESTRNG))
+ŷtest2 = predict(myForest, xtest,rng=copy(TESTRNG))
 mreTrain = meanRelError(ŷtrain2,ytrain)
 @test mreTrain <= 0.08
 mreTest  = meanRelError(ŷtest2,ytest)
@@ -220,8 +220,8 @@ y = convert(Vector{String},  data[:,4])
 ((xtrain,xtest),(ytrain,ytest)) = Utils.partition([X,y],[0.7,0.3],shuffle=false,rng=copy(TESTRNG))
 
 modelβ = buildForest(xtrain,ytrain,5,rng=copy(TESTRNG))
-ŷtestβ = Trees.predict(modelβ,xtest,rng=copy(TESTRNG))
-accβ   = Trees.accuracy(ŷtestβ,ytest)
+ŷtestβ = predict(modelβ,xtest,rng=copy(TESTRNG))
+accβ   = accuracy(ŷtestβ,ytest)
 @test accβ >= 0.25
 
 # ==================================
