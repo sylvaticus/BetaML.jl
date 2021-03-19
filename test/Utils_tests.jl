@@ -2,6 +2,7 @@ using Test, Statistics, CategoricalArrays, Random
 #using StableRNGs
 #rng = StableRNG(123)
 using BetaML
+import BetaML.Utils
 
 TESTRNG = FIXEDRNG # This could change...
 
@@ -14,10 +15,31 @@ println("Going through Test1 (oneHotEncoder)...")
 a = [[1,3,4],[1,4,2,2,3],[2,3]]
 b = [2,1,5,2,1]
 c = 2
-ae = oneHotEncoder(a,5,count=true)
-be = oneHotEncoder(b,6,count=true)
-ce = oneHotEncoder(c,6)
+ae = oneHotEncoder(a;d=5,count=true)
+be = oneHotEncoder(b;d=6,count=true)
+ce = oneHotEncoder(c;d=6)
 @test sum(ae*be*ce') == 4
+
+a = [["aa","ee","dd","aa"],["aa","dd","bb","bb","dd"],["bb","ee"]]
+b = ["a","d","b","b","d"]
+c = "dd"
+ae = oneHotEncoder(a,factors=["aa","bb","cc","dd","ee","ff"],count=true)
+be = oneHotEncoder(b,factors=["a","b","c","d","e","f"],count=true)
+ce = oneHotEncoder(c,factors=["aa","bb","cc","dd","ee","ff"],count=false)
+@test sum(ae * be') + ce[1,2] == 15
+
+ae = oneHotEncoder(a,count=true)
+be = oneHotEncoder(b,count=false)
+ce = oneHotEncoder(c,count=true)
+@test sum(ae)+sum(size(be))+sum(ce) == 20
+
+@test BetaML.Utils.singleUnique([[1,2,3],[7,8],[5]]) == [1,2,3,7,8,5]
+@test BetaML.Utils.singleUnique([1,4,5,4]) == [1,4,5]
+@test BetaML.Utils.singleUnique("aaa") == ["aaa"]
+
+@test BetaML.Utils.oneHotEncoderRow(4,d=5) == [0,0,0,1,0]
+@test BetaML.Utils.oneHotEncoderRow("b",factors=["a","b","c"]) == [0,1,0]
+@test BetaML.Utils.oneHotEncoderRow(["b","c","c"],factors=["a","b","c"],count=true) == [0,1,2]
 
 # ==================================
 # NEW TEST
@@ -31,12 +53,11 @@ A = [3 2 1; 2 3 1; 1 2 3]
 @test findall(2,A)       == [(2,1),(1,2),(3,2)]
 @test findfirst(2,A;returnTuple=false) == CartesianIndex(2,1)
 
-encoded  = integerEncoder(a)
-uniquea  = unique(a)
-decoded  = integerDecoder(encoded,a,unique=false)
-decoded2 = integerDecoder(encoded,uniquea)
-@test a == decoded == decoded2
-
+factors =  ["aa","bb","cc"]
+encoded  = integerEncoder(a,factors=factors)
+@test encoded == [1,3,3,2,3,1]
+decoded  = integerDecoder(encoded,factors)
+@test a == decoded
 
 
 # ==================================

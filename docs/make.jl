@@ -1,4 +1,4 @@
-using Documenter, Literate, BetaML.Utils, BetaML.Nn, BetaML.Perceptron, BetaML.Clustering, BetaML.Trees, Test
+using Documenter, Literate, BetaML, Test
 
 push!(LOAD_PATH,"../src/")
 

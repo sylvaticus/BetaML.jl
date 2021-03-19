@@ -94,6 +94,7 @@ Use it with `rngs = generateParallelRngs(rng,Threads.nthreads())`
 
 """
 function generateParallelRngs(rng::AbstractRNG, n::Integer)
+    # see also here for a workaround that would allow StableRNGs back: https://github.com/JuliaRandom/StableRNGs.jl/issues/8#issuecomment-801892721
     step = rand(rng,big(10)^20:big(10)^40) # making the step random too !
     rngs = Vector{Union{MersenneTwister,Random._GLOBAL_RNG}}(undef, n) # Vector{typeof(rng)}(undef, n)
     rngs[1] = copy(rng)
@@ -109,7 +110,7 @@ end
 import Base.reshape
 """ reshape(myNumber, dims..) - Reshape a number as a n dimensional Array """
 reshape(x::T, dims...) where {T <: Number} =   (x = [x]; reshape(x,dims) )
-makeColVector(x::T) where {T <: Number} =  [x]
+makeColVector(x::T) where {T} =  [x]
 makeColVector(x::T) where {T <: AbstractArray} =  reshape(x,length(x))
 makeRowVector(x::T) where {T <: Number} = return [x]'
 makeRowVector(x::T) where {T <: AbstractArray} =  reshape(x,1,length(x))
@@ -148,36 +149,92 @@ function getPermutations(v::AbstractArray{T,1};keepStructure=false) where {T}
 end
 
 
-function oneHotEncoderRow(y,d;count = false)
-    y = makeColVector(y)
+""" singleUnique(x) Return the unique values of x whether x is an array of arrays, an array or a scalar"""
+function singleUnique(x::Union{T,AbstractArray{T}}) where {T <: Union{Any,AbstractArray{T2}} where T2 <: Any }
+    if typeof(x) <: AbstractArray{T2} where {T2 <: AbstractArray}
+        return unique(vcat(unique.(x)...))
+    elseif typeof(x) <: AbstractArray{T2} where {T2}
+        return unique(x)
+    else
+        return [x]
+    end
+end
+
+function oneHotEncoderRow(x::Union{AbstractArray{T},T}; d=maximum(x), factors=1:d,count = false) where {T <: Integer}
+    x = makeColVector(x)
     out = zeros(Int64,d)
-    for j in y
+    for j in x
         out[j] = count ? out[j] + 1 : 1
     end
     return out
 end
-"""
-    oneHotEncoder(y,d;count)
 
-Encode arrays (or arrays of arrays) of integer data as 0/1 matrices
+function oneHotEncoderRow(x::Union{AbstractArray{T},T};factors=singleUnique(x),d=length(factors),count = false) where {T}
+    x = makeColVector(x)
+    return oneHotEncoderRow(integerEncoder(x;factors=factors),d=length(factors);count=count)
+end
+
+
+
+
+"""
+    oneHotEncoder(x;d,factors,count)
+
+Encode arrays (or arrays of arrays) of categorical data as matrices of one column per factor.
+
+The case of arrays of arrays is for when at each record you have more than one categorical output. You can then decide to encode just the presence of the factors or their counting
 
 # Parameters:
-- `y`: The data to convert (integer, array or array of arrays of integers)
-- `d`: The number of dimensions in the output matrik. [def: `maximum(maximum.(Y))`]
-- `count`: Wether to count multiple instances on the same dimension/record or indicate just presence. [def: `false`]
+- `x`: The data to convert (array or array of arrays)
+- `d`: The number of dimensions in the output matrix [def: `maximum(x)` for integers and `length(factors)` otherwise]
+- `factors`: The factors from which to encode [def: `1:d` for integer x or `unique(x)` otherwise]
+- `count`: Wether to count multiple instances on the same dimension/record (`true`) or indicate just presence. [def: `false`]
 
+# Examples
+```julia
+julia> oneHotEncoder(["a","c","c"],factors=["a","b","c","d"])
+3×4 Matrix{Int64}:
+ 1  0  0  0
+ 0  0  1  0
+ 0  0  1  0
+julia> oneHotEncoder([2,4,4])
+3×4 Matrix{Int64}:
+ 0  1  0  0
+ 0  0  0  1
+ 0  0  0  1
+ julia> oneHotEncoder([[2,2,1],[2,4,4]],count=true)
+2×4 Matrix{Int64}:
+ 1  2  0  0
+ 0  1  0  2
+```
 """
-function oneHotEncoder(Y,d=maximum(maximum.(Y));count=false)
+function oneHotEncoder(x::Union{T,AbstractVector{T}};factors=singleUnique(x),d=length(factors),count=false) where {T <: Union{Any,AbstractVector{T2}} where T2 <: Any  }
+    if typeof(x) <: AbstractVector
+        n  = length(x)
+        out = zeros(Int64,n,d)
+        for (i,x) in enumerate(x)
+          out[i,:] = oneHotEncoderRow(x;factors=factors,count = count)
+        end
+        return out
+    else
+       out = zeros(Int64,1,d)
+       out[1,:] = oneHotEncoderRow(x;factors=factors,count = count)
+       return out
+   end
+end
+
+function oneHotEncoder(Y::Union{Ti,AbstractVector{Ti}};d=maximum(maximum.(Y)),factors=1:d,count=false) where {Ti <: Union{Integer,AbstractVector{Ti2}} where Ti2 <: Integer  }
     n   = length(Y)
     if d < maximum(maximum.(Y))
         error("Trying to encode elements with indexes greater than the provided number of dimensions. Please increase d.")
     end
     out = zeros(Int64,n,d)
     for (i,y) in enumerate(Y)
-        out[i,:] = oneHotEncoderRow(y,d;count = count)
+        out[i,:] = oneHotEncoderRow(y;d=d,factors=1:d,count = count)
     end
     return out
 end
+
 
 import Base.findfirst, Base.findall
 findfirst(el::T,cont::Array{T};returnTuple=true) where {T} = ndims(cont) > 1 && returnTuple ? Tuple(findfirst(x -> isequal(x,el),cont)) : findfirst(x -> isequal(x,el),cont)
@@ -185,51 +242,46 @@ findall(el::T, cont::Array{T};returnTuple=true) where {T} = ndims(cont) > 1 && r
 
 
 """
-    integerEncoder(y;unique)
+    integerEncoder(x;factors=unique(x))
 
-Encode an array of T to an array of integers using the their position in the unique vector if the input array
+Encode an array of T to an array of integers using the their position in `factor` vector (default to the unique vector of the input array)
 
 # Parameters:
-- `y`: The vector to encode
-- `unique`: Wether the vector to encode is already made of unique elements [def: `false`]
+- `x`: The vector to encode
+- `factors`: The vector of factors whose position is the result of the encoding [def: `unique(x)`]
 # Return:
-- A vector of [1,length(Y)] integers corresponding to the position of each element in the "unique" version of the original input
+- A vector of [1,length(x)] integers corresponding to the position of each element in the `factors` vector`
 # Note:
 - Attention that while this function creates a ordered (and sortable) set, it is up to the user to be sure that this "property" is not indeed used in his code if the unencoded data is indeed unordered.
 # Example:
 ```
-julia> integerEncoder(["aa","cc","cc","bb","cc","aa"]) # out: [1, 2, 2, 3, 2, 1]
+julia> integerEncoder(["a","e","b","e"],factors=["a","b","c","d","e"]) # out: [1,5,2,5]
 ```
 """
-function integerEncoder(Y::AbstractVector;unique=false)
-    uniqueY = unique ? Y :  Base.unique(Y)
-    nY      = length(Y)
-    nU      = length(uniqueY)
-    O       = findfirst.(Y,Ref(uniqueY))
-    return O
+function integerEncoder(x::AbstractVector;factors=Base.unique(x))
+    #return findfirst.(x,Ref(factors)) slower
+    return  map(i -> findfirst(j -> j==i,factors) , x  )
 end
 
 """
-    integerDecoder(y,target::AbstractVector{T};unique)
+    integerDecoder(x,factors::AbstractVector{T};unique)
 
-Decode an array of integers to an array of T corresponding to the elements of `target`
+Decode an array of integers to an array of T corresponding to the elements of `factors`
 
 # Parameters:
-- `y`: The vector to decode
-- `target`: The vector of elements to use for the encoding
-- `unique`: Wether `target` is already made of unique elements [def: `true`]
+- `x`: The vector to decode
+- `factors`: The vector of elements to use for the encoding
+- `unique`: Wether `factors` is already made of unique elements [def: `true`]
 # Return:
-- A vector of length(y) elements corresponding to the (unique) target elements at the position y
+- A vector of length(x) elements corresponding to the (unique) `factors` elements at the position x
 # Example:
 ```
 julia> integerDecoder([1, 2, 2, 3, 2, 1],["aa","cc","bb"]) # out: ["aa","cc","cc","bb","cc","aa"]
 ```
 """
-function integerDecoder(Y,target::AbstractVector{T};unique=true) where{T}
-    uniqueTarget =  unique ? target :  Base.unique(target)
-    nY           =  length(Y)
-    nU           =  length(uniqueTarget)
-    return map(i -> uniqueTarget[i], Y )
+function integerDecoder(x,factors::AbstractVector{T};unique=true) where{T}
+    uniqueTarget =  unique ? factors :  Base.unique(factors)
+    return map(i -> uniqueTarget[i], x )
 end
 
 """
@@ -475,28 +527,7 @@ function colsWithMissing(x)
 end
 
 
-# ------------------------------------------------------------------------------
-# Various neural network loss functions as well their derivatives
-"""
-   squaredCost(ŷ,y)
 
-Compute the squared costs between a vector of prediction and one of observations as (1/2)*norm(y - ŷ)^2.
-
-Aside the 1/2 term correspond to the squared l-2 norm distance and when it is averaged on multiple datapoints corresponds to the Mean Squared Error.
-It is mostly used for regression problems.
-"""
-squaredCost(ŷ,y)   = (1/2)*norm(y - ŷ)^2
-dSquaredCost(ŷ,y)  = ( ŷ - y)
-"""
-   crossEntropy(ŷ, y; weight)
-
-Compute the (weighted) cross-entropy between the predicted and the sampled probability distributions.
-
-To be used in classification problems.
-
-"""
-crossEntropy(ŷ, y; weight = ones(eltype(y),length(y)))  = -sum(y .* log.(ŷ .+ 1e-15) .* weight)
-dCrossEntropy(ŷ, y; weight = ones(eltype(y),length(y))) = - y .* weight ./ (ŷ .+ 1e-15)
 
 # ------------------------------------------------------------------------------
 # Various neural network activation functions as well their derivatives
@@ -590,9 +621,26 @@ function autoJacobian(f,x;nY=length(f(x)))
 end
 
 
-# ------------------------------------------------------------------------------
-# Various error/accuracy measures
+################################################################################
+### VARIOUS ERROR / LOSS / ACCURACY MEASURES
+################################################################################
 import Base.error
+
+# ------------------------------------------------------------------------------
+# Classification tasks...
+
+# Used as neural network loss function
+"""
+   crossEntropy(ŷ, y; weight)
+
+Compute the (weighted) cross-entropy between the predicted and the sampled probability distributions.
+
+To be used in classification problems.
+
+"""
+crossEntropy(ŷ, y; weight = ones(eltype(y),length(y)))  = -sum(y .* log.(ŷ .+ 1e-15) .* weight)
+dCrossEntropy(ŷ, y; weight = ones(eltype(y),length(y))) = - y .* weight ./ (ŷ .+ 1e-15)
+
 
 """ accuracy(ŷ,y;ignoreLabels=false) - Categorical accuracy between two vectors (T vs T). If """
 function accuracy(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignoreLabels=false)  where {T}
@@ -708,6 +756,22 @@ error(ŷ::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number} = 1 - accurac
 """ error(ŷ,y) - Categorical error with with probabilistic predictions of a dataset given in terms of a dictionary of probabilities (Dict{T,Float64} vs T). """
 error(ŷ::Array{Dict{T,Float64},1},y::Array{T,1};tol=1) where {T} = 1 - accuracy(ŷ,y;tol=tol)
 
+
+# ------------------------------------------------------------------------------
+# Regression tasks...
+
+# Used as neural network loss function
+"""
+   squaredCost(ŷ,y)
+
+Compute the squared costs between a vector of prediction and one of observations as (1/2)*norm(y - ŷ)^2.
+
+Aside the 1/2 term, it correspond to the squared l-2 norm distance and when it is averaged on multiple datapoints corresponds to the Mean Squared Error ([MSE](https://en.wikipedia.org/wiki/Mean_squared_error)).
+It is mostly used for regression problems.
+"""
+squaredCost(ŷ,y)   = (1/2)*norm(y - ŷ)^2
+dSquaredCost(ŷ,y)  = ( ŷ - y)
+
 """
   meanRelError(ŷ,y;normDim=true,normRec=true,p=1)
 
@@ -716,6 +780,10 @@ Compute the mean relative error (l-1 based by default) between ŷ and y.
 There are many ways to compute a mean relative error. In particular, if normRec (normDim) is set to true, the records (dimensions) are normalised, in the sense that it doesn't matter if a record (dimension) is bigger or smaller than the others, the relative error is first computed for each record (dimension) and then it is averaged.
 With both `normDim` and `normRec` set to `false` the function returns the relative mean error; with both set to `true` (default) it returns the mean relative error (i.e. with p=1 the "[mean absolute percentage error (MAPE)](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)")
 The parameter `p` [def: `1`] controls the p-norm used to define the error.
+
+The _mean relative error_ enfatises the relativeness of the error, i.e. all observations and dimensions weigth the same, wether large or small. Conversly, in the _relative mean error_ the same relative error on larger observations (or dimensions) weights more.
+
+For example, given `y = [1,44,3]` and `ŷ = [2,45,2]]`, the _mean relative error_ `meanRelError(ŷ,y)` is `0.452`, while the _relative mean error_ `meanRelError(ŷ,y, normRec=false)` is "only" `0.0625`.
 
 """
 function meanRelError(ŷ,y;normDim=true,normRec=true,p=1)
@@ -738,6 +806,64 @@ function meanRelError(ŷ,y;normDim=true,normRec=true,p=1)
     end
     return avgϵRel
 end
+
+
+# ------------------------------------------------------------------------------
+# Partition tasks..
+
+"""
+   gini(x)
+
+Calculate the Gini Impurity for a list of items (or rows).
+
+See: https://en.wikipedia.org/wiki/Decision_tree_learning#Information_gain
+"""
+function gini(x)
+    counts = classCounts(x)
+    N = size(x,1)
+    impurity = 1.0
+    for k in keys(counts)
+        probₖ = counts[k] / N
+        impurity -= probₖ^2
+    end
+    return impurity
+end
+
+"""
+   entropy(x)
+
+Calculate the entropy for a list of items (or rows).
+
+See: https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity
+"""
+function entropy(x)
+    counts = classCounts(x)
+    N = size(x,1)
+    entr = 0.0
+    for k in keys(counts)
+        probₖ = counts[k] / N
+        entr -= probₖ * log2(probₖ)
+    end
+    return entr
+end
+
+"""variance(x) - population variance"""
+variance(x) = var(x,corrected=false)
+
+# ------------------------------------------------------------------------------
+# Some common distance measures
+
+"""L1 norm distance (aka _Manhattan Distance_)"""
+l1_distance(x,y)     = sum(abs.(x-y))
+"""Euclidean (L2) distance"""
+l2_distance(x,y)     = norm(x-y)
+"""Squared Euclidean (L2) distance"""
+l2²_distance(x,y)    = norm(x-y)^2
+"""Cosine distance"""
+cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
+
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 """bic(lL,k,n) -  Bayesian information criterion (lower is better)"""
 bic(lL,k,n) = k*log(n)-2*lL
@@ -813,44 +939,7 @@ function meanDicts(dicts; weights=ones(length(dicts)))
     return outDict
 end
 
-"""
-   gini(x)
 
-Calculate the Gini Impurity for a list of items (or rows).
-
-See: https://en.wikipedia.org/wiki/Decision_tree_learning#Information_gain
-"""
-function gini(x)
-    counts = classCounts(x)
-    N = size(x,1)
-    impurity = 1.0
-    for k in keys(counts)
-        probₖ = counts[k] / N
-        impurity -= probₖ^2
-    end
-    return impurity
-end
-
-"""
-   entropy(x)
-
-Calculate the entropy for a list of items (or rows).
-
-See: https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity
-"""
-function entropy(x)
-    counts = classCounts(x)
-    N = size(x,1)
-    entr = 0.0
-    for k in keys(counts)
-        probₖ = counts[k] / N
-        entr -= probₖ * log2(probₖ)
-    end
-    return entr
-end
-
-"""variance(x) - population variance"""
-variance(x) = var(x,corrected=false)
 
 # ------------------------------------------------------------------------------
 # Various kernel functions (e.g. for Perceptron)
@@ -862,17 +951,7 @@ For other `cᵢ` and `dᵢ` use `K = (x,y) -> polynomialKernel(x,y,c=cᵢ,d=dᵢ
 kernel function in the supporting algorithms"""
 polynomialKernel(x,y;c=0,d=2) = (dot(x,y)+c)^d
 
-# ------------------------------------------------------------------------------
-# Some common distance measures
 
-"""L1 norm distance (aka _Manhattan Distance_)"""
-l1_distance(x,y)     = sum(abs.(x-y))
-"""Euclidean (L2) distance"""
-l2_distance(x,y)     = norm(x-y)
-"""Squared Euclidean (L2) distance"""
-l2²_distance(x,y)    = norm(x-y)^2
-"""Cosine distance"""
-cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
 
 #=
 # No longer used, as mixtures has been generalised

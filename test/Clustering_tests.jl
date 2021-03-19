@@ -129,9 +129,10 @@ modelMachine                =  Mlj.machine(model,X)
 XD                          =  Mlj.transform(model,fitResults,X)
 XDM                         =  Mlj.matrix(XD)
 @test isapprox(XDM[2,2],11.166666666667362)
-Xnew_withMissing           = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
-XDNew                      = Mlj.transform(model,fitResults,Xnew_withMissing)
-XDMNew                     =  Mlj.matrix(XDNew)
+# Use the previously learned structure to imput missings..
+Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
+XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
+XDMNew                      =  Mlj.matrix(XDNew)
 @test isapprox(XDMNew[1,2],11.166666666667362)
 
 #=
