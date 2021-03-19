@@ -18,7 +18,7 @@ end
 KMeans(;
    K            = 3,
    dist         = dist=(x,y) -> norm(x-y),
-   initStrategy = "grid",
+   initStrategy = "random",
    Z₀           = nothing,
    rng          = Random.GLOBAL_RNG,
  ) = KMeans(K,dist,initStrategy,Z₀,rng)
@@ -93,8 +93,10 @@ function MMI.fit(m::Union{KMeans,KMedoids}, verbosity, X)
     end
     cache=nothing
     report=nothing
-    return ((assignedClasses,representatives,m.dist), cache, report)
+    return ((classes=assignedClasses,centers=representatives,distanceFunction=m.dist), cache, report)
 end
+MMI.fitted_params(model::Union{KMeans,KMedoids}, fitresult) = (centers=fitesult[2], cluster_labels=CategoricalArrays.categorical(fitresults[1]))
+
 
 function MMI.fit(m::GMM, verbosity, X, y)
     # X is nothing, y is the data: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/#Models-that-learn-a-probability-distribution-1
@@ -141,7 +143,7 @@ function MMI.predict(m::Union{KMeans,KMedoids}, fitResults, X)
     distances       = MMI.matrix(MMI.transform(m, fitResults, X))
     mindist         = argmin(distances,dims=2)
     assignedClasses = [Tuple(mindist[n,1])[2]  for n in 1:N]
-    return CategoricalArray(assignedClasses)
+    return CategoricalArray(assignedClasses,levels=1:nCl)
 end
 
 """ predict(m::GMM, fitResults, X) - Given a trained clustering model and some observations, predict the class of the observation"""
@@ -184,17 +186,19 @@ end
 # Model metadata for registration in MLJ...
 
 MMI.metadata_model(KMeans,
-    input_scitype    = MMI.Table(MMI.Continuous),
-    output_scitype   = AbstractArray{<:MMI.Multiclass}, # for an unsupervised, what output?
-    supports_weights = false,                           # does the model support sample weights?
+    input_scitype    = MMI.Table(MMI.Continuous),         # scitype of the inputs
+    output_scitype   = MMI.Table(MMI.Continuous),         # scitype of the output of `transform`
+    target_scitype   = AbstractArray{<:MMI.Multiclass},   # scitype of the output of `predict`
+    supports_weights = false,                             # does the model support sample weights?
     descr            = "The classical KMeans clustering algorithm, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Clustering.KMeans"
 )
 
 MMI.metadata_model(KMedoids,
-    input_scitype    = MMI.Table(MMI.Continuous),
-    output_scitype   = AbstractArray{<:MMI.Multiclass},     # for an unsupervised, what output?
-    supports_weights = false,                               # does the model support sample weights?
+    input_scitype    = MMI.Table(MMI.Continuous),         # scitype of the inputs
+    output_scitype   = MMI.Table(MMI.Continuous),         # scitype of the output of `transform`
+    target_scitype   = AbstractArray{<:MMI.Multiclass},   # scitype of the output of `predict`
+    supports_weights = false,                             # does the model support sample weights?
     descr            = "The K-medoids clustering algorithm with customisable distance function, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Clustering.KMedoids"
 )

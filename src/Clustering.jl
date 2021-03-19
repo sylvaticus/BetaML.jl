@@ -32,6 +32,7 @@ The module provides the following functions. Use `?[function]` to access their f
 module Clustering
 
 using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays
+import Distributions
 
 using  ForceImport
 @force using ..Api
@@ -68,7 +69,7 @@ Initialisate the representatives for a K-Mean or K-Medoids algorithm
 julia> Z₀ = initRepresentatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2,initStrategy="given",Z₀=[1.7 15; 3.6 40])
 ```
 """
-function initRepresentatives(X,K;initStrategy="grid",Z₀=nothing,rng = Random.GLOBAL_RNG)
+function initRepresentatives(X,K;initStrategy="random",Z₀=nothing,rng = Random.GLOBAL_RNG)
     X  = makeMatrix(X)
     (N,D) = size(X)
     # Random choice of initial representative vectors (any point, not just in X!)
@@ -78,7 +79,7 @@ function initRepresentatives(X,K;initStrategy="grid",Z₀=nothing,rng = Random.G
     if initStrategy == "random"
         for i in 1:K
             for j in 1:D
-                Z[i,j] = rand(rng,Uniform(minX[j],maxX[j]))
+                Z[i,j] = rand(rng,Distributions.Uniform(minX[j],maxX[j]))
             end
         end
     elseif initStrategy == "grid"
@@ -133,7 +134,7 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 julia> (clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3)
 ```
 """
-function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing,rng = Random.GLOBAL_RNG)
+function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="random",Z₀=nothing,rng = Random.GLOBAL_RNG)
     X  = makeMatrix(X)
     (N,D) = size(X)
     # Random choice of initial representative vectors (any point, not just in X!)

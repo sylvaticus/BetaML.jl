@@ -165,3 +165,16 @@ ynorm = Mlj.levelcode.(y)
 accuracy(yhat_prob,ynorm,ignoreLabels=true)
 @test acc > 0.8
 =#
+
+#=
+using MLJBase, BetaML
+y, _                        =  make_regression(1000, 3, rng=123);
+ym                          =  MLJBase.matrix(y)
+model                       =  GMM(rng=copy(BetaML.FIXEDRNG))
+(fitResults, cache, report) =  MLJBase.fit(model, 0, nothing, ym)
+yhat_prob                   =  MLJBase.transform(model,fitResults,ym)
+yhat_prob                   =  MLJBase.predict(model, fitResults, ym)
+modelMachine                =  MLJBase.machine(model, nothing, y)
+mach                        =  MLJBase.fit!(modelMachine)
+yhat_prob                   =  MLJBase.predict(mach, nothing)
+=#
