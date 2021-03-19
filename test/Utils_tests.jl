@@ -1,10 +1,11 @@
-using Test, Statistics, CategoricalArrays, Random
+using Test, Statistics, CategoricalArrays, Random, StableRNGs
 #using StableRNGs
 #rng = StableRNG(123)
 using BetaML
 import BetaML.Utils
 
-TESTRNG = FIXEDRNG # This could change...
+#TESTRNG = FIXEDRNG # This could change...
+TESTRNG = StableRNG(123)
 
 println("*** Testing individual utility functions (module `Utils`)...")
 
@@ -344,11 +345,11 @@ end
 @test outerFunction(x) != outerFunction(x)
 
 # Different values, but same sequence
-mainRng = copy(FIXEDRNG)
+mainRng = copy(TESTRNG)
 a = outerFunction(x, rng=mainRng)
 b = outerFunction(x, rng=mainRng)
 
-mainRng = copy(FIXEDRNG)
+mainRng = copy(TESTRNG)
 A = outerFunction(x, rng=mainRng)
 B = outerFunction(x, rng=mainRng)
 
@@ -356,6 +357,6 @@ B = outerFunction(x, rng=mainRng)
 
 
 # Same value at each call
-a = outerFunction(x,rng=copy(FIXEDRNG))
-b = outerFunction(x,rng=copy(FIXEDRNG))
+a = outerFunction(x,rng=copy(TESTRNG))
+b = outerFunction(x,rng=copy(TESTRNG))
 @test a == b

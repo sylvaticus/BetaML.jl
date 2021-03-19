@@ -3,10 +3,11 @@ using Test
 using DelimitedFiles
 import MLJBase
 const Mlj = MLJBase
-#using StableRNGs
+using StableRNGs
 using BetaML
 
-TESTRNG = FIXEDRNG # This could change...
+#TESTRNG = FIXEDRNG # This could change...
+TESTRNG = StableRNG(123)
 
 println("*** Testing Perceptron algorithms...")
 
@@ -37,11 +38,11 @@ ŷavgtest = predict(xtest,outTest.θ,outTest.θ₀,outTest.classes)
 println("Testing multiple classes...")
 
 #xtrain = [3 4 5; 5 3 5; 3 7 2; 8 5 3; 4 2 3; 3 2 1; 8 3 4; 3 5 1; 1 9 3; 4 2 1]
-xtrain = rand(FIXEDRNG,100,3)
+xtrain = rand(TESTRNG,100,3)
 ytt    = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtrain))]
 ytrain = [i > median(ytt)*1.1 ? "big" :  i > median(ytt)*0.9 ? "avg" : "small" for i in ytt]
 #xtest  = [2 2 3; 3 2 2; 4 1 2; 4 3 2; 3 7 2]
-xtest = rand(FIXEDRNG,20,3)
+xtest = rand(TESTRNG,20,3)
 ytt2   = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest))]
 ytest  = [i > median(ytt2)*1.1 ? "big" :  i > median(ytt2)*0.9 ? "avg" : "small" for i in ytt2]
 
@@ -90,11 +91,11 @@ ŷtestExpected = [1,-1,-1,-1,-1]
 @test any(ŷtestExpected == mode(ŷtest) )
 
 
-xtrain = rand(FIXEDRNG,100,3)
+xtrain = rand(TESTRNG,100,3)
 ytt    = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtrain))]
 ytrain = [i > median(ytt)*1.1 ? "big" :  i > median(ytt)*0.9 ? "avg" : "small" for i in ytt]
 #xtest  = [2 2 3; 3 2 2; 4 1 2; 4 3 2; 3 7 2]
-xtest = rand(FIXEDRNG,20,3)
+xtest = rand(TESTRNG,20,3)
 ytt2   = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest))]
 ytest  = [i > median(ytt2)*1.1 ? "big" :  i > median(ytt2)*0.9 ? "avg" : "small" for i in ytt2]
 
@@ -133,11 +134,11 @@ ŷavgtest = predict(xtest,outAvg.θ,outAvg.θ₀,outAvg.classes)
 println("Testing pegasos with multiple classes...")
 
 #xtrain = [3 4 5; 5 3 5; 3 7 2; 8 5 3; 4 2 3; 3 2 1; 8 3 4; 3 5 1; 1 9 3; 4 2 1]
-xtrain = rand(FIXEDRNG,100,3)
+xtrain = rand(TESTRNG,100,3)
 ytt    = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtrain))]
 ytrain = [i > median(ytt)*1.1 ? "big" :  i > median(ytt)*0.9 ? "avg" : "small" for i in ytt]
 #xtest  = [2 2 3; 3 2 2; 4 1 2; 4 3 2; 3 7 2]
-xtest = rand(FIXEDRNG,20,3)
+xtest = rand(TESTRNG,20,3)
 ytt2   = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest))]
 ytest  =  [i > median(ytt2)*1.1 ? "big" :  i > median(ytt)*0.9 ? "avg" : "small" for i in ytt2]
 

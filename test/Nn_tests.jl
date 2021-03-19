@@ -1,11 +1,12 @@
 using Test
 using DelimitedFiles, LinearAlgebra, MLDatasets
 
-#using StableRNGs
+using StableRNGs
 #rng = StableRNG(123)
 using BetaML
 
-TESTRNG = FIXEDRNG # This could change...
+#TESTRNG = FIXEDRNG # This could change...
+TESTRNG = StableRNG(123)
 
 println("*** Testing Neural Network...")
 

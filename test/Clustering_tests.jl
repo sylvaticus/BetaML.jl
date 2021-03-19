@@ -1,14 +1,15 @@
 using Test
 #using DelimitedFiles, LinearAlgebra
 
-#using StableRNGs
+using StableRNGs
 #rng = StableRNG(123)
 
 import MLJBase
 const Mlj = MLJBase
 using BetaML
 
-TESTRNG = FIXEDRNG # This could change...
+#TESTRNG = FIXEDRNG # This could change...
+TESTRNG = StableRNG(123)
 
 println("*** Testing Clustering...")
 
@@ -171,7 +172,7 @@ accuracy(yhat_prob,ynorm,ignoreLabels=true)
 using MLJBase, BetaML
 y, _                        =  make_regression(1000, 3, rng=123);
 ym                          =  MLJBase.matrix(y)
-model                       =  GMM(rng=copy(BetaML.FIXEDRNG))
+model                       =  GMM(rng=copy(BetaML.TESTRNG))
 (fitResults, cache, report) =  MLJBase.fit(model, 0, nothing, y)
 yhat_prob                   =  MLJBase.transform(model,fitResults,y)
 yhat_prob                   =  MLJBase.predict(model, fitResults, y)

@@ -2,11 +2,12 @@ using Test
 using DelimitedFiles, LinearAlgebra
 import MLJBase
 const Mlj = MLJBase
-#using StableRNGs
+using StableRNGs
 #rng = StableRNG(123)
 using BetaML
 
-TESTRNG = FIXEDRNG # This could change...
+#TESTRNG = FIXEDRNG # This could change...
+TESTRNG = StableRNG(123)
 
 println("*** Testing Decision trees/Random Forest algorithms...")
 

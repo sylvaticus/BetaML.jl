@@ -19,7 +19,7 @@ Provide shared utility functions for various machine learning algorithms. You do
 """
 module Utils
 
-using LinearAlgebra, Random, Statistics, Future, Combinatorics, Zygote, CategoricalArrays
+using LinearAlgebra, Random, Statistics, Combinatorics, Zygote, CategoricalArrays
 
 using ForceImport
 @force using ..Api
@@ -95,13 +95,16 @@ Use it with `rngs = generateParallelRngs(rng,Threads.nthreads())`
 """
 function generateParallelRngs(rng::AbstractRNG, n::Integer)
     # see also here for a workaround that would allow StableRNGs back: https://github.com/JuliaRandom/StableRNGs.jl/issues/8#issuecomment-801892721
-    step = rand(rng,big(10)^20:big(10)^40) # making the step random too !
-    rngs = Vector{Union{MersenneTwister,Random._GLOBAL_RNG}}(undef, n) # Vector{typeof(rng)}(undef, n)
-    rngs[1] = copy(rng)
-    for i = 2:n
-        rngs[i] = Future.randjump(rngs[i-1], step)
-    end
-    return rngs
+    #step = rand(rng,big(10)^20:big(10)^40) # making the step random too !
+    #rngs = Vector{Union{MersenneTwister,Random._GLOBAL_RNG}}(undef, n) # Vector{typeof(rng)}(undef, n)
+    #rngs[1] = copy(rng)
+    #for i = 2:n
+    #    rngs[i] = Future.randjump(rngs[i-1], step)
+    #end
+    #return rngs
+    seeds = [rand(rng,1:18446744073709551615) for i in 1:n]
+    rngs  = [copy(rng) for i in 1:n]
+    return Random.seed!.(rngs,seeds)
 end
 
 # ------------------------------------------------------------------------------

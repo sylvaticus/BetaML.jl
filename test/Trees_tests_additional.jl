@@ -3,7 +3,7 @@ using DelimitedFiles, LinearAlgebra
 import MLJBase
 const Mlj = MLJBase
 using StableRNGs
-rng = StableRNG(123)
+#rng = StableRNG(123)
 using BetaML.Trees
 
 println("*** Additional testing for the Testing Decision trees/Random Forest algorithms...")
