@@ -69,7 +69,7 @@ Initialisate the representatives for a K-Mean or K-Medoids algorithm
 julia> Z₀ = initRepresentatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2,initStrategy="given",Z₀=[1.7 15; 3.6 40])
 ```
 """
-function initRepresentatives(X,K;initStrategy="random",Z₀=nothing,rng = Random.GLOBAL_RNG)
+function initRepresentatives(X,K;initStrategy="grid",Z₀=nothing,rng = Random.GLOBAL_RNG)
     X  = makeMatrix(X)
     (N,D) = size(X)
     # Random choice of initial representative vectors (any point, not just in X!)
@@ -84,7 +84,10 @@ function initRepresentatives(X,K;initStrategy="random",Z₀=nothing,rng = Random
         end
     elseif initStrategy == "grid"
         for d in 1:D
-                Z[:,d] = collect(range(minX[d], stop=maxX[d], length=K))
+                # same "space" for each class on each dimension
+                Z[:,d] = collect(range(minX[d] + (maxX[d]-minX[d])/(K*2) , stop=maxX[d] - (maxX[d]-minX[d])/(K*2)  , length=K))
+                #ex: collect(range(minX[d], stop=maxX[d], length=K))
+                #collect(range(s+(e-s)/(K*2), stop=e-(e-s)/(K*2), length=K))
         end
     elseif initStrategy == "given"
         if isnothing(Z₀) error("With the `given` strategy you need to provide the initial set of representatives in the Z₀ parameter.") end
@@ -134,7 +137,7 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 julia> (clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3)
 ```
 """
-function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="random",Z₀=nothing,rng = Random.GLOBAL_RNG)
+function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing,rng = Random.GLOBAL_RNG)
     X  = makeMatrix(X)
     (N,D) = size(X)
     # Random choice of initial representative vectors (any point, not just in X!)

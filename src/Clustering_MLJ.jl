@@ -18,7 +18,7 @@ end
 KMeans(;
    K            = 3,
    dist         = dist=(x,y) -> norm(x-y),
-   initStrategy = "random",
+   initStrategy = "shuffle",
    Z₀           = nothing,
    rng          = Random.GLOBAL_RNG,
  ) = KMeans(K,dist,initStrategy,Z₀,rng)
@@ -33,7 +33,7 @@ KMeans(;
  KMedoids(;
     K            = 3,
     dist         = dist=(x,y) -> norm(x-y),
-    initStrategy = "grid",
+    initStrategy = "shuffle",
     Z₀           = nothing,
     rng          = Random.GLOBAL_RNG,
   ) = KMedoids(K,dist,initStrategy,Z₀,rng)
@@ -87,9 +87,9 @@ MissingImputator(;
 function MMI.fit(m::Union{KMeans,KMedoids}, verbosity, X)
     x  = MMI.matrix(X)                        # convert table to matrix
     if typeof(m) == KMeans
-        (assignedClasses,representatives) = kmeans(x,m.K,dist=m.dist,initStrategy=m.initStrategy,Z₀=m.Z₀)
+        (assignedClasses,representatives) = kmeans(x,m.K,dist=m.dist,initStrategy=m.initStrategy,Z₀=m.Z₀,rng=m.rng)
     else
-        (assignedClasses,representatives) = kmedoids(x,m.K,dist=m.dist,initStrategy=m.initStrategy,Z₀=m.Z₀)
+        (assignedClasses,representatives) = kmedoids(x,m.K,dist=m.dist,initStrategy=m.initStrategy,Z₀=m.Z₀,rng=m.rng)
     end
     cache=nothing
     report=nothing
@@ -101,7 +101,7 @@ MMI.fitted_params(model::Union{KMeans,KMedoids}, fitresult) = (centers=fitesult[
 function MMI.fit(m::GMM, verbosity, X, y)
     # X is nothing, y is the data: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/#Models-that-learn-a-probability-distribution-1
     y          = MMI.matrix(y) # convert table to matrix
-    res        = gmm(y,m.K,p₀=m.p₀,mixtures=m.mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE)
+    res        = gmm(y,m.K,p₀=m.p₀,mixtures=m.mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
     fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
@@ -110,7 +110,7 @@ end
 
 function MMI.fit(m::MissingImputator, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
-    res        = gmm(x,m.K,p₀=m.p₀,mixtures=m.mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE)
+    res        = gmm(x,m.K,p₀=m.p₀,mixtures=m.mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
     fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # pₙₖ=res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
@@ -124,11 +124,11 @@ end
 function MMI.transform(m::Union{KMeans,KMedoids}, fitResults, X)
     x     = MMI.matrix(X) # convert table to matrix
     (N,D) = size(x)
-    nCl   = size(fitResults[2],1)
+    nCl   = size(fitResults.centers,1)
     distances = Array{Float64,2}(undef,N,nCl)
     for n in 1:N
         for c in 1:nCl
-            distances[n,c] = fitResults[3](x[n,:],fitResults[2][c,:])
+            distances[n,c] = fitResults.distanceFunction(x[n,:],fitResults[2][c,:])
         end
     end
     return MMI.table(distances)
@@ -139,7 +139,7 @@ end
 function MMI.predict(m::Union{KMeans,KMedoids}, fitResults, X)
     x               = MMI.matrix(X) # convert table to matrix
     (N,D)           = size(x)
-    nCl             = size(fitResults[2],1)
+    nCl             = size(fitResults.centers,1)
     distances       = MMI.matrix(MMI.transform(m, fitResults, X))
     mindist         = argmin(distances,dims=2)
     assignedClasses = [Tuple(mindist[n,1])[2]  for n in 1:N]
@@ -153,7 +153,7 @@ function MMI.predict(m::GMM, fitResults, X)
     (pₖ,mixtures)   = (fitResults.pₖ, fitResults.mixtures)
     nCl             = length(pₖ)
     # Compute the probabilities that maximise the likelihood given existing mistures and a single iteration (i.e. doesn't update the mixtures)
-    thisOut         = gmm(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1)
+    thisOut         = gmm(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1,rng=m.rng)
     classes         = CategoricalArray(1:nCl)
     predictions     = MMI.UnivariateFinite(classes, thisOut.pₙₖ)
     return predictions
@@ -166,7 +166,7 @@ function MMI.transform(m::MissingImputator, fitResults, X)
     (pₖ,mixtures) = fitResults.pₖ, fitResults.mixtures   #
     nCl           = length(pₖ)
     # Fill the missing data of this "new X" using the mixtures computed in the fit stage
-    xout          = predictMissing(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1)
+    xout          = predictMissing(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1,rng=m.rng)
     return MMI.table(xout.X̂)
 end
 

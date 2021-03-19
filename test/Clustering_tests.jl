@@ -18,7 +18,6 @@ println("*** Testing Clustering...")
 println("Testing initRepreserntative...")
 
 Z₀ = initRepresentatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2,initStrategy="given",Z₀=[1.7 15; 3.6 40])
-
 @test isapprox(Z₀,[1.7  15.0; 3.6  40.0])
 
 # ==================================
@@ -26,8 +25,7 @@ Z₀ = initRepresentatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 
 # ==================================
 println("Testing kmeans...")
 
-(clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,rng=copy(TESTRNG))
-
+(clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initStrategy="grid",rng=copy(TESTRNG))
 @test clIdx == [2, 2, 2, 2, 3, 3, 3, 1, 1]
 #@test (clIdx,Z) .== ([2, 2, 2, 2, 3, 3, 3, 1, 1], [5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664])
 
@@ -35,9 +33,8 @@ println("Testing kmeans...")
 # New test
 # ==================================
 println("Testing kmedoids...")
-(clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initStrategy="grid")
-@test clIdx == [2, 2, 2, 2, 3, 3, 3, 1, 1]
-
+(clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initStrategy="shuffle",rng=copy(TESTRNG))
+@test clIdx == [1, 1, 1, 1, 2, 2, 2, 3, 3]
 
 # ==================================
 # New test
@@ -103,7 +100,7 @@ modelMachine                   = Mlj.machine(model, X)
 (fitResults, cache, report)    = Mlj.fit(model, 0, X)
 distances                      = Mlj.transform(model,fitResults,X)
 yhat                           = Mlj.predict(model, fitResults, X)
-acc = accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
+acc = BetaML.accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
 @test acc > 0.8
 
 model                          = KMedoids(rng=copy(TESTRNG))
@@ -111,7 +108,7 @@ modelMachine                   = Mlj.machine(model, X)
 (fitResults, cache, report)    = Mlj.fit(model, 0, X)
 distances                      = Mlj.transform(model,fitResults,X)
 yhat                           = Mlj.predict(model, fitResults, X)
-acc = accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
+acc = BetaML.accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
 @test acc > 0.8
 
 model                       =  GMM(rng=copy(TESTRNG))
@@ -166,14 +163,20 @@ accuracy(yhat_prob,ynorm,ignoreLabels=true)
 @test acc > 0.8
 =#
 
+
+
+
+
 #=
 using MLJBase, BetaML
 y, _                        =  make_regression(1000, 3, rng=123);
 ym                          =  MLJBase.matrix(y)
 model                       =  GMM(rng=copy(BetaML.FIXEDRNG))
-(fitResults, cache, report) =  MLJBase.fit(model, 0, nothing, ym)
-yhat_prob                   =  MLJBase.transform(model,fitResults,ym)
-yhat_prob                   =  MLJBase.predict(model, fitResults, ym)
+(fitResults, cache, report) =  MLJBase.fit(model, 0, nothing, y)
+yhat_prob                   =  MLJBase.transform(model,fitResults,y)
+yhat_prob                   =  MLJBase.predict(model, fitResults, y)
+
+
 modelMachine                =  MLJBase.machine(model, nothing, y)
 mach                        =  MLJBase.fit!(modelMachine)
 yhat_prob                   =  MLJBase.predict(mach, nothing)
