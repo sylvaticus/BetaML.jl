@@ -14,10 +14,10 @@
 
 using LinearAlgebra, Random, Statistics, DataFrames, CSV, Plots, BetaML
 import Distributions: Uniform
-import DecisionTree # for comparision
+import DecisionTree ## For comparisions
 using Test     #src
 
-baseDir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","A regression task: sharing bike demand prediction")
+baseDir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","A regression task - sharing bike demand prediction")
 
 # Data loading
 data = CSV.File(joinpath(baseDir,"data","bike_sharing_day.csv"),delim=',') |> DataFrame
@@ -102,6 +102,7 @@ end
 # We can now run the hyperparameter optimisation function with some "reasonable" ranges. To obtain repetable results we call `tuneHyperParameters` with `rng=copy(FIXEDRNG)`, where `FIXEDRNG` is a fixed-seeded random number generator guaranteed to maintain the same flow of random numbers even between different julia versions. That's also what we use for our unit tests.
 (bestMre,bestMaxDepth,bestMaxFeatures,bestMinRecords) = tuneHyperParameters("DecisionTree",xtrain,ytrain,xval,yval,
            maxDepthRange=3:7,maxFeaturesRange=10:12,minRecordsRange=2:6,repetitions=5,rng=copy(FIXEDRNG))
+println("DT: $bestMre - $bestMaxDepth - $bestMaxFeatures - $bestMinRecords")
 
 # Now that we have found the "optimal" hyperparameters we can build ("train") our model using them:
 myTree = buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,rng=copy(FIXEDRNG))
@@ -119,6 +120,7 @@ ŷtest  = predict(myTree, xtest)
 # The _mean relative error_ enfatises the relativeness of the error, i.e. all observations and dimensions weigth the same, wether large or small. Conversly, in the _relative mean error_ the same relative error on larger observations (or dimensions) weights more.
 # For example, given `y = [1,44,3]` and `ŷ = [2,45,2]]`, the _mean relative error_ `meanRelError(ŷ,y)` is `0.452`, while the _relative mean error_ `meanRelError(ŷ,y, normRec=false)` is "only" `0.0625`.
 (mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest])
+println(mreTest)
 
 #-
 
@@ -151,6 +153,10 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestful
         maxDepthRange=size(xtrain,1):size(xtrain,1),maxFeaturesRange=Int(round(sqrt(size(xtrain,2)))):Int(round(sqrt(size(xtrain,2)))),
         minRecordsRange=[2,6,10],nTreesRange=10:10:30,βRange=400:50:500,repetitions=5,rng=copy(FIXEDRNG))
 
+# 10,20,450
+println("RF: $bestMre $bestMinRecords $bestNTrees $bestβ")
+
+
 # As for decision trees, once the hyper-parameters of the model are tuned we wan refit the model using the optimal parameters.
 myForest = buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,β=bestβ,oob=true,rng=copy(FIXEDRNG))
 
@@ -160,6 +166,8 @@ oobError                    = myForest.oobError
 #+
 (ŷtrain,ŷval,ŷtest)         = predict.([myForest], [xtrain,xval,xtest])
 (mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest])
+
+println(mreTest)
 
 @test mreTest <= 1.5 #src
 
@@ -314,10 +322,11 @@ hiddenLayerSizes = [15,20]
 #-
 
 # We re-do the training with the best hyperparameters:
-(ls,epoch)  = (bestSize,bestEpoch)   # 15,30
+(ls,epoch)  = (bestSize,bestEpoch)   # 15,50
 
 println("Final training of $epoch epochs, with layer size $ls ...")
 
+# We build our feed-forward neaural network
 # Note that the Xavier initialisation is now by default, so we don't need to specify w and wb to get it...
 l1   = DenseLayer(D,ls,f=relu,rng=copy(FIXEDRNG)) # Activation function is ReLU
 l2   = DenseLayer(ls,ls,f=identity,rng=copy(FIXEDRNG))
@@ -353,8 +362,6 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestful
 # ### Comparation with Flux
 
 # Disclaimer: I'm a nebbie with [Flux](https://fluxml.ai/), this is likelly not to be the best approach
-
-
 
 import Flux
 import Flux.Data

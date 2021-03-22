@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/src/tutorials/Getting started/betaml_tutorial_getting_started.jl"
+EditURL = "<unknown>/docs/src/tutorials/Getting started/betaml_tutorial_getting_started.jl"
 ```
 
 ## This is markdown title
@@ -27,7 +27,7 @@ In particular, use `rng=StableRNG(FIXEDSEED)` to retrieve the exacty output as i
 
 Most of the stochasticity appears in _training_ a model. However in few cases (e.g. decision trees with missing values) some stocasticity appears also in _predicting_ new data with a trained model. In such cases the model doesn't stire the random seed, so that you can choose at _predict_ time to use a fixed or a variable random seed.
 
-[View this file on Github](<unknown>/src/tutorials/Getting started/betaml_tutorial_getting_started.jl).
+[View this file on Github](<unknown>/docs/src/tutorials/Getting started/betaml_tutorial_getting_started.jl).
 
 ---
 
