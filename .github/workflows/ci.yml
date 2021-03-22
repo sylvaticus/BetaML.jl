@@ -52,7 +52,7 @@ jobs:
         with:
           version: '1'
       - run: |
-          julia --project=docs -e -t 4'
+          julia --project=docs -t 4 -e '
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
