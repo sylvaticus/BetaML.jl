@@ -12,10 +12,12 @@
 
 # ## Library and data loading
 
-using LinearAlgebra, Random, Statistics, DataFrames, CSV, Plots, BetaML
+using LinearAlgebra, Random, Statistics, DataFrames, CSV, Plots, BetaML,StableRNGs
 import Distributions: Uniform
 import DecisionTree # for comparision
 using Test     #src
+
+FIXEDRNG =  StableRNG(123)
 
 baseDir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","A regression task: sharing bike demand prediction")
 
@@ -44,7 +46,7 @@ y    = data[:,16]
 # We can now "tune" our model so-called hyperparameters, i.e. choose the best exogenous parameters of our algorithm, where "best" refer to some minimisation of a "loss" function between the true and the predicted value, where a dedicated "validation" subset of the input is used (xval and yval) in our case.
 # BetaML doesn't have a diedicated function for hyperparameters optimisation, but it is easy to write some custom julia code, at least for a simple grid-based "search". Indeed the reason that a dedicated function exists in other Machine Learning libraries is that loops in other languages are slow, but this is not a problem in Julia, so we can retain the flexibility to write the kind of hyperparameter tuning that best fits our needs.
 # Below if an example of a possible such function. Note there are more "elegant" ways to code it, but this one does the job. We will see the various functions inside `tuneHyperParameters()` in a moment. For now let's going just to observe that `tuneHyperParameters` just loops over all the possible hyperparameter and select the one where the error between xval and yval is minimised. For the meaning of the various hyperparameter, consult the documentation of the `buildTree` and `buildForest` functions.
-function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthsRange=15:15,maxFeaturesRange=size(xtrain,2):size(xtrain,2),nTreesRange=20:20,βRange=0:0,minRecordsRange=2:2,repetitions=5,rng=Random.GLOBAL_RNG)
+function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthRange=15:15,maxFeaturesRange=size(xtrain,2):size(xtrain,2),nTreesRange=20:20,βRange=0:0,minRecordsRange=2:2,repetitions=5,rng=Random.GLOBAL_RNG)
     ## We start with an infinititly high error
     bestMre         = +Inf
     bestMaxDepth    = 1
@@ -52,51 +54,90 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthsRange=15:15,
     bestMinRecords  = 2
     bestNTrees      = 1
     bestβ           = 0
+    compLock  = ReentrantLock()
+
     ## We loop over all possible hyperparameter combinations...
-    for maxDepth in maxDepthsRange
-        for maxFeatures in maxFeaturesRange
-            for minRecords in minRecordsRange
-                for nTrees in nTreesRange
-                   for β in βRange
-                       totAttemptError = 0.0
-                       ## We run several repetitions with the same hyperparameter combination to account for stochasticity...
-                       for r in 1:repetitions
-                          if model == "DecisionTree"
-                             ## Here we train the Decition Tree model
-                             myTrainedModel = buildTree(xtrain,ytrain, maxDepth=maxDepth,maxFeatures=maxFeatures,minRecords=minRecords,rng=rng)
-                          else
-                             ## Here we train the Random Forest model
-                             myTrainedModel = buildForest(xtrain,ytrain,nTrees,maxDepth=maxDepth,maxFeatures=maxFeatures,minRecords=minRecords,β=β,rng=rng)
-                          end
-                          ## Here we make prediciton with this trained model and we compute its error
-                          ŷval   = predict(myTrainedModel, xval,rng=rng)
-                          mreVal = meanRelError(ŷval,yval)
-                          totAttemptError += mreVal
-                       end
-                       avgAttemptedDepthError = totAttemptError / repetitions
-                       ## Select this specific combination of hyperparameters if the error is the lowest
-                       if avgAttemptedDepthError < bestMre
-                         bestMre         = avgAttemptedDepthError
-                         bestMaxDepth    = maxDepth
-                         bestMaxFeatures = maxFeatures
-                         bestNTrees      = nTrees
-                         bestβ           = β
-                         bestMinRecords  = minRecords
-                       end
+    rngs = generateParallelRngs(rng,Threads.nthreads())
+
+    #for (maxDepth,maxFeatures,minRecords,nTrees,β) in Iterators.product(maxDepthRange,maxFeaturesRange,minRecordsRange,nTreesRange,βRange)
+    Threads.@threads for ij in CartesianIndices((length(maxDepthRange),length(maxFeaturesRange),length(minRecordsRange),length(nTreesRange),length(βRange)))
+           (maxDepth,maxFeatures,minRecords,nTrees,β)   = (maxDepthRange[Tuple(ij)[1]], maxFeaturesRange[Tuple(ij)[2]], minRecordsRange[Tuple(ij)[3]], nTreesRange[Tuple(ij)[4]], βRange[Tuple(ij)[5]])
+           tsrng = rngs[Threads.threadid()]
+           totAttemptError = 0.0
+           ## We run several repetitions with the same hyperparameter combination to account for stochasticity...
+           for r in 1:repetitions
+              if model == "DecisionTree"
+                 ## Here we train the Decition Tree model
+                 myTrainedModel = buildTree(xtrain,ytrain, maxDepth=maxDepth,maxFeatures=maxFeatures,minRecords=minRecords,rng=tsrng)
+              else
+                 ## Here we train the Random Forest model
+                 myTrainedModel = buildForest(xtrain,ytrain,nTrees,maxDepth=maxDepth,maxFeatures=maxFeatures,minRecords=minRecords,β=β,rng=tsrng)
+              end
+              ## Here we make prediciton with this trained model and we compute its error
+              ŷval   = predict(myTrainedModel, xval,rng=tsrng)
+              mreVal = meanRelError(ŷval,yval)
+              totAttemptError += mreVal
+           end
+           avgAttemptedDepthError = totAttemptError / repetitions
+           begin
+               lock(compLock)
+               try
+                   ## Select this specific combination of hyperparameters if the error is the lowest
+                   if avgAttemptedDepthError < bestMre
+                     bestMre         = avgAttemptedDepthError
+                     bestMaxDepth    = maxDepth
+                     bestMaxFeatures = maxFeatures
+                     bestNTrees      = nTrees
+                     bestβ           = β
+                     bestMinRecords  = minRecords
                    end
+               finally
+                   unlock(compLock)
                end
            end
-      end
     end
     return (bestMre,bestMaxDepth,bestMaxFeatures,bestMinRecords,bestNTrees,bestβ)
 end
 
+
+
+
+
+function tuneParametersD(par1,par2)
+    # Step A : initialisation
+    bestError = Inf64
+    bestPar1  = nothing
+    bestPar2  = nothing
+    compLock  = ReentrantLock()
+
+    # Step B: computation and comparision
+    Threads.@threads for ij in CartesianIndices((length(par1),length(par2)))
+           (p1i, p2j)    = par1[Tuple(ij)[1]], par2[Tuple(ij)[2]]
+           attempt       = doMyStuff(p1i,p2j)
+           begin
+               lock(compLock)
+               try
+                   if(attempt < bestError)
+                       bestError = attempt
+                       bestPar1  = p1i
+                       bestPar2  = p2j
+                   end
+               finally
+                   unlock(compLock)
+               end
+           end
+    end
+    return (bestError,bestPar1, bestPar2)
+end
+
+
 # We can now run the hyperparameter optimisation function with some "reasonable" ranges:
 (bestMre,bestMaxDepth,bestMaxFeatures,bestMinRecords) = tuneHyperParameters("DecisionTree",xtrain,ytrain,xval,yval,
-           maxDepthsRange=3:7,maxFeaturesRange=10:12,minRecordsRange=2:6,repetitions=5,rng=copy(FIXEDRNG))
+           maxDepthRange=3:7,maxFeaturesRange=10:12,minRecordsRange=2:6,repetitions=5,rng=copy(FIXRNG))
+
 
 # Now that we have found the "optimal" hyperparameters we can build ("train") our model using them:
-myTree = buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,rng=copy(FIXEDRNG))
+myTree = buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,rng=copy(FIXRNG))
 
 # The above function produce a DecisionTree object that can be used to make predictions given some features, i.e. given some X matrix of (number of observations x dimensions), predict the corresponding Y vector of scalers in R.
 (ŷtrain,ŷval,ŷtest) = predict.([myTree], [xtrain,xval,xtest])
@@ -142,7 +183,7 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestful
 
 (bestMre,bestMaxDepth,bestMaxFeatures,bestMinRecords,bestNTrees,bestβ) = tuneHyperParameters("RandomForest",xtrain,ytrain,xval,yval,
           maxDepthsRange=size(x,1):size(x,1),maxFeaturesRange=Int(round(sqrt(size(x,2)))):Int(round(sqrt(size(x,2)))),
-          minRecordsRange=4:6,nTreesRange=15:5:25,βRange=[0;10;50;100:100:500],repetitions=5,rng=copy(FIXEDRNG))
+          minRecordsRange=5:6,nTreesRange=15:5:25,βRange=[400:500],repetitions=5,rng=copy(FIXEDRNG))
 
 # As for decision trees, once the hyper-parameters of the model are tuned we wan refit the model using the optimal parameters.
 myForest = buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,β=bestβ,oob=true,rng=copy(FIXEDRNG))
@@ -155,7 +196,7 @@ oobError                    = myForest.oobError
 (ŷtrain,ŷval,ŷtest)         = predict.([myForest], [xtrain,xval,xtest])
 (mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest])
 
-@test mreTest <= 1.0 #src
+@test mreTest <= 1.5 #src
 
 # Still the error is much lower than those found employing a single decision tree ! Let's print the observed data vs the estimated one using the random forest and then along the temporal axis:
 
@@ -208,6 +249,7 @@ stc = 620
 endc = size(x,1)
 plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period")
 
+### Conclusions
 # The error obtained employing DecisionTree.jl is larger than those obtained with the BetaML random forest model, altought to be fair with DecisionTrees.jl we didn't tuned its hyper-parameters. Also, DecisionTree.jl random forest model is much faster.
 # This is partially due by the fact that internally DecisionTree.jl models optimise the algorithm by sorting the observations. BetaML trees/forests don't employ this optimisation and hence works with true categorical data for which ordering is not defined and it accepts missing values within the feature matrix.
 # To sum up, BetaML random forests are ideal algorithms when you want to obtain good predictions in the most simpler way, even without tuning the hyperparameters, and without spending time in cleaning ("munging") your feature matrix, as they accept almost "any kind" of data as is.

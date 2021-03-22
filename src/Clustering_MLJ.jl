@@ -102,7 +102,7 @@ function MMI.fit(m::GMM, verbosity, X, y)
     # X is nothing, y is the data: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/#Models-that-learn-a-probability-distribution-1
     y          = MMI.matrix(y) # convert table to matrix
     res        = gmm(y,m.K,p₀=m.p₀,mixtures=m.mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
-    fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
+    fitResults = (pₙₖ=res.pₙₖ,pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
     return (fitResults, cache, report)
@@ -146,8 +146,9 @@ function MMI.predict(m::Union{KMeans,KMedoids}, fitResults, X)
     return CategoricalArray(assignedClasses,levels=1:nCl)
 end
 
-""" predict(m::GMM, fitResults, X) - Given a trained clustering model and some observations, predict the class of the observation"""
+""" predict(m::GMM, fitResults, X) - Given a trained clustering model, predict the class of the observations used for training"""
 function MMI.predict(m::GMM, fitResults, X)
+    #=
     x               = MMI.matrix(X) # convert table to matrix
     (N,D)           = size(x)
     (pₖ,mixtures)   = (fitResults.pₖ, fitResults.mixtures)
@@ -156,6 +157,12 @@ function MMI.predict(m::GMM, fitResults, X)
     thisOut         = gmm(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1,rng=m.rng)
     classes         = CategoricalArray(1:nCl)
     predictions     = MMI.UnivariateFinite(classes, thisOut.pₙₖ)
+    =#
+    (pₙₖ, pₖ)       = (fitResults.pₙₖ, pₖ=fitResults.pₖ)
+    nCl             = length(pₖ)
+    classes         = CategoricalArray(1:nCl)
+    predictions     = MMI.UnivariateFinite(classes,pₙₖ)
+
     return predictions
 end
 

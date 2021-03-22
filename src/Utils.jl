@@ -19,7 +19,7 @@ Provide shared utility functions for various machine learning algorithms. You do
 """
 module Utils
 
-using LinearAlgebra, Random, Statistics, Combinatorics, Zygote, CategoricalArrays
+using LinearAlgebra, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, StableRNGs
 
 using ForceImport
 @force using ..Api
@@ -63,7 +63,10 @@ Use it with:
 - `myAlgorithm(;rng=copy(FIXEDRNG))`   # always produce the same result (new rng object on each function call)
 
 """
-const FIXEDRNG  = MersenneTwister(FIXEDSEED) #StableRNG(FIXEDSEED) Random.default_rng()
+#const FIXEDRNG  = MersenneTwister(FIXEDSEED) #StableRNG(FIXEDSEED) Random.default_rng()
+const FIXEDRNG  = StableRNG(FIXEDSEED) #StableRNG(FIXEDSEED) Random.default_rng() #MersenneTwister(FIXEDSEED)
+
+
 
 macro codeLocation()
     return quote
