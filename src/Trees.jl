@@ -53,6 +53,8 @@ using  ForceImport
 export buildTree, buildForest, updateTreesWeights!, predictSingle, predict, print
 import Base.print
 
+export AbstractDecisionNode,Leaf, DecisionNode, Forest  # cancelalble
+
 """
    Question
 
@@ -539,13 +541,13 @@ function buildForest(x, y::AbstractArray{Ty,1}, nTrees=30; maxDepth = size(x,1),
     jobIsRegression = (forceClassification || !(eltype(y) <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     (N,D) = size(x)
 
-    #rngs = fill(deepcopy(rng),Threads.nthreads()) # One random number generator per thread. No, then each treee would be the same
-    #unused = rand(rng,100000) # I have a bad feeling with this. Is there a better way for  "Different values, but same sequence" ?
+    masterSeed = rand(rng,100:9999999999999) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generateParallelRngs
     rngs = generateParallelRngs(rng,Threads.nthreads())
 
     #for i in 1:nTrees # for easier debugging/profiling...
     Threads.@threads for i in 1:nTrees
         tsrng = rngs[Threads.threadid()] # Thread safe random number generator
+        Random.seed!(tsrng,masterSeed+i*10)
         toSample = rand(tsrng, 1:N,N)
         notToSample = setdiff(1:N,toSample)
         bootstrappedx = x[toSample,:] # "boosted is different than "bootstrapped": https://towardsdatascience.com/random-forest-and-its-implementation-71824ced454f

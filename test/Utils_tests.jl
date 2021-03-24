@@ -4,8 +4,8 @@ using Test, Statistics, CategoricalArrays, Random, StableRNGs
 using BetaML
 import BetaML.Utils
 
-#TESTRNG = FIXEDRNG # This could change...
-TESTRNG = StableRNG(123)
+TESTRNG = FIXEDRNG # This could change...
+#TESTRNG = StableRNG(123)
 
 println("*** Testing individual utility functions (module `Utils`)...")
 
@@ -322,16 +322,18 @@ y = collect(31:40)
 # ==================================
 # New test
 println("** Testing generateParallelRngs()...")
-x = rand(100)
+x = rand(rng,100)
 
 function innerFunction(bootstrappedx; rng=Random.GLOBAL_RNG)
      sum(bootstrappedx .* rand(rng) ./ 0.5)
 end
 function outerFunction(x;rng = Random.GLOBAL_RNG)
-    rngs = generateParallelRngs(rng,Threads.nthreads()) # make new copy instances
-    results = Array{Float64,1}(undef,30)
+    masterSeed = rand(rng,100:9999999999999) # important: with some RNG it is important to do this before the generateParallelRngs to guarantee independance from number of threads
+    rngs       = generateParallelRngs(rng,Threads.nthreads()) # make new copy instances
+    results    = Array{Float64,1}(undef,30)
     Threads.@threads for i in 1:30
-        tsrng = rngs[Threads.threadid()] # Thread safe random number generator
+        tsrng = rngs[Threads.threadid()]    # Thread safe random number generator: one RNG per thread
+        Random.seed!(tsrng,masterSeed+i*10) # But the seeding depends on the i of the loop not the thread: we get same results indipendently of the number of threads
         toSample = rand(tsrng, 1:100,100)
         bootstrappedx = x[toSample]
         innerResult = innerFunction(bootstrappedx, rng=tsrng)
@@ -340,6 +342,7 @@ function outerFunction(x;rng = Random.GLOBAL_RNG)
     overallResult = mean(results)
     return overallResult
 end
+
 
 # Different sequences..
 @test outerFunction(x) != outerFunction(x)
@@ -360,3 +363,48 @@ B = outerFunction(x, rng=mainRng)
 a = outerFunction(x,rng=copy(TESTRNG))
 b = outerFunction(x,rng=copy(TESTRNG))
 @test a == b
+
+#=
+using Random, StableRNGs
+rDiff(rngFunction,seedBase,seedDiff,repetitions) = norm(rand(rngFunction(seedBase),repetitions) .- rand(rngFunction(seedBase+seedDiff),repetitions))/repetitions
+
+# Seed base 1000: ok
+rDiff(StableRNG,1000,1,100000)          # 0.00129
+rDiff(StableRNG,1000,10,100000)         # 0.00129
+rDiff(StableRNG,1000,1000,100000)       # 0.00129
+
+rDiff(MersenneTwister,1000,1,100000)    # 0.00129
+rDiff(MersenneTwister,1000,10,100000)   # 0.00129
+rDiff(MersenneTwister,1000,1000,100000) # 0.00129
+
+# Seed base 10: Still ok
+rDiff(StableRNG,10,1,100000)            # 0.00129
+rDiff(StableRNG,10,10,100000)           # 0.00129
+rDiff(StableRNG,10,1000,100000)         # 0.00129
+
+rDiff(MersenneTwister,10,1,100000)      # 0.00129
+rDiff(MersenneTwister,10,10,100000)     # 0.00129
+rDiff(MersenneTwister,10,1000,100000)   # 0.00129
+
+# Seed base 1: We start seeing problems for StableRNG..
+rDiff(StableRNG,1,1,100000)             # 0.00125  <--
+rDiff(StableRNG,1,10,100000)            # 0.00129
+rDiff(StableRNG,1,1000,100000)          # 0.00129
+
+rDiff(MersenneTwister,1,1,100000)       # 0.00129
+rDiff(MersenneTwister,1,10,100000)      # 0.00129
+rDiff(MersenneTwister,1,1000,100000)    # 0.00129
+
+# Seed base 0: Unexpected results for for StableRNG..
+rDiff(StableRNG,0,1,100000)             # 0.00105 <----------
+rDiff(StableRNG,0,2,100000)             # 0.00116 <-----
+rDiff(StableRNG,0,5,100000)             # 0.00123 <---
+rDiff(StableRNG,0,10,100000)            # 0.00126 <--
+rDiff(StableRNG,0,1000,100000)          # 0.00129
+
+rDiff(MersenneTwister,0,1,100000)       # 0.00130 <-
+rDiff(MersenneTwister,0,2,100000)       # 0.00129
+rDiff(MersenneTwister,0,5,100000)       # 0.00129
+rDiff(MersenneTwister,0,10,100000)      # 0.00129
+rDiff(MersenneTwister,0,1000,100000)    # 0.00129
+=#

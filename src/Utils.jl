@@ -91,22 +91,14 @@ For multi-threaded models return n rings (one per thread) to be used in threaded
 Note that each ring is a _copy_, at different state, of the original random ring.
 This means that code that _use_ these RNGs will not change the original RNGF state.
 
-Works only for the default Julia RNG.
+Use it with `rngs = generateParallelRngs(rng,Threads.nthreads())` to have a separate rng per thread.
+See the unit tests ("Utils_test.jl") for a complete example that guarantee the same result indipendently of the number of threads used.
 
-Use it with `rngs = generateParallelRngs(rng,Threads.nthreads())`
-
+Note that if you use a masterSeed and reseed based on the loopid you could use just `rngs = fill(deepcopy(rng),Threads.nthreads())` instead.
 """
 function generateParallelRngs(rng::AbstractRNG, n::Integer)
-    # see also here for a workaround that would allow StableRNGs back: https://github.com/JuliaRandom/StableRNGs.jl/issues/8#issuecomment-801892721
-    #step = rand(rng,big(10)^20:big(10)^40) # making the step random too !
-    #rngs = Vector{Union{MersenneTwister,Random._GLOBAL_RNG}}(undef, n) # Vector{typeof(rng)}(undef, n)
-    #rngs[1] = copy(rng)
-    #for i = 2:n
-    #    rngs[i] = Future.randjump(rngs[i-1], step)
-    #end
-    #return rngs
-    seeds = [rand(rng,1:18446744073709551615) for i in 1:n]
-    rngs  = [copy(rng) for i in 1:n]
+    seeds = [rand(rng,100:18446744073709551615) for i in 1:n] # some RNGs have issues with too small seed
+    rngs  = [deepcopy(rng) for i in 1:n]
     return Random.seed!.(rngs,seeds)
 end
 
@@ -789,7 +781,7 @@ The parameter `p` [def: `1`] controls the p-norm used to define the error.
 
 The _mean relative error_ enfatises the relativeness of the error, i.e. all observations and dimensions weigth the same, wether large or small. Conversly, in the _relative mean error_ the same relative error on larger observations (or dimensions) weights more.
 
-For example, given `y = [1,44,3]` and `ŷ = [2,45,2]]`, the _mean relative error_ `meanRelError(ŷ,y)` is `0.452`, while the _relative mean error_ `meanRelError(ŷ,y, normRec=false)` is "only" `0.0625`.
+For example, given `y = [1,44,3]` and `ŷ = [2,45,2]`, the _mean relative error_ `meanRelError(ŷ,y)` is `0.452`, while the _relative mean error_ `meanRelError(ŷ,y, normRec=false)` is "only" `0.0625`.
 
 """
 function meanRelError(ŷ,y;normDim=true,normRec=true,p=1)

@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/docs/src/tutorials/ARegressionTask_sharingBikeDemandPrediction/betaml_tutorial_regression_sharingBikes.jl"
+EditURL = "<unknown>/docs/src/tutorials/A regression task - sharing bike demand prediction/betaml_tutorial_regression_sharingBikes.jl"
 ```
 
 # A regression task: the prediction of  bike  sharing demand
@@ -16,11 +16,11 @@ Note that even if we are estimating a time serie, we are not using here a recurr
 ## Library and data loading
 
 ```@example betaml_tutorial_regression_sharingBikes
-using LinearAlgebra, Random, Statistics, DataFrames, CSV, Plots, BetaML
+using LinearAlgebra, Random, Statistics, DataFrames, StableRNGs, CSV, Plots, BetaML
 import Distributions: Uniform
 import DecisionTree ## For comparisions
 
-baseDir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","ARegressionTask_sharingBikeDemandPrediction")
+baseDir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","A regression task - sharing bike demand prediction")
 ```
 
 Data loading
@@ -70,12 +70,17 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthRange=15:15,m
     compLock        = ReentrantLock()
 
     # Generate one random number generator per thread
+    masterSeed = rand(rng,100:9999999999999) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generateParallelRngs
     rngs = generateParallelRngs(rng,Threads.nthreads())
 
     # We loop over all possible hyperparameter combinations...
-    Threads.@threads for ij in CartesianIndices((length(maxDepthRange),length(maxFeaturesRange),length(minRecordsRange),length(nTreesRange),length(βRange)))
+    parLengths = (length(maxDepthRange),length(maxFeaturesRange),length(minRecordsRange),length(nTreesRange),length(βRange))
+    Threads.@threads for ij in CartesianIndices(parLengths)
            (maxDepth,maxFeatures,minRecords,nTrees,β)   = (maxDepthRange[Tuple(ij)[1]], maxFeaturesRange[Tuple(ij)[2]], minRecordsRange[Tuple(ij)[3]], nTreesRange[Tuple(ij)[4]], βRange[Tuple(ij)[5]])
-           tsrng = rngs[Threads.threadid()]
+           tsrng = rngs[Threads.threadid()] ## The random number generator is one for thread..
+           joinedIndx = LinearIndices(parLengths)[ij]
+           # And here we make the seeding depending on the i of the loop, not the thread: hence we get the same results indipendently of the number of threads
+           Random.seed!(tsrng,masterSeed+joinedIndx*10)
            totAttemptError = 0.0
            # We run several repetitions with the same hyperparameter combination to account for stochasticity...
            for r in 1:repetitions
@@ -88,7 +93,7 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthRange=15:15,m
               end
               # Here we make prediciton with this trained model and we compute its error
               ŷval   = predict(myTrainedModel, xval,rng=tsrng)
-              mreVal = meanRelError(ŷval,yval)
+              mreVal = meanRelError(ŷval,yval,normRec=false)
               totAttemptError += mreVal
            end
            avgAttemptedDepthError = totAttemptError / repetitions
@@ -117,14 +122,14 @@ We can now run the hyperparameter optimisation function with some "reasonable" r
 
 ```@example betaml_tutorial_regression_sharingBikes
 (bestMre,bestMaxDepth,bestMaxFeatures,bestMinRecords) = tuneHyperParameters("DecisionTree",xtrain,ytrain,xval,yval,
-           maxDepthRange=3:7,maxFeaturesRange=10:12,minRecordsRange=2:6,repetitions=5,rng=copy(FIXEDRNG))
-println("DT: $bestMre - $bestMaxDepth - $bestMaxFeatures - $bestMinRecords")
+           maxDepthRange=3:7,maxFeaturesRange=10:12,minRecordsRange=2:6,repetitions=10,rng=copy(FIXEDRNG))
 ```
 
 Now that we have found the "optimal" hyperparameters we can build ("train") our model using them:
 
 ```@example betaml_tutorial_regression_sharingBikes
-myTree = buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,rng=copy(FIXEDRNG))
+myTree = buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,rng=copy(FIXEDRNG));
+nothing #hide
 ```
 
 The above function produces a DecisionTree object that can be used to make predictions given some features, i.e. given some X matrix of (number of observations x dimensions), predict the corresponding Y vector of scalers in R.
@@ -147,16 +152,15 @@ The _mean relative error_ enfatises the relativeness of the error, i.e. all obse
 For example, given `y = [1,44,3]` and `ŷ = [2,45,2]]`, the _mean relative error_ `meanRelError(ŷ,y)` is `0.452`, while the _relative mean error_ `meanRelError(ŷ,y, normRec=false)` is "only" `0.0625`.
 
 ```@example betaml_tutorial_regression_sharingBikes
-(mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest])
-println(mreTest)
+(mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
 ```
 
 We can plot the true labels vs the estimated one for the three subsets...
 
 ```@example betaml_tutorial_regression_sharingBikes
-scatter(ytrain,ŷtrain,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in training period")
-scatter(yval,ŷval,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in validation period")
-scatter(ytest,ŷtest,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in testing period")
+scatter(ytrain,ŷtrain,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in training period (DT)")
+scatter(yval,ŷval,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in validation period (DT)")
+scatter(ytest,ŷtest,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in testing period (DT)")
 ```
 
 Or we can visualise the true vs estimated bike shared on a temporal base.
@@ -166,7 +170,7 @@ First on the full period (2 years) ...
 ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
 ŷvalfull   = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
 ŷtestfull  = vcat(fill(missing,ntrain+nval), ŷtest)
-plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period")
+plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period (DT)")
 ```
 
 ..and then focusing on the testing period
@@ -174,7 +178,7 @@ plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=[
 ```@example betaml_tutorial_regression_sharingBikes
 stc = 620
 endc = size(x,1)
-plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period")
+plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period (DT)")
 ```
 
 ## Random Forests
@@ -184,21 +188,19 @@ Being made of many decision trees, random forests are more computationally expen
 We still tune however the model for other parameters, and in particular the β parameter, a prerogative of BetaML Random Forests that allows to assign more weigth to the best performing trees in the forest. It may be particularly important if there are many outliers in the data.
 
 ```@example betaml_tutorial_regression_sharingBikes
+minRecordsRange=[5,6,10]; nTreesRange=25:5:35; βRange=300:100:500
+
 (bestMre,bestMaxDepth,bestMaxFeatures,bestMinRecords,bestNTrees,bestβ) = tuneHyperParameters("RandomForest",xtrain,ytrain,xval,yval,
         maxDepthRange=size(xtrain,1):size(xtrain,1),maxFeaturesRange=Int(round(sqrt(size(xtrain,2)))):Int(round(sqrt(size(xtrain,2)))),
-        minRecordsRange=[2,6,10],nTreesRange=10:10:30,βRange=400:50:500,repetitions=5,rng=copy(FIXEDRNG))
-```
-
-10,20,450
-
-```@example betaml_tutorial_regression_sharingBikes
+        minRecordsRange=minRecordsRange,nTreesRange=nTreesRange,βRange=βRange,repetitions=5,rng=copy(FIXEDRNG))
 println("RF: $bestMre $bestMinRecords $bestNTrees $bestβ")
 ```
 
 As for decision trees, once the hyper-parameters of the model are tuned we wan refit the model using the optimal parameters.
 
 ```@example betaml_tutorial_regression_sharingBikes
-myForest = buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,β=bestβ,oob=true,rng=copy(FIXEDRNG))
+myForest = buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,β=bestβ,oob=true,rng=copy(FIXEDRNG));
+nothing #hide
 ```
 
 Random forests support the so-called "out-of-bag" error, an estimation of the error that we would have when the model is applied on a testing sample.
@@ -210,26 +212,24 @@ oobError                    = myForest.oobError
 
 ```@example betaml_tutorial_regression_sharingBikes
 (ŷtrain,ŷval,ŷtest)         = predict.([myForest], [xtrain,xval,xtest])
-(mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest])
-
-println(mreTest)
+(mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
 ```
 
 Still the error is much lower than those found employing a single decision tree ! Let's print the observed data vs the estimated one using the random forest and then along the temporal axis:
 
 ```@example betaml_tutorial_regression_sharingBikes
-scatter(ytrain,ŷtrain,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in training period")
-scatter(yval,ŷval,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in validation period")
-scatter(ytest,ŷtest,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in testing period")
+scatter(ytrain,ŷtrain,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in training period (RF)")
+scatter(yval,ŷval,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in validation period (RF)")
+scatter(ytest,ŷtest,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in testing period (RF)")
 ```
 
 Full period plot (2 years):
 
 ```@example betaml_tutorial_regression_sharingBikes
 ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
-ŷvalfull = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
-ŷtestfull = vcat(fill(missing,ntrain+nval), ŷtest)
-plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period")
+ŷvalfull   = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
+ŷtestfull  = vcat(fill(missing,ntrain+nval), ŷtest)
+plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period (RF)")
 ```
 
 Focus on the testing period:
@@ -237,7 +237,7 @@ Focus on the testing period:
 ```@example betaml_tutorial_regression_sharingBikes
 stc = 620
 endc = size(x,1)
-plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period")
+plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period (RF)")
 ```
 
 ### Comparision with DecisionTree.jl random forest
@@ -267,7 +267,7 @@ And we generate predictions and measure their error
 
 ```@example betaml_tutorial_regression_sharingBikes
 (ŷtrain,ŷval,ŷtest) = DecisionTree.apply_forest.([model],[xtrain,xval,xtest])
-(mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest])
+(mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
 ```
 
 Finally we plot the DecisionTree.jl predictions alongside the observed value:
@@ -276,7 +276,7 @@ Finally we plot the DecisionTree.jl predictions alongside the observed value:
 ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
 ŷvalfull   = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
 ŷtestfull  = vcat(fill(missing,ntrain+nval), ŷtest)
-plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period")
+plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period (DT.jl RF)")
 ```
 
 Again, focusing on the testing data:
@@ -284,7 +284,7 @@ Again, focusing on the testing data:
 ```@example betaml_tutorial_regression_sharingBikes
 stc  = 620
 endc = size(x,1)
-plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period")
+plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period (DT.jl RF)")
 
 ### Conclusions
 ```
@@ -348,17 +348,22 @@ As before, we select the best hyperparameters by using the validation set (it ma
 function tuneHyperParameters(xtrain,ytrain,xval,yval;epochRange=50:50,hiddenLayerSizeRange=12:12,repetitions=5,rng=Random.GLOBAL_RNG)
     # We start with an infinititly high error
     bestMre         = +Inf
-    bestEpoch        = 0
-    bestSize         = 0
+    bestEpoch       = 0
+    bestSize        = 0
     compLock        = ReentrantLock()
 
     # Generate one random number generator per thread
-    rngs = generateParallelRngs(rng,Threads.nthreads())
+    masterSeed = rand(rng,100:9999999999999) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generateParallelRngs
+    rngs       = generateParallelRngs(rng,Threads.nthreads())
 
     # We loop over all possible hyperparameter combinations...
-    Threads.@threads for ij in CartesianIndices((length(epochRange),length(hiddenLayerSizeRange)))
+    parLengths = (length(epochRange),length(hiddenLayerSizeRange))
+    Threads.@threads for ij in CartesianIndices(parLengths)
        (epoch,hiddenLayerSize)   = (epochRange[Tuple(ij)[1]], hiddenLayerSizeRange[Tuple(ij)[2]])
        tsrng = rngs[Threads.threadid()]
+       joinedIndx = LinearIndices(parLengths)[ij]
+       # And here we make the seeding depending on the i of the loop, not the thread: hence we get the same results indipendently of the number of threads
+       Random.seed!(tsrng,masterSeed+joinedIndx*10)
        totAttemptError = 0.0
        println("Testing epochs $epoch, layer size $hiddenLayerSize ...")
        # We run several repetitions with the same hyperparameter combination to account for stochasticity...
@@ -370,7 +375,7 @@ function tuneHyperParameters(xtrain,ytrain,xval,yval;epochRange=50:50,hiddenLaye
            # Training it (default to ADAM)
            res  = train!(mynn,xtrain,ytrain,epochs=epoch,batchSize=8,optAlg=ADAM(),verbosity=NONE, rng=tsrng) # Use optAlg=SGD() to use Stochastic Gradient Descent
            ŷval = predict(mynn,xval)
-           mreVal  = meanRelError(ŷval,yval)
+           mreVal  = meanRelError(ŷval,yval,normRec=false)
            totAttemptError += mreVal
        end
        avgMre = totAttemptError / repetitions
@@ -391,9 +396,10 @@ function tuneHyperParameters(xtrain,ytrain,xval,yval;epochRange=50:50,hiddenLaye
     return (bestMre=bestMre,bestEpoch=bestEpoch,bestSize=bestSize)
 end
 
-epochsToTest     = [50,100,200]
-hiddenLayerSizes = [15,20]
+epochsToTest     = [100,400]
+hiddenLayerSizes = [5,15,30]
 (bestMre,bestEpoch,bestSize) = tuneHyperParameters(xtrainScaled,ytrainScaled,xvalScaled,yvalScaled;epochRange=epochsToTest,hiddenLayerSizeRange=hiddenLayerSizes,repetitions=3,rng=copy(FIXEDRNG))
+println("NN: $bestMre $bestEpoch $bestSize")
 ```
 
 We re-do the training with the best hyperparameters:
@@ -425,13 +431,13 @@ ŷtrain = scale(predict(mynn,xtrainScaled),yScaleFactors,rev=true)
 ŷval   = scale(predict(mynn,xvalScaled),yScaleFactors,rev=true)
 ŷtest  = scale(predict(mynn,xtestScaled),yScaleFactors,rev=true)
 
-scatter(ytrain,ŷtrain,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in training period")
-scatter(yval,ŷval,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in validation period")
-scatter(ytest,ŷtest,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in testing period")
+scatter(ytrain,ŷtrain,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in training period (NN)")
+scatter(yval,ŷval,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in validation period (NN)")
+scatter(ytest,ŷtest,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in testing period (NN)")
 ```
 
 ```@example betaml_tutorial_regression_sharingBikes
-(mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest])
+(mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
 ```
 
 Full period plot (2 years)
@@ -440,7 +446,7 @@ Full period plot (2 years)
 ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
 ŷvalfull   = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
 ŷtestfull  = vcat(fill(missing,ntrain+nval), ŷtest)
-plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period")
+plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period  (NN)")
 ```
 
 Focus on testing data
@@ -448,7 +454,7 @@ Focus on testing data
 ```@example betaml_tutorial_regression_sharingBikes
 stc  = 620
 endc = size(x,1)
-plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period")
+plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period (NN)")
 ```
 
 ### Comparation with Flux
@@ -482,12 +488,11 @@ ŷtrainf = max.(0.0,scale(Flux_nn(xtrainScaled')',yScaleFactors,rev=true))
 ŷvalf   = max.(0.0,scale(Flux_nn(xvalScaled')',yScaleFactors,rev=true))
 ŷtestf  = max.(0.0,scale(Flux_nn(xtestScaled')',yScaleFactors,rev=true))
 
-scatter(yval,ŷvalf,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in validation period (Flux)")
-scatter(ytest,ŷtestf,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in testing period (Flux)")
+scatter(ytrain,ŷtrainf,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in training period (Flux.NN)")
+scatter(yval,ŷvalf,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in validation period (Flux.NN)")
+scatter(ytest,ŷtestf,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in testing period (Flux.NN)")
 
-mean(abs.(ŷtestf .- ytest))/mean(ytest)
-
-(mreTrain, mreVal, mreTest) = meanRelError.([ŷtrainf,ŷvalf,ŷtestf],[ytrain,yval,ytest])
+(mreTrain, mreVal, mreTest) = meanRelError.([ŷtrainf,ŷvalf,ŷtestf],[ytrain,yval,ytest],normRec=false)
 ```
 
 Full period plot (2 years)
@@ -496,7 +501,7 @@ Full period plot (2 years)
 ŷtrainfullf = vcat(ŷtrainf,fill(missing,nval+ntest))
 ŷvalfullf = vcat(fill(missing,ntrain), ŷvalf, fill(missing,ntest))
 ŷtestfullf = vcat(fill(missing,ntrain+nval), ŷtestf)
-plot(data[:,:dteday],[data[:,:cnt] ŷtrainfullf ŷvalfullf ŷtestfullf], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period (Flux)")
+plot(data[:,:dteday],[data[:,:cnt] ŷtrainfullf ŷvalfullf ŷtestfullf], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period (Flux.NN)")
 ```
 
 Focus on testing data
@@ -504,10 +509,16 @@ Focus on testing data
 ```@example betaml_tutorial_regression_sharingBikes
 stc = 620
 endc = size(x,1)
-plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfullf[stc:endc] ŷtestfullf[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period (Flux)")
+plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfullf[stc:endc] ŷtestfullf[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period (Flux.NN)")
+
+
+# Conclusions
 ```
 
-[View this file on Github](<unknown>/docs/src/tutorials/ARegressionTask_sharingBikeDemandPrediction/betaml_tutorial_regression_sharingBikes.jl).
+We likelly want to consider other error measures. First, the relative error may not be the most appropriate one (e.g. errors on very small true labels bear a heavy weigths). Secondly, in this case we may want to consider a non-simmetric error measure: after all, we care more of avoiding our customers finding empty bike racks than having unrented bikes on the rack.
+For your real-case application you will have to careful consider the most suitable loss function, and most BetaML algorithms allow you to specify a custom loss.
+
+[View this file on Github](<unknown>/docs/src/tutorials/A regression task - sharing bike demand prediction/betaml_tutorial_regression_sharingBikes.jl).
 
 ---
 
