@@ -51,7 +51,7 @@ initMixtures!(mixtures,X,minVariance=0.25,rng=copy(TESTRNG))
 @test sum([sum(m.μ) for m in mixtures]) ≈ 102.2
 @test sum([sum(m.σ²) for m in mixtures]) ≈ 19.651086419753085
 mask = [true, true, false]
-@test lpdf(m1,X[2,:][mask],mask) ≈ -3.818323669882357
+@test lpdf(m1,X[2,:][mask],mask) ≈ -3.461552516784797
 
 m1 = DiagonalGaussian()
 m2 = DiagonalGaussian([1.1,2,3])
@@ -59,7 +59,7 @@ m3 = DiagonalGaussian(nothing,[0.1,11,25.0])
 mixtures = [m1,m2,m3]
 initMixtures!(mixtures,X,minVariance=0.25,rng=copy(TESTRNG))
 @test sum([sum(m.σ²) for m in mixtures]) ≈ 291.27933333333334
-@test lpdf(m1,X[2,:][mask],mask) ≈ -3.4365786131066063
+@test lpdf(m1,X[2,:][mask],mask) ≈ -3.383055441795939
 
 m1 = FullGaussian()
 m2 = FullGaussian([1.1,2,3])
@@ -67,14 +67,14 @@ m3 = FullGaussian(nothing,[0.1 0.2 0.5; 0 2 0.8; 1 0 5])
 mixtures = [m1,m2,m3]
 initMixtures!(mixtures,X,minVariance=0.25,rng=copy(TESTRNG))
 @test sum([sum(m.σ²) for m in mixtures]) ≈ 264.77933333333334
-@test lpdf(m1,X[2,:][mask],mask) ≈ -3.4365786131066063
+@test lpdf(m1,X[2,:][mask],mask) ≈ -3.383055441795939
 
 # ==================================
 # New test
 # ==================================
 println("Testing gmm...")
 clusters = gmm([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
-@test isapprox(clusters.BIC,119.04816608007282)
+@test isapprox(clusters.BIC,114.1492467835965)
 
 # ==================================
 # New test
@@ -82,11 +82,11 @@ clusters = gmm([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 
 println("Testing predictMissing...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 out = predictMissing(X,3,mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
-@test isapprox(out.X̂[2,2],14.187187936786232)
+@test isapprox(out.X̂[2,2],14.155186593170251)
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 out2 = predictMissing(X,3,mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
-@test out2.X̂[2,2] ≈ 11.438358350316872
+@test out2.X̂[2,2] ≈ 14.588514438886131
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 out3 = predictMissing(X,3,mixtures=[FullGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
@@ -126,12 +126,12 @@ modelMachine                =  Mlj.machine(model,X)
 (fitResults, cache, report) = Mlj.fit(model, 0, X)
 XD                          =  Mlj.transform(model,fitResults,X)
 XDM                         =  Mlj.matrix(XD)
-@test isapprox(XDM[2,2],11.166666666667362)
+@test isapprox(XDM[2,2],15.441553354222702)
 # Use the previously learned structure to imput missings..
 Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
 XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
 XDMNew                      =  Mlj.matrix(XDNew)
-@test isapprox(XDMNew[1,2],11.166666666667362)
+@test isapprox(XDMNew[1,2],13.818691793037452)
 
 #=
 # Marginally different

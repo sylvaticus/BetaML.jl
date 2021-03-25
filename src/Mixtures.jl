@@ -135,7 +135,8 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
 
         rangedμ = zeros(nMM,D)
         for d in 1:D
-            rangedμ[:,d] = collect(range(minX[d], stop=maxX[d], length=nMM))
+            rangedμ[:,d] = collect(range(minX[d] + (maxX[d]-minX[d])/(nMM*2) , stop=maxX[d] - (maxX[d]-minX[d])/(nMM*2)  , length=nMM))
+            # ex: rangedμ[:,d] = collect(range(minX[d], stop=maxX[d], length=nMM))
         end
 
         j = 1

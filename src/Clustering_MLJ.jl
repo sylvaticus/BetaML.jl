@@ -101,7 +101,7 @@ MMI.fitted_params(model::Union{KMeans,KMedoids}, fitresult) = (centers=fitesult[
 function MMI.fit(m::GMM, verbosity, X, y)
     # X is nothing, y is the data: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/#Models-that-learn-a-probability-distribution-1
     y          = MMI.matrix(y) # convert table to matrix
-    res        = gmm(y,m.K,p₀=m.p₀,mixtures=m.mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
+    res        = gmm(y,m.K,p₀=deepcopy(m.p₀),mixtures=deepcopy(m.mixtures), minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
     fitResults = (pₙₖ=res.pₙₖ,pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
@@ -110,7 +110,7 @@ end
 
 function MMI.fit(m::MissingImputator, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
-    res        = gmm(x,m.K,p₀=m.p₀,mixtures=m.mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
+    res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=deepcopy(m.mixtures), minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
     fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # pₙₖ=res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
