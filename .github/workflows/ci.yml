@@ -52,7 +52,7 @@ jobs:
         with:
           version: '1'
       - run: |
-          julia --project=docs -t 4 -e '
+          julia --project=docs -e '
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
@@ -65,7 +65,7 @@ jobs:
       #      using Documenter: doctest
       #      using BetaML.Perceptron, BetaML.Nn, BetaML.Clustering, BetaML.Trees
       #      doctest(BetaML)' #this can't be changed to doctest(BetaML.Perceptron)
-      - run: julia --project=docs -t 4 docs/make.jl
+      - run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}

@@ -61,7 +61,7 @@ include("Clustering.jl") # Clustering algorithms
 #MLJ interface...
 const MLJ_PERCEPTRON_MODELS = (PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier)
 const MLJ_TREES_MODELS      = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
-const MLJ_CLUSTERING_MODELS = (KMeans, KMedoids, GMM, MissingImputator)
+const MLJ_CLUSTERING_MODELS = (KMeans, KMedoids, GMMFitter, GMMClusterer, MissingImputator)
 const MLJ_INTERFACED_MODELS = (MLJ_PERCEPTRON_MODELS..., MLJ_TREES_MODELS..., MLJ_CLUSTERING_MODELS...)
 
 function __init__()

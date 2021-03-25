@@ -6,6 +6,7 @@ using Test
 
 import MLJBase
 const Mlj = MLJBase
+import Distributions
 using BetaML
 
 TESTRNG = FIXEDRNG # This could change...
@@ -112,12 +113,14 @@ yhat                           = Mlj.predict(model, fitResults, X)
 acc = BetaML.accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
 @test acc > 0.8
 
-model                       =  GMM(rng=copy(TESTRNG))
-modelMachine                =  Mlj.machine(model, nothing, X) # DimensionMismatch
-(fitResults, cache, report) =  Mlj.fit(model, 0, nothing, X)
+model                       =  GMMClusterer(rng=copy(TESTRNG))
+modelMachine                =  Mlj.machine(model, X) # DimensionMismatch
+(fitResults, cache, report) =  Mlj.fit(model, 0, X)
 yhat_prob                   =  Mlj.transform(model,fitResults,nothing) # Mlj.transform(model,fitResults,X)
-yhat_prob                   =  Mlj.predict(model, fitResults, nothing)  # Mlj.transform(model,fitResults,X)
-@test length(yhat_prob)     == size(Mlj.matrix(X),1)
+yhat_prob2                  =  Mlj.predict(model, fitResults, X)  # Mlj.transform(model,fitResults,X)
+# how to get this ??? Mlj.predict_mode(yhat_prob)
+@test Distributions.pdf(yhat_prob[end],2) ≈ 0.5937332769039277
+@test Distributions.pdf(yhat_prob2[end],2) ≈ 0.5937443601647852
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 X = Mlj.table(X)
