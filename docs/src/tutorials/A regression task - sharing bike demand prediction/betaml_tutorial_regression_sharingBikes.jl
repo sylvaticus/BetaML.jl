@@ -12,7 +12,7 @@
 
 # ## Library and data loading
 
-using LinearAlgebra, Random, Statistics, DataFrames, StableRNGs, CSV, Plots, BetaML
+using LinearAlgebra, Random, Statistics, DataFrames, CSV, Plots, BetaML
 import Distributions: Uniform
 import DecisionTree, Flux ## For comparisions
 using  Test     #src
@@ -368,10 +368,20 @@ l3   = DenseLayer(bestSize,1,f=relu,rng=copy(FIXEDRNG))
 # Finally we "chain" the layer together and we assign a final loss function (agian, you can provide your own, if those available in BetaML don't suit your needs) in order to compose the "neural network" object.
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Bike sharing regression model") ## Build the NN and use the squared cost (aka MSE) as error function
 
+
+# The above neural network will use automatic differentiation (using the [Zygote]() package) to compute the gradient to minimise in the training step.
+# Using manual differentiaiton, for the layers that support it, is however really simple. The network below is exactly equivalent to the one above, except it avoids automatic differentiation:
+mynnManual = buildNetwork([
+        DenseLayer(D,bestSize,f=relu,df=drelu,rng=copy(FIXEDRNG)),
+        DenseLayer(bestSize,bestSize,f=identity,df=didentity,rng=copy(FIXEDRNG)),
+        DenseLayer(bestSize,1,f=relu,df=drelu,rng=copy(FIXEDRNG))
+    ], squaredCost, name="Bike sharing regression model", dcf=dSquaredCost)
+
+
 # We can now re-do the training with the best hyperparameters.
 # Several optimisation algorithms are available, and each accepts different parameters, like the _learning rate_ for the Stochastic Gradient Descent algorithm (used by default) or the exponential decay rates for the  moments estimates for the ADAM algorithm (that we use here, with the default parameters).
 println("Final training of $epoch epochs, with layer size $ls ...")
-res  = train!(mynn,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG)) ## Use optAlg=SGD() to use Stochastic Gradient Descent
+res  = train!(mynn,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG),verbosity=NONE) ## Use optAlg=SGD() to use Stochastic Gradient Descent
 
 #-
 ŷtrain = scale(predict(mynn,xtrainScaled),yScaleFactors,rev=true)
