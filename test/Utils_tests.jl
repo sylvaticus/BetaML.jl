@@ -322,7 +322,7 @@ y = collect(31:40)
 # ==================================
 # New test
 println("** Testing generateParallelRngs()...")
-x = rand(rng,100)
+x = rand(copy(TESTRNG),100)
 
 function innerFunction(bootstrappedx; rng=Random.GLOBAL_RNG)
      sum(bootstrappedx .* rand(rng) ./ 0.5)
