@@ -39,10 +39,10 @@ KMeans(;
   ) = KMedoids(K,dist,initStrategy,Z₀,rng)
 
 # function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="grid")
-mutable struct GMMFitter{TM <: AbstractMixture} <: MMI.Probabilistic
+mutable struct GMMFitter <: MMI.Probabilistic
   K::Int64
   p₀::Union{Nothing,AbstractArray{Float64,1}}
-  mixtures::AbstractArray{TM,1}
+  mixtures::Symbol
   tol::Float64
   minVariance::Float64
   minCovariance::Float64
@@ -52,7 +52,7 @@ end
 GMMFitter(;
     K             = 3,
     p₀            = nothing,
-    mixtures      = [DiagonalGaussian() for i in 1:K],
+    mixtures      = :diag_gaussian,
     tol           = 10^(-6),
     minVariance   = 0.05,
     minCovariance = 0.0,
@@ -60,10 +60,10 @@ GMMFitter(;
     rng           = Random.GLOBAL_RNG,
 ) = GMMFitter(K,p₀,mixtures, tol, minVariance, minCovariance,initStrategy,rng)
 
-mutable struct GMMClusterer{TM <: AbstractMixture} <: MMI.Unsupervised
+mutable struct GMMClusterer <: MMI.Unsupervised
   K::Int64
   p₀::Union{Nothing,AbstractArray{Float64,1}}
-  mixtures::AbstractArray{TM,1}
+  mixtures::Symbol
   tol::Float64
   minVariance::Float64
   minCovariance::Float64
@@ -73,7 +73,7 @@ end
 GMMClusterer(;
     K             = 3,
     p₀            = nothing,
-    mixtures      = [DiagonalGaussian() for i in 1:K],
+    mixtures      = :diag_gaussian,
     tol           = 10^(-6),
     minVariance   = 0.05,
     minCovariance = 0.0,
@@ -81,10 +81,10 @@ GMMClusterer(;
     rng           = Random.GLOBAL_RNG,
 ) = GMMClusterer(K,p₀,mixtures, tol, minVariance, minCovariance,initStrategy,rng)
 
-mutable struct MissingImputator{TM <: AbstractMixture} <: MMI.Unsupervised
+mutable struct MissingImputator <: MMI.Unsupervised
     K::Int64
     p₀::Union{Nothing,AbstractArray{Float64,1}}
-    mixtures::AbstractArray{TM,1}
+    mixtures::Symbol
     tol::Float64
     minVariance::Float64
     minCovariance::Float64
@@ -94,7 +94,7 @@ end
 MissingImputator(;
     K             = 3,
     p₀            = nothing,
-    mixtures      = [DiagonalGaussian() for i in 1:K],
+    mixtures      = :diag_gaussian,
     tol           = 10^(-6),
     minVariance   = 0.05,
     minCovariance = 0.0,
@@ -122,7 +122,17 @@ MMI.fitted_params(model::Union{KMeans,KMedoids}, fitresult) = (centers=fitesult[
 function MMI.fit(m::GMMFitter, verbosity, X, y)
     # X is nothing, y is the data: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/#Models-that-learn-a-probability-distribution-1
     y          = MMI.matrix(y) # convert table to matrix
-    res        = gmm(y,m.K,p₀=deepcopy(m.p₀),mixtures=deepcopy(m.mixtures), minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
+
+    if m.mixtures == :diag_gaussian
+        mixtures = [DiagonalGaussian() for i in 1:m.K]
+    elseif m.mixtures == :full_gaussian
+        mixtures = [FullGaussian() for i in 1:m.K]
+    elseif m.mixtures == :spherical_gaussian
+        mixtures = [SphericalGaussian() for i in 1:m.K]
+    else
+        error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
+    end
+    res        = gmm(y,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
     fitResults = (pₙₖ=res.pₙₖ,pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
@@ -132,7 +142,16 @@ end
 function MMI.fit(m::GMMClusterer, verbosity, X)
     # X is nothing, y is the data: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/#Models-that-learn-a-probability-distribution-1
     x          = MMI.matrix(X) # convert table to matrix
-    res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=deepcopy(m.mixtures), minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
+    if m.mixtures == :diag_gaussian
+        mixtures = [DiagonalGaussian() for i in 1:m.K]
+    elseif m.mixtures == :full_gaussian
+        mixtures = [FullGaussian() for i in 1:m.K]
+    elseif m.mixtures == :spherical_gaussian
+        mixtures = [SphericalGaussian() for i in 1:m.K]
+    else
+        error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
+    end
+    res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
     fitResults = (res.pₙₖ, pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
@@ -143,7 +162,16 @@ MMI.fitted_params(model::GMMClusterer, fitresult) = (weights=fitesult.pₖ, mixt
 
 function MMI.fit(m::MissingImputator, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
-    res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=deepcopy(m.mixtures), minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
+    if m.mixtures == :diag_gaussian
+        mixtures = [DiagonalGaussian() for i in 1:m.K]
+    elseif m.mixtures == :full_gaussian
+        mixtures = [FullGaussian() for i in 1:m.K]
+    elseif m.mixtures == :spherical_gaussian
+        mixtures = [SphericalGaussian() for i in 1:m.K]
+    else
+        error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
+    end
+    res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
     fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # pₙₖ=res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)

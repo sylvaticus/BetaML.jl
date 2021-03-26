@@ -118,7 +118,7 @@ yhat                           = Mlj.predict(model, fitResults, X)
 acc = BetaML.accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
 @test acc > 0.8
 
-model                       =  GMMClusterer(rng=copy(TESTRNG))
+model                       =  GMMClusterer(mixtures=:diag_gaussian,rng=copy(TESTRNG))
 modelMachine                =  Mlj.machine(model, X) # DimensionMismatch
 (fitResults, cache, report) =  Mlj.fit(model, 0, X)
 yhat_prob                   =  Mlj.transform(model,fitResults,nothing) # Mlj.transform(model,fitResults,X)
