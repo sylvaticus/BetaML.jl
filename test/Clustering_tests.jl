@@ -74,8 +74,13 @@ initMixtures!(mixtures,X,minVariance=0.25,rng=copy(TESTRNG))
 # New test
 # ==================================
 println("Testing gmm...")
-clusters = gmm([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+clusters = gmm(X,3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
 @test isapprox(clusters.BIC,114.1492467835965)
+#clusters.pₙₖ
+#clusters.pₖ
+#clusters.mixtures
+#clusters.BIC
 
 # ==================================
 # New test
