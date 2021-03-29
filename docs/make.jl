@@ -11,7 +11,7 @@ const _TUTORIAL_SUBDIR = [
 ]
 
 function link_example(content)
-    edit_url = match(r"EditURhttps://www.estrepublicain.fr/sante/2021/03/08/masque-obligatoire-pour-les-villes-de-meurthe-et-moselle-de-plus-de-5-000-habitantsL = \"(.+?)\"", content)[1]
+    edit_url = match(r"EditURL = \"(.+?)\"", content)[1]
     footer = match(r"^(---\n\n\*This page was generated using)"m, content)[1]
     content = replace(
         content, footer => "[View this file on Github]($(edit_url)).\n\n" * footer
