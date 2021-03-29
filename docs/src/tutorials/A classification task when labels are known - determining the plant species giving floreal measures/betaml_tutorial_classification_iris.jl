@@ -20,8 +20,6 @@ iris = dataset("datasets", "iris")
 describe(y)
 
 
-
-
 # ## Decision Trees and Random Forests
 x = convert(Matrix,iris[:,1:4])
 y = convert(Array{String,1},iris[:,5])

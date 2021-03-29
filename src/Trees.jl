@@ -670,6 +670,66 @@ function oobError(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
     end
 end
 
+
+function tune(model::AbstractNode,xtrain,ytrain,xval,yval,parameters;loss=(ŷ,y)->meanRelError(ŷ,y,normRec=false),repetitions=5,rng=Random.GLOBAL_RNG)
+    ## We start with an infinitely high error
+    bestError       = +Inf
+
+    compLock        = ReentrantLock()
+
+    ## Generate one random number generator per thread
+    masterSeed = rand(rng,100:9999999999999) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generateParallelRngs
+    rngs = generateParallelRngs(rng,Threads.nthreads())
+
+    ## We loop over all possible hyperparameter combinations...
+    parLengths = (length(maxDepthRange),length(maxFeaturesRange),length(minRecordsRange),length(nTreesRange),length(βRange))
+    Threads.@threads for ij in CartesianIndices(parLengths) ## This to avoid many nested for loops
+           (maxDepth,maxFeatures,minRecords,nTrees,β)   = (maxDepthRange[Tuple(ij)[1]], maxFeaturesRange[Tuple(ij)[2]], minRecordsRange[Tuple(ij)[3]], nTreesRange[Tuple(ij)[4]], βRange[Tuple(ij)[5]]) ## The specific hyperparameters of this nested loop
+           tsrng = rngs[Threads.threadid()] ## The random number generator is specific for each thread..
+           joinedIndx = LinearIndices(parLengths)[ij]
+           ## And here we make the seeding depending on the id of the loop, not the thread: hence we get the same results indipendently of the number of threads
+           Random.seed!(tsrng,masterSeed+joinedIndx*10)
+           totAttemptError = 0.0
+           ## We run several repetitions with the same hyperparameter combination to account for stochasticity...
+           for r in 1:repetitions
+              if model == "DecisionTree"
+                 ## Here we train the Decition Tree model
+                 myTrainedModel = buildTree(xtrain,ytrain, maxDepth=maxDepth,maxFeatures=maxFeatures,minRecords=minRecords,rng=tsrng)
+              else
+                 ## Here we train the Random Forest model
+                 myTrainedModel = buildForest(xtrain,ytrain,nTrees,maxDepth=maxDepth,maxFeatures=maxFeatures,minRecords=minRecords,β=β,rng=tsrng)
+              end
+              ## Here we make prediciton with this trained model and we compute its error
+              ŷval   = predict(myTrainedModel, xval,rng=tsrng)
+              rmeVal = meanRelError(ŷval,yval,normRec=false)
+              totAttemptError += rmeVal
+           end
+           avgAttemptedDepthError = totAttemptError / repetitions
+           begin
+               lock(compLock) ## This step can't be run in parallel...
+               try
+                   ## Select this specific combination of hyperparameters if the error is the lowest
+                   if avgAttemptedDepthError < bestRme
+                     bestRme         = avgAttemptedDepthError
+                     bestMaxDepth    = maxDepth
+                     bestMaxFeatures = maxFeatures
+                     bestNTrees      = nTrees
+                     bestβ           = β
+                     bestMinRecords  = minRecords
+                   end
+               finally
+                   unlock(compLock)
+               end
+           end
+    end
+    return (bestRme,bestMaxDepth,bestMaxFeatures,bestMinRecords,bestNTrees,bestβ)
+end
+
+
+
+
+
+
 # MLJ interface
 include("Trees_MLJ.jl")
 
