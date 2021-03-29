@@ -108,7 +108,7 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthRange=15:15,m
 end
 
 
-# We can now run the hyperparameter optimisation function with some "reasonable" ranges. To obtain repetable results we call `tuneHyperParameters` with `rng=copy(FIXEDRNG)`, where `FIXEDRNG` is a fixed-seeded random number generator guaranteed to maintain the same stream of random numbers even between different julia versions. That's also what we use for our unit tests.
+# We can now run the hyperparameter optimisation function with some "reasonable" ranges. To obtain replicable results we call `tuneHyperParameters` with `rng=copy(FIXEDRNG)`, where `FIXEDRNG` is a fixed-seeded random number generator guaranteed to maintain the same stream of random numbers even between different julia versions. That's also what we use for our unit tests.
 (bestRme,bestMaxDepth,bestMaxFeatures,bestMinRecords) = tuneHyperParameters("DecisionTree",xtrain,ytrain,xval,yval,
            maxDepthRange=3:7,maxFeaturesRange=10:12,minRecordsRange=2:6,repetitions=10,rng=copy(FIXEDRNG))
 println("DT: $bestRme - $bestMaxDepth - $bestMaxFeatures - $bestMinRecords") #src
@@ -295,11 +295,11 @@ weatherDummies = convert(Array{Float64,2},oneHotEncoder(data[:,:weathersit]))
 wdayDummies    = convert(Array{Float64,2},oneHotEncoder(data[:,:weekday] .+ 1 ))
 
 ## We compose the feature matrix with the new dimensions obtained from the oneHotEncoder functions
-x    = convert(Matrix,hcat(convert(Array{Float64,2},data[:,[:instant,:yr,:mnth,:holiday,:workingday,:temp,:atemp,:hum,:windspeed]]),
-            seasonDummies,
-            weatherDummies,
-            wdayDummies))
-y    = data[:,16]
+x = hcat(Matrix{Float64}(data[:,[:instant,:yr,:mnth,:holiday,:workingday,:temp,:atemp,:hum,:windspeed]]),
+         seasonDummies,
+         weatherDummies,
+         wdayDummies)
+y = data[:,16]
 
 
 # As usual, we split the data in training, validation and testing sets
@@ -459,7 +459,7 @@ l3         = Flux.Dense(bestSize,1,Flux.relu)
 Flux_nn    = Flux.Chain(l1,l2,l3)
 loss(x, y) = Flux.mse(Flux_nn(x), y)
 ps         = Flux.params(Flux_nn)
-nndata     = Flux.Data.DataLoader(xtrainScaled', ytrainScaled', batchsize=8,shuffle=true)
+nndata     = Flux.Data.DataLoader((xtrainScaled', ytrainScaled'), batchsize=8,shuffle=true)
 
 Flux_nn2   = deepcopy(Flux_nn)      ## A copy for the time benchmarking
 ps2        = Flux.params(Flux_nn2)  ## A copy for the time benchmarking
@@ -468,8 +468,9 @@ ps2        = Flux.params(Flux_nn2)  ## A copy for the time benchmarking
 Flux.@epochs bestEpoch Flux.train!(loss, ps, nndata, Flux.ADAM(0.001, (0.9, 0.8)))
 
 # ..and we benchmark it..
-@btime begin for i in 1:bestEpoch Flux.train!(loss, ps, nndata, Flux.ADAM(0.001, (0.9, 0.8))) end end
-# Quite surprisling, Flux training seems a bit slow. The actual results seems to depend from the actual hardware and by default Flux seems not to use multi-threading. While I suspect Flux scales better with larger networks and/or data, for these small examples on my laptop it is still a bit slower than BetaML even on a single thread.
+@btime begin for i in 1:bestEpoch Flux.train!(loss, ps2, nndata, Flux.ADAM(0.001, (0.9, 0.8))) end end
+#src # Quite surprisling, Flux training seems a bit slow. The actual results seems to depend from the actual hardware and by default Flux seems not to use multi-threading. While I suspect Flux scales better with larger networks and/or data, for these small examples on my laptop it is still a bit slower than BetaML even on a single thread.
+# On this small example the speed of Flux is on the same order than BetaML (the actual difference seems to depend on the specific RNG seed), however I suspect that Flux scales much better with larger networks and/or data.
 
 # We obtain the estimates...
 ŷtrainf = @pipe Flux_nn(xtrainScaled')' |> scale(_,yScaleFactors,rev=true)
@@ -481,7 +482,7 @@ ŷtestf  = @pipe Flux_nn(xtestScaled')'  |> scale(_,yScaleFactors,rev=true)
 # .. finding an error not significantly different than the one obtained from BetaML.Nn.
 
 #-
-@test mreTest < 0.17 #src
+@test mreTest < 0.18 #src
 
 # Plots:
 scatter(ytrain,ŷtrainf,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in training period (Flux.NN)")

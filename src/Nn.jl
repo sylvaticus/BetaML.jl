@@ -364,7 +364,7 @@ function loss(nn::NN,x,y)
     y = makeMatrix(y)
     (n,d) = size(x)
     #(nn.trained || n == 1) ? "" : @warn "Seems you are trying to test a neural network that has not been tested. Use first `train!(nn,x,y)`"
-    ϵ = 0
+    ϵ = 0.0
     for i in 1:n
         ŷ = predict(nn,x[i,:]')[1,:]
         ϵ += nn.cf(ŷ,y[i,:])
@@ -383,12 +383,8 @@ Retrieve current weigthts
 # Notes:
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
-function getParams(nn::NN)
-  w = Learnable[]
-  for l in nn.layers
-      push!(w,getParams(l))
-  end
-  return w
+@inline function getParams(nn::NN)
+  return [getParams(l) for l in nn.layers]
 end
 
 
@@ -413,32 +409,30 @@ function getGradient(nn::NN,x::Union{T,AbstractArray{T,1}},y::Union{T2,AbstractA
   nLayers = length(nn.layers)
 
   # Stap 1: Forward pass
-  forwardStack = Array{Float64,1}[]
-  push!(forwardStack,x)
-  for l in nn.layers
-      push!(forwardStack, forward(l,forwardStack[end]))
+  forwardStack = Vector{Vector{Float64}}(undef,nLayers+1)
+
+  forwardStack[1] = x
+  @inbounds for (i,l) in enumerate(nn.layers)
+      forwardStack[i+1] = forward(l,forwardStack[i])
   end
 
   # Step 2: Backpropagation pass
-  backwardStack = Array{Float64,1}[]
+  backwardStack = Vector{Vector{Float64}}(undef,nLayers+1)
   if nn.dcf != nothing
-    push!(backwardStack,nn.dcf(forwardStack[end],y)) # adding dϵ_dHatY
+    backwardStack[end] = nn.dcf(forwardStack[end],y) # adding dϵ_dHatY
   else
-    push!(backwardStack,gradient(nn.cf,forwardStack[end],y)[1]) # using AD from Zygote
+    backwardStack[end] = gradient(nn.cf,forwardStack[end],y)[1] # using AD from Zygote
   end
-  for lidx in nLayers:-1:1
+  @inbounds for lidx in nLayers:-1:1
      l = nn.layers[lidx]
-     dϵ_do = backward(l,forwardStack[lidx],backwardStack[end])
-     push!(backwardStack,dϵ_do)
+     dϵ_do = backward(l,forwardStack[lidx],backwardStack[lidx+1])
+     backwardStack[lidx] = dϵ_do
   end
-  backwardStack = backwardStack[end:-1:1] # reversing it,
 
   # Step 3: Computing gradient of weigths
-  dWs = Learnable[]
-  for lidx in 1:nLayers
-     l = nn.layers[lidx]
-     dW = getGradient(l,forwardStack[lidx],backwardStack[lidx+1])
-     push!(dWs,dW)
+  dWs = Array{Learnable,1}(undef,nLayers)
+  @inbounds for lidx in 1:nLayers
+     dWs[lidx] = getGradient(nn.layers[lidx],forwardStack[lidx],backwardStack[lidx+1])
   end
 
   return dWs
@@ -459,10 +453,8 @@ Retrieve the current gradient of the weigthts (i.e. derivative of the cost with 
 """
 function getGradient(nn,xbatch::AbstractArray{T,2},ybatch::AbstractArray{T2,2}) where {T <: Number, T2 <: Number}
     gradients = Array{Vector{Learnable},1}(undef,size(xbatch,1))
-    #gradients = Vector{Tuple}[]
     for j in 1:size(xbatch,1)
        gradients[j] =  getGradient(nn,xbatch[j,:],ybatch[j,:])
-       #push!(gradients,getGradient(nn,xbatch[j,:],ybatch[j,:]))
     end
     return gradients
 end

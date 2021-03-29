@@ -670,7 +670,8 @@ function oobError(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
     end
 end
 
-
+#=
+# maybe nice to implement.. when I'll have time..
 function tune(model::AbstractNode,xtrain,ytrain,xval,yval,parameters;loss=(ŷ,y)->meanRelError(ŷ,y,normRec=false),repetitions=5,rng=Random.GLOBAL_RNG)
     ## We start with an infinitely high error
     bestError       = +Inf
@@ -724,7 +725,7 @@ function tune(model::AbstractNode,xtrain,ytrain,xval,yval,parameters;loss=(ŷ,y
     end
     return (bestRme,bestMaxDepth,bestMaxFeatures,bestMinRecords,bestNTrees,bestβ)
 end
-
+=#
 
 
 
