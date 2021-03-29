@@ -36,7 +36,7 @@ plot(data.cnt, title="Daily bike sharing rents (2Y)", label=nothing)
 # Here we start using  Decision Tree and Random Forest models that belong to the first group, so the only things we have to do is to select the variables in input (the "feature matrix", we wil lindicate it with "X") and those representing our output (the values we want to learn to predict, we call them "y"):
 
 x    = convert(Matrix,hcat(data[:,[:instant,:season,:yr,:mnth,:holiday,:weekday,:workingday,:weathersit,:temp,:atemp,:hum,:windspeed]]))
-y    = data[:,16]
+y    = data[:,16];
 
 # We can now split the dataset between the data we will use for training the algorithm (`xtrain`/`ytrain`), those for selecting the hyperparameters (`xval`/`yval`) and finally those for testing the quality of the algoritm with the optimal hyperparameters (`xtest`/`ytest`). We use the `partition` function specifying the share we want to use for these three different subsets, here 75%, 12.5% and 12.5 respectively. As our data represents indeed a time serie, we want our model to be able to predict _future_ demand of bike sharing from _past_, observed rented bikes, so we do not shuffle the datasets as it would be the default.
 
@@ -126,9 +126,9 @@ myTree = buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeat
 (ŷtrain,ŷval,ŷtest) = predict.([myTree], [xtrain,xval,xtest])
 
 # Note that the above code uses the "dot syntax" to "broadcast" `predict()` over an array of label matrices. It is exactly equivalent to:
-ŷtrain = predict(myTree, xtrain)
-ŷval   = predict(myTree, xval)
-ŷtest  = predict(myTree, xtest)
+ŷtrain = predict(myTree, xtrain);
+ŷval   = predict(myTree, xval);
+ŷtest  = predict(myTree, xtest);
 
 # We now compute the relative mean error for the training, the validation and the test set. The `meanRelError` is a very flexible error function. Without additional parameter, it computes, as the name says, the _mean relative error_, also known as the "mean absolute percentage error" (MAPE)](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)") between an estimated and a true vector.
 # However it can also compute the _relative mean error_ (as we do here), or use a p-norm higher than 1.
@@ -136,9 +136,9 @@ ŷtest  = predict(myTree, xtest)
 # In this exercise we use the later, as our data has clearly some outlier days with very small rents, and we care more of avoiding our customers finding empty bike racks than having unrented bikes on the rack. Targeting a low mean average error would push all our predicitons down to try accomodate the low-level predicitons (to avoid a large relative error), and that's not what we want.
 
 # For example let'c consider the following example:
-y     = [30,28,27,3,32,38]
-ŷpref = [32,30,28,10,31,40]
-ŷbad  = [29,25,24,5,28,35]
+y     = [30,28,27,3,32,38];
+ŷpref = [32,30,28,10,31,40;]
+ŷbad  = [29,25,24,5,28,35];
 
 # Here ŷpref is an ipotetical output of a model that minimise the relative mean error, while ŷbad minimise the mean realative error
 meanRelError.([ŷbad, ŷpref],[y,y],normRec=true) ## Mean relative error
@@ -165,11 +165,8 @@ scatter(ytest,ŷtest,xlabel="daily rides",ylabel="est. daily rides",label=nothi
 # Or we can visualise the true vs estimated bike shared on a temporal base.
 # First on the full period (2 years) ...
 ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
-#-
 ŷvalfull   = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
-#-
 ŷtestfull  = vcat(fill(missing,ntrain+nval), ŷtest)
-#-
 plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period (DT)")
 
 # ..and then focusing on the testing period
@@ -218,11 +215,8 @@ scatter(ytest,ŷtest,xlabel="daily rides",ylabel="est. daily rides",label=nothi
 
 # Full period plot (2 years):
 ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
-#-
 ŷvalfull   = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
-#-
 ŷtestfull  = vcat(fill(missing,ntrain+nval), ŷtest)
-#-
 plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period (RF)")
 
 # Focus on the testing period:
@@ -232,9 +226,8 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestful
 
 # ### Comparison with DecisionTree.jl random forest
 # We now compare our results with those obtained employing the same model in the [DecisionTree package](https://github.com/bensadeghi/DecisionTree.jl), using the default suggested hyperparameters:
-## Hyperparameters of the DecisionTree.jl random forest model
 
-
+# Hyperparameters of the DecisionTree.jl random forest model
 n_subfeatures=-1; n_trees=bestNTrees; partial_sampling=1; max_depth=26
 min_samples_leaf=bestMinRecords; min_samples_split=bestMinRecords; min_purity_increase=0.0; seed=3
 
@@ -253,7 +246,7 @@ model = DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
 (ŷtrain,ŷval,ŷtest) = DecisionTree.apply_forest.([model],[xtrain,xval,xtest]);
 
 # Let's benchmark the DecisionTrees.jl Random Forest training
-@btime DecisionTree.apply_forest.([model],[xtrain,xval,xtest])
+@btime DecisionTree.apply_forest.([model],[xtrain,xval,xtest]);
 # Nothing to say, DecisionTrees.jl makes a unbelivable good job in optimising the algorithm. It is several order of magnitude faster than BetaML Random forests
 
 (rmeTrain, rmeVal, rmeTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
@@ -263,11 +256,8 @@ model = DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
 
 # Finally we plot the DecisionTree.jl predictions alongside the observed value:
 ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
-#-
 ŷvalfull   = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
-#-
 ŷtestfull  = vcat(fill(missing,ntrain+nval), ŷtest)
-#-
 plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period (DT.jl RF)")
 
 # Again, focusing on the testing data:
@@ -275,7 +265,7 @@ stc  = 620
 endc = size(x,1)
 plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period (DT.jl RF)")
 
-### Conclusions of Decision Trees / Random Forests methods
+# ### Conclusions of Decision Trees / Random Forests methods
 # The error obtained employing DecisionTree.jl is significantly larger than those obtained with the BetaML random forest model, altought to be fair with DecisionTrees.jl we didn't tuned its hyper-parameters. Also, DecisionTree.jl random forest model is much faster.
 # This is partially due by the fact that internally DecisionTree.jl models optimise the algorithm by sorting the observations. BetaML trees/forests don't employ this optimisation and hence it can work with true categorical data for which ordering is not defined. An other explanation of this difference in speed is that BetaML Ransom Forest models accept `missing` values within the feature matrix.
 # To sum up, BetaML random forests are ideal algorithms when we want to obtain good predictions in the most simpler way, even without tuning the hyperparameters, and without spending time in cleaning ("munging") the feature matrix, as they accept almost "any kind" of data as it is.
@@ -299,7 +289,7 @@ x = hcat(Matrix{Float64}(data[:,[:instant,:yr,:mnth,:holiday,:workingday,:temp,:
          seasonDummies,
          weatherDummies,
          wdayDummies)
-y = data[:,16]
+y = data[:,16];
 
 
 # As usual, we split the data in training, validation and testing sets
@@ -404,7 +394,7 @@ println("Final training of $bestEpoch epochs, with layer size $bestSize ...")
 res  = train!(mynn,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG)) ## Use optAlg=SGD() to use Stochastic Gradient Descent
 
 # Let's benchmark the BetaML neural network training
-@btime train!(mynnManual,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG), verbosity=NONE)
+@btime train!(mynnManual,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG), verbosity=NONE);
 # As we can see the model training is one order of magnitude slower than random forests, altought the memory requirement is approximatly the same
 
 #-
@@ -412,9 +402,9 @@ res  = train!(mynn,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg
 # To obtain the neural network predictions we apply the function `predict` to the feature matrix X for which we want to generate previsions, and then, in order to obtain the _unscaled_ unscaled estimates we use the `scale` function applied to the scaled values with the original scaling factors and the parameter `rev` set to `true`.
 # Note the usage of the _pipe_ operator to avoid ugly `function1(function2(function3(...)))` nested calls:
 
-ŷtrain = @pipe predict(mynn,xtrainScaled) |> scale(_, yScaleFactors,rev=true)
-ŷval   = @pipe predict(mynn,xvalScaled)   |> scale(_, yScaleFactors,rev=true)
-ŷtest  = @pipe predict(mynn,xtestScaled)  |> scale(_ ,yScaleFactors,rev=true)
+ŷtrain = @pipe predict(mynn,xtrainScaled) |> scale(_, yScaleFactors,rev=true);
+ŷval   = @pipe predict(mynn,xvalScaled)   |> scale(_, yScaleFactors,rev=true);
+ŷtest  = @pipe predict(mynn,xtestScaled)  |> scale(_ ,yScaleFactors,rev=true);
 
 #-
 (mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
@@ -431,11 +421,8 @@ scatter(ytest,ŷtest,xlabel="daily rides",ylabel="est. daily rides",label=nothi
 
 # We now plot across the time dimension, first plotting the whole period (2 years):
 ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
-#-
 ŷvalfull   = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
-#-
 ŷtestfull  = vcat(fill(missing,ntrain+nval), ŷtest)
-#-
 plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period  (NN)")
 
 # ...and then focusing on the testing data
@@ -473,9 +460,9 @@ Flux.@epochs bestEpoch Flux.train!(loss, ps, nndata, Flux.ADAM(0.001, (0.9, 0.8)
 # On this small example the speed of Flux is on the same order than BetaML (the actual difference seems to depend on the specific RNG seed), however I suspect that Flux scales much better with larger networks and/or data.
 
 # We obtain the estimates...
-ŷtrainf = @pipe Flux_nn(xtrainScaled')' |> scale(_,yScaleFactors,rev=true)
-ŷvalf   = @pipe Flux_nn(xvalScaled')'   |> scale(_,yScaleFactors,rev=true)
-ŷtestf  = @pipe Flux_nn(xtestScaled')'  |> scale(_,yScaleFactors,rev=true)
+ŷtrainf = @pipe Flux_nn(xtrainScaled')' |> scale(_,yScaleFactors,rev=true);
+ŷvalf   = @pipe Flux_nn(xvalScaled')'   |> scale(_,yScaleFactors,rev=true);
+ŷtestf  = @pipe Flux_nn(xtestScaled')'  |> scale(_,yScaleFactors,rev=true);
 
 # ..and we compute the mean relative errors..
 (mreTrain, mreVal, mreTest) = meanRelError.([ŷtrainf,ŷvalf,ŷtestf],[ytrain,yval,ytest],normRec=false)
@@ -501,7 +488,7 @@ endc = size(x,1)
 plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfullf[stc:endc] ŷtestfullf[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period (Flux.NN)")
 
 
-### Conclusions of Neural Network models
+# ### Conclusions of Neural Network models
 
 # If we strive for the most accurate predictions, deep neural networks uysually offer the best solution. However they are computationally expensive, so with limited resourses we may get better results by fine tuning and running many repetitions of "simpler" decision trees or even random forest models than a large naural network with insufficient hyperparameter tuning.
 # Also, we shoudl consider that decision trees/random forests are much simple to work with.
