@@ -12,15 +12,16 @@
 
 # ## Library and data loading
 
-using LinearAlgebra, Random, Statistics, DataFrames, CSV, Plots, Pipe, BetaML, BenchmarkTools
+# We first load all the packages we are going to use
+using  LinearAlgebra, Random, Statistics, DataFrames, CSV, Plots, Pipe, BenchmarkTools, BetaML
 import Distributions: Uniform
 import DecisionTree, Flux ## For comparisions
 using  Test     #src
 
 
-# Data loading
+# Here we load the data from a csv provided by the BataML package
 baseDir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","A regression task - sharing bike demand prediction")
-data = CSV.File(joinpath(baseDir,"data","bike_sharing_day.csv"),delim=',') |> DataFrame
+data    = CSV.File(joinpath(baseDir,"data","bike_sharing_day.csv"),delim=',') |> DataFrame
 describe(data)
 
 # The variable we want to learn to predict is `cnt`, the total demand of bikes for a given day. Even if it is indeed an integer, we treat it as a continuous variable, so each single prediction will be a scalar $Y \in \mathbb{R}$.
@@ -253,7 +254,7 @@ model = DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
 
 # Let's benchmark the DecisionTrees.jl Random Forest training
 @btime DecisionTree.apply_forest.([model],[xtrain,xval,xtest])
-# Nothing to say, DecisionTrees.jl makes a unbelivable good job in optimising the algorithm. It is 80x time faster than BetaML Random forests
+# Nothing to say, DecisionTrees.jl makes a unbelivable good job in optimising the algorithm. It is several order of magnitude faster than BetaML Random forests
 
 (rmeTrain, rmeVal, rmeTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
 # However the error on the test set remains relativly high. The very low error level on the training set is a sign that it overspecialised on the training set, and we should have instead running a dedicated hyperparameter optimisation for the model.
@@ -468,7 +469,7 @@ Flux.@epochs bestEpoch Flux.train!(loss, ps, nndata, Flux.ADAM(0.001, (0.9, 0.8)
 
 # ..and we benchmark it..
 @btime begin for i in 1:bestEpoch Flux.train!(loss, ps, nndata, Flux.ADAM(0.001, (0.9, 0.8))) end end
-# I am quite surprised here, as the training with Flux takes over double the time than our simple BetaML implementation. However I suspect Flux scale better with larger network and/or data
+# Quite surprisling, Flux training seems a bit slow. The actual results seems to depend from the actual hardware and by default Flux seems not to use multi-threading. While I suspect Flux scales better with larger networks and/or data, for these small examples on my laptop it is still a bit slower than BetaML even on a single thread.
 
 # We obtain the estimates...
 ŷtrainf = @pipe Flux_nn(xtrainScaled')' |> scale(_,yScaleFactors,rev=true)

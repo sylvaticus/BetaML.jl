@@ -15,17 +15,19 @@ Note that even if we are estimating a time serie, we are not using here a recurr
 
 ## Library and data loading
 
+We first load all the packages we are going to use
+
 ```@example betaml_tutorial_regression_sharingBikes
-using LinearAlgebra, Random, Statistics, DataFrames, CSV, Plots, Pipe, BetaML, BenchmarkTools
+using  LinearAlgebra, Random, Statistics, DataFrames, CSV, Plots, Pipe, BenchmarkTools, BetaML
 import Distributions: Uniform
 import DecisionTree, Flux ## For comparisions
 ```
 
-Data loading
+Here we load the data from a csv provided by the BataML package
 
 ```@example betaml_tutorial_regression_sharingBikes
 baseDir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","A regression task - sharing bike demand prediction")
-data = CSV.File(joinpath(baseDir,"data","bike_sharing_day.csv"),delim=',') |> DataFrame
+data    = CSV.File(joinpath(baseDir,"data","bike_sharing_day.csv"),delim=',') |> DataFrame
 describe(data)
 ```
 
@@ -35,35 +37,36 @@ The variable we want to learn to predict is `cnt`, the total demand of bikes for
 plot(data.cnt, title="Daily bike sharing rents (2Y)", label=nothing)
 ```
 
-## Decision Trees and Random Forests
+## Decision Trees
 
 We start our regression task with Decision Trees
 
 ### Data preparation
-The first step is to prepare the data for the analysis. This indeed depends already on the model we want to employ, as some models "accept" everything as input, no matter if the data is numerical or categorical, if it has missing values or not... Other models are instead more exigents, and require more or less work.
-Here we start using  Decision Tree and Random Forest models that belong to the first category, those of the models for which any kind of input is fine.
-Hence, the only things we have to do is to select the variables in input and those representing our output:
+The first step is to prepare the data for the analysis. This indeed depends already on the model we want to employ, as some models "accept" everything as input, no matter if the data is numerical or categorical, if it has missing values or not... while other models are instead much more exigents, and require more work to "clean up" our dataset.
+Here we start using  Decision Tree and Random Forest models that belong to the first group, so the only things we have to do is to select the variables in input (the "feature matrix", we wil lindicate it with "X") and those representing our output (the values we want to learn to predict, we call them "y"):
 
 ```@example betaml_tutorial_regression_sharingBikes
 x    = convert(Matrix,hcat(data[:,[:instant,:season,:yr,:mnth,:holiday,:weekday,:workingday,:weathersit,:temp,:atemp,:hum,:windspeed]]))
 y    = data[:,16]
 ```
 
-We can now split the dataset between the data we will use for training the algorithm (xtrain/ytrain), those for selecting the hyperparameters (xval/yval) and finally those for testing the quality of the algoritm with the optimal hyperparameters (xtest/ytest). For doing that we use the `partition` function specifying the share we want to use for these three different jobs. As our data represents indeed a time serie, we want our model to be able to predict _future_ demand of bike sharing from _past_, observed rented bikes, so we do not shuffle the datasets as it would be the default.
+We can now split the dataset between the data we will use for training the algorithm (`xtrain`/`ytrain`), those for selecting the hyperparameters (`xval`/`yval`) and finally those for testing the quality of the algoritm with the optimal hyperparameters (`xtest`/`ytest`). We use the `partition` function specifying the share we want to use for these three different subsets, here 75%, 12.5% and 12.5 respectively. As our data represents indeed a time serie, we want our model to be able to predict _future_ demand of bike sharing from _past_, observed rented bikes, so we do not shuffle the datasets as it would be the default.
 
 ```@example betaml_tutorial_regression_sharingBikes
 ((xtrain,xval,xtest),(ytrain,yval,ytest)) = partition([x,y],[0.75,0.125,1-0.75-0.125],shuffle=false)
 (ntrain, nval, ntest) = size.([ytrain,yval,ytest],1)
 ```
 
-We can now "tune" our model so-called hyperparameters, i.e. choose the best exogenous parameters of our algorithm, where "best" refer to some minimisation of a "loss" function between the true and the predicted value, where a dedicated "validation" subset of the input is used (xval and yval) in our case.
+We can now "tune" our model so-called hyperparameters, i.e. choose the best exogenous parameters of our algorithm, where "best" refers to some minimisation of a "loss" function between the true and the predicted value. To make the comparision we use a specific "validation" subset of data (`xval` and `yval`).
+
 BetaML doesn't have a dedicated function for hyperparameters optimisation, but it is easy to write some custom julia code, at least for a simple grid-based "search". Indeed one of the main reasons that a dedicated function exists in other Machine Learning libraries is that loops in other languages are slow, but this is not a problem in julia, so we can retain the flexibility to write the kind of hyperparameter tuning that best fits our needs.
-Below if an example of a possible such function. Note there are more "elegant" ways to code it, but this one does the job. We will see the various functions inside `tuneHyperParameters()` in a moment. For now let's going just to observe that `tuneHyperParameters` just loops over all the possible hyperparameters and select the one where the error between xval and yval is minimised. For the meaning of the various hyperparameter, consult the documentation of the `buildTree` and `buildForest` functions.
-The function uses multiple threads, so it calls `generateParallelRngs()` (in the `BetaML.Utils`) to generate thread-safe random number generators and locks the comparision step.
+
+Below is an example of a possible such function. Note there are more "elegant" ways to code it, but this one does the job. We will see the various functions inside `tuneHyperParameters()` in a moment. For now let's going just to observe that `tuneHyperParameters` just loops over all the possible hyperparameters and selects the one where the error between `xval` and `yval` is minimised. For the meaning of the various hyperparameter, consult the documentation of the `buildTree` and `buildForest` functions.
+The function uses multiple threads, so we calls `generateParallelRngs()` (in the `BetaML.Utils` submodule) to generate thread-safe random number generators and locks the comparision step.
 
 ```@example betaml_tutorial_regression_sharingBikes
 function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthRange=15:15,maxFeaturesRange=size(xtrain,2):size(xtrain,2),nTreesRange=20:20,βRange=0:0,minRecordsRange=2:2,repetitions=5,rng=Random.GLOBAL_RNG)
-    # We start with an infinititly high error
+    # We start with an infinitely high error
     bestRme         = +Inf
     bestMaxDepth    = 1
     bestMaxFeatures = 1
@@ -121,7 +124,7 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthRange=15:15,m
 end
 ```
 
-We can now run the hyperparameter optimisation function with some "reasonable" ranges. To obtain repetable results we call `tuneHyperParameters` with `rng=copy(FIXEDRNG)`, where `FIXEDRNG` is a fixed-seeded random number generator guaranteed to maintain the same flow of random numbers even between different julia versions. That's also what we use for our unit tests.
+We can now run the hyperparameter optimisation function with some "reasonable" ranges. To obtain repetable results we call `tuneHyperParameters` with `rng=copy(FIXEDRNG)`, where `FIXEDRNG` is a fixed-seeded random number generator guaranteed to maintain the same stream of random numbers even between different julia versions. That's also what we use for our unit tests.
 
 ```@example betaml_tutorial_regression_sharingBikes
 (bestRme,bestMaxDepth,bestMaxFeatures,bestMinRecords) = tuneHyperParameters("DecisionTree",xtrain,ytrain,xval,yval,
@@ -138,7 +141,8 @@ nothing #hide
 Let's benchmark the time and memory usage of the training step of a decision tree:
 
 ```@example betaml_tutorial_regression_sharingBikes
-@btime  buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,rng=copy(FIXEDRNG))
+@btime  buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,rng=copy(FIXEDRNG));
+nothing #hide
 ```
 
 Individual decision trees are blazing fast, among the fastest algorithms we could use.
@@ -694,4 +698,3 @@ Still, for small and medium datasets, BetaML provides simpler yet customisable s
 ---
 
 *This page was generated using [Literate.jl](https://github.com/fredrikekre/Literate.jl).*
-

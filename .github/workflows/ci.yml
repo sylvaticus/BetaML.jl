@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.5' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
+          - '1.3' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
           - '1'   # Leave this line unchanged. '1' will automatically expand to the latest stable 1.x release of Julia.
         os:
           - ubuntu-latest
@@ -52,7 +52,7 @@ jobs:
         with:
           version: '1'
       - run: |
-          julia --project=docs -e '
+          julia --project=docs -t 4 -e '
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
@@ -65,7 +65,7 @@ jobs:
       #      using Documenter: doctest
       #      using BetaML.Perceptron, BetaML.Nn, BetaML.Clustering, BetaML.Trees
       #      doctest(BetaML)' #this can't be changed to doctest(BetaML.Perceptron)
-      - run: julia --project=docs docs/make.jl
+      - run: julia --project=docs -t 4 docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
