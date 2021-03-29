@@ -137,7 +137,7 @@ ŷtest  = predict(myTree, xtest);
 
 # For example let'c consider the following example:
 y     = [30,28,27,3,32,38];
-ŷpref = [32,30,28,10,31,40;]
+ŷpref = [32,30,28,10,31,40];
 ŷbad  = [29,25,24,5,28,35];
 
 # Here ŷpref is an ipotetical output of a model that minimise the relative mean error, while ŷbad minimise the mean realative error
