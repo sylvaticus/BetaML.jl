@@ -455,11 +455,13 @@ function getGradient(nn,xbatch::AbstractArray{T,2},ybatch::AbstractArray{T2,2}) 
     #return [getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:size(xbatch,1)]
     bSize = size(xbatch,1)
     gradients = Array{Vector{Learnable},1}(undef,bSize)
+    # Note: in Julia 1.6 somehow the multithreading is less efficient than in Julia 1.5
+    # Using @inbounds @simd result faster than using 4 threads, so reverting to it.
+    # But to keep following the evolution, as there seems to be some issues on performances
+    # in Julia 1.6: https://discourse.julialang.org/t/drop-of-performances-with-julia-1-6-0-for-interpolationkernels/58085
+    # Maybe when that's solved it will be again more convenient to use multi-threading
     #Threads.@threads
-    #@inbounds @simd
-    #Threads.@threads
-    for j in 1:bSize
-       #println(Threads.threadid())
+    @inbounds @simd for j in 1:bSize
        gradients[j] =  getGradient(nn,xbatch[j,:],ybatch[j,:])
     end
     return gradients
@@ -637,10 +639,10 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
            θ   = getParams(nn)
            # remove @spawn and fetch (on next row) to get single thread code
            # note that there is no random number issue here..
-           gradients   = @spawn getGradient(nn,xbatch,ybatch)
-           sumGradient = sum(fetch(gradients))
-           #gradients   = getGradient(nn,xbatch,ybatch)
-           #sumGradient = sum(gradients)
+           #gradients   = @spawn getGradient(nn,xbatch,ybatch)
+           #sumGradient = sum(fetch(gradients))
+           gradients   = getGradient(nn,xbatch,ybatch)
+           sumGradient = sum(gradients)
 
            ▽   = sumGradient / length(batch)
            #▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)
