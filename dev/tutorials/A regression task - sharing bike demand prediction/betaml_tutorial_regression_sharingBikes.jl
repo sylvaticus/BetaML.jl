@@ -34,8 +34,7 @@ plot(data.cnt, title="Daily bike sharing rents (2Y)", label=nothing)
 # ### Data preparation
 # The first step is to prepare the data for the analysis. This indeed depends already on the model we want to employ, as some models "accept" everything as input, no matter if the data is numerical or categorical, if it has missing values or not... while other models are instead much more exigents, and require more work to "clean up" our dataset.
 # Here we start using  Decision Tree and Random Forest models that belong to the first group, so the only things we have to do is to select the variables in input (the "feature matrix", we wil lindicate it with "X") and those representing our output (the values we want to learn to predict, we call them "y"):
-
-x    = convert(Matrix,hcat(data[:,[:instant,:season,:yr,:mnth,:holiday,:weekday,:workingday,:weathersit,:temp,:atemp,:hum,:windspeed]]))
+x    = Matrix{Float64}(data[:,[:instant,:season,:yr,:mnth,:holiday,:weekday,:workingday,:weathersit,:temp,:atemp,:hum,:windspeed]])
 y    = data[:,16];
 
 # We can now split the dataset between the data we will use for training the algorithm (`xtrain`/`ytrain`), those for selecting the hyperparameters (`xval`/`yval`) and finally those for testing the quality of the algoritm with the optimal hyperparameters (`xtest`/`ytest`). We use the `partition` function specifying the share we want to use for these three different subsets, here 75%, 12.5% and 12.5 respectively. As our data represents indeed a time serie, we want our model to be able to predict _future_ demand of bike sharing from _past_, observed rented bikes, so we do not shuffle the datasets as it would be the default.
@@ -193,7 +192,7 @@ myForest = buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatu
 
 # Let's now benchmark of the training of BetaML Random Forest model
 @btime buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,β=bestβ,oob=true,rng=copy(FIXEDRNG));
-# Random forests are evidently slower than individual decision trees (approximatly by a factor  number of trees/number of threads), but are still relativly fast
+# Random forests are evidently slower than individual decision trees but are still relativly fast. We should also consider that they are by default efficiently parallelised, so their speed increases with the number of available cores (in building this documentation page, GitHub allows for a single core).
 
 #-
 
@@ -246,11 +245,19 @@ model = DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
 (ŷtrain,ŷval,ŷtest) = DecisionTree.apply_forest.([model],[xtrain,xval,xtest]);
 
 # Let's benchmark the DecisionTrees.jl Random Forest training
-@btime DecisionTree.apply_forest.([model],[xtrain,xval,xtest]);
-# Nothing to say, DecisionTrees.jl makes a unbelivable good job in optimising the algorithm. It is several order of magnitude faster than BetaML Random forests
+@btime  DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
+                     n_subfeatures,
+                     n_trees,
+                     partial_sampling,
+                     max_depth,
+                     min_samples_leaf,
+                     min_samples_split,
+                     min_purity_increase;
+                     rng = seed);
+# DecisionTrees.jl makes a good job in optimising the Random Forest algorithm, as it is over 3 times faster that BetaML.
 
 (rmeTrain, rmeVal, rmeTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
-# However the error on the test set remains relativly high. The very low error level on the training set is a sign that it overspecialised on the training set, and we should have instead running a dedicated hyperparameter optimisation for the model.
+# However the error on the test set remains relativly high. The very low error level on the training set is a sign that it overspecialised on the training set, and we should have better ran a dedicated hyperparameter optimisation for the model.
 
 @test rmeTest <= 0.36 #src
 
@@ -267,7 +274,7 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestful
 
 # ### Conclusions of Decision Trees / Random Forests methods
 # The error obtained employing DecisionTree.jl is significantly larger than those obtained with the BetaML random forest model, altought to be fair with DecisionTrees.jl we didn't tuned its hyper-parameters. Also, DecisionTree.jl random forest model is much faster.
-# This is partially due by the fact that internally DecisionTree.jl models optimise the algorithm by sorting the observations. BetaML trees/forests don't employ this optimisation and hence it can work with true categorical data for which ordering is not defined. An other explanation of this difference in speed is that BetaML Ransom Forest models accept `missing` values within the feature matrix.
+# This is partially due by the fact that internally DecisionTree.jl models optimise the algorithm by sorting the observations. BetaML trees/forests don't employ this optimisation and hence it can work with true categorical data for which ordering is not defined. An other explanation of this difference in speed is that BetaML Random Forest models accept `missing` values within the feature matrix.
 # To sum up, BetaML random forests are ideal algorithms when we want to obtain good predictions in the most simpler way, even without tuning the hyperparameters, and without spending time in cleaning ("munging") the feature matrix, as they accept almost "any kind" of data as it is.
 
 # ## Neural Networks
@@ -457,7 +464,7 @@ Flux.@epochs bestEpoch Flux.train!(loss, ps, nndata, Flux.ADAM(0.001, (0.9, 0.8)
 # ..and we benchmark it..
 @btime begin for i in 1:bestEpoch Flux.train!(loss, ps2, nndata, Flux.ADAM(0.001, (0.9, 0.8))) end end
 #src # Quite surprisling, Flux training seems a bit slow. The actual results seems to depend from the actual hardware and by default Flux seems not to use multi-threading. While I suspect Flux scales better with larger networks and/or data, for these small examples on my laptop it is still a bit slower than BetaML even on a single thread.
-# On this small example the speed of Flux is on the same order than BetaML (the actual difference seems to depend on the specific RNG seed), however I suspect that Flux scales much better with larger networks and/or data.
+# On this small example the speed of Flux is on the same order than BetaML (the actual difference seems to depend on the specific RNG seed and hardware), however I suspect that Flux scales much better with larger networks and/or data.
 
 # We obtain the estimates...
 ŷtrainf = @pipe Flux_nn(xtrainScaled')' |> scale(_,yScaleFactors,rev=true);
@@ -490,9 +497,9 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfullf[stc:endc] ŷtestfu
 
 # ### Conclusions of Neural Network models
 
-# If we strive for the most accurate predictions, deep neural networks uysually offer the best solution. However they are computationally expensive, so with limited resourses we may get better results by fine tuning and running many repetitions of "simpler" decision trees or even random forest models than a large naural network with insufficient hyperparameter tuning.
+# If we strive for the most accurate predictions, deep neural networks usually offer the best solution. However they are computationally expensive, so with limited resourses we may get better results by fine tuning and running many repetitions of "simpler" decision trees or even random forest models than a large naural network with insufficient hyperparameter tuning.
 # Also, we shoudl consider that decision trees/random forests are much simple to work with.
 
-# That said, specialised neural network libraries, like Flux, allow to use GPU and specialised hardware letting neural networks to scale with very big datasets.
+# That said, specialised neural network libraries, like Flux, allow to use GPU and specialised hardware letting neural networks to scale with very large datasets.
 
 # Still, for small and medium datasets, BetaML provides simpler yet customisable solutions that are accurate and fast.
