@@ -47,7 +47,8 @@ Here we start using  Decision Tree and Random Forest models that belong to the f
 
 ```@example betaml_tutorial_regression_sharingBikes
 x    = convert(Matrix,hcat(data[:,[:instant,:season,:yr,:mnth,:holiday,:weekday,:workingday,:weathersit,:temp,:atemp,:hum,:windspeed]]))
-y    = data[:,16]
+y    = data[:,16];
+nothing #hide
 ```
 
 We can now split the dataset between the data we will use for training the algorithm (`xtrain`/`ytrain`), those for selecting the hyperparameters (`xval`/`yval`) and finally those for testing the quality of the algoritm with the optimal hyperparameters (`xtest`/`ytest`). We use the `partition` function specifying the share we want to use for these three different subsets, here 75%, 12.5% and 12.5 respectively. As our data represents indeed a time serie, we want our model to be able to predict _future_ demand of bike sharing from _past_, observed rented bikes, so we do not shuffle the datasets as it would be the default.
@@ -124,7 +125,7 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthRange=15:15,m
 end
 ```
 
-We can now run the hyperparameter optimisation function with some "reasonable" ranges. To obtain repetable results we call `tuneHyperParameters` with `rng=copy(FIXEDRNG)`, where `FIXEDRNG` is a fixed-seeded random number generator guaranteed to maintain the same stream of random numbers even between different julia versions. That's also what we use for our unit tests.
+We can now run the hyperparameter optimisation function with some "reasonable" ranges. To obtain replicable results we call `tuneHyperParameters` with `rng=copy(FIXEDRNG)`, where `FIXEDRNG` is a fixed-seeded random number generator guaranteed to maintain the same stream of random numbers even between different julia versions. That's also what we use for our unit tests.
 
 ```@example betaml_tutorial_regression_sharingBikes
 (bestRme,bestMaxDepth,bestMaxFeatures,bestMinRecords) = tuneHyperParameters("DecisionTree",xtrain,ytrain,xval,yval,
@@ -156,9 +157,10 @@ The above `buildTree`function produces a DecisionTree object that can be used to
 Note that the above code uses the "dot syntax" to "broadcast" `predict()` over an array of label matrices. It is exactly equivalent to:
 
 ```@example betaml_tutorial_regression_sharingBikes
-ŷtrain = predict(myTree, xtrain)
-ŷval   = predict(myTree, xval)
-ŷtest  = predict(myTree, xtest)
+ŷtrain = predict(myTree, xtrain);
+ŷval   = predict(myTree, xval);
+ŷtest  = predict(myTree, xtest);
+nothing #hide
 ```
 
 We now compute the relative mean error for the training, the validation and the test set. The `meanRelError` is a very flexible error function. Without additional parameter, it computes, as the name says, the _mean relative error_, also known as the "mean absolute percentage error" (MAPE)](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)") between an estimated and a true vector.
@@ -169,9 +171,10 @@ In this exercise we use the later, as our data has clearly some outlier days wit
 For example let'c consider the following example:
 
 ```@example betaml_tutorial_regression_sharingBikes
-y     = [30,28,27,3,32,38]
-ŷpref = [32,30,28,10,31,40]
-ŷbad  = [29,25,24,5,28,35]
+y     = [30,28,27,3,32,38];
+ŷpref = [32,30,28,10,31,40];
+ŷbad  = [29,25,24,5,28,35];
+nothing #hide
 ```
 
 Here ŷpref is an ipotetical output of a model that minimise the relative mean error, while ŷbad minimise the mean realative error
@@ -213,17 +216,8 @@ First on the full period (2 years) ...
 
 ```@example betaml_tutorial_regression_sharingBikes
 ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
-```
-
-```@example betaml_tutorial_regression_sharingBikes
 ŷvalfull   = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
-```
-
-```@example betaml_tutorial_regression_sharingBikes
 ŷtestfull  = vcat(fill(missing,ntrain+nval), ŷtest)
-```
-
-```@example betaml_tutorial_regression_sharingBikes
 plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period (DT)")
 ```
 
@@ -295,17 +289,8 @@ Full period plot (2 years):
 
 ```@example betaml_tutorial_regression_sharingBikes
 ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
-```
-
-```@example betaml_tutorial_regression_sharingBikes
 ŷvalfull   = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
-```
-
-```@example betaml_tutorial_regression_sharingBikes
 ŷtestfull  = vcat(fill(missing,ntrain+nval), ŷtest)
-```
-
-```@example betaml_tutorial_regression_sharingBikes
 plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period (RF)")
 ```
 
@@ -320,10 +305,9 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestful
 ### Comparison with DecisionTree.jl random forest
 We now compare our results with those obtained employing the same model in the [DecisionTree package](https://github.com/bensadeghi/DecisionTree.jl), using the default suggested hyperparameters:
 
+Hyperparameters of the DecisionTree.jl random forest model
+
 ```@example betaml_tutorial_regression_sharingBikes
-# Hyperparameters of the DecisionTree.jl random forest model
-
-
 n_subfeatures=-1; n_trees=bestNTrees; partial_sampling=1; max_depth=26
 min_samples_leaf=bestMinRecords; min_samples_split=bestMinRecords; min_purity_increase=0.0; seed=3
 ```
@@ -352,10 +336,11 @@ nothing #hide
 Let's benchmark the DecisionTrees.jl Random Forest training
 
 ```@example betaml_tutorial_regression_sharingBikes
-@btime DecisionTree.apply_forest.([model],[xtrain,xval,xtest])
+@btime DecisionTree.apply_forest.([model],[xtrain,xval,xtest]);
+nothing #hide
 ```
 
-Nothing to say, DecisionTrees.jl makes a unbelivable good job in optimising the algorithm. It is 80x time faster than BetaML Random forests
+Nothing to say, DecisionTrees.jl makes a unbelivable good job in optimising the algorithm. It is several order of magnitude faster than BetaML Random forests
 
 ```@example betaml_tutorial_regression_sharingBikes
 (rmeTrain, rmeVal, rmeTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
@@ -367,17 +352,8 @@ Finally we plot the DecisionTree.jl predictions alongside the observed value:
 
 ```@example betaml_tutorial_regression_sharingBikes
 ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
-```
-
-```@example betaml_tutorial_regression_sharingBikes
 ŷvalfull   = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
-```
-
-```@example betaml_tutorial_regression_sharingBikes
 ŷtestfull  = vcat(fill(missing,ntrain+nval), ŷtest)
-```
-
-```@example betaml_tutorial_regression_sharingBikes
 plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period (DT.jl RF)")
 ```
 
@@ -387,10 +363,9 @@ Again, focusing on the testing data:
 stc  = 620
 endc = size(x,1)
 plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period (DT.jl RF)")
-
-### Conclusions of Decision Trees / Random Forests methods
 ```
 
+### Conclusions of Decision Trees / Random Forests methods
 The error obtained employing DecisionTree.jl is significantly larger than those obtained with the BetaML random forest model, altought to be fair with DecisionTrees.jl we didn't tuned its hyper-parameters. Also, DecisionTree.jl random forest model is much faster.
 This is partially due by the fact that internally DecisionTree.jl models optimise the algorithm by sorting the observations. BetaML trees/forests don't employ this optimisation and hence it can work with true categorical data for which ordering is not defined. An other explanation of this difference in speed is that BetaML Ransom Forest models accept `missing` values within the feature matrix.
 To sum up, BetaML random forests are ideal algorithms when we want to obtain good predictions in the most simpler way, even without tuning the hyperparameters, and without spending time in cleaning ("munging") the feature matrix, as they accept almost "any kind" of data as it is.
@@ -412,11 +387,12 @@ weatherDummies = convert(Array{Float64,2},oneHotEncoder(data[:,:weathersit]))
 wdayDummies    = convert(Array{Float64,2},oneHotEncoder(data[:,:weekday] .+ 1 ))
 
 # We compose the feature matrix with the new dimensions obtained from the oneHotEncoder functions
-x    = convert(Matrix,hcat(convert(Array{Float64,2},data[:,[:instant,:yr,:mnth,:holiday,:workingday,:temp,:atemp,:hum,:windspeed]]),
-            seasonDummies,
-            weatherDummies,
-            wdayDummies))
-y    = data[:,16]
+x = hcat(Matrix{Float64}(data[:,[:instant,:yr,:mnth,:holiday,:workingday,:temp,:atemp,:hum,:windspeed]]),
+         seasonDummies,
+         weatherDummies,
+         wdayDummies)
+y = data[:,16];
+nothing #hide
 ```
 
 As usual, we split the data in training, validation and testing sets
@@ -540,7 +516,8 @@ res  = train!(mynn,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg
 Let's benchmark the BetaML neural network training
 
 ```@example betaml_tutorial_regression_sharingBikes
-@btime train!(mynnManual,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG), verbosity=NONE)
+@btime train!(mynnManual,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG), verbosity=NONE);
+nothing #hide
 ```
 
 As we can see the model training is one order of magnitude slower than random forests, altought the memory requirement is approximatly the same
@@ -549,9 +526,10 @@ To obtain the neural network predictions we apply the function `predict` to the 
 Note the usage of the _pipe_ operator to avoid ugly `function1(function2(function3(...)))` nested calls:
 
 ```@example betaml_tutorial_regression_sharingBikes
-ŷtrain = @pipe predict(mynn,xtrainScaled) |> scale(_, yScaleFactors,rev=true)
-ŷval   = @pipe predict(mynn,xvalScaled)   |> scale(_, yScaleFactors,rev=true)
-ŷtest  = @pipe predict(mynn,xtestScaled)  |> scale(_ ,yScaleFactors,rev=true)
+ŷtrain = @pipe predict(mynn,xtrainScaled) |> scale(_, yScaleFactors,rev=true);
+ŷval   = @pipe predict(mynn,xvalScaled)   |> scale(_, yScaleFactors,rev=true);
+ŷtest  = @pipe predict(mynn,xtestScaled)  |> scale(_ ,yScaleFactors,rev=true);
+nothing #hide
 ```
 
 ```@example betaml_tutorial_regression_sharingBikes
@@ -578,17 +556,8 @@ We now plot across the time dimension, first plotting the whole period (2 years)
 
 ```@example betaml_tutorial_regression_sharingBikes
 ŷtrainfull = vcat(ŷtrain,fill(missing,nval+ntest))
-```
-
-```@example betaml_tutorial_regression_sharingBikes
 ŷvalfull   = vcat(fill(missing,ntrain), ŷval, fill(missing,ntest))
-```
-
-```@example betaml_tutorial_regression_sharingBikes
 ŷtestfull  = vcat(fill(missing,ntrain+nval), ŷtest)
-```
-
-```@example betaml_tutorial_regression_sharingBikes
 plot(data[:,:dteday],[data[:,:cnt] ŷtrainfull ŷvalfull ŷtestfull], label=["obs" "train" "val" "test"], legend=:topleft, ylabel="daily rides", title="Daily bike sharing demand observed/estimated across the\n whole 2-years period  (NN)")
 ```
 
@@ -620,7 +589,7 @@ l3         = Flux.Dense(bestSize,1,Flux.relu)
 Flux_nn    = Flux.Chain(l1,l2,l3)
 loss(x, y) = Flux.mse(Flux_nn(x), y)
 ps         = Flux.params(Flux_nn)
-nndata     = Flux.Data.DataLoader(xtrainScaled', ytrainScaled', batchsize=8,shuffle=true)
+nndata     = Flux.Data.DataLoader((xtrainScaled', ytrainScaled'), batchsize=8,shuffle=true)
 
 Flux_nn2   = deepcopy(Flux_nn)      ## A copy for the time benchmarking
 ps2        = Flux.params(Flux_nn2)  ## A copy for the time benchmarking
@@ -635,17 +604,18 @@ Flux.@epochs bestEpoch Flux.train!(loss, ps, nndata, Flux.ADAM(0.001, (0.9, 0.8)
 ..and we benchmark it..
 
 ```@example betaml_tutorial_regression_sharingBikes
-@btime begin for i in 1:bestEpoch Flux.train!(loss, ps, nndata, Flux.ADAM(0.001, (0.9, 0.8))) end end
+@btime begin for i in 1:bestEpoch Flux.train!(loss, ps2, nndata, Flux.ADAM(0.001, (0.9, 0.8))) end end
 ```
 
-I am quite surprised here, as the training with Flux takes over double the time than our simple BetaML implementation. However I suspect Flux scale better with larger network and/or data
+On this small example the speed of Flux is on the same order than BetaML (the actual difference seems to depend on the specific RNG seed), however I suspect that Flux scales much better with larger networks and/or data.
 
 We obtain the estimates...
 
 ```@example betaml_tutorial_regression_sharingBikes
-ŷtrainf = @pipe Flux_nn(xtrainScaled')' |> scale(_,yScaleFactors,rev=true)
-ŷvalf   = @pipe Flux_nn(xvalScaled')'   |> scale(_,yScaleFactors,rev=true)
-ŷtestf  = @pipe Flux_nn(xtestScaled')'  |> scale(_,yScaleFactors,rev=true)
+ŷtrainf = @pipe Flux_nn(xtrainScaled')' |> scale(_,yScaleFactors,rev=true);
+ŷvalf   = @pipe Flux_nn(xvalScaled')'   |> scale(_,yScaleFactors,rev=true);
+ŷtestf  = @pipe Flux_nn(xtestScaled')'  |> scale(_,yScaleFactors,rev=true);
+nothing #hide
 ```
 
 ..and we compute the mean relative errors..
@@ -681,10 +651,9 @@ plot(data[:,:dteday],[data[:,:cnt] ŷtrainfullf ŷvalfullf ŷtestfullf], labe
 stc = 620
 endc = size(x,1)
 plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfullf[stc:endc] ŷtestfullf[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period (Flux.NN)")
-
+```
 
 ### Conclusions of Neural Network models
-```
 
 If we strive for the most accurate predictions, deep neural networks uysually offer the best solution. However they are computationally expensive, so with limited resourses we may get better results by fine tuning and running many repetitions of "simpler" decision trees or even random forest models than a large naural network with insufficient hyperparameter tuning.
 Also, we shoudl consider that decision trees/random forests are much simple to work with.
@@ -698,3 +667,4 @@ Still, for small and medium datasets, BetaML provides simpler yet customisable s
 ---
 
 *This page was generated using [Literate.jl](https://github.com/fredrikekre/Literate.jl).*
+

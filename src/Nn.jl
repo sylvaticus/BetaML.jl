@@ -102,8 +102,8 @@ end
 function +(items::Learnable...)
   values = collect(items[1].data)
   N = length(values)
-  for item in items[2:end]
-      for n in 1:N
+  @inbounds for item in items[2:end]
+      @inbounds @simd for n in 1:N
           values[n] += item.data[n]
       end
   end
@@ -113,8 +113,8 @@ sum(items::Learnable...)  = +(items...)
 function -(items::Learnable...)
   values = collect(items[1].data)
   N = length(values)
-  for item in items[2:end]
-      for n in 1:N
+  @inbounds for item in items[2:end]
+      @inbounds @simd for n in 1:N
           values[n] -= item.data[n]
       end
   end
@@ -123,8 +123,8 @@ end
 function *(items::Learnable...)
   values = collect(items[1].data)
   N = length(values)
-  for item in items[2:end]
-      for n in 1:N
+  @inbounds for item in items[2:end]
+      @inbounds @simd for n in 1:N
           values[n] = values[n] .* item.data[n]
       end
   end
@@ -452,8 +452,14 @@ Retrieve the current gradient of the weigthts (i.e. derivative of the cost with 
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
 function getGradient(nn,xbatch::AbstractArray{T,2},ybatch::AbstractArray{T2,2}) where {T <: Number, T2 <: Number}
-    gradients = Array{Vector{Learnable},1}(undef,size(xbatch,1))
-    for j in 1:size(xbatch,1)
+    #return [getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:size(xbatch,1)]
+    bSize = size(xbatch,1)
+    gradients = Array{Vector{Learnable},1}(undef,bSize)
+    #Threads.@threads
+    #@inbounds @simd
+    #Threads.@threads
+    for j in 1:bSize
+       #println(Threads.threadid())
        gradients[j] =  getGradient(nn,xbatch[j,:],ybatch[j,:])
     end
     return gradients
@@ -633,6 +639,9 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
            # note that there is no random number issue here..
            gradients   = @spawn getGradient(nn,xbatch,ybatch)
            sumGradient = sum(fetch(gradients))
+           #gradients   = getGradient(nn,xbatch,ybatch)
+           #sumGradient = sum(gradients)
+
            ▽   = sumGradient / length(batch)
            #▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)
            res = singleUpdate!(θ,▽;nEpoch=t,nBatch=i,nBatches=nBatches,xbatch=xbatch,ybatch=ybatch,optAlg=optAlg)
