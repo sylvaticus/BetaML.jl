@@ -133,3 +133,101 @@ testAccuracy   = accuracy(ŷtest,ytest)   # 0.956
 # ## Perceptron
 
 # ## Neural networks
+
+
+using HTTP, CSV, DataFrames, Random
+model = RDatasets.datasets("datasets")
+data = dataset("datasets", "mtcars")
+describe(data)
+
+# -------------------------------------------------------------
+baseDir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","cars")
+data    = CSV.File(joinpath(baseDir,"data","auto-mpg.data-original_edited.csv"),delim=' ',missingstring="NA", ignorerepeated=true, header=false) |> DataFrame
+
+import Pipe: @pipe
+
+https://www.rpubs.com/dksmith01/cars
+https://archive.ics.uci.edu/ml/datasets/auto+mpg
+
+urlDataOriginal = "https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data-original"
+urlData         = "https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data"
+
+
+data = @pipe HTTP.get(urlDataOriginal).body |>
+          replace!(_, UInt8('\t') => UInt8(' ')) |>
+          CSV.File(_, delim=' ', missingstring="NA", ignorerepeated=true, header=false) |>
+          DataFrame
+data = @pipe HTTP.get(urlData).body |>
+        replace!(_, UInt8('\t') => UInt8(' ')) |>
+        CSV.File(_, delim=' ', missingstring="?", ignorerepeated=true, header=false) |>
+        DataFrame
+
+
+data[shuffle(copy(FIXEDRNG),axes(data, 1)), :]
+
+#urlData = "https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data-original"
+#data    = CSV.File(replace(IOBuffer(String(HTTP.get(urlData).body)),'\t' => ' '), delim=' ',missingstring="NA", ignorerepeated=true, header=false) |> DataFrame
+describe(data)
+
+x = Matrix{Union{Missing,Float64}}(data[:,1:7])
+x2 = predictMissing(x,3,mixtures=[FullGaussian() for i in 1:3],minVariance=0.002,rng=copy(FIXEDRNG)).X̂
+
+y = Vector{Int64}(data[:,8])
+
+#((xtrain,xval,xtest),(ytrain,yval,ytest)) = partition([x,y],[0.75,0.125,1-0.75-0.125],rng=copy(FIXEDRNG))
+((xtrain,xtest),(ytrain,ytest)) = partition([x2,y],[0.8,1-0.8],rng=copy(FIXEDRNG))
+myForest       = buildForest(xtrain,ytrain,5, minRecords=2,  rng=FIXEDRNG,forceClassification=true);
+ŷtrain         = predict(myForest, xtrain,rng=FIXEDRNG)
+#ŷval           = predict(myForest, xval,rng=FIXEDRNG)
+ŷtest          = predict(myForest, xtest,rng=FIXEDRNG)
+trainAccuracy  = accuracy(parse.(Int64,mode(ŷtrain)),ytrain)
+#valAccuracy    = accuracy(parse.(Int64,mode(ŷval)),yval)
+testAccuracy   = accuracy(parse.(Int64,mode(ŷtest)),ytest)
+
+
+#-
+
+y_oh            = oneHotEncoder(y) # Convert to One-hot representation (e.g. 2 => [0 1 0], 3 => [0 0 1])
+#((xtrain,xval,xtest),(ytrain,yval,ytest),(ytrain_oh,yval_oh,ytest_oh)) = partition([x2,y,y_oh],[0.75,0.125,1-0.75-0.125],rng=copy(FIXEDRNG))
+((xtrain,xtest),(ytrain,ytest),(ytrain_oh,ytest_oh)) = partition([x2,y,y_oh],[0.8,1-0.8],rng=copy(FIXEDRNG))
+
+xScaleFactors   = getScaleFactors(xtrain)
+xtrainScaled    = scale(xtrain,xScaleFactors)
+#xvalScaled      = scale(xval,xScaleFactors)
+xtestScaled     = scale(xtest,xScaleFactors)
+D               = size(xtrain,2)
+classes         = unique(y)
+nCl             = length(classes)
+
+
+
+ls = 10
+# Define the Artificial Neural Network model
+l1   = DenseLayer(D,ls,f=relu,rng=copy(FIXEDRNG)) # Activation function is ReLU
+l2   = DenseLayer(ls,ls,f=relu,rng=copy(FIXEDRNG))
+l3   = DenseLayer(ls,4,rng=copy(FIXEDRNG))        # Activation function is identity by default
+l4   = VectorFunctionLayer(4,nCl,f=softmax) # Add a (parameterless) layer whose activation function (softMax in this case) is defined to all its nodes at once
+mynn = buildNetwork([l1,l2,l3,l4],squaredCost,name="Multinomial logistic regression Model Cars") # Build the NN and use the squared cost (aka MSE) as error function (crossEntropy could also be used)
+
+# Training it (default to ADAM)
+res = train!(mynn,scale(xtrain),ytrain_oh,epochs=100,batchSize=6,rng=copy(FIXEDRNG)) # Use optAlg=SGD() to use Stochastic Gradient Descent instead
+
+# Test it
+ŷtrain        = predict(mynn,scale(xtrain,xScaleFactors))   # Note the scaling function
+#ŷval          = predict(mynn, scale(xval,xScaleFactors))
+ŷtest         = predict(mynn, scale(xtest,xScaleFactors))
+trainAccuracy = accuracy(ŷtrain,ytrain,tol=1) # 0.983
+#valAccuracy   = accuracy(ŷval,yval,tol=1)
+testAccuracy  = accuracy(ŷtest,ytest,tol=1)
+
+
+clusterOut  = gmm(x,3,mixtures=[FullGaussian() for i in 1:3],minVariance=0.002,rng=copy(FIXEDRNG))
+clusterOut.BIC
+accuracy(clusterOut.pₙₖ,y,ignoreLabels=true)
+
+
+clusterOut  = kmeans(x2,3,rng=copy(FIXEDRNG))
+accuracy(clusterOut[1],y,ignoreLabels=true)
+
+clusterOut  = kmedoids(x2,3,rng=copy(FIXEDRNG))
+accuracy(clusterOut[1],y,ignoreLabels=true)
