@@ -29,7 +29,7 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        reshape, makeColVector, makeRowVector, makeMatrix, issortable, getPermutations,
        oneHotEncoder, integerEncoder, integerDecoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
-       dtanh, sigmoid, dsigmoid, softmax, dsoftmax, softplus, dsoftplus, mish, dmish, # exp/trig based functions
+       dtanh, sigmoid, dsigmoid, softmax, dsoftmax, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
        autoJacobian,
        squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, classCounts, meanDicts, mode, gini, entropy, variance,
@@ -551,6 +551,10 @@ dcelu(x; α=one(x))    = x >= zero(x) ? one(x) : exp(x/α)
 plu(x;α=0.1,c=one(x)) = max(α*(x+c)-c,min(α*(x-c)+c,x)) # convert(eltype(x), α)
 """dplu(x;α=0.1,c=1) \n\n Piecewise Linear Unit derivative \n\n https://arxiv.org/pdf/1809.09534.pdf"""
 dplu(x;α=0.1,c=one(x)) = ( ( x >= (α*(x+c)-c)  &&  x <= (α*(x+c)+c) ) ? one(x) : α ) # convert(eltype(x), α)
+
+"""pool1d(x,poolSize=2;f=mean) \n\n Apply funtion `f` to a rolling poolSize contiguous (in 1d) neurons. \nApplicable to `VectorFunctionLayer`"""
+pool1d(x,poolSize=3;f=mean) = [f(x[i:i+poolSize-1]) for i in 1:length(x)-poolSize+1] # we may try to use CartesianIndices/LinearIndices for a n-dimensional generalisation
+
 
 #tanh(x) already in Julia base
 """dtanh(x)"""

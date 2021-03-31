@@ -236,7 +236,7 @@ Set the trainable parameters of the layer with the given values
 
 # Parameters:
 * `layer`: Worker layer
-* `w`:   The new parameters to set (Learnable)
+* `w`:     The new parameters to set (Learnable)
 
 # Notes:
 *  The format of the tuple wrapped by Learnable must be consistent with those of the `getParams()` and `getGradient()` functions.
@@ -249,7 +249,7 @@ end
 """
     size(layer)
 
-SGet the dimensions of the layers in terms of (dimensions in input , dimensions in output)
+Get the dimensions of the layers in terms of (dimensions in input , dimensions in output)
 
 # Notes:
 * You need to use `import Base.size` before defining this function for your layer

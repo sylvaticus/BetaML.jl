@@ -364,6 +364,19 @@ a = outerFunction(x,rng=copy(TESTRNG))
 b = outerFunction(x,rng=copy(TESTRNG))
 @test a == b
 
+
+
+# ==================================
+# New test
+println("** Testing pool1d()...")
+x = [1,2,3,4,5,6]
+poolSize = 3
+
+out = pool1d(x,poolSize)
+@test out == [2.0,3.0,4.0,5.0]
+out = pool1d(x,poolSize;f=maximum)
+@test out == [3,4,5,6]
+
 #=
 using Random, StableRNGs
 rDiff(rngFunction,seedBase,seedDiff,repetitions) = norm(rand(rngFunction(seedBase),repetitions) .- rand(rngFunction(seedBase+seedDiff),repetitions))/repetitions

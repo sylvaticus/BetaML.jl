@@ -1,12 +1,12 @@
 using Test
-using DelimitedFiles, LinearAlgebra, MLDatasets
+using DelimitedFiles, LinearAlgebra #, MLDatasets
 
 using StableRNGs
 #rng = StableRNG(123)
 using BetaML
 
-#TESTRNG = FIXEDRNG # This could change...
-TESTRNG = StableRNG(123)
+TESTRNG = FIXEDRNG # This could change...
+#TESTRNG = StableRNG(123)
 
 println("*** Testing Neural Network...")
 
@@ -36,22 +36,29 @@ println("Testing basic NN behaviour...")
 x = [0.1,1]
 y = [1,0]
 l1   = DenseNoBiasLayer(2,2,w=[2 1;1 1],f=identity,rng=copy(TESTRNG))
-l2   = VectorFunctionLayer(2,2,f=softmax)
+l2   = VectorFunctionLayer(2,f=softmax)
 mynn = buildNetwork([l1,l2],squaredCost,name="Simple Multinomial logistic regression")
 o1 = forward(l1,x)
+@test o1 == [1.2,1.1]
 #@code_warntype forward(l1,x)
 o2 = forward(l2,o1)
+@test o2 ≈ [0.5249791874789399, 0.47502081252106] ≈ softmax([1.2,1.1])
 orig = predict(mynn,x')[1,:]
+@test orig == o2
 #@code_warntype Nn.predict(mynn,x')[1,:]
 ϵ = squaredCost(o2,y)
 #@code_warntype  squaredCost(o2,y)
 lossOrig = loss(mynn,x',y')
+@test ϵ == lossOrig
 #@code_warntype  loss(mynn,x',y')
 dϵ_do2 = dSquaredCost(o2,y)
+@test dϵ_do2 == [-0.4750208125210601,0.47502081252106]
 #@code_warntype dSquaredCost(o2,y)
 dϵ_do1 = backward(l2,o1,dϵ_do2)
+@test dϵ_do1 ≈ [-0.23691761847142412, 0.23691761847142412]
 #@code_warntype backward(l2,o1,dϵ_do2)
 dϵ_dX = backward(l1,x,dϵ_do1)
+@test dϵ_dX ≈ [-0.23691761847142412, 0.0]
 #@code_warntype backward(l1,x,dϵ_do1)
 l1w = getParams(l1)
 #@code_warntype
@@ -59,11 +66,13 @@ l2w = getParams(l2)
 #@code_warntype
 w = getParams(mynn)
 #@code_warntype getParams(mynn)
-#typeof(w)
+#typeof(w)2-element Vector{Float64}:
 origW = deepcopy(w)
 l2dw = getGradient(l2,o1,dϵ_do2)
+@test length(l2dw.data) == 0
 #@code_warntype getGradient(l2,o1,dϵ_do2)
 l1dw = getGradient(l1,x,dϵ_do1)
+@test l1dw.data[1] ≈ [-0.023691761847142414 -0.23691761847142412; 0.023691761847142414 0.23691761847142412]
 #@code_warntype
 dw = getGradient(mynn,x,y)
 #@code_warntype getGradient(mynn,x,y)
@@ -207,7 +216,7 @@ xtest = scale(xtest)
 
 l1   = DenseLayer(4,10, w=ones(10,4), wb=zeros(10),f=celu,rng=copy(TESTRNG))
 l2   = DenseLayer(10,3, w=ones(3,10), wb=zeros(3),rng=copy(TESTRNG))
-l3   = VectorFunctionLayer(3,3,f=softmax)
+l3   = VectorFunctionLayer(3,f=softmax)
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal")
 train!(mynn,xtrain,ytrain_oh,epochs=254,batchSize=8,sequential=true,verbosity=NONE,optAlg=SGD(η=t->0.001,λ=1),rng=copy(TESTRNG))
 ŷtrain = predict(mynn,xtrain)
@@ -219,7 +228,7 @@ testAccuracy  = accuracy(ŷtest,ytest,tol=1)
 # With ADAM
 l1   = DenseLayer(4,10, w=ones(10,4), wb=zeros(10),f=celu,rng=copy(TESTRNG))
 l2   = DenseLayer(10,3, w=ones(3,10), wb=zeros(3),rng=copy(TESTRNG))
-l3   = VectorFunctionLayer(3,3,f=softmax)
+l3   = VectorFunctionLayer(3,f=softmax)
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal")
 train!(mynn,xtrain,ytrain_oh,epochs=10,batchSize=8,sequential=true,verbosity=NONE,optAlg=ADAM(η=t -> 1/(1+t), λ=0.5),rng=copy(TESTRNG))
 ŷtrain = predict(mynn,xtrain)
@@ -228,7 +237,7 @@ trainAccuracy = accuracy(ŷtrain,ytrain,tol=1)
 testAccuracy  = accuracy(ŷtest,ytest,tol=1)
 @test testAccuracy >= 1
 
-
+#=
 if "all" in ARGS
     # ==================================
     # NEW TEST
@@ -243,3 +252,21 @@ if "all" in ARGS
 
     test .+ 1
 end
+=#
+
+
+# ==================================
+# NEW Test
+println("Testing VectorFunctionLayer with pool1d function...")
+
+x        = rand(copy(TESTRNG),300,5)
+y        = [norm(r[1:3])+2*norm(r[4:5],2) for r in eachrow(x) ]
+(N,D)    = size(x)
+l1       = DenseLayer(D,8, f=relu,rng=copy(TESTRNG))
+l2       = VectorFunctionLayer(size(l1)[2],f=(x->pool1d(x,2,f=mean)))
+l3       = DenseLayer(size(l2)[2],1,f=relu, rng=copy(TESTRNG))
+mynn     = buildNetwork([l1,l2,l3],squaredCost,name="Regression with a pooled layer")
+train!(mynn,x,y,epochs=400,verbosity=STD,rng=copy(TESTRNG))
+ŷ        = predict(mynn,x)
+mreTrain = meanRelError(ŷ,y,normRec=false)
+@test mreTrain  < 0.05
