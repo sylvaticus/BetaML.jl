@@ -19,7 +19,7 @@ Neural Network implementation (Module BetaML.Nn)
 
 Implement the functionality required to define an artificial Neural Network, train it with data, forecast data and assess its performances.
 
-Common type of layers and optimisation algorithms are already provided, but you can define your own ones subclassing respectively the `Layer` and `OptimisationAlgorithm` abstract types.
+Common type of layers and optimisation algorithms are already provided, but you can define your own ones subclassing respectively the `AbstractLayer` and `OptimisationAlgorithm` abstract types.
 
 The module provide the following type or functions. Use `?[type or function]` to access their full signature and detailed documentation:
 
@@ -35,7 +35,7 @@ The module provide the following type or functions. Use `?[type or function]` to
 - `show(nn)`: Print a representation of the Neural Network
 
 Each layer can use a default activation function, one of the functions provided in the `Utils` module (`relu`, `tanh`, `softmax`,...) or you can specify your own function. The derivative of the activation function can be optionally be provided, in such case training will be quicker, altought this difference tends to vanish with bigger datasets.
-You can alternativly implement your own layers defining a new type as subtype of the abstract type `Layer`. Each user-implemented layer must define the following methods:
+You can alternativly implement your own layer defining a new type as subtype of the abstract type `AbstractLayer`. Each user-implemented layer must define the following methods:
 
 - A suitable constructor
 - `forward(layer,x)`
@@ -78,7 +78,7 @@ import Base.size
 import Base: +, -, *, /, sum, sqrt
 
 # module own functions
-export Layer, forward, backward, getParams, getNParams, getGradient, setParams!, size, NN,
+export AbstractLayer, forward, backward, getParams, getNParams, getGradient, setParams!, size, NN,
        buildNetwork, predict, loss, train!, getindex, initOptAlg!, singleUpdate!,
        DenseLayer, DenseNoBiasLayer, VectorFunctionLayer,
        Learnable,
@@ -159,7 +159,7 @@ Base.length(iter::Learnable) = length(iter.data)
 ## Sckeleton for the layer functionality.
 # See nn_default_layers.jl for actual implementations
 
-abstract type Layer end
+abstract type AbstractLayer end
 
 include("Nn_default_layers.jl")
 
@@ -175,7 +175,7 @@ Predict the output of the layer given the input
 # Return:
 - An Array{T,1} of the prediction (even for a scalar)
 """
-function forward(layer::Layer,x)
+function forward(layer::AbstractLayer,x)
  error("Not implemented for this kind of layer. Please implement `forward(layer,x)`.")
 end
 
@@ -193,7 +193,7 @@ Compute backpropagation for this layer
 * The evaluated gradient of the loss with respect to this layer inputs
 
 """
-function backward(layer::Layer,x,nextGradient)
+function backward(layer::AbstractLayer,x,nextGradient)
     error("Not implemented for this kind of layer. Please implement `backward(layer,x,nextGradient)`.")
 end
 
@@ -208,7 +208,7 @@ Get the layers current value of its trainable parameters
 # Return:
 * The current value of the layer's trainable parameters as tuple of matrices. It is up to you to decide how to organise this tuple, as long you are consistent with the `getGradient()` and `setParams()` functions. Note that starting from BetaML 0.2.2 this tuple needs to be wrapped in its `Learnable` type.
 """
-function getParams(layer::Layer)
+function getParams(layer::AbstractLayer)
   error("Not implemented for this kind of layer. Please implement `getParams(layer)`.")
 end
 
@@ -225,7 +225,7 @@ Compute backpropagation for this layer
 # Return:
 * The evaluated gradient of the loss with respect to this layer's trainable parameters as tuple of matrices. It is up to you to decide how to organise this tuple, as long you are consistent with the `getParams()` and `setParams()` functions. Note that starting from BetaML 0.2.2 this tuple needs to be wrapped in its `Learnable` type.
 """
-function getGradient(layer::Layer,x,nextGradient)
+function getGradient(layer::AbstractLayer,x,nextGradient)
     error("Not implemented for this kind of layer. Please implement `getGradient(layer,x,nextGradient)`.")
   end
 
@@ -241,7 +241,7 @@ Set the trainable parameters of the layer with the given values
 # Notes:
 *  The format of the tuple wrapped by Learnable must be consistent with those of the `getParams()` and `getGradient()` functions.
 """
-function setParams!(layer::Layer,w)
+function setParams!(layer::AbstractLayer,w)
     error("Not implemented for this kind of layer. Please implement `setParams!(layer,w)`.")
 end
 
@@ -254,7 +254,7 @@ Get the dimensions of the layers in terms of (dimensions in input , dimensions i
 # Notes:
 * You need to use `import Base.size` before defining this function for your layer
 """
-function size(layer::Layer)
+function size(layer::AbstractLayer)
     error("Not implemented for this kind of layer. Please implement `size(layer)`.")
 end
 
@@ -264,7 +264,7 @@ Return the number of parameters of a layer.
 
 It doesn't need to be implemented by each layer type, as it uses getParams().
 """
-function getNParams(layer::Layer)
+function getNParams(layer::AbstractLayer)
     pars = getParams(layer)
     nP = 0
     for p in pars.data
@@ -287,7 +287,7 @@ Representation of a Neural Network
 * `trained`: Control flag for trained networks
 """
 mutable struct NN
-    layers::Array{Layer,1}
+    layers::Array{AbstractLayer,1}
     cf::Function
     dcf::Union{Function,Nothing}
     trained::Bool

@@ -4,6 +4,7 @@
 Provided layers
 - DenseLayer
 - DenseNoBiasLayer
+- VectorFunctionLayer
 """
 
 #using Random, Zygote
@@ -24,7 +25,7 @@ Representation of a layer in the network
 * `f`:  Activation function
 * `df`: Derivative of the activation function
 """
-mutable struct DenseLayer <: Layer
+mutable struct DenseLayer <: AbstractLayer
      w::Array{Float64,2}
      wb::Array{Float64,1}
      f::Function
@@ -108,7 +109,7 @@ Representation of a layer without bias in the network
 * `f`:  Activation function
 * `df`: Derivative of the activation function
 """
-mutable struct DenseNoBiasLayer <: Layer
+mutable struct DenseNoBiasLayer <: AbstractLayer
      w::Array{Float64,2}
      f::Function
      df::Union{Function,Nothing}
@@ -204,7 +205,7 @@ classes in the predictions).
 * The output `size` of this layer is given by the size of the output function,
 that not necessarily is the same as the previous layers.
 """
-mutable struct VectorFunctionLayer <: Layer
+mutable struct VectorFunctionLayer <: AbstractLayer
      nₗ::Int64
      n::Int64
      f::Function
