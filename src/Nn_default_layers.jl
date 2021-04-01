@@ -184,18 +184,19 @@ end
 
 Representation of a (weightless) VectorFunction layer in the network. Vector
 function layer expects a vector activation function, i.e. a function taking the
-whole output of the previous layer an input rather than working on a single neuron
+whole output of the previous layer an input rather than working on a single node
 as "normal" activation functions would do.
 Useful for example with the SoftMax function in classification or with the `pool1D`
 function to implement a "pool" layer in 1 dimensions.
 As it is weightless, it doesn't apply any transformation to the output coming
-from the previous layer. It means that the number of neurons must be set to the same
-as in the previous nodes (and if you are using this for classification, to the
+from the previous layer. It means that the number of nodes must be set to the same
+as in the previous layer (and if you are using this for classification, to the
 number of classes, i.e. the _previous_ layer must be set equal to the number of
 classes in the predictions).
 
 # Fields:
-* `n`:  Number of nodes in input and output
+* `nₗ`: Number of nodes in input (i.e. length of previous layer)
+* `n`:  Number of nodes in output (automatically inferred in the constructor)
 * `f`:  Activation function (vector)
 * `df`: Derivative of the (vector) activation function
 
@@ -204,6 +205,7 @@ classes in the predictions).
 that not necessarily is the same as the previous layers.
 """
 mutable struct VectorFunctionLayer <: Layer
+     nₗ::Int64
      n::Int64
      f::Function
      df::Union{Function,Nothing}
@@ -213,16 +215,22 @@ mutable struct VectorFunctionLayer <: Layer
      Instantiate a new VectorFunctionLayer
 
      # Positional arguments:
-     * `n`: Number of nodes (must be same as in the previous layer)
+     * `nₗ`: Number of nodes (must be same as in the previous layer)
      # Keyword arguments:
      * `f`:  Activation function [def: `softMax`]
      * `df`: Derivative of the activation function [default: `nothing` (i.e. use AD)]
+     * `dummyDataToTestOutputSize`: Dummy data to test the output size [def: `ones(nₗ)`]
 
      # Notes:
      - If the derivative is provided, it should return the gradient as a (n,n) matrix (i.e. the Jacobian)
+     - To avoid recomputing the activation function just to determine its output size,
+       we compute the output size once here in the layer constructor by calling the
+       activation function with `dummyDataToTestOutputSize`. Feel free to change
+       it if it doesn't match with the activation function you are setting
      """
-     function VectorFunctionLayer(n;f=softMax,df=nothing)
-         return new(n,f,df)
+     function VectorFunctionLayer(nₗ;f=softMax,df=nothing,dummyDataToTestOutputSize=ones(nₗ))
+         n = length(f(dummyDataToTestOutputSize))
+         return new(nₗ,n,f,df)
      end
 end
 
@@ -234,7 +242,7 @@ function backward(layer::VectorFunctionLayer,x,nextGradient)
    if layer.df != nothing
        dϵ_dI = layer.df(x)' * nextGradient
     else  # using AD
-      j = autoJacobian(layer.f,x) # nY=layer.n
+      j = autoJacobian(layer.f,x; nY=layer.n)
       dϵ_dI = j' * nextGradient
     end
    return dϵ_dI
@@ -254,5 +262,5 @@ end
 function size(layer::VectorFunctionLayer)
     # Output size for the VectorFunctionLayer is given by its activation function
     # We test its length with dummy values
-    return (layer.n,length(layer.f(ones(layer.n))))
+    return (layer.nₗ,layer.n)
 end

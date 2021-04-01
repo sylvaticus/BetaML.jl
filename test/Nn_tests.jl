@@ -1,5 +1,5 @@
 using Test
-using DelimitedFiles, LinearAlgebra #, MLDatasets
+using DelimitedFiles, LinearAlgebra, Statistics #, MLDatasets
 
 using StableRNGs
 #rng = StableRNG(123)
@@ -266,7 +266,7 @@ l1       = DenseLayer(D,8, f=relu,rng=copy(TESTRNG))
 l2       = VectorFunctionLayer(size(l1)[2],f=(x->pool1d(x,2,f=mean)))
 l3       = DenseLayer(size(l2)[2],1,f=relu, rng=copy(TESTRNG))
 mynn     = buildNetwork([l1,l2,l3],squaredCost,name="Regression with a pooled layer")
-train!(mynn,x,y,epochs=400,verbosity=STD,rng=copy(TESTRNG))
+train!(mynn,x,y,epochs=50,verbosity=STD,rng=copy(TESTRNG))
 ŷ        = predict(mynn,x)
 mreTrain = meanRelError(ŷ,y,normRec=false)
-@test mreTrain  < 0.05
+@test mreTrain  < 0.14
