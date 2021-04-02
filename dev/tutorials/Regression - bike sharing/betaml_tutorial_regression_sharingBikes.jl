@@ -1,5 +1,4 @@
-
-# # A regression task: the prediction of  bike  sharing demand
+# # [A regression task: the prediction of  bike  sharing demand](@id regression_tutorial)
 # The task is to estimate the influence of several variables (like the weather, the season, the day of the week..) on the demand of shared bicycles, so that the authority in charge of the service can organise the service in the best way.
 #
 # Data origin:
@@ -20,7 +19,7 @@ using  Test     #src
 
 
 # Here we load the data from a csv provided by the BataML package
-baseDir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","A regression task - sharing bike demand prediction")
+baseDir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","Regression - bike sharing")
 data    = CSV.File(joinpath(baseDir,"data","bike_sharing_day.csv"),delim=',') |> DataFrame
 describe(data)
 
@@ -202,7 +201,7 @@ oobError, trueTestMeanRelativeError  = myForest.oobError,meanRelError(ŷtest,yt
 #+
 (ŷtrain,ŷval,ŷtest)         = predict.([myForest], [xtrain,xval,xtest])
 (rmeTrain, rmeVal, rmeTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
-
+#src 0.06512088063750156, 0.09389025098838212, 0.22229683782214169
 @test rmeTest <= 0.23 #src
 
 # In this case we found an error very similar to the one employing a single decision tree. Let's print the observed data vs the estimated one using the random forest and then along the temporal axis:
@@ -257,6 +256,7 @@ model = DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
 # DecisionTrees.jl makes a good job in optimising the Random Forest algorithm, as it is over 3 times faster that BetaML.
 
 (rmeTrain, rmeVal, rmeTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
+#src 0.031235291992120055,0.17271800981298888,0.3141747075399198
 # However the error on the test set remains relativly high. The very low error level on the training set is a sign that it overspecialised on the training set, and we should have better ran a dedicated hyperparameter optimisation for the model.
 
 @test rmeTest <= 0.36 #src
@@ -415,6 +415,8 @@ ŷtest  = @pipe predict(mynn,xtestScaled)  |> scale(_ ,yScaleFactors,rev=true);
 
 #-
 (mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
+#src 0.08839103036501561, 0.1482673840724729, 0.17613463255050987
+
 # The error is much lower. Let's plot our predictions:
 @test mreTest < 0.18 #src
 
@@ -473,6 +475,7 @@ ŷtestf  = @pipe Flux_nn(xtestScaled')'  |> scale(_,yScaleFactors,rev=true);
 
 # ..and we compute the mean relative errors..
 (mreTrain, mreVal, mreTest) = meanRelError.([ŷtrainf,ŷvalf,ŷtestf],[ytrain,yval,ytest],normRec=false)
+#src 0.09808947560569008, 0.13646196170811473,0.16181699665523128
 # .. finding an error not significantly different than the one obtained from BetaML.Nn.
 
 #-
@@ -503,3 +506,20 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfullf[stc:endc] ŷtestfu
 # That said, specialised neural network libraries, like Flux, allow to use GPU and specialised hardware letting neural networks to scale with very large datasets.
 
 # Still, for small and medium datasets, BetaML provides simpler yet customisable solutions that are accurate and fast.
+
+
+# ## Summary
+
+# This is the summary of the results we had trying to predict the daily bike sharing demand, given weather and calendar information of the day
+
+# | Model                | Train rme     | Test rme|  Training time (ms)* | Training mem (MB)  |
+# |:-------------------- |:-------------:| --------:| ------------------- | ----------------- |
+# | DT                   | 0.1266        | 0.2223   | 26.5                | 58                |
+# | RF                   | 0.0651        | 0.2223   | 362                 | 971               |
+# | RF (DecisionTree.jl) | 0.0312        | 0.3142   | 36                  | 11                |
+# | NN                   | 0.0884        | 0.1761   | 1768                | 758               |
+# | NN (Flux.jl)         | 0.0981        | 0.1618   | 1708                | 282               |
+
+# * on a Intel Core i5-8350U laptop
+
+# Neural networks can be more precise than random forests models, but are more computationally expensive (and tricky to set up). When we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less verstatile).
