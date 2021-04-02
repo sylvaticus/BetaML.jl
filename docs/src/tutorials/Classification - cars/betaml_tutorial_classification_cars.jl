@@ -76,6 +76,9 @@ ŷtrain,ŷtest   = predict.(Ref(myForest), [xtrain,xtest],rng=copy(FIXEDRNG));
 # Finally we can measure the _accuracy_ of our predictions with the [`accuracy`](@ref) function:
 trainAccuracy,testAccuracy  = accuracy.([parse.(Int64,mode(ŷtrain)),parse.(Int64,mode(ŷtest))],[ytrain,ytest])
 #src (0.9969230769230769,0.8024691358024691)
+
+@test testAccuracy > 0.8 #src
+
 # The predictions are quite good, for the training set the algoritm predicted almost all cars' origins correctly, while for the testing set (i.e. those records that has **not** been used to train the algorithm), the correct prediction level is still quite high, at 80%
 # When we benchmark the resourse used (time and memory) we find that Random Forests remain pretty fast, expecially when we compare them with neural networks (see later)
 @btime buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),forceClassification=true);
@@ -93,6 +96,9 @@ model = DecisionTree.build_forest(ytrain, xtrainFull,-1,30,rng=123)
 (ŷtrain,ŷtest) = DecisionTree.apply_forest.([model],[xtrainFull,xtestFull]);
 (trainAccuracy,testAccuracy) = accuracy.([ŷtrain,ŷtest],[ytrain,ytest])
 #src (0.9969230769230769, 0.7530864197530864)
+
+@test testAccuracy > 0.75 #src
+
 # While the accuracy on the training set is exactly the same as for `BetaML` random forets, `DecisionTree.jl` random forests are slighly less accurate in the testing sample.
 # Where however `DecisionTrees.jl` excell is in the efficiency: they are extremelly fast and memory parse, even if here to this benchmark we should add the resources need to impute the missing values. Also, one of the reasons DecisionTrees are such efficient is that internally they sort the data to avoid repeated comparision, but in this way they work only with features that are sortable, while BetaML random forests accept virtually any kind of input without the need of adapt it.
 @btime  DecisionTree.build_forest(ytrain, xtrainFull,-1,30,rng=123);
@@ -129,6 +135,8 @@ res = train!(mynn,scale(xtrainFull,xScaleFactors),ytrain_oh,epochs=300,batchSize
 (trainAccuracy,testAccuracy) = accuracy.([ŷtrain,ŷtest],[ytrain,ytest])
 #src (0.9753846153846154,0.8765432098765432)
 
+@test testAccuracy > 0.87 #src
+
 # With neural networks the tesst accuracy improves of 7 percentual points.
 # However this come with a large computational cost, at the training takes now several seconds:
 @btime train!(mynn,scale(xtrainFull),ytrain_oh,epochs=300,batchSize=8,rng=copy(FIXEDRNG),verbosity=NONE);
@@ -160,7 +168,10 @@ begin for i in 1:300  Flux.train!(loss, ps, nndata, Flux.ADAM()) end end
 ŷtrain     = Flux.onecold(Flux_nn(xtrainT),1:3)
 ŷtest      = Flux.onecold(Flux_nn(xtestT),1:3)
 (trainAccuracy,testAccuracy) = accuracy.([ŷtrain,ŷtest],[ytrain,ytest])
+#src 0.9692307692307692, 0.7283950617283951
 # While the train accuracy is the same as in BetaML, the test accuracy is somehow lower
+
+@test testAccuracy > 0.72 #src
 
 # However the time is again lower than BetaML, even if here for "just" a factor 2
 @btime begin for i in 1:300 Flux.train!(loss, ps, nndata, Flux.ADAM()) end end;
@@ -171,11 +182,12 @@ ŷtest      = Flux.onecold(Flux_nn(xtestT),1:3)
 
 # This is the summary of the results we had trying to predict the country of origin of the cars, based on their technical characteristics:
 
-# | Model                | Train acc     | Test Acc |  Training time (ms) | Training mem (MB) |
+# | Model                | Train acc     | Test Acc |  Training time (ms)* | Training mem (MB) |
 # |:-------------------- |:-------------:| --------:| ------------------- | ----------------- |
 # | RF                   | 0.9969        | 0.8025   | 133                 | 196               |
 # | RF (DecisionTree.jl) | 0.9969        | 0.7531   | 1.4                 | 1.5               |
 # | NN                   | 0.9754        | 0.8765   | 10684               | 22241             |
 # | NN (Flux.jl)         | 0.9692        | 0.7284   | 9164                | 1577              |
 
+# * on a Intel Core i5-8350U laptop
 # We find a similar situation as in the bike's demand [regression tutorial](@ref): neural networks can be more precise than random forests models, but are more computationally expensive (and tricky to set up). When we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less verstatile).
