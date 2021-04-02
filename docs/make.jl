@@ -7,7 +7,8 @@ const _TUTORIAL_DIR = joinpath(@__DIR__, "src", "tutorials")
 const _TUTORIAL_SUBDIR = [
     "Getting started",
     "A regression task - sharing bike demand prediction",
-#    "A classification task when labels are known - determining the plant species giving floreal measures",
+    "A classification task when labels are known - determining the country of origin of cars given the cars characteristics",
+    "A clusterisation task  - determining the plant species giving floreal measures"
 ]
 
 function link_example(content)

@@ -1,5 +1,4 @@
-
-# # A regression task: the prediction of  bike  sharing demand
+# # [A regression task: the prediction of  bike  sharing demand](@id regression_tutorial)
 # The task is to estimate the influence of several variables (like the weather, the season, the day of the week..) on the demand of shared bicycles, so that the authority in charge of the service can organise the service in the best way.
 #
 # Data origin:
@@ -11,7 +10,7 @@
 # Note that even if we are estimating a time serie, we are not using here a recurrent neural network as we assume the temporal dependence to be negligible (i.e. $Y_t = f(X_t)$ alone).
 
 # ## Library and data loading
-
+#=
 # We first load all the packages we are going to use
 using  LinearAlgebra, Random, Statistics, DataFrames, CSV, Plots, Pipe, BenchmarkTools, BetaML
 import Distributions: Uniform
@@ -503,3 +502,5 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfullf[stc:endc] ŷtestfu
 # That said, specialised neural network libraries, like Flux, allow to use GPU and specialised hardware letting neural networks to scale with very large datasets.
 
 # Still, for small and medium datasets, BetaML provides simpler yet customisable solutions that are accurate and fast.
+
+=#

@@ -552,7 +552,12 @@ plu(x;α=0.1,c=one(x)) = max(α*(x+c)-c,min(α*(x-c)+c,x)) # convert(eltype(x), 
 """dplu(x;α=0.1,c=1) \n\n Piecewise Linear Unit derivative \n\n https://arxiv.org/pdf/1809.09534.pdf"""
 dplu(x;α=0.1,c=one(x)) = ( ( x >= (α*(x+c)-c)  &&  x <= (α*(x+c)+c) ) ? one(x) : α ) # convert(eltype(x), α)
 
-"""pool1d(x,poolSize=2;f=mean) \n\n Apply funtion `f` to a rolling poolSize contiguous (in 1d) neurons. \nApplicable to `VectorFunctionLayer`"""
+"""
+    pool1d(x,poolSize=2;f=mean)
+Apply funtion `f` to a rolling poolSize contiguous (in 1d) neurons.
+
+Applicable to `VectorFunctionLayer`, e.g. `layer2  = VectorFunctionLayer(nₗ,f=(x->pool1d(x,4,f=mean))`
+"""
 pool1d(x,poolSize=3;f=mean) = [f(x[i:i+poolSize-1]) for i in 1:length(x)-poolSize+1] # we may try to use CartesianIndices/LinearIndices for a n-dimensional generalisation
 
 

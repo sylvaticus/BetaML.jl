@@ -592,7 +592,7 @@ end
 
 
 """
-   predict(forest,x)
+  [predict(forest,x)](@id forest_prediction)
 
 Predict the labels of a feature dataset.
 
