@@ -1,24 +1,25 @@
 # # [A classification task when labels are known - determining the country of origin of cars given the cars characteristics](@id classification_tutorial)
 
-# In this exercise we have some car technical characteristics (mpg, horsepower,weight, model year...) and the country of origin and we want to create a model such that the country of origin can be accurately predicted given the technical characteristics.
+# In this exercise we have some car technical characteristics (mpg, horsepower,weight, model year...) and the country of origin and we would like to create a model such that the country of origin can be accurately predicted given the technical characteristics.
+# As the information to predict is a multi-class one, this is a _[classification]_(https://en.wikipedia.org/wiki/Statistical_classification) task.
 
 #
 # Data origin:
 # - dataset description: [https://archive.ics.uci.edu/ml/datasets/auto+mpg](https://archive.ics.uci.edu/ml/datasets/auto+mpg)
 #src Also useful: https://www.rpubs.com/dksmith01/cars
-# - data source we use here: [https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data](https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data)
+# - data source we use here: [https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data](https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data-original)
 
-# field description
+# Field description:
 
-# 1. mpg:           continuous
-# 2. cylinders:     multi-valued discrete
-# 3. displacement:  continuous
-# 4. horsepower:    continuous
-# 5. weight:        continuous
-# 6. acceleration:  continuous
-# 7. model year:    multi-valued discrete
-# 8. origin:        multi-valued discrete
-# 9. car name:      string (unique for each instance) - not used here
+# 1. mpg:           _continuous_
+# 2. cylinders:     _multi-valued discrete_
+# 3. displacement:  _continuous_
+# 4. horsepower:    _continuous_
+# 5. weight:        _continuous_
+# 6. acceleration:  _continuous_
+# 7. model year:    _multi-valued discrete_
+# 8. origin:        _multi-valued discrete_
+# 9. car name:      _string (unique for each instance)_ - not used here
 
 
 
@@ -31,9 +32,9 @@ import Pipe: @pipe
 using  Test     #src
 
 # To load the data from the internet our workflow is
-# (1) Retrieve the data -> (2) Clean it -> (3) Load it -> (4) Output it as a DataFrame
+# (1) Retrieve the data --> (2) Clean it --> (3) Load it --> (4) Output it as a DataFrame.
 
-# For step 1 we use HTTP.get(), for step (2) we use `replace!`, for steps (3) and (4) we uses the CSV package, and we use the "pip" `|>` operator to chain these operations:
+# For step (1) we use `HTTP.get()``, for step (2) we use `replace!`, for steps (3) and (4) we uses the `CSV` package, and we use the "pip" `|>` operator to chain these operations:
 
 urlDataOriginal = "https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data-original"
 data = @pipe HTTP.get(urlDataOriginal).body                                                |>
@@ -42,31 +43,33 @@ data = @pipe HTTP.get(urlDataOriginal).body                                     
              DataFrame;
 
 # This results in a table where the rows are the observations (the various cars) and the column the fields. All BetaML models expect this layout.
-# As the dataset is ordered, we randomly shuffle the data. Note that we pass to shuffle `copy(FIXEDRNG)` as the random nuber generator in order to obtain reproducible output.
+# As the dataset is ordered, we randomly shuffle the data. Note that we pass to shuffle `copy(FIXEDRNG)` as the random nuber generator in order to obtain reproducible output ( [`FIXEDRNG`](@ref BetaML.Utils.FIXEDRNG) is nothing else than an istance of `StableRNG(123)` defined in the [`BetaML.Utils`](@ref) sub-module, but you can choose of course your own "fixed" RNG). See the [Dealing with stochasticity](@ref dealing_with_stochasticity) section in the [Getting started](@ref) tutorial for details.
 data[shuffle(copy(FIXEDRNG),axes(data, 1)), :]
 describe(data)
 
-# Columns 1 to 7 contain  characteristics of the car, while column 8 encodes the country or origin ("1" -> US, "2" -> EU, "3" -> Japan) that we want to be able to predict.
+# Columns 1 to 7 contain  characteristics of the car, while column 8 encodes the country or origin ("1" -> US, "2" -> EU, "3" -> Japan). That's what we want to be able to predict.
 # Columns 9 contains the car name, but we are not going to use this information in this tutorial.
 # Note also that some fields have missing data.
 # Our first step is hence to divide the dataset in features (the x) and the labels (the y) we want to predict. The `x` is then a Julia standard `Matrix` of 406 rows by 7 columns and the `y` is a vector of the 406 observations:
 x     = Matrix{Union{Missing,Float64}}(data[:,1:7]);
 y     = Vector{Int64}(data[:,8]);
 
-# Some algorithms that we will use today don't like missing data, so we need to _impute_ them. Foir this we are using the [`predictMissing`](@ref) function provided by the [`Clustering`](@ref) sub-module. Internally it uses a Gaussian Mixture Model to assign to the missing walue of a given record an average of the values of the non-missing records weighted for how much close they are to our specific record.
-xFull = predictMissing(x,3,rng=copy(FIXEDRNG)).X̂;
-# Further, some models don't work with categorical data as such, so we need to represent our y as a matrix with a separate column for each possible value (the so called "one-hot" representation). To encode as one-hot we use the function [`oneHotEncoder`](@ref) in submodule [`BetaML.Utils`](@ref)
-y_oh  = oneHotEncoder(y); ## Convert to One-hot representation (e.g. 2 => [0 1 0], 3 => [0 0 1])
+# Some algorithms that we will use today don't like missing data, so we need to _impute_ them. Foir this we are using the [`predictMissing`](@ref) function provided by the [`BetaML.Clustering`](@ref) sub-module. Internally the function uses a Gaussian Mixture Model to assign to the missing walue of a given record an average of the values of the non-missing records weighted for how close they are to our specific record.
+xFull = predictMissing(x,rng=copy(FIXEDRNG)).X̂;
+# Further, some models don't work with categorical data as such, so we need to represent our `y` as a matrix with a separate column for each possible categorical value (the so called "one-hot" representation).
+# For example, within a three classes field, the individual value `2` (or `"Europe"` for what it matters) would be represented as the vector `[0 1 0]`, while `3` (or `"Japan"`) wpuld become the vector `[0 0 1]`.
+# To encode as one-hot we use the function [`oneHotEncoder`](@ref) in [`BetaML.Utils`](@ref)
+y_oh  = oneHotEncoder(y);
 
-# In supervised machine learning it is good practice to partition the available data in a _training_, _validation_, and _test_ subsets, where the first one is used to train the ML algorithm, the second one to train any eventual "hyperparameters" of the algorithm and the _test_ subset is finally used to evaluate the quality of the algorithm.
-# Here, for brevity, we use only the _train_ and the _test_ subsets, implicitly assuming we already know the best hyperparameters. Please refer to the [regression tutorial](@ref regression_tutorial) for examples of how to use the validation subset to train the hyperparameters.
-# We use then the [`partition`](@ref) function, where we can specify the different data to partition (that must have the same number of observations) and the shares of observation that we want in each subset.
+# In supervised machine learning it is good practice to partition the available data in a _training_, _validation_, and _test_ subsets, where the first one is used to train the ML algorithm, the second one to train any eventual "hyper-parameters" of the algorithm and the _test_ subset is finally used to evaluate the quality of the algorithm.
+# Here, for brevity, we use only the _train_ and the _test_ subsets, implicitly assuming we already know the best hyper-parameters. Please refer to the [regression tutorial](@ref regression_tutorial) for examples of how to use the validation subset to train the hyper-parameters.
+# We use then the `partition` function in [BetaML.Utils](@ref), where we can specify the different data to partition (that must have the same number of observations) and the shares of observation that we want in each subset.
 ((xtrain,xtest),(xtrainFull,xtestFull),(ytrain,ytest),(ytrain_oh,ytest_oh)) = partition([x,xFull,y,y_oh],[0.8,1-0.8],rng=copy(FIXEDRNG));
 
 # ## Random Forests
 
-# We are now ready to use our first model, the Random Forests (in the [`BetaML.Trees`](@ref) sub_module) [Random Forests](@ref BetaML.Trees). Random Forests build a "forest" of decision trees models and then use their averaged predictions to make a overall prediction out of a feature matrix.
-# To "build" the forest model (i.e. to "train" it) we need to give the model the training feature matrix and the associated "true" training labels, and we need to specify the number of trees to use (this is an example of hyperparameters). Here we use 30 individual decision trees.
+# We are now ready to use our first model, the Random Forests (in the [`BetaML.Trees`](@ref) sub-module). Random Forests build a "forest" of decision trees models and then average their predictions to make an overall prediction out of a feature vector.
+# To "build" the forest model (i.e. to "train" it) we need to give the model the training feature matrix and the associated "true" training labels, and we need to specify the number of trees to employ (this is an example of hyper-parameters). Here we use 30 individual decision trees.
 # As the labels are encoded using integers,  we need also to use the parameter `forceClassification=true` otherwide the model would undergo a _regression_ job.
 myForest       = buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),forceClassification=true);
 # To obtain the predicted values, we can simply use the function [`BetaML.Trees.predict`](@ref)
