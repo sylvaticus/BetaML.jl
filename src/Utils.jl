@@ -33,7 +33,7 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        bic, aic,
        autoJacobian,
        squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, classCounts, meanDicts, mode, gini, entropy, variance,
-       error, accuracy, meanRelError,
+       error, accuracy, meanRelError, ConfusionMatrix,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
        radialKernel, polynomialKernel
@@ -65,8 +65,6 @@ Use it with:
 """
 const FIXEDRNG  = StableRNG(FIXEDSEED) #StableRNG(FIXEDSEED) Random.default_rng() #MersenneTwister(FIXEDSEED)
 #const FIXEDRNG  = MersenneTwister(FIXEDSEED) #StableRNG(FIXEDSEED) Random.default_rng()
-
-
 
 
 macro codeLocation()
@@ -772,12 +770,37 @@ struct ConfusionMatrix{T}
     labels::Vector{T}             # Array of categorical labels
     actualCount::Vector{Int64}    # Array of counts per lebel in the actual data
     predictedCount::Vector{Int64} # Array of counts per label in the predicted data
-    scores::Array{Int64,2}        # Matrix predicted (rows) vs actual (columns)
+    scores::Array{Int64,2}        # Matrix actual (rows) vs predicted (columns)
     normalisedScores::Array{Float64,2} # Normalised scores
+    tp::Vector{Int64}                  # True positive (by class)
+    tn::Vector{Int64}                  # True negative (by class)
+    fp::Vector{Int64}                  # False positive (by class)
+    fn::Vector{Int64}                  # False negative (by class)
+    accuracy::Float64                  # Overall accuracy rate
+    error::Float64                     # Overall error rate
 end
+# https://towardsdatascience.com/confusion-matrix-for-your-multi-class-machine-learning-model-ff9aa3bf7826
+# https://en.wikipedia.org/wiki/Confusion_matrix
 
-
-
+function ConfusionMatrix(ŷ,y::AbstractArray{T};rng=Random.GLOBAL_RNG,labels=unique(y)) where {T}
+    nCl = length(labels)
+    ŷ = typeof(ŷ) <: AbstractVector{T} ? ŷ : mode(ŷ,rng=rng) # get the mode if needed
+    N = length(y)
+    length(ŷ) == N || @error "ŷ and y must have the same length in ConfusionMatrix"
+    actualCount = [get(classCounts(y),i,0) for i in labels]
+    predictedCount = [get(classCounts(ŷ),i,0) for i in labels]
+    scores = zeros(Int64,(nCl,nCl))
+    normalisedScores = zeros(Float64,(nCl,nCl))
+    [scores[findfirst(x -> x == y[i],labels),findfirst(x -> x == ŷ[i],labels)] += 1 for i in 1:N]
+    [normalisedScores[r,:] = scores[r,:] ./ actualCount[r] for r in 1:nCl]
+    tp = [scores[i,i] for i in 1:nCl]
+    tn = [sum(scores[r,c] for r in 1:nCl, c in 1:nCl if r != i && c != i)  for i in 1:nCl]
+    fp = [sum(scores[r,c] for r in 1:nCl, c in 1:nCl if r != i && c == i)  for i in 1:nCl]
+    fn = [sum(scores[r,c] for r in 1:nCl, c in 1:nCl if r == i && c != i)  for i in 1:nCl]
+    accuracy = sum(tp)/N
+    error    = 1-accuracy
+    return  ConfusionMatrix(labels,actualCount,predictedCount,scores,normalisedScores,tp,tn,fp,fn,accuracy,error)
+end
 
 
 
@@ -923,17 +946,47 @@ function classCounts(x)
     return counts
 end
 
-"""
-  mode(dicts)
 
-Given a vector of dictionaries representing probabilities it returns the mode of each element in terms of the key
+function mode(dict::Dict{T,Float64};rng = Random.GLOBAL_RNG) where {T}
+    mks = [k for (k,v) in dict if v==maximum(values(dict))]
+    if length(mks) == 1
+        return mks[1]
+    else
+        return mks[rand(rng,1:length(mks))]
+    end
+end
+function mode(v::AbstractVector{T};rng = Random.GLOBAL_RNG) where {T <: Number}
+    mpos = findall(x -> x == maximum(v),v)
+    if length(mpos) == 1
+        return mpos[1]
+    else
+        return mpos[rand(rng,1:length(mpos))]
+    end
+end
+
+
+"""
+  mode(elements,rng)
+
+Given a vector of dictionaries whose key is numerical (e.g. probabilities), a vector of vectors or a matrix, it returns the mode of each element (dictionary, vector or row) in terms of the key or the position.
 
 Use it to return a unique value from a multiclass classifier returning probabilities.
 
+# Note:
+- If multiple classes have the highest mode, one is returned at random (use the parameter `rng` to fix the stochasticity)
+
 """
-function mode(dicts::AbstractArray{Dict{T,Float64}}) where {T}
-    return getindex.(findmax.(dicts),2)
+function mode(dicts::AbstractArray{Dict{T,Float64}};rng = Random.GLOBAL_RNG) where {T}
+    return mode.(dicts;rng=rng)
 end
+
+function mode(vals::AbstractArray{T,1};rng = Random.GLOBAL_RNG) where {T <: AbstractArray{T2,1} where T2 <: Number}
+    return mode.(vals;rng=rng)
+end
+function mode(vals::AbstractArray{T,2};rng = Random.GLOBAL_RNG) where {T <: Number}
+    return [mode(r;rng=rng) for r in eachrow(vals)]
+end
+
 
 """
    meanDicts(dicts)

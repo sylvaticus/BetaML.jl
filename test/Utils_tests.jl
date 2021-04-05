@@ -244,17 +244,29 @@ ŷ1 = Dict("Lemon" => 0.6, "Apple" => 0.4)
 ŷ2 = Dict("Lemon" => 0.33, "Apple" => 0.2, "Grape" => 0.47)
 ŷ3 = Dict("Lemon" => 0.2, "Apple" => 0.5, "Grape" => 0.3)
 ŷ4 = Dict("Apple" => 0.2, "Grape" => 0.8)
-ŷ = [ŷ1,ŷ2,ŷ3,ŷ4]
-@test mode(ŷ) == ["Lemon","Grape","Apple","Grape"]
+ŷ5 = Dict("Lemon" => 0.4, "Grape" => 0.4, "Apple" => 0.2)
+ŷ = [ŷ1,ŷ2,ŷ3,ŷ4,ŷ5]
+@test mode(ŷ,rng=copy(TESTRNG)) == ["Lemon","Grape","Apple","Grape","Lemon"]
 
+y1 = [1,4,2,5]
+y2 = [2,6,6,4]
+y = [y1,y2]
+@test mode(y,rng=copy(TESTRNG)) == [4,3]
+y = vcat(y1',y2')
+mode(y,rng=copy(TESTRNG)) == [4,3]
+
+# ==================================
+# New test
+println("** Testing ConfusionMatrix()...")
+cm = ConfusionMatrix(ŷ,["Lemon","Lemon","Apple","Grape","Lemon"],rng=copy(FIXEDRNG))
+@test cm.scores == [2 0 1; 0 1 0; 0 0 1]
+@test cm.tp == [2,1,1] && cm.tn == [2,4,3] && cm.fp == [0,0,1] && cm.fn == [1, 0, 0]
 # ==================================
 # New test
 println("** Testing classCounts()...")
 
-a = ["a","b","a","c","d"]
 @test classCounts(["a","b","a","c","d"]) == Dict("a"=>2,"b"=>1,"c"=>1,"d"=>1)
 @test classCounts(['a' 'b'; 'a' 'c';'a' 'b']) == Dict(['a', 'b'] => 2,['a', 'c'] => 1)
-
 
 # ==================================
 # New test
