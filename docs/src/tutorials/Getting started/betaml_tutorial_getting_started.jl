@@ -1,13 +1,39 @@
-
+# # Getting started
 # ## This is markdown title
 # This is also markdown
+
 ## This is a normal comment
-#
+
 a = 1
 b = a + 1
-println(b)
+println("*** I am a line of code that is executed, and b is $b")
+b
 
-# ## Randomness
+# A markdown cell
+
+using BenchmarkTools
+c = b + 1
+c
+
+#-
+k = 100000
+@btime sum(1:k);
+
+
+#-
+
+a = [1,2]   # src
+using Test  # src
+@test c == 3; # src
+
+#-
+@test c == 3;  # src
+
+
+
+
+
+# ## [Dealing with stochasticity](@id dealing_with_stochasticity)
 
 # Most models have some stochastic components and support a `rng` parameter. By default, the outputs of these models will hence not be absolutelly equal on each run. If you want to be sure that the output of a model remain constant given the same inputs you can pass a fixed Random Number Generator to the `rng` parameter. Use it with:
 #

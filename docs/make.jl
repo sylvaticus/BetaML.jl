@@ -1,4 +1,18 @@
+
+# To build the documentation:
+#    - julia --project="." make.jl
+#    - empty!(ARGS); include("make.jl")
+# To build the documentation without running the tests:
+#    - julia --project="." make.jl preview
+#    - push!(ARGS,"preview"); include("make.jl")
+
 using Documenter, Literate, BetaML, Test
+
+if "preview" in ARGS
+    println("*** Attention: code in the tutorial will not be run/tested")
+else
+    println("*** Building documentation and testing tutorials...")
+end
 
 push!(LOAD_PATH,"../src/")
 
@@ -42,14 +56,20 @@ function literate_directory(dir)
     for filename in _file_list(dir, dir, ".jl")
         # `include` the file to test it before `#src` lines are removed. It is
         # in a testset to isolate local variables between files.
-        @testset "$(filename)" begin
-            _include_sandbox(filename)
+        if ! ("preview" in ARGS)
+            @testset "$(filename)" begin
+               _include_sandbox(filename)
+             end
+             codefencePair = "```@example" => "```"
+        else
+             codefencePair = "```julia" => "```"
         end
         Literate.markdown(
             filename,
             dir;
             documenter = true,
             postprocess = link_example,
+            codefence = codefencePair
         )
     end
     return nothing
@@ -60,20 +80,6 @@ literate_directory.(joinpath.(_TUTORIAL_DIR, _TUTORIAL_SUBDIR))
 
 
 makedocs(sitename="BetaML.jl Documentation",
-         #root = "../",
-         #source = "src",
-         #build = "build",
-         #=
-         format = Documenter.HTML(
-             # See https://github.com/JuliaDocs/Documenter.jl/issues/868
-             prettyurls = get(ENV, "CI", nothing) == "true",
-             analytics = "UA-44252521-1", # set it on Google Analytics
-             collapselevel = 1,
-         ),
-         =#
-         # `strict = true` causes Documenter to throw an error if the Doctests fail.
-         #strict = true,
-
          authors = "Antonello Lobianco",
          pages = [
             "Index" => "index.md",
@@ -94,7 +100,9 @@ makedocs(sitename="BetaML.jl Documentation",
             ),
             "Examples" => "Examples.md"
          ],
-         format = Documenter.HTML(prettyurls = false)
+         format = Documenter.HTML(prettyurls = false),
+         #strict = true,
+         #doctest = false
 )
 deploydocs(
     repo = "github.com/sylvaticus/BetaML.jl.git",

@@ -454,7 +454,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 
 # Parameters:
 * `X`  :           A (N x D) sparse matrix of data to fill according to a GMM model
-* `K`  :           Number of mixtures desired
+* `K`  :           Number of mixtures (latent classes) to consider [def: 3]
 * `p₀` :           Initial probabilities of the categorical distribution (K x 1) [default: `nothing`]
 * `mixtures`:      An array (of length K) of the mixture to employ (see notes) [def: `[DiagonalGaussian() for i in 1:K]`]
 * `tol`:           Tolerance to stop the algorithm [default: 10^(-6)]
@@ -475,14 +475,16 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 
   # Notes:
   - The mixtures currently implemented are `SphericalGaussian(μ,σ²)`,`DiagonalGaussian(μ,σ²)` and `FullGaussian(μ,σ²)`
-   - For `initStrategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support `grid`, `kmeans` or `given`. `grid` is faster, but `kmeans` often provides better results.
+  - For `initStrategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support `grid`, `kmeans` or `given`. `grid` is faster, but `kmeans` often provides better results.
+  - The algorithm requires to specify a number of "latent classes" (mlixtures) to divide the dataset into. If there isn't any prior domain specific knowledge on this point one can test sevaral `k` and verify which one minimise the `BIC` or `AIC` criteria.
+
 
 # Example:
 ```julia
 julia>  cFOut = predictMissing([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3)
 ```
 """
-function predictMissing(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans",maxIter=-1,rng = Random.GLOBAL_RNG)
+function predictMissing(X,K=3;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans",maxIter=-1,rng = Random.GLOBAL_RNG)
     if verbosity > STD
         @codeLocation
     end

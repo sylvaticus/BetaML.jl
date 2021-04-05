@@ -6,7 +6,7 @@ Welcome to the documentation of the [_Beta Machine Learning toolkit_](https://gi
 
 The `BetaML` toolkit provides classical algorithms written in the Julia programming language useful to "learn" the relationship between some inputs and some outputs, with the objective to make accurate predictions of the output given new inputs ("supervised machine learning") or to better understand the structure of the data, perhaps hidden because of the high dimensionality ("unsupervised machine learning").
 
-While specific packages exist for state-of-the art implementations of these algorithms (see the section "[Alternative Packages](https://github.com/sylvaticus/BetaML.jl#alternative-packages)"), thanks to the Just-In-Time compilation nature of Julia, `BetaML` is reasonably fast for datasets that fits in memory.
+While specific packages exist for state-of-the art implementations of these algorithms (see the section "[Alternative Packages](https://github.com/sylvaticus/BetaML.jl#alternative-packages)"), thanks to the Just-In-Time compilation nature of Julia, `BetaML` is reasonably fast for datasets that fit in memory while keeping both the code and the usage as _simple_ as possible.
 
 Aside the algorithms themselves, `BetaML` provides many "utility" functions. Because algorithms are all self-contained in the library itself (you are invited to explore their source code by typing `@edit functionOfInterest(par1,par2)`), the utility functions have APIs that are coordinated with the algorithms, facilitating the "preparation" of the data for the analysis, the evaluation of the models or the implementation of several models in chains (pipelines).
 While `BetaML` doesn't provide itself tools for hyper-parameters optimisation or complex pipeline building tools, most models have an interface for the [`MLJ`](https://github.com/alan-turing-institute/MLJ.jl) framework that allows it.
@@ -15,7 +15,7 @@ Aside Julia, BetaML can be accessed in R or Python using respectively [JuliaCall
 
 ## Installation
 
-The BetaML package is now included in the standard Julia register, install it with:
+The BetaML package is included in the standard Julia register, install it with:
 * `] add BetaML`
 
 ## Loading the module(s)

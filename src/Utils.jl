@@ -63,8 +63,9 @@ Use it with:
 - `myAlgorithm(;rng=copy(FIXEDRNG))`   # always produce the same result (new rng object on each function call)
 
 """
-#const FIXEDRNG  = MersenneTwister(FIXEDSEED) #StableRNG(FIXEDSEED) Random.default_rng()
 const FIXEDRNG  = StableRNG(FIXEDSEED) #StableRNG(FIXEDSEED) Random.default_rng() #MersenneTwister(FIXEDSEED)
+#const FIXEDRNG  = MersenneTwister(FIXEDSEED) #StableRNG(FIXEDSEED) Random.default_rng()
+
 
 
 
@@ -651,7 +652,7 @@ crossEntropy(ŷ, y; weight = ones(eltype(y),length(y)))  = -sum(y .* log.(ŷ .
 dCrossEntropy(ŷ, y; weight = ones(eltype(y),length(y))) = - y .* weight ./ (ŷ .+ 1e-15)
 
 
-""" accuracy(ŷ,y;ignoreLabels=false) - Categorical accuracy between two vectors (T vs T). If """
+""" accuracy(ŷ,y;ignoreLabels=false) - Categorical accuracy between two vectors (T vs T). """
 function accuracy(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignoreLabels=false)  where {T}
     # See here for better performances: https://discourse.julialang.org/t/permutations-of-a-vector-that-retain-the-vector-structure/56790/7
     if(!ignoreLabels)
@@ -764,6 +765,20 @@ error(ŷ::Array{T,1},y::Int64;tol=1) where {T <: Number} = 1 - accuracy(ŷ,y;t
 error(ŷ::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number} = 1 - accuracy(ŷ,y;tol=tol)
 """ error(ŷ,y) - Categorical error with with probabilistic predictions of a dataset given in terms of a dictionary of probabilities (Dict{T,Float64} vs T). """
 error(ŷ::Array{Dict{T,Float64},1},y::Array{T,1};tol=1) where {T} = 1 - accuracy(ŷ,y;tol=tol)
+
+
+
+struct ConfusionMatrix{T}
+    labels::Vector{T}             # Array of categorical labels
+    actualCount::Vector{Int64}    # Array of counts per lebel in the actual data
+    predictedCount::Vector{Int64} # Array of counts per label in the predicted data
+    scores::Array{Int64,2}        # Matrix predicted (rows) vs actual (columns)
+    normalisedScores::Array{Float64,2} # Normalised scores
+end
+
+
+
+
 
 
 # ------------------------------------------------------------------------------

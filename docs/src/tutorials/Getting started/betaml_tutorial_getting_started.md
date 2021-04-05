@@ -1,21 +1,47 @@
 ```@meta
-EditURL = "<unknown>/docs/src/tutorials/Getting started/betaml_tutorial_getting_started.jl"
+EditURL = "<unknown>/src/tutorials/Getting started/betaml_tutorial_getting_started.jl"
 ```
 
+# Getting started
 ## This is markdown title
 This is also markdown
 
-```@example betaml_tutorial_getting_started
+```julia
 # This is a normal comment
-```
 
-```@example betaml_tutorial_getting_started
 a = 1
 b = a + 1
-println(b)
+println("*** I am a line of code that is executed, and b is $b")
+b
 ```
 
-## Randomness
+A markdown cell
+
+```julia
+using BenchmarkTools
+c = b + 1
+c
+```
+
+```julia
+k = 100000
+@btime sum(1:k);
+nothing #hide
+```
+
+```julia
+a = [1,2]   # src
+using Test  # src
+@test c == 3; # src
+nothing #hide
+```
+
+```julia
+@test c == 3;  # src
+nothing #hide
+```
+
+## [Dealing with stochasticity](@id dealing_with_stochasticity)
 
 Most models have some stochastic components and support a `rng` parameter. By default, the outputs of these models will hence not be absolutelly equal on each run. If you want to be sure that the output of a model remain constant given the same inputs you can pass a fixed Random Number Generator to the `rng` parameter. Use it with:
 
@@ -27,7 +53,7 @@ In particular, use `rng=StableRNG(FIXEDSEED)` to retrieve the exacty output as i
 
 Most of the stochasticity appears in _training_ a model. However in few cases (e.g. decision trees with missing values) some stocasticity appears also in _predicting_ new data with a trained model. In such cases the model doesn't stire the random seed, so that you can choose at _predict_ time to use a fixed or a variable random seed.
 
-[View this file on Github](<unknown>/docs/src/tutorials/Getting started/betaml_tutorial_getting_started.jl).
+[View this file on Github](<unknown>/src/tutorials/Getting started/betaml_tutorial_getting_started.jl).
 
 ---
 
