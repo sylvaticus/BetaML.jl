@@ -19,7 +19,7 @@ Provide shared utility functions for various machine learning algorithms. You do
 """
 module Utils
 
-using LinearAlgebra, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, StableRNGs
+using LinearAlgebra, Printf, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, StableRNGs
 
 using ForceImport
 @force using ..Api
@@ -764,45 +764,164 @@ error(ŷ::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number} = 1 - accurac
 """ error(ŷ,y) - Categorical error with with probabilistic predictions of a dataset given in terms of a dictionary of probabilities (Dict{T,Float64} vs T). """
 error(ŷ::Array{Dict{T,Float64},1},y::Array{T,1};tol=1) where {T} = 1 - accuracy(ŷ,y;tol=tol)
 
+"""
+    ConfusionMatrix
 
 
+Scores and measures resulting from a comparation between true and predicted categorical variables
+
+Use the function `ConfusionMatrix(ŷ,y;classes,labels,rng)` to build it and `print(cm::ConfusionMatrix;what)` to visualise it, or use the individual parts of interest, e.g. `display(cm.scores)`.
+
+# Fields:
+- `labels`: Array of categorical labels
+- `accuracy`: Overall accuracy rate
+- `misclassification`: Overall misclassification rate
+- `actualCount`: Array of counts per lebel in the actual data
+- `predictedCount`: Array of counts per label in the predicted data
+- `scores`: Matrix actual (rows) vs predicted (columns)
+- `normalisedScores`: Normalised scores
+- `tp`: True positive (by class)
+- `tn`: True negative (by class)
+- `fp`: False positive (by class), aka "type I error" or "false allarm"
+- `fn`: False negative (by class), aka "type II error" or "miss"
+- `precision`: True class i over predicted class i (by class)
+- `recall`: Predicted class i over true class i (by class), aka "True Positive Rate (TPR)", "Sensitivity" or "Probability of detection"
+- `specificity`: Predicted not class i over true not class i (by class), aka "True Negative Rate (TNR)"
+- `f1Score`: Harmonic mean of precision and recall
+- `meanPrecision`: Mean by class, respectively unweighted and weighted by actualCount
+- `meanRecall`: Mean by class, respectively unweighted and weighted by actualCount
+- `meanSpecificity`: Mean by class, respectively unweighted and weighted by actualCount
+- `meanF1Score`: Mean by class, respectively unweighted and weighted by actualCount
+
+
+"""
 struct ConfusionMatrix{T}
-    labels::Vector{T}             # Array of categorical labels
-    actualCount::Vector{Int64}    # Array of counts per lebel in the actual data
-    predictedCount::Vector{Int64} # Array of counts per label in the predicted data
-    scores::Array{Int64,2}        # Matrix actual (rows) vs predicted (columns)
-    normalisedScores::Array{Float64,2} # Normalised scores
-    tp::Vector{Int64}                  # True positive (by class)
-    tn::Vector{Int64}                  # True negative (by class)
-    fp::Vector{Int64}                  # False positive (by class)
-    fn::Vector{Int64}                  # False negative (by class)
-    accuracy::Float64                  # Overall accuracy rate
-    error::Float64                     # Overall error rate
+    classes::Vector{T}                      # Array of categorical labels
+    labels::Vector{String}                  # String representation of the categories
+    accuracy::Float64                       # Overall accuracy rate
+    misclassification::Float64              # Overall misclassification rate
+    actualCount::Vector{Int64}              # Array of counts per lebel in the actual data
+    predictedCount::Vector{Int64}           # Array of counts per label in the predicted data
+    scores::Array{Int64,2}                  # Matrix actual (rows) vs predicted (columns)
+    normalisedScores::Array{Float64,2}      # Normalised scores
+    tp::Vector{Int64}                       # True positive (by class)
+    tn::Vector{Int64}                       # True negative (by class)
+    fp::Vector{Int64}                       # False positive (by class)
+    fn::Vector{Int64}                       # False negative (by class)
+    precision::Vector{Float64}              # True class i over predicted class i (by class)
+    recall::Vector{Float64}                 # Predicted class i over true class i (by class)
+    specificity::Vector{Float64}            # Predicted not class i over true not class i (by class)
+    f1Score::Vector{Float64}                # Harmonic mean of precision and recall
+    meanPrecision::Tuple{Float64,Float64}   # Mean by class, respectively unweighted and weighted by actualCount
+    meanRecall::Tuple{Float64,Float64}      # Mean by class, respectively unweighted and weighted by actualCount
+    meanSpecificity::Tuple{Float64,Float64} # Mean by class, respectively unweighted and weighted by actualCount
+    meanF1Score::Tuple{Float64,Float64}     # Mean by class, respectively unweighted and weighted by actualCount
 end
+
+# Resources concerning Confusion Matrices:
 # https://towardsdatascience.com/confusion-matrix-for-your-multi-class-machine-learning-model-ff9aa3bf7826
 # https://en.wikipedia.org/wiki/Confusion_matrix
+# https://scikit-learn.org/stable/modules/model_evaluation.html#classification-metrics
+# https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
 
-function ConfusionMatrix(ŷ,y::AbstractArray{T};rng=Random.GLOBAL_RNG,labels=unique(y)) where {T}
-    nCl = length(labels)
-    ŷ = typeof(ŷ) <: AbstractVector{T} ? ŷ : mode(ŷ,rng=rng) # get the mode if needed
-    N = length(y)
+"""
+    ConfusionMatrix(ŷ,y;classes,labels,rng)
+
+Build a "confusion matrix" between predicted (columns) vs actual (rows) categorical values
+
+# Parameters:
+- `ŷ`: Vector of predicted categorical data
+- `y`: Vector of actual categorical data
+- `classes`: The full set of possible classes (useful to give a specicif order or if not al lclasses are represented in `y`) [def: `unique(y)` ]
+- `labels`: String representation of the classes [def: `string.(classes)`]
+- `rng`: Random number generator. Used only if `ŷ` is given in terms of a PMF and there are multi-modal values, as these are assigned randomply [def: `Random.GLOBAL_RNG`]
+
+# Return:
+- a `ConfusionMatrix` object
+"""
+function ConfusionMatrix(ŷ,y::AbstractArray{T};classes=unique(y),labels=string.(classes),rng=Random.GLOBAL_RNG) where {T}
+    nCl              = length(labels)
+    ŷ                = typeof(ŷ) <: AbstractVector{T} ? ŷ : mode(ŷ,rng=rng) # get the mode if needed
+    N                = length(y)
     length(ŷ) == N || @error "ŷ and y must have the same length in ConfusionMatrix"
-    actualCount = [get(classCounts(y),i,0) for i in labels]
-    predictedCount = [get(classCounts(ŷ),i,0) for i in labels]
-    scores = zeros(Int64,(nCl,nCl))
+    actualCount      = [get(classCounts(y),i,0) for i in classes]
+    predictedCount   = [get(classCounts(ŷ),i,0) for i in classes]
+    scores           = zeros(Int64,(nCl,nCl))
     normalisedScores = zeros(Float64,(nCl,nCl))
-    [scores[findfirst(x -> x == y[i],labels),findfirst(x -> x == ŷ[i],labels)] += 1 for i in 1:N]
+    [scores[findfirst(x -> x == y[i],classes),findfirst(x -> x == ŷ[i],classes)] += 1 for i in 1:N]
     [normalisedScores[r,:] = scores[r,:] ./ actualCount[r] for r in 1:nCl]
     tp = [scores[i,i] for i in 1:nCl]
     tn = [sum(scores[r,c] for r in 1:nCl, c in 1:nCl if r != i && c != i)  for i in 1:nCl]
     fp = [sum(scores[r,c] for r in 1:nCl, c in 1:nCl if r != i && c == i)  for i in 1:nCl]
     fn = [sum(scores[r,c] for r in 1:nCl, c in 1:nCl if r == i && c != i)  for i in 1:nCl]
-    accuracy = sum(tp)/N
-    error    = 1-accuracy
-    return  ConfusionMatrix(labels,actualCount,predictedCount,scores,normalisedScores,tp,tn,fp,fn,accuracy,error)
+    precision         = tp ./ (tp .+ fp)
+    recall            = tp ./ (tp .+ fn)
+    specificity       = tn ./ (tn .+ fp)
+    #f1Score           = 2 .* (precision .* recall) ./ (precision .+ recall)
+    f1Score           = (2 .* tp) ./ (2 .* tp  .+ fp .+ fn )
+    meanPrecision     = (mean(precision), sum(precision .* actualCount) / sum(actualCount) )
+    meanRecall        = (mean(recall), sum(recall .* actualCount) / sum(actualCount) )
+    meanSpecificity   = (mean(specificity), sum(specificity .* actualCount) / sum(actualCount) )
+    meanF1Score       = (mean(f1Score), sum(f1Score .* actualCount) / sum(actualCount) )
+    accuracy          = sum(tp)/N
+    misclassification = 1-accuracy
+    return  ConfusionMatrix(classes,labels,accuracy,misclassification,actualCount,predictedCount,scores,normalisedScores,tp,tn,fp,fn,precision,recall,specificity,f1Score,meanPrecision,meanRecall,meanSpecificity,meanF1Score)
 end
+import Base.print
+"""
+    print(cm;what)
 
+Print a `ConfusionMatrix` object
 
+The `what` parameter is a string vector that can include "all", "scores", "normalisedScores" or "report" [def: `["all"]`]
+"""
+function print(cm::ConfusionMatrix;what="all")
+   if what == "all" || what == ["all"]
+       what = ["scores", "normalisedScores", "report" ]
+   end
+   nCl = length(cm.labels)
+
+   println("\n-----------------------------------------------------------------\n")
+   if( "scores" in what || "normalisedScores" in what)
+     println("*** CONFUSION MATRIX ***")
+   end
+   if "scores" in what
+       println("")
+       println("Scores actual (rows) vs predicted (columns):\n")
+       displayScores = vcat(permutedims(cm.labels),cm.scores)
+       displayScores = hcat(vcat("Labels",cm.labels),displayScores)
+       display(displayScores)
+   end
+   if "normalisedScores" in what
+       println("")
+       println("Normalised scores actual (rows) vs predicted (columns):\n")
+       displayScores = vcat(permutedims(cm.labels),cm.normalisedScores)
+       displayScores = hcat(vcat("Labels",cm.labels),displayScores)
+       display(displayScores)
+   end
+   if "report" in what
+     println("\n *** CONFUSION REPORT ***\n")
+     labelWidth =  max(8,   maximum(length.(string.(cm.labels)))+1  )
+     println("- Accuracy:               $(cm.accuracy)")
+     println("- Misclassification rate: $(cm.misclassification)")
+     println("- Number of classes:      $(nCl)")
+     println("")
+     println("  N ",rpad("Class",labelWidth),"precision   recall  specificity  f1Score  actualCount  predictedCount")
+     println("    ",rpad(" ",labelWidth), "              TPR       TNR                 support                  ")
+     println("")
+     # https://discourse.julialang.org/t/printf-with-variable-format-string/3805/4
+     print_formatted(fmt, args...) = @eval @printf($fmt, $(args...))
+     for i in 1:nCl
+        print_formatted("%3d %-$(labelWidth)s %8.3f %8.3f %12.3f %8.3f %12i %15i\n", i, string(cm.labels[i]),  cm.precision[i], cm.recall[i], cm.specificity[i], cm.f1Score[i], cm.actualCount[i], cm.predictedCount[i])
+     end
+     println("")
+     print_formatted("- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Simple   avg.",  cm.meanPrecision[1], cm.meanRecall[1], cm.meanSpecificity[1], cm.meanF1Score[1])
+     print_formatted("- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Weigthed avg.",  cm.meanPrecision[2], cm.meanRecall[2], cm.meanSpecificity[2], cm.meanF1Score[2])
+   end
+   println("\n-----------------------------------------------------------------")
+   return nothing
+end
+println(cm::ConfusionMatrix;what="all") = begin print(cm;what=what); print("\n") end
 
 # ------------------------------------------------------------------------------
 # Regression tasks...

@@ -261,6 +261,28 @@ println("** Testing ConfusionMatrix()...")
 cm = ConfusionMatrix(ŷ,["Lemon","Lemon","Apple","Grape","Lemon"],rng=copy(FIXEDRNG))
 @test cm.scores == [2 0 1; 0 1 0; 0 0 1]
 @test cm.tp == [2,1,1] && cm.tn == [2,4,3] && cm.fp == [0,0,1] && cm.fn == [1, 0, 0]
+
+# Example from https://scikit-learn.org/stable/modules/model_evaluation.html#classification-report
+y = [0,1,2,2,0]
+ŷ = [0,0,2,1,0]
+labels = ["Class 0", "Class 1 with an extra long name super long", "Class 2"]
+#y = integerDecoder(y .+ 1,labels)
+#ŷ = integerDecoder(ŷ .+ 1,labels)
+cm = ConfusionMatrix(ŷ,y,labels=labels)
+
+@test cm.precision ≈ [0.6666666666666666, 0.0, 1.0]
+@test cm.recall ≈ [1.0, 0.0, 0.5]
+@test cm.specificity ≈ [0.6666666666666666, 0.75, 1.0]
+@test cm.f1Score ≈ [0.8, 0.0, 0.6666666666666666]
+@test cm.meanPrecision == (0.5555555555555555, 0.6666666666666666)
+@test cm.meanRecall == (0.5, 0.6)
+@test cm.meanSpecificity == (0.8055555555555555, 0.8166666666666667)
+@test cm.meanF1Score == (0.48888888888888893, 0.5866666666666667)
+@test cm.accuracy == 0.6
+@test cm.misclassification == 0.4
+
+@test print(cm,what=["all"]) == nothing
+
 # ==================================
 # New test
 println("** Testing classCounts()...")
