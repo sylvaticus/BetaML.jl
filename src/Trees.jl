@@ -93,7 +93,7 @@ struct Leaf{Ty} <: AbstractLeaf
             rawPredictions = y
             predictions    = mean(rawPredictions)
         else
-            rawPredictions = classCounts(y)
+            rawPredictions = classCountsWithLabels(y)
             total = sum(values(rawPredictions))
             predictions = Dict{Ty,Float64}()
             [predictions[k] = rawPredictions[k] / total for k in keys(rawPredictions)]

@@ -2,6 +2,7 @@
 
 # In this exercise we have some car technical characteristics (mpg, horsepower,weight, model year...) and the country of origin and we would like to create a model such that the country of origin can be accurately predicted given the technical characteristics.
 # As the information to predict is a multi-class one, this is a _[classification]_(https://en.wikipedia.org/wiki/Statistical_classification) task.
+# It is a challenging exercise due to the simultaneous presence of three factors: (1) presence of missing data; (2) unbalanced data - 254 out of 406 cars are US made; (3) small dataset.
 
 #
 # Data origin:
@@ -76,13 +77,24 @@ myForest       = buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),forceClassific
 #src [`predict`](@ref BetaML.Trees.predict)  [`predict`](@ref forest_prediction)
 # with our `myForest` model and either the training or testing data.
 ŷtrain,ŷtest   = predict.(Ref(myForest), [xtrain,xtest],rng=copy(FIXEDRNG));
-# Finally we can measure the _accuracy_ of our predictions with the [`accuracy`](@ref) function:
-trainAccuracy,testAccuracy  = accuracy.([parse.(Int64,mode(ŷtrain)),parse.(Int64,mode(ŷtest))],[ytrain,ytest])
+# Finally we can measure the _accuracy_ of our predictions with the [`accuracy`](@ref) function, with the sidenote that we need first to "parse" the ŷs as forcing the classification job transformed automatically them in strings from the original integers:
+trainAccuracy,testAccuracy  = accuracy.([parse.(Int64,mode(ŷtrain,rng=copy(FIXEDRNG))),parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG)))],[ytrain,ytest])
 #src (0.9969230769230769,0.8024691358024691)
 
 @test testAccuracy > 0.8 #src
 
+
 # The predictions are quite good, for the training set the algoritm predicted almost all cars' origins correctly, while for the testing set (i.e. those records that has **not** been used to train the algorithm), the correct prediction level is still quite high, at 80%
+
+# While accuracy can sometimes suffice, we may often want to better understand which categories our model has trouble to predict correctly.
+# We can investigate the output of a multi-class classifier more in-deep with a [`ConfusionMatrix`](@ref) where the true values (`y`) are given in rows and the predicted ones (`ŷ`) in columns, together to some per-class metrics like the _precision_ (true class _i_ over predicted in class _i_), the _recall_ (predicted class _i_ over the true class _i_) and others.
+# We fist build the [`ConfusionMatrix`](@ref BetaML.Utils.ConfusionMatrix) object between `ŷ` and `y` and then we print it (we do it here for the test subset):
+
+cm = ConfusionMatrix(parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG))),ytest,classes=[1,2,3],labels=["US","EU","Japan"])
+BetaML.Utils.report(cm;what="all")
+
+# From the report we can see that are the Japanese cars that have more trouble in being correctly classified, and in particular many Japanease cars are classified as US ones.
+
 # When we benchmark the resourse used (time and memory) we find that Random Forests remain pretty fast, expecially when we compare them with neural networks (see later)
 @btime buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),forceClassification=true);
 #src   128.335 ms (781027 allocations: 196.30 MiB)
@@ -100,6 +112,8 @@ model = DecisionTree.build_forest(ytrain, xtrainFull,-1,30,rng=123)
 (trainAccuracy,testAccuracy) = accuracy.([ŷtrain,ŷtest],[ytrain,ytest])
 #src (0.9969230769230769, 0.7530864197530864)
 
+#src cm = ConfusionMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"])
+#src println(cm)
 @test testAccuracy > 0.75 #src
 
 # While the accuracy on the training set is exactly the same as for `BetaML` random forets, `DecisionTree.jl` random forests are slighly less accurate in the testing sample.
@@ -120,28 +134,35 @@ nCl             = length(classes)
 
 # The second "inconvenient" of NN i that, while not requiring feature engineering, they stil lneed a bit of practice on the way to build the network. It's not as simple as `train(model,x,y)`. We need here to specify how we want our layers, _chain_ the layers together and then decide a _loss_ overall function. Only when we done these steps, we have the model ready for training.
 # Here we define 3 [`DenseLayer`](@ref) zwhere, for each of them, we specify the number of neurons in input (the first layer being equal to the dimensions of the data), the output layer (for a classification task, the last layer output size beying equal to the number of classes) and an _activation function for each layer (default the `identity` function).
-ls   = 80
-l1   = DenseLayer(D,ls,f=relu,rng=copy(FIXEDRNG)) ## Activation function is ReLU
-l2   = DenseLayer(ls,ls,f=relu,rng=copy(FIXEDRNG))
-l3   = DenseLayer(ls,nCl,f=relu,rng=copy(FIXEDRNG))
+ls   = 50
+l1   = DenseLayer(D,ls,f=relu,rng=copy(FIXEDRNG))
+l2   = DenseLayer(ls,nCl,f=relu,rng=copy(FIXEDRNG))
+
 # For a classification the last layer is a [`VectorFunctionLayer`](@ref) that has no learnable parameters but whose activation function is applied to the ensemble of the neurons, rather than individually on each neuron. In particular, for classification we pass the [`BetaML.Utils.softmax`](@ref) function whose output has the same size as the input (and the number of classes to predict), but we can use the `VectorFunctionLayer` with any function, including the [`pool1d`](@ref) function to create a "pooling" layer (using maximum, mean or whatever other subfunction we pass to `pool1d`)
-l4   = VectorFunctionLayer(nCl,f=softmax) ## Add a (parameterless) layer whose activation function (softMax in this case) is defined to all its nodes at once
+l3   = VectorFunctionLayer(nCl,f=softmax) ## Add a (parameterless) layer whose activation function (softMax in this case) is defined to all its nodes at once
 # Finally we _chain_ the layers and assign a loss function
 mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Cars") ## Build the NN and use the squared cost (aka MSE) as error function (crossEntropy could also be used)
 
 # Now we can train our network using the function [`train!`](@ref). It has many options, have a look at the documentation for all the possible arguments.
 # Note that we trained the network based on the scaled feature matrix
-res = train!(mynn,scale(xtrainFull,xScaleFactors),ytrain_oh,epochs=300,batchSize=16,rng=copy(FIXEDRNG)) ## Use optAlg=SGD() to use Stochastic Gradient Descent instead
+res  = train!(mynn,scale(xtrainFull,xScaleFactors),ytrain_oh,epochs=500,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG)) ## Use optAlg=SGD() to use Stochastic Gradient Descent instead
 
 # Once trained, we can predict the label. As the trained was based on the scaled feature matrix, so must be for the predictions
 (ŷtrain,ŷtest)  = predict.(Ref(mynn),[scale(xtrainFull,xScaleFactors),scale(xtestFull,xScaleFactors)])
 (trainAccuracy,testAccuracy) = accuracy.([ŷtrain,ŷtest],[ytrain,ytest])
-#src (0.9753846153846154,0.8765432098765432)
+#src (0.9046153846153846, 0.7530864197530864)
 
-@test testAccuracy > 0.87 #src
+@test testAccuracy > 0.74 #src
 
-# With neural networks the tesst accuracy improves of 7 percentual points.
-# However this come with a large computational cost, at the training takes now several seconds:
+
+accuracy(mode(ŷtest,rng=copy(FIXEDRNG)),ytest)
+
+cm = ConfusionMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"],rng=copy(FIXEDRNG))
+report(cm)
+
+# We see a bit the limits of neural networks in this example. While NN can be extremelly performant in many domain, they also require lot of data and computational power, expecially considering the many possible hyper-parameters and hence its large space in the hyper-parameter tuning.
+# In this example we arrive short to the performance of random forests, yet with asignificant numberof neurons.
+
 @btime train!(mynn,scale(xtrainFull),ytrain_oh,epochs=300,batchSize=8,rng=copy(FIXEDRNG),verbosity=NONE);
 #src 11.147 s (18322340 allocations: 21.72 GiB)
 
@@ -161,23 +182,23 @@ xtestT, ytest_ohT = transpose.([scale(xtestFull,xScaleFactors), ytest_oh])
 Random.seed!(123)
 
 l1         = Flux.Dense(D,ls,Flux.relu)
-l2         = Flux.Dense(ls,ls,Flux.relu)
+#l2         = Flux.Dense(ls,ls,Flux.relu)
 l3         = Flux.Dense(ls,nCl,Flux.relu)
-Flux_nn    = Flux.Chain(l1,l2,l3)
+Flux_nn    = Flux.Chain(l1,l3)
 loss(x, y) = Flux.logitcrossentropy(Flux_nn(x), y)
 ps         = Flux.params(Flux_nn)
-nndata     = Flux.Data.DataLoader((xtrainT, ytrain_ohT), batchsize=16,shuffle=true)
-begin for i in 1:300  Flux.train!(loss, ps, nndata, Flux.ADAM()) end end
+nndata     = Flux.Data.DataLoader((xtrainT, ytrain_ohT), batchsize=8,shuffle=true)
+begin for i in 1:500  Flux.train!(loss, ps, nndata, Flux.ADAM()) end end
 ŷtrain     = Flux.onecold(Flux_nn(xtrainT),1:3)
 ŷtest      = Flux.onecold(Flux_nn(xtestT),1:3)
 (trainAccuracy,testAccuracy) = accuracy.([ŷtrain,ŷtest],[ytrain,ytest])
 #src 0.9692307692307692, 0.7283950617283951
 # While the train accuracy is the same as in BetaML, the test accuracy is somehow lower
 
-@test testAccuracy > 0.72 #src
+@test testAccuracy > 0.68 #src
 
 # However the time is again lower than BetaML, even if here for "just" a factor 2
-@btime begin for i in 1:300 Flux.train!(loss, ps, nndata, Flux.ADAM()) end end;
+@btime begin for i in 1:500 Flux.train!(loss, ps, nndata, Flux.ADAM()) end end;
 #src 5.385 s (3623163 allocations: 1.55 GiB)
 
 

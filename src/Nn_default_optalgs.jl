@@ -25,7 +25,7 @@ end
 function singleUpdate!(θ,▽,optAlg::SGD;nEpoch,nBatch,nBatches,xbatch,ybatch)
     η    = optAlg.η(nEpoch)*optAlg.λ
     #newθ = gradSub.(θ,gradMul.(▽,η))
-    θ = θ - ▽ * η
+    θ =  θ - ▽ .* η
     #newθ = gradientDescentSingleUpdate(θ,▽,η)
     return (θ=θ,stop=false)
 end
@@ -86,6 +86,7 @@ function singleUpdate!(θ,▽,optAlg::ADAM;nEpoch,nBatch,nBatches,xbatch,ybatch)
     t        = (nEpoch-1)*nBatches+nBatch
     optAlg.m = @. β₁ * optAlg.m + (1-β₁) * ▽
     optAlg.v = @. β₂ * optAlg.v + (1-β₂) * (▽*▽)
+    #optAlg.v = [β₂ .* optAlg.v.data[i] .+ (1-β₂) .* (▽.data[i] .* ▽.data[i]) for i in 1:size(optAlg.v.data)]
     m̂        = @. optAlg.m /(1-β₁^t)
     v̂        = @. optAlg.v /(1-β₂^t)
     θ        = @. θ - (η * m̂) /(sqrt(v̂)+ϵ)

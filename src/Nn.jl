@@ -65,9 +65,9 @@ While high-level functions operating on the dataset expect it to be in the stand
 """
 module Nn
 
-import Base.Threads.@spawn
+#import Base.Threads.@spawn
 
-using Random, Zygote, ProgressMeter, Reexport
+using Random, Zygote, LoopVectorization, ProgressMeter, Reexport
 import Distributions: Uniform
 
 using ForceImport
@@ -103,7 +103,7 @@ function +(items::Learnable...)
   values = collect(items[1].data)
   N = length(values)
   @inbounds for item in items[2:end]
-      @inbounds @simd for n in 1:N
+       @inbounds  for n in 1:N # @inbounds  @simd
           values[n] += item.data[n]
       end
   end
@@ -113,8 +113,8 @@ sum(items::Learnable...)  = +(items...)
 function -(items::Learnable...)
   values = collect(items[1].data)
   N = length(values)
-  @inbounds for item in items[2:end]
-      @inbounds @simd for n in 1:N
+ @inbounds for item in items[2:end]
+       @inbounds for n in 1:N # @simd
           values[n] -= item.data[n]
       end
   end
@@ -124,7 +124,7 @@ function *(items::Learnable...)
   values = collect(items[1].data)
   N = length(values)
   @inbounds for item in items[2:end]
-      @inbounds @simd for n in 1:N
+      @inbounds  for n in 1:N # @simd
           values[n] = values[n] .* item.data[n]
       end
   end
@@ -140,6 +140,8 @@ end
 /(sc::Number,item::Learnable,) = Learnable(Tuple([sc ./ item.data[i] for i in 1:length(item.data)]))
 sqrt(item::Learnable) = Learnable(Tuple([sqrt.(item.data[i]) for i in 1:length(item.data)]))
 /(item1::Learnable,item2::Learnable) = Learnable(Tuple([item1.data[i] ./ item2.data[i] for i in 1:length(item1.data)]))
+
+
 
 #=
 # not needed ??
@@ -461,7 +463,7 @@ function getGradient(nn,xbatch::AbstractArray{T,2},ybatch::AbstractArray{T2,2}) 
     # in Julia 1.6: https://discourse.julialang.org/t/drop-of-performances-with-julia-1-6-0-for-interpolationkernels/58085
     # Maybe when that's solved it will be again more convenient to use multi-threading
     #Threads.@threads
-    @inbounds @simd for j in 1:bSize
+    @inbounds  for j in 1:bSize # @simd
        gradients[j] =  getGradient(nn,xbatch[j,:],ybatch[j,:])
     end
     return gradients
@@ -626,7 +628,7 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
     initOptAlg!(optAlg::OptimisationAlgorithm;θ=getParams(nn),batchSize=batchSize,x=x,y=y)
 
     timetoShowProgress = verbosity > NONE ? 1 : typemax(Int64)
-    @showprogress timetoShowProgress "Training the Neural Network..." for t in 1:epochs
+    @showprogress timetoShowProgress "Training the Neural Network..."    for t in 1:epochs
        batches = batch(n,batchSize,sequential=sequential,rng=rng)
        nBatches = length(batches)
        if t == 1

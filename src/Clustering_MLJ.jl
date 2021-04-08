@@ -152,7 +152,7 @@ function MMI.fit(m::GMMClusterer, verbosity, X)
         error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
     res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
-    fitResults = (res.pₙₖ, pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
+    fitResults = (pₙₖ = res.pₙₖ, pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
     return (fitResults, cache, report)

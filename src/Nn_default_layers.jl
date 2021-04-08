@@ -39,7 +39,7 @@ mutable struct DenseLayer <: AbstractLayer
      * `nₗ`: Number of nodes of the previous layer
      * `n`:  Number of nodes
      # Keyword arguments:
-     * `w`:   Initial weigths with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
+     * `w`:   Initial weigths with respect to input [default: Xavier initialisation, dims = (n,nₗ)]
      * `wb`:  Initial weigths with respect to bias [default: Xavier initialisation, dims = (n)]
      * `f`:   Activation function [def: `identity`]
      * `df`:  Derivative of the activation function [default: `nothing` (i.e. use AD)]
@@ -57,18 +57,35 @@ mutable struct DenseLayer <: AbstractLayer
      end
 end
 
+function _zComp(layer::DenseLayer,x)
+    w  = layer.w
+    wb = layer.wb
+    z  = zeros(eltype(x),size(w,1))
+    @avx for n ∈ axes(w,1)
+        zn = zero(eltype(x))
+        for nl ∈ axes(x,1)
+            zn += w[n,nl] * x[nl]
+        end
+        zn   += wb[n]
+        z[n]  = zn
+    end
+    return z
+end
+
+
 function forward(layer::DenseLayer,x)
-  return layer.f.(layer.w * x + layer.wb)
+  z =  _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) #layer.w * x + layer.wb # _zComp(layer,x) #   layer.w * x + layer.wb # testd @avx
+  return layer.f.(z)
 end
 
 function backward(layer::DenseLayer,x,nextGradient)
-   z = layer.w * x + layer.wb
+   z = _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) # layer.w * x + layer.wb # _zComp(layer,x) # @avx layer.w * x + layer.wb               # tested @avx
    if layer.df != nothing
-       dϵ_dz = layer.df.(z) .* nextGradient
+       dϵ_dz =  layer.df.(z) .* nextGradient # tested @avx
     else
        dϵ_dz = layer.f'.(z) .* nextGradient # using AD
     end
-   dϵ_dI = layer.w' * dϵ_dz
+   dϵ_dI =  layer.w' * dϵ_dz # @avx
 end
 
 function getParams(layer::DenseLayer)
@@ -76,19 +93,19 @@ function getParams(layer::DenseLayer)
 end
 
 function getGradient(layer::DenseLayer,x,nextGradient)
-   z      = layer.w * x + layer.wb
+   z      =  _zComp(layer,x) #@avx layer.w * x + layer.wb #  _zComp(layer,x) #layer.w * x + layer.wb # @avx
    if layer.df != nothing
        dϵ_dz = layer.df.(z) .* nextGradient
     else
        dϵ_dz = layer.f'.(z) .* nextGradient # using AD
     end
-   dϵ_dw  = dϵ_dz * x'
+   dϵ_dw  =  @avx dϵ_dz * x' # @avx
    dϵ_dwb = dϵ_dz
    return Learnable((dϵ_dw,dϵ_dwb))
 end
 
 function setParams!(layer::DenseLayer,w)
-   layer.w = w.data[1]
+   layer.w  = w.data[1]
    layer.wb = w.data[2]
 end
 function size(layer::DenseLayer)

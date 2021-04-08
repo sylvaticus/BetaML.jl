@@ -19,7 +19,7 @@ Provide shared utility functions for various machine learning algorithms. You do
 """
 module Utils
 
-using LinearAlgebra, Printf, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, StableRNGs
+using LinearAlgebra, Printf, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, StableRNGs, LoopVectorization
 
 using ForceImport
 @force using ..Api
@@ -32,7 +32,7 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
        autoJacobian,
-       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, classCounts, meanDicts, mode, gini, entropy, variance,
+       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, classCounts, classCountsWithLabels, meanDicts, mode, gini, entropy, variance,
        error, accuracy, meanRelError, ConfusionMatrix,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
@@ -40,6 +40,8 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
 
 
 @enum Verbosity NONE=0 LOW=10 STD=20 HIGH=30 FULL=40
+
+import Base.print, Base.println
 
 """
     FIXEDSEED
@@ -684,9 +686,13 @@ Categorical accuracy with probabilistic prediction of a single datapoint (PMF vs
 
 Use the parameter tol [def: `1`] to determine the tollerance of the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values.
 """
-function accuracy(ŷ::Array{T,1},y::Int64;tol=1) where {T <: Number}
+function accuracy(ŷ::Array{T,1},y_pos::Int64;tol=1,rng=Random.GLOBAL_RNG) where {T <: Number}
+    #if  length(Set(ŷ) == 1                         # all classes the same prob
+    #    return rand(rng) < (1 / length(y)) ? 1 : 0 # If all values have the same prob, it returns 1 with prob 1/nClasses
+    #end
+    tol > 1 || return mode(ŷ;rng=rng) == y_pos ? 1 : 0 # if tol is one we delegate the choice of a single prediction to mode, that handles multimodal pmfs
     sIdx = sortperm(ŷ)[end:-1:1]
-    if ŷ[y] in ŷ[sIdx[1:min(tol,length(sIdx))]]
+    if ŷ[y_pos] in ŷ[sIdx[1:min(tol,length(sIdx))]]
         return 1
     else
         return 0
@@ -702,15 +708,12 @@ Categorical accuracy with probabilistic prediction of a single datapoint given i
 - `ŷ`: The returned probability mass function in terms of a Dictionary(Item1 => Prob1, Item2 => Prob2, ...)
 - `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
 """
-function accuracy(ŷ::Dict{T,Float64},y::T;tol=1) where {T}
+function accuracy(ŷ::Dict{T,Float64},y::T;tol=1,rng=Random.GLOBAL_RNG) where {T}
     if !(y in keys(ŷ)) return 0 end
-    sIdx = sortperm(collect(values(ŷ)))[end:-1:1] # sort by decreasing values of the dictionary values
+    tol > 1 || return (mode(ŷ;rng=rng) == y) ? 1 : 0 # if tol is one we delegate the choice of a single prediction to mode, that handles multimodal pmfs
+    sIdx  = sortperm(collect(values(ŷ)))[end:-1:1]            # sort by decreasing values of the dictionary values
     sKeys = collect(keys(ŷ))[sIdx][1:min(tol,length(sIdx))]  # retrieve the corresponding keys
-    if y in sKeys
-        return 1
-    else
-        return 0
-    end
+    return (y in sKeys) ? 1 : 0
 end
 
 @doc raw"""
@@ -725,13 +728,13 @@ Categorical accuracy with probabilistic predictions of a dataset (PMF vs Int).
 - `ignoreLabels`: Whether to ignore the specific label order in y. Useful for unsupervised learning algorithms where the specific label order don't make sense [def: false]
 
 """
-function accuracy(ŷ::Array{T,2},y::Array{Int64,1};tol=1,ignoreLabels=false) where {T <: Number}
+function accuracy(ŷ::Array{T,2},y::Array{Int64,1};tol=1,ignoreLabels=false,rng=Random.GLOBAL_RNG) where {T <: Number}
     (N,D) = size(ŷ)
     pSet = ignoreLabels ? collect(permutations(1:D)) : [collect(1:D)]
     bestAcc = -Inf
     for perm in pSet
         pŷ = hcat([ŷ[:,c] for c in perm]...)
-        acc = sum([accuracy(pŷ[i,:],y[i],tol=tol) for i in 1:N])/N
+        acc = sum([accuracy(pŷ[i,:],y[i];tol=tol,rng=rng) for i in 1:N])/N
         if acc > bestAcc
             bestAcc = acc
         end
@@ -750,9 +753,9 @@ Categorical accuracy with probabilistic predictions of a dataset given in terms 
 - `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
 
 """
-function accuracy(ŷ::Array{Dict{T,Float64},1},y::Array{T,1};tol=1) where {T}
+function accuracy(ŷ::Array{Dict{T,Float64},1},y::Array{T,1};tol=1,rng=Random.GLOBAL_RNG) where {T}
     N = size(ŷ,1)
-    acc = sum([accuracy(ŷ[i],y[i],tol=tol) for i in 1:N])/N
+    acc = sum([accuracy(ŷ[i],y[i];tol=tol,rng=rng) for i in 1:N])/N
     return acc
 end
 
@@ -770,7 +773,7 @@ error(ŷ::Array{Dict{T,Float64},1},y::Array{T,1};tol=1) where {T} = 1 - accurac
 
 Scores and measures resulting from a comparation between true and predicted categorical variables
 
-Use the function `ConfusionMatrix(ŷ,y;classes,labels,rng)` to build it and `print(cm::ConfusionMatrix;what)` to visualise it, or use the individual parts of interest, e.g. `display(cm.scores)`.
+Use the function `ConfusionMatrix(ŷ,y;classes,labels,rng)` to build it and `report(cm::ConfusionMatrix;what)` to visualise it, or use the individual parts of interest, e.g. `display(cm.scores)`.
 
 # Fields:
 - `labels`: Array of categorical labels
@@ -844,8 +847,8 @@ function ConfusionMatrix(ŷ,y::AbstractArray{T};classes=unique(y),labels=string
     ŷ                = typeof(ŷ) <: AbstractVector{T} ? ŷ : mode(ŷ,rng=rng) # get the mode if needed
     N                = length(y)
     length(ŷ) == N || @error "ŷ and y must have the same length in ConfusionMatrix"
-    actualCount      = [get(classCounts(y),i,0) for i in classes]
-    predictedCount   = [get(classCounts(ŷ),i,0) for i in classes]
+    actualCount      = [get(classCountsWithLabels(y),i,0) for i in classes]   # TODO just use classCount
+    predictedCount   = [get( classCountsWithLabels(ŷ),i,0) for i in classes]  # TODO just use classCount
     scores           = zeros(Int64,(nCl,nCl))
     normalisedScores = zeros(Float64,(nCl,nCl))
     [scores[findfirst(x -> x == y[i],classes),findfirst(x -> x == ŷ[i],classes)] += 1 for i in 1:N]
@@ -867,7 +870,8 @@ function ConfusionMatrix(ŷ,y::AbstractArray{T};classes=unique(y),labels=string
     misclassification = 1-accuracy
     return  ConfusionMatrix(classes,labels,accuracy,misclassification,actualCount,predictedCount,scores,normalisedScores,tp,tn,fp,fn,precision,recall,specificity,f1Score,meanPrecision,meanRecall,meanSpecificity,meanF1Score)
 end
-import Base.print
+
+
 """
     print(cm;what)
 
@@ -875,53 +879,62 @@ Print a `ConfusionMatrix` object
 
 The `what` parameter is a string vector that can include "all", "scores", "normalisedScores" or "report" [def: `["all"]`]
 """
-function print(cm::ConfusionMatrix;what="all")
+function println(io::IO,cm::ConfusionMatrix{T};what="all") where T
    if what == "all" || what == ["all"]
        what = ["scores", "normalisedScores", "report" ]
    end
    nCl = length(cm.labels)
 
-   println("\n-----------------------------------------------------------------\n")
+   println(io,"\n-----------------------------------------------------------------\n")
    if( "scores" in what || "normalisedScores" in what)
-     println("*** CONFUSION MATRIX ***")
+     println(io,"*** CONFUSION MATRIX ***")
    end
    if "scores" in what
-       println("")
-       println("Scores actual (rows) vs predicted (columns):\n")
+       println(io,"")
+       println(io,"Scores actual (rows) vs predicted (columns):\n")
        displayScores = vcat(permutedims(cm.labels),cm.scores)
        displayScores = hcat(vcat("Labels",cm.labels),displayScores)
        display(displayScores)
    end
    if "normalisedScores" in what
-       println("")
-       println("Normalised scores actual (rows) vs predicted (columns):\n")
+       println(io,"")
+       println(io,"Normalised scores actual (rows) vs predicted (columns):\n")
        displayScores = vcat(permutedims(cm.labels),cm.normalisedScores)
        displayScores = hcat(vcat("Labels",cm.labels),displayScores)
        display(displayScores)
    end
    if "report" in what
-     println("\n *** CONFUSION REPORT ***\n")
+     println(io,"\n *** CONFUSION REPORT ***\n")
      labelWidth =  max(8,   maximum(length.(string.(cm.labels)))+1  )
-     println("- Accuracy:               $(cm.accuracy)")
-     println("- Misclassification rate: $(cm.misclassification)")
-     println("- Number of classes:      $(nCl)")
-     println("")
-     println("  N ",rpad("Class",labelWidth),"precision   recall  specificity  f1Score  actualCount  predictedCount")
-     println("    ",rpad(" ",labelWidth), "              TPR       TNR                 support                  ")
-     println("")
+     println(io,"- Accuracy:               $(cm.accuracy)")
+     println(io,"- Misclassification rate: $(cm.misclassification)")
+     println(io,"- Number of classes:      $(nCl)")
+     println(io,"")
+     println(io,"  N ",rpad("Class",labelWidth),"precision   recall  specificity  f1Score  actualCount  predictedCount")
+     println(io,"    ",rpad(" ",labelWidth), "              TPR       TNR                 support                  ")
+     println(io,"")
      # https://discourse.julialang.org/t/printf-with-variable-format-string/3805/4
      print_formatted(fmt, args...) = @eval @printf($fmt, $(args...))
      for i in 1:nCl
         print_formatted("%3d %-$(labelWidth)s %8.3f %8.3f %12.3f %8.3f %12i %15i\n", i, string(cm.labels[i]),  cm.precision[i], cm.recall[i], cm.specificity[i], cm.f1Score[i], cm.actualCount[i], cm.predictedCount[i])
      end
-     println("")
+     println(io,"")
      print_formatted("- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Simple   avg.",  cm.meanPrecision[1], cm.meanRecall[1], cm.meanSpecificity[1], cm.meanF1Score[1])
      print_formatted("- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Weigthed avg.",  cm.meanPrecision[2], cm.meanRecall[2], cm.meanSpecificity[2], cm.meanF1Score[2])
    end
-   println("\n-----------------------------------------------------------------")
+   println(io,"\n-----------------------------------------------------------------")
    return nothing
 end
-println(cm::ConfusionMatrix;what="all") = begin print(cm;what=what); print("\n") end
+
+println(cm::ConfusionMatrix{T};what="all") where T = println(Base.stdout,cm;what=what)
+print(io::IO,cm::ConfusionMatrix{T};what="all") where T = println(io,cm;what=what)
+print(cm::ConfusionMatrix{T};what="all") where T = println(Base.stdout,cm;what=what)
+#print(cm::ConfusionMatrix{T};what="all") where T = print(Base.stdout,cm;what=what)
+#println(io::IO,cm::ConfusionMatrix{T};what="all") where T =  println("aaa")
+#println(cm::ConfusionMatrix{T};what="all") where T = println(Base.stdout,cm;what=what)
+
+#import Base.println
+#println(cm::ConfusionMatrix;what="all") = begin print(cm;what=what); print("\n") end
 
 # ------------------------------------------------------------------------------
 # Regression tasks...
@@ -985,14 +998,25 @@ Calculate the Gini Impurity for a list of items (or rows).
 See: https://en.wikipedia.org/wiki/Decision_tree_learning#Information_gain
 """
 function gini(x)
+
     counts = classCounts(x)
     N = size(x,1)
     impurity = 1.0
-    for k in keys(counts)
-        probₖ = counts[k] / N
+    for c in counts
+        probₖ     = c / N
         impurity -= probₖ^2
     end
     return impurity
+   #=
+  counts = classCountsWithLabels(x)
+   N = size(x,1)
+  impurity = 1.0
+  for k in keys(counts)
+    probₖ = counts[k] / N
+    impurity -= probₖ^2
+  end
+  return impurity
+  =#
 end
 
 """
@@ -1006,8 +1030,8 @@ function entropy(x)
     counts = classCounts(x)
     N = size(x,1)
     entr = 0.0
-    for k in keys(counts)
-        probₖ = counts[k] / N
+    for c in counts
+        probₖ = c / N
         entr -= probₖ * log2(probₖ)
     end
     return entr
@@ -1036,20 +1060,25 @@ bic(lL,k,n) = k*log(n)-2*lL
 """aic(lL,k) -  Akaike information criterion (lower is better)"""
 aic(lL,k)   = 2*k-2*lL
 
+
 """
-   classCounts(x)
+   classCountsWithLabels(x)
 
 Return a dictionary that counts the number of each unique item (rows) in a dataset.
 
 """
-function classCounts(x)
+function classCountsWithLabels(x;classes=nothing)
     dims = ndims(x)
     if dims == 1
         T = eltype(x)
     else
         T = Array{eltype(x),1}
     end
-    counts = Dict{T,Int64}()  # a dictionary of label -> count.
+    if classes != nothing
+        counts = Dict([u=>0 for u in classes])
+    else
+        counts = Dict{T,Int64}()  # a dictionary of label -> count.
+    end
     for i in 1:size(x,1)
         if dims == 1
             label = x[i]
@@ -1065,7 +1094,29 @@ function classCounts(x)
     return counts
 end
 
+"""
+   classCounts(x;classes=nothing)
 
+Return a (unsorted) vector with the counts of each unique item (element or rows) in a dataset.
+
+If order is important or not all classes are present in the data, a preset vectors of classes can be given in the parameter `classes`
+
+"""
+function classCounts(x; classes=nothing)
+   if classes == nothing # order doesn't matter
+      return values(classCountsWithLabels(x;classes=classes))
+   else
+       cWithLabels = classCountsWithLabels(x;classes=classes)
+       return [cWithLabels[k] for k in classes]
+   end
+end
+
+"""
+   mode(dict::Dict{T,Float64};rng)
+
+Return the key with highest mode (using rand in case of multimodal values)
+
+"""
 function mode(dict::Dict{T,Float64};rng = Random.GLOBAL_RNG) where {T}
     mks = [k for (k,v) in dict if v==maximum(values(dict))]
     if length(mks) == 1
@@ -1074,6 +1125,13 @@ function mode(dict::Dict{T,Float64};rng = Random.GLOBAL_RNG) where {T}
         return mks[rand(rng,1:length(mks))]
     end
 end
+
+"""
+   mode(v::AbstractVector{T};rng)
+
+Return the position with the highest mode (using rand in case of multimodal values)
+
+"""
 function mode(v::AbstractVector{T};rng = Random.GLOBAL_RNG) where {T <: Number}
     mpos = findall(x -> x == maximum(v),v)
     if length(mpos) == 1

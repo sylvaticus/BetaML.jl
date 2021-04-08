@@ -154,6 +154,14 @@ y = [1, 3, 1]
 @test accuracy(x,y) == 0.0
 @test accuracy(x,y, ignoreLabels=true) == 1.0
 
+
+yest = [0 0.12; 0 0.9]
+y    = [1,2]
+accuracy(yest,y)
+yest = [0.0  0.0  0.0;0.0  0.0  0.0;0.0  0.0  0.706138]
+y    = [2,2,1]
+accuracy(yest,y)
+
 # ==================================
 # New test
 println("** Going through testing scaling...")
@@ -281,14 +289,18 @@ cm = ConfusionMatrix(ŷ,y,labels=labels)
 @test cm.accuracy == 0.6
 @test cm.misclassification == 0.4
 
-@test print(cm,what=["all"]) == nothing
+@test BetaML.Utils.print(cm,what=["all"]) == nothing
+@test BetaML.Utils.println(cm,what=["all"]) == nothing
 
 # ==================================
 # New test
 println("** Testing classCounts()...")
 
-@test classCounts(["a","b","a","c","d"]) == Dict("a"=>2,"b"=>1,"c"=>1,"d"=>1)
-@test classCounts(['a' 'b'; 'a' 'c';'a' 'b']) == Dict(['a', 'b'] => 2,['a', 'c'] => 1)
+@test classCountsWithLabels(["a","b","a","c","d"]) == Dict("a"=>2,"b"=>1,"c"=>1,"d"=>1)
+@test classCountsWithLabels(['a' 'b'; 'a' 'c';'a' 'b']) == Dict(['a', 'b'] => 2,['a', 'c'] => 1)
+@test classCounts(["a","b","a","c","d"],classes=["a","b","c","d","e"]) == [2,1,1,1,0]
+@test collect(classCounts(['a' 'b'; 'a' 'c';'a' 'b'])) in [[2,1],[1,2]] # Order doesn't matter
+
 
 # ==================================
 # New test
