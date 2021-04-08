@@ -3,7 +3,7 @@
 import MLJModelInterface       # It seems that having done this in the top module is not enought
 const MMI = MLJModelInterface  # We need to repoeat it here
 
-export KMeans, KMedoids, GMMFitter, GMMClusterer, MissingImputator
+export KMeans, KMedoids, GMMClusterer, MissingImputator
 
 # ------------------------------------------------------------------------------
 # Model Structure declarations..
@@ -37,28 +37,6 @@ KMeans(;
     Z₀           = nothing,
     rng          = Random.GLOBAL_RNG,
   ) = KMedoids(K,dist,initStrategy,Z₀,rng)
-
-# function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="grid")
-mutable struct GMMFitter <: MMI.Probabilistic
-  K::Int64
-  p₀::Union{Nothing,AbstractArray{Float64,1}}
-  mixtures::Symbol
-  tol::Float64
-  minVariance::Float64
-  minCovariance::Float64
-  initStrategy::String
-  rng::AbstractRNG
-end
-GMMFitter(;
-    K             = 3,
-    p₀            = nothing,
-    mixtures      = :diag_gaussian,
-    tol           = 10^(-6),
-    minVariance   = 0.05,
-    minCovariance = 0.0,
-    initStrategy  = "kmeans",
-    rng           = Random.GLOBAL_RNG,
-) = GMMFitter(K,p₀,mixtures, tol, minVariance, minCovariance,initStrategy,rng)
 
 mutable struct GMMClusterer <: MMI.Unsupervised
   K::Int64
@@ -119,26 +97,6 @@ end
 MMI.fitted_params(model::Union{KMeans,KMedoids}, fitresult) = (centers=fitesult[2], cluster_labels=CategoricalArrays.categorical(fitresults[1]))
 
 
-function MMI.fit(m::GMMFitter, verbosity, X, y)
-    # X is nothing, y is the data: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/#Models-that-learn-a-probability-distribution-1
-    y          = MMI.matrix(y) # convert table to matrix
-
-    if m.mixtures == :diag_gaussian
-        mixtures = [DiagonalGaussian() for i in 1:m.K]
-    elseif m.mixtures == :full_gaussian
-        mixtures = [FullGaussian() for i in 1:m.K]
-    elseif m.mixtures == :spherical_gaussian
-        mixtures = [SphericalGaussian() for i in 1:m.K]
-    else
-        error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
-    end
-    res        = gmm(y,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
-    fitResults = (pₙₖ=res.pₙₖ,pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
-    cache      = nothing
-    report     = (res.ϵ,res.lL,res.BIC,res.AIC)
-    return (fitResults, cache, report)
-end
-
 function MMI.fit(m::GMMClusterer, verbosity, X)
     # X is nothing, y is the data: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/#Models-that-learn-a-probability-distribution-1
     x          = MMI.matrix(X) # convert table to matrix
@@ -197,10 +155,6 @@ function MMI.transform(m::Union{KMeans,KMedoids}, fitResults, X)
     return MMI.table(distances)
 end
 
-function MMI.transform(m::GMMFitter, fitResults, X)
-    return MMI.predict(m, fitResults, X)
-end
-
 function MMI.transform(m::GMMClusterer, fitResults, X)
     X == nothing || error("X must me `nothing` in `transform(m::GMMClusterer,firResults,nothing)`. If you want the cluster predictions of new data using already learned structure use `predict(m::GMMClusterer,firResults,Xnew)`")
     (pₙₖ, pₖ)       = (fitResults.pₙₖ, pₖ=fitResults.pₖ)
@@ -238,26 +192,6 @@ function MMI.predict(m::Union{KMeans,KMedoids}, fitResults, X)
     return CategoricalArray(assignedClasses,levels=1:nCl)
 end
 
-""" predict(m::GMM, fitResults, X) - Given a trained clustering model, predict the class of the observations used for training"""
-function MMI.predict(m::GMMFitter, fitResults, X)
-    #=
-    x               = MMI.matrix(X) # convert table to matrix
-    (N,D)           = size(x)
-    (pₖ,mixtures)   = (fitResults.pₖ, fitResults.mixtures)
-    nCl             = length(pₖ)
-    # Compute the probabilities that maximise the likelihood given existing mistures and a single iteration (i.e. doesn't update the mixtures)
-    thisOut         = gmm(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1,rng=m.rng)
-    classes         = CategoricalArray(1:nCl)
-    predictions     = MMI.UnivariateFinite(classes, thisOut.pₙₖ)
-    =#
-    (pₙₖ, pₖ)       = (fitResults.pₙₖ, pₖ=fitResults.pₖ)
-    nCl             = length(pₖ)
-    classes         = CategoricalArray(1:nCl)
-    predictions     = MMI.UnivariateFinite(classes,pₙₖ)
-
-    return predictions
-end
-
 function MMI.predict(m::GMMClusterer, fitResults, X)
 
     x               = MMI.matrix(X) # convert table to matrix
@@ -280,14 +214,6 @@ function MMI.predict(m::GMMClusterer, fitResults, X)
 end
 
 
-
-#""" transform(m::MissingImputator, X) - Given a matrix with missing value, impute them using an EM algorithm"""
-#function MMI.transform(m::MissingImputator, X)
-#    x    = MMI.matrix(X) # convert table to matrix
-#    xout = predictMissing(x,m.K;p₀=m.p₀,mixtures=m.mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy=m.initStrategy)
-#    return MMI.table(xout.X̂)
-#end
-
 # ------------------------------------------------------------------------------
 # Model metadata for registration in MLJ...
 
@@ -309,16 +235,8 @@ MMI.metadata_model(KMedoids,
 	load_path        = "BetaML.Clustering.KMedoids"
 )
 
-MMI.metadata_model(GMMFitter,
-    input_scitype    = Nothing, # MMI.Table(MMI.Continuous,MMI.Missing),
-    target_scitype   = MMI.Table(MMI.Continuous,MMI.Missing), #AbstractArray{<:MMI.Multiclass},
-    supports_weights = false,                               # does the model support sample weights?
-    descr            = "A Expectation-Maximisation clustering algorithm with customisable mixtures, from the Beta Machine Learning Toolkit (BetaML).",
-	load_path        = "BetaML.Clustering.GMMFitter"
-)
-
 MMI.metadata_model(GMMClusterer,
-    input_scitype    = MMI.Table(MMI.Continuous,MMI.Missing),
+    input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
     output_scitype   = AbstractArray{<:MMI.Multiclass},              # scitype of the output of `transform`
     target_scitype   = AbstractArray{<:MMI.Multiclass},       # scitype of the output of `predict`
     supports_weights = false,                                 # does the model support sample weights?
