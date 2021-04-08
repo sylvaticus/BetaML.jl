@@ -553,11 +553,14 @@ plu(x;α=0.1,c=one(x)) = max(α*(x+c)-c,min(α*(x-c)+c,x)) # convert(eltype(x), 
 """dplu(x;α=0.1,c=1) \n\n Piecewise Linear Unit derivative \n\n https://arxiv.org/pdf/1809.09534.pdf"""
 dplu(x;α=0.1,c=one(x)) = ( ( x >= (α*(x+c)-c)  &&  x <= (α*(x+c)+c) ) ? one(x) : α ) # convert(eltype(x), α)
 
+
 """
     pool1d(x,poolSize=2;f=mean)
+
 Apply funtion `f` to a rolling poolSize contiguous (in 1d) neurons.
 
 Applicable to `VectorFunctionLayer`, e.g. `layer2  = VectorFunctionLayer(nₗ,f=(x->pool1d(x,4,f=mean))`
+**Attention**: to apply this funciton as activation function in a neural network you will need Julia version >= 1.6, otherwise you may experience a segmentation fault (see [this bug report](https://github.com/FluxML/Zygote.jl/issues/943))
 """
 pool1d(x,poolSize=3;f=mean) = [f(x[i:i+poolSize-1]) for i in 1:length(x)-poolSize+1] # we may try to use CartesianIndices/LinearIndices for a n-dimensional generalisation
 
@@ -603,7 +606,7 @@ dmish(x) = x*(1 - tanh(log(exp(x) + 1))^2)*exp(x)/(exp(x) + 1) + tanh(log(exp(x)
 """
    autoJacobian(f,x;nY)
 
-Evaluate the Jacobian using AD in the form of a (nY,nX) madrix of first derivatives
+Evaluate the Jacobian using AD in the form of a (nY,nX) matrix of first derivatives
 
 # Parameters:
 - `f`: The function to compute the Jacobian

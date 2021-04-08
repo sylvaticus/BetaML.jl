@@ -257,16 +257,19 @@ end
 
 # ==================================
 # NEW Test
-println("Testing VectorFunctionLayer with pool1d function...")
+if VERSION >= v"1.6"
+    println("Testing VectorFunctionLayer with pool1d function...")
+    println("Attention: this test requires at least Julia 1.6")
 
-x        = rand(copy(TESTRNG),300,5)
-y        = [norm(r[1:3])+2*norm(r[4:5],2) for r in eachrow(x) ]
-(N,D)    = size(x)
-l1       = DenseLayer(D,8, f=relu,rng=copy(TESTRNG))
-l2       = VectorFunctionLayer(size(l1)[2],f=(x->pool1d(x,2,f=mean)))
-l3       = DenseLayer(size(l2)[2],1,f=relu, rng=copy(TESTRNG))
-mynn     = buildNetwork([l1,l2,l3],squaredCost,name="Regression with a pooled layer")
-train!(mynn,x,y,epochs=50,verbosity=STD,rng=copy(TESTRNG))
-ŷ        = predict(mynn,x)
-mreTrain = meanRelError(ŷ,y,normRec=false)
-@test mreTrain  < 0.14
+    x        = rand(copy(TESTRNG),300,5)
+    y        = [norm(r[1:3])+2*norm(r[4:5],2) for r in eachrow(x) ]
+    (N,D)    = size(x)
+    l1       = DenseLayer(D,8, f=relu,rng=copy(TESTRNG))
+    l2       = VectorFunctionLayer(size(l1)[2],f=(x->pool1d(x,2,f=mean)))
+    l3       = DenseLayer(size(l2)[2],1,f=relu, rng=copy(TESTRNG))
+    mynn     = buildNetwork([l1,l2,l3],squaredCost,name="Regression with a pooled layer")
+    train!(mynn,x,y,epochs=50,verbosity=STD,rng=copy(TESTRNG))
+    ŷ        = predict(mynn,x)
+    mreTrain = meanRelError(ŷ,y,normRec=false)
+    @test mreTrain  < 0.14
+end
