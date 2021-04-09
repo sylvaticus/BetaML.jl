@@ -1010,9 +1010,9 @@ function gini(x)
         impurity -= probₖ^2
     end
     return impurity
-   #=
+  #=
   counts = classCountsWithLabels(x)
-   N = size(x,1)
+  N = size(x,1)
   impurity = 1.0
   for k in keys(counts)
     probₖ = counts[k] / N

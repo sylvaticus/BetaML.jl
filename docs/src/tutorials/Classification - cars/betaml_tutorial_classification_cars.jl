@@ -91,15 +91,13 @@ trainAccuracy,testAccuracy  = accuracy.([parse.(Int64,mode(ŷtrain,rng=copy(FIX
 # We fist build the [`ConfusionMatrix`](@ref BetaML.Utils.ConfusionMatrix) object between `ŷ` and `y` and then we print it (we do it here for the test subset):
 
 cm = ConfusionMatrix(parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG))),ytest,classes=[1,2,3],labels=["US","EU","Japan"])
-BetaML.Utils.report(cm;what="all")
+print(cm;what="all")
 
-# From the report we can see that are the Japanese cars that have more trouble in being correctly classified, and in particular many Japanease cars are classified as US ones.
+# From the report we can see that Japanese cars have more trouble in being correctly classified, and in particular many Japanease cars are classified as US ones. This is likely a result of the class imbalance of the data set, and could be solved by balancing the dataset with various sampling tecniques before training the model.
 
 # When we benchmark the resourse used (time and memory) we find that Random Forests remain pretty fast, expecially when we compare them with neural networks (see later)
 @btime buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),forceClassification=true);
-#src   128.335 ms (781027 allocations: 196.30 MiB)
-
-
+#src   134.096 ms (781027 allocations: 196.30 MiB)
 
 # ### Comparision with DecisionTree.jl
 
@@ -119,9 +117,7 @@ model = DecisionTree.build_forest(ytrain, xtrainFull,-1,30,rng=123)
 # While the accuracy on the training set is exactly the same as for `BetaML` random forets, `DecisionTree.jl` random forests are slighly less accurate in the testing sample.
 # Where however `DecisionTrees.jl` excell is in the efficiency: they are extremelly fast and memory parse, even if here to this benchmark we should add the resources need to impute the missing values. Also, one of the reasons DecisionTrees are such efficient is that internally they sort the data to avoid repeated comparision, but in this way they work only with features that are sortable, while BetaML random forests accept virtually any kind of input without the need of adapt it.
 @btime  DecisionTree.build_forest(ytrain, xtrainFull,-1,30,rng=123);
-#src 1.451 ms (10875 allocations: 1.52 MiB)
-
-
+#src 1.431 ms (10875 allocations: 1.52 MiB)
 
 # ### Neural network
 
@@ -132,8 +128,8 @@ D               = size(xtrainFull,2)
 classes         = unique(y)
 nCl             = length(classes)
 
-# The second "inconvenient" of NN i that, while not requiring feature engineering, they stil lneed a bit of practice on the way to build the network. It's not as simple as `train(model,x,y)`. We need here to specify how we want our layers, _chain_ the layers together and then decide a _loss_ overall function. Only when we done these steps, we have the model ready for training.
-# Here we define 3 [`DenseLayer`](@ref) zwhere, for each of them, we specify the number of neurons in input (the first layer being equal to the dimensions of the data), the output layer (for a classification task, the last layer output size beying equal to the number of classes) and an _activation function for each layer (default the `identity` function).
+# The second "inconvenient" of NN is that, while not requiring feature engineering, they stil lneed a bit of practice on the way to build the network. It's not as simple as `train(model,x,y)`. We need here to specify how we want our layers, _chain_ the layers together and then decide a _loss_ overall function. Only when we done these steps, we have the model ready for training.
+# Here we define 3 [`DenseLayer`](@ref) where, for each of them, we specify the number of neurons in input (the first layer being equal to the dimensions of the data), the output layer (for a classification task, the last layer output size beying equal to the number of classes) and an _activation function for each layer (default the `identity` function).
 ls   = 50
 l1   = DenseLayer(D,ls,f=relu,rng=copy(FIXEDRNG))
 l2   = DenseLayer(ls,nCl,f=relu,rng=copy(FIXEDRNG))
@@ -149,29 +145,29 @@ res  = train!(mynn,scale(xtrainFull,xScaleFactors),ytrain_oh,epochs=500,batchSiz
 
 # Once trained, we can predict the label. As the trained was based on the scaled feature matrix, so must be for the predictions
 (ŷtrain,ŷtest)  = predict.(Ref(mynn),[scale(xtrainFull,xScaleFactors),scale(xtestFull,xScaleFactors)])
-(trainAccuracy,testAccuracy) = accuracy.([ŷtrain,ŷtest],[ytrain,ytest])
-#src (0.9046153846153846, 0.7530864197530864)
+trainAccuracy   =  accuracy(ŷtrain,ytrain,rng=copy(FIXEDRNG))
+testAccuracy    = accuracy(ŷtest,ytest,rng=copy(FIXEDRNG))
+#src (0.8953846153846153, 0.7654320987654321
 
-@test testAccuracy > 0.74 #src
+@test testAccuracy > 0.76 #src
 
-
-accuracy(mode(ŷtest,rng=copy(FIXEDRNG)),ytest)
+# src accuracy(mode(ŷtest,rng=copy(FIXEDRNG)),ytest)
 
 cm = ConfusionMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"],rng=copy(FIXEDRNG))
-report(cm)
+print(cm)
 
 # We see a bit the limits of neural networks in this example. While NN can be extremelly performant in many domain, they also require lot of data and computational power, expecially considering the many possible hyper-parameters and hence its large space in the hyper-parameter tuning.
 # In this example we arrive short to the performance of random forests, yet with asignificant numberof neurons.
 
 @btime train!(mynn,scale(xtrainFull),ytrain_oh,epochs=300,batchSize=8,rng=copy(FIXEDRNG),verbosity=NONE);
-#src 11.147 s (18322340 allocations: 21.72 GiB)
+#src  11.841 s (62860672 allocations: 4.21 GiB)
 
 
 # ### Comparisons with Flux
 
-# In Flux the input bust be in the form (fields, observations), so we transpose our original matrices
+# In Flux the input must be in the form (fields, observations), so we transpose our original matrices
 xtrainT, ytrain_ohT = transpose.([scale(xtrainFull,xScaleFactors), ytrain_oh])
-xtestT, ytest_ohT = transpose.([scale(xtestFull,xScaleFactors), ytest_oh])
+xtestT, ytest_ohT   = transpose.([scale(xtestFull,xScaleFactors), ytest_oh])
 
 
 # We define the Flux neural network model in a similar way than BetaML and load it with data, we train it, predict and measure the accuracies on the training and the test sets:
@@ -191,15 +187,16 @@ nndata     = Flux.Data.DataLoader((xtrainT, ytrain_ohT), batchsize=8,shuffle=tru
 begin for i in 1:500  Flux.train!(loss, ps, nndata, Flux.ADAM()) end end
 ŷtrain     = Flux.onecold(Flux_nn(xtrainT),1:3)
 ŷtest      = Flux.onecold(Flux_nn(xtestT),1:3)
-(trainAccuracy,testAccuracy) = accuracy.([ŷtrain,ŷtest],[ytrain,ytest])
-#src 0.9692307692307692, 0.7283950617283951
-# While the train accuracy is the same as in BetaML, the test accuracy is somehow lower
+trainAccuracy =  accuracy(ŷtrain,ytrain)
+testAccuracy  = accuracy(ŷtest,ytest)
+#src 0.9384615384615385, 0.7407407407407407
+# While the train accuracy is little bit higher that BetaML, the test accuracy remains comparable
 
-@test testAccuracy > 0.68 #src
+@test testAccuracy > 0.74 #src
 
 # However the time is again lower than BetaML, even if here for "just" a factor 2
 @btime begin for i in 1:500 Flux.train!(loss, ps, nndata, Flux.ADAM()) end end;
-#src 5.385 s (3623163 allocations: 1.55 GiB)
+#src  5.665 s (8943640 allocations: 1.07 GiB)
 
 
 # ## Summary
@@ -208,10 +205,12 @@ ŷtest      = Flux.onecold(Flux_nn(xtestT),1:3)
 
 # | Model                | Train acc     | Test Acc |  Training time (ms)* | Training mem (MB) |
 # |:-------------------- |:-------------:| --------:| ------------------- | ----------------- |
-# | RF                   | 0.9969        | 0.8025   | 133                 | 196               |
-# | RF (DecisionTree.jl) | 0.9969        | 0.7531   | 1.4                 | 1.5               |
-# | NN                   | 0.9754        | 0.8765   | 10684               | 22241             |
-# | NN (Flux.jl)         | 0.9692        | 0.7284   | 9164                | 1577              |
+# | RF                   | 0.9969        | 0.8025   | 134                 | 196               |
+# | RF (DecisionTree.jl) | 0.9969        | 0.7531   | 1.43                | 1.5               |
+# | NN                   | 0.895         | 0.765    | 11841               | 4311             |
+# | NN (Flux.jl)         | 0.938         | 0.741    | 5665                | 1096              |
+
 
 # * on a Intel Core i5-8350U laptop
-# We find a similar situation as in the bike's demand [regression tutorial](@ref): neural networks can be more precise than random forests models, but are more computationally expensive (and tricky to set up). When we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less verstatile).
+
+# For this dataset Random Forests remain marginally more accurate than Neural Network, altought of course this depends on the hyper-parameters. When we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less verstatile).
