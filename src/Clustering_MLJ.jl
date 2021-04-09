@@ -110,7 +110,7 @@ function MMI.fit(m::GMMClusterer, verbosity, X)
         error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
     res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
-    fitResults = (pₙₖ = res.pₙₖ, pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
+    fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
     return (fitResults, cache, report)
@@ -155,15 +155,6 @@ function MMI.transform(m::Union{KMeans,KMedoids}, fitResults, X)
     return MMI.table(distances)
 end
 
-function MMI.transform(m::GMMClusterer, fitResults, X)
-    X == nothing || error("X must me `nothing` in `transform(m::GMMClusterer,firResults,nothing)`. If you want the cluster predictions of new data using already learned structure use `predict(m::GMMClusterer,firResults,Xnew)`")
-    (pₙₖ, pₖ)       = (fitResults.pₙₖ, pₖ=fitResults.pₖ)
-    nCl             = length(pₖ)
-    classes         = CategoricalArray(1:nCl)
-    predictions     = MMI.UnivariateFinite(classes,pₙₖ)
-    return predictions
-end
-
 """ transform(m::MissingImputator, fitResults, X) - Given a trained imputator model fill the missing data of some new observations"""
 function MMI.transform(m::MissingImputator, fitResults, X)
     x             = MMI.matrix(X) # convert table to matrix
@@ -193,7 +184,6 @@ function MMI.predict(m::Union{KMeans,KMedoids}, fitResults, X)
 end
 
 function MMI.predict(m::GMMClusterer, fitResults, X)
-
     x               = MMI.matrix(X) # convert table to matrix
     (N,D)           = size(x)
     (pₖ,mixtures)   = (fitResults.pₖ, fitResults.mixtures)
@@ -202,14 +192,6 @@ function MMI.predict(m::GMMClusterer, fitResults, X)
     thisOut         = gmm(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1,rng=m.rng)
     classes         = CategoricalArray(1:nCl)
     predictions     = MMI.UnivariateFinite(classes, thisOut.pₙₖ)
-
-    #=
-    (pₙₖ, pₖ)       = (fitResults.pₙₖ, pₖ=fitResults.pₖ)
-    nCl             = length(pₖ)
-    classes         = CategoricalArray(1:nCl)
-    predictions     = MMI.UnivariateFinite(classes,pₙₖ)
-    =#
-
     return predictions
 end
 
