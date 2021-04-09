@@ -61,9 +61,9 @@ function _zComp(layer::DenseLayer,x)
     w  = layer.w
     wb = layer.wb
     z  = zeros(eltype(x),size(w,1))
-    @avx for n ∈ axes(w,1)
+    @inbounds for n in axes(w,1)
         zn = zero(eltype(x))
-        for nl ∈ axes(x,1)
+        @simd for nl in axes(x,1)
             zn += w[n,nl] * x[nl]
         end
         zn   += wb[n]
@@ -99,7 +99,7 @@ function getGradient(layer::DenseLayer,x,nextGradient)
     else
        dϵ_dz = layer.f'.(z) .* nextGradient # using AD
     end
-   dϵ_dw  =  @avx dϵ_dz * x' # @avx
+   dϵ_dw  = dϵ_dz * x' # @avx
    dϵ_dwb = dϵ_dz
    return Learnable((dϵ_dw,dϵ_dwb))
 end
@@ -157,12 +157,26 @@ mutable struct DenseNoBiasLayer <: AbstractLayer
      end
 end
 
+function _zComp(layer::DenseNoBiasLayer,x)
+    w  = layer.w
+    z  = zeros(eltype(x),size(w,1))
+    @inbounds for n in axes(w,1)
+        zn = zero(eltype(x))
+        @simd for nl in axes(x,1)
+            zn += w[n,nl] * x[nl]
+        end
+        z[n]  = zn
+    end
+    return z
+end
+
 function forward(layer::DenseNoBiasLayer,x)
-  return layer.f.(layer.w * x)
+  z = _zComp(layer,x)
+  return layer.f.(z)
 end
 
 function backward(layer::DenseNoBiasLayer,x,nextGradient)
-   z = layer.w * x
+   z = _zComp(layer,x)
    if layer.df != nothing
        dϵ_dz = layer.df.(z) .* nextGradient
     else
@@ -176,13 +190,13 @@ function getParams(layer::DenseNoBiasLayer)
 end
 
 function getGradient(layer::DenseNoBiasLayer,x,nextGradient)
-   z      = layer.w * x
+   z      = _zComp(layer,x)
    if layer.df != nothing
        dϵ_dz = layer.df.(z) .* nextGradient
     else
        dϵ_dz = layer.f'.(z) .* nextGradient # using AD
     end
-   dϵ_dw  = dϵ_dz * x'
+   dϵ_dw  =  dϵ_dz * x'
    return Learnable((dϵ_dw,))
 end
 

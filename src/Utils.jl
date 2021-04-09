@@ -19,7 +19,7 @@ Provide shared utility functions for various machine learning algorithms. You do
 """
 module Utils
 
-using LinearAlgebra, Printf, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, StableRNGs, LoopVectorization
+using LinearAlgebra, Printf, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, StableRNGs
 
 using ForceImport
 @force using ..Api

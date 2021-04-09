@@ -67,7 +67,7 @@ module Nn
 
 #import Base.Threads.@spawn
 
-using Random, Zygote, LoopVectorization, ProgressMeter, Reexport
+using Random, Zygote, ProgressMeter, Reexport
 import Distributions: Uniform
 
 using ForceImport
@@ -103,7 +103,7 @@ function +(items::Learnable...)
   values = collect(items[1].data)
   N = length(values)
   @inbounds for item in items[2:end]
-       @inbounds  for n in 1:N # @inbounds  @simd
+       @inbounds  @simd for n in 1:N # @inbounds  @simd
           values[n] += item.data[n]
       end
   end
@@ -114,7 +114,7 @@ function -(items::Learnable...)
   values = collect(items[1].data)
   N = length(values)
  @inbounds for item in items[2:end]
-       @inbounds for n in 1:N # @simd
+       @inbounds @simd for n in 1:N # @simd
           values[n] -= item.data[n]
       end
   end
@@ -124,7 +124,7 @@ function *(items::Learnable...)
   values = collect(items[1].data)
   N = length(values)
   @inbounds for item in items[2:end]
-      @inbounds  for n in 1:N # @simd
+      @inbounds @simd for n in 1:N # @simd
           values[n] = values[n] .* item.data[n]
       end
   end
