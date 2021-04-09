@@ -28,7 +28,7 @@ ytrain = ["Apple",  "Apple", "Grape", "Grape", "Lemon"]
 myTree = buildTree(xtrain,ytrain,rng=copy(TESTRNG))
 
 ŷtrain = predict(myTree, xtrain,rng=copy(TESTRNG))
-@test accuracy(ŷtrain,ytrain) >= 0.8
+@test accuracy(ŷtrain,ytrain,rng=copy(TESTRNG)) >= 0.8
 
 xtest = [
     "Green"  3;
@@ -40,7 +40,7 @@ xtest = [
 
 ytest = ["Apple","Apple","Grape","Grape","Lemon"]
 ŷtest = predict(myTree, xtest,rng=copy(TESTRNG))
-@test accuracy(ŷtest,ytest) >= 0.8
+@test accuracy(ŷtest,ytest,rng=copy(TESTRNG)) >= 0.8
 
 #print(myTree)
 
@@ -59,9 +59,9 @@ ytest = y[ntrain+1:end]
 
 myTree = buildTree(xtrain,ytrain, splittingCriterion=entropy,rng=copy(TESTRNG))
 ŷtrain = predict(myTree, xtrain,rng=copy(TESTRNG))
-@test accuracy(ŷtrain,ytrain) >= 0.99
+@test accuracy(ŷtrain,ytrain,rng=copy(TESTRNG)) >= 0.98
 ŷtest = predict(myTree, xtest,rng=copy(TESTRNG))
-@test accuracy(ŷtest,ytest)  >= 0.95
+@test accuracy(ŷtest,ytest,rng=copy(TESTRNG))  >= 0.95
 
 # ==================================
 # NEW TEST
@@ -101,14 +101,14 @@ trees = myForest.trees
 treesWeights = myForest.weights
 oobError = myForest.oobError
 ŷtrain = predict(myForest, xtrain,rng=copy(TESTRNG))
-@test accuracy(ŷtrain,ytrain) >= 0.96
+@test accuracy(ŷtrain,ytrain,rng=copy(TESTRNG)) >= 0.96
 ŷtest = predict(myForest, xtest,rng=copy(TESTRNG))
-@test accuracy(ŷtest,ytest)  >= 0.96
+@test accuracy(ŷtest,ytest,rng=copy(TESTRNG))  >= 0.96
 updateTreesWeights!(myForest,xtrain,ytrain;β=1)
 ŷtrain2 = predict(myForest, xtrain,rng=copy(TESTRNG))
-@test accuracy(ŷtrain2,ytrain) >= 0.98
+@test accuracy(ŷtrain2,ytrain,rng=copy(TESTRNG)) >= 0.98
 ŷtest2 = predict(myForest, xtest,rng=copy(TESTRNG))
-@test accuracy(ŷtest2,ytest)  >= 0.96
+@test accuracy(ŷtest2,ytest,rng=copy(TESTRNG))  >= 0.96
 @test oobError <= 0.1
 
 
@@ -222,7 +222,7 @@ y = convert(Vector{String},  data[:,4])
 
 modelβ = buildForest(xtrain,ytrain,5,rng=copy(TESTRNG))
 ŷtestβ = predict(modelβ,xtest,rng=copy(TESTRNG))
-accβ   = accuracy(ŷtestβ,ytest)
+accβ   = accuracy(ŷtestβ,ytest,rng=copy(TESTRNG))
 @test accβ >= 0.25
 
 # ==================================
