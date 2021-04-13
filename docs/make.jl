@@ -69,7 +69,7 @@ function literate_directory(dir)
             dir;
             documenter = true,
             postprocess = link_example,
-            codefence = codefencePair
+            #codefence = codefencePair
         )
     end
     return nothing
@@ -96,6 +96,7 @@ makedocs(sitename="BetaML.jl Documentation",
                         sort(readdir(joinpath(_TUTORIAL_DIR, subdir))),
                     ),
                 ),
+
                 _TUTORIAL_SUBDIR,
             ),
             "Examples" => "Examples.md"

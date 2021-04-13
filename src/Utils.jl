@@ -27,7 +27,7 @@ using ForceImport
 export Verbosity, NONE, LOW, STD, HIGH, FULL,
        FIXEDSEED, FIXEDRNG, @codeLocation, generateParallelRngs,
        reshape, makeColVector, makeRowVector, makeMatrix, issortable, getPermutations,
-       oneHotEncoder, integerEncoder, integerDecoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, pca,
+       oneHotEncoder, integerEncoder, integerDecoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, shuffle, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
@@ -41,7 +41,7 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
 
 @enum Verbosity NONE=0 LOW=10 STD=20 HIGH=30 FULL=40
 
-import Base.print, Base.println
+import Base.print, Base.println, Random.shuffle
 
 """
     FIXEDSEED
@@ -369,6 +369,43 @@ function partition(data::AbstractArray{T,N}, parts::AbstractArray{Float64,1};shu
     return toReturn
 end
 
+
+"""
+    shuffle(data;dims,rng)
+
+Shuffle a vector of n-dimensional arrays across dimension `dims` keeping the same order between the arrays
+
+# Parameters
+- `data`: The vector of arrays to shuffle
+- `dims`: The dimension over to apply the shuffle [def: `1`]
+- `rng`:  An `AbstractRNG` to apply for the shuffle
+
+# Notes
+- All the arrays must have the same size for the dimension to shuffle
+
+#Example
+```
+julia> a = [1 2 30; 10 20 30]; b = [100 200 300];
+julia> (aShuffled, bShuffled) = shuffle([a,b],dims=2)
+2-element Vector{Matrix{Int64}}:
+ [1 30 2; 10 30 20]
+ [100 300 200]
+ ```
+"""
+function shuffle(data::AbstractArray{T,1};dims=1,rng=Random.GLOBAL_RNG)  where T <: AbstractArray
+    Ns = [size(m,dims) for m in data]
+    length(Set(Ns)) == 1 || @error "In `shuffle(arrays)` all individual arrays need to have the same size on the dimension specified"
+    N    = Ns[1]
+    ridx = Random.shuffle(rng, 1:N)
+    out = similar(data)
+    for (i,a) in enumerate(data)
+       aidx = [collect(1:i) for i in size(a)]
+       aidx[dims] = ridx
+       out[i] = a[aidx...]
+    end
+    return out
+end
+shuffle(rng::AbstractRNG,data::AbstractArray{T,1};dims=1) where T <: AbstractArray = shuffle(data;dims=dims,rng=rng)
 
 
 """
