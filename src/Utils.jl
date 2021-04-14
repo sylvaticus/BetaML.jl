@@ -33,7 +33,7 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        bic, aic,
        autoJacobian,
        squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, classCounts, classCountsWithLabels, meanDicts, mode, gini, entropy, variance,
-       error, accuracy, meanRelError, ConfusionMatrix, crossValidate,
+       error, accuracy, meanRelError, ConfusionMatrix, crossValidation,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
        radialKernel, polynomialKernel
@@ -175,9 +175,6 @@ function oneHotEncoderRow(x::Union{AbstractArray{T},T};factors=singleUnique(x),d
     return oneHotEncoderRow(integerEncoder(x;factors=factors),d=length(factors);count=count)
 end
 
-
-
-
 """
     oneHotEncoder(x;d,factors,count)
 
@@ -313,7 +310,7 @@ function batch(n::Integer,bSize::Integer;sequential=false,rng = Random.GLOBAL_RN
     return batches
 end
 
-# TODO: add dims to partition (see shuffle)
+
 """
     partition(data,parts;shuffle,dims,rng)
 
@@ -324,6 +321,7 @@ Partition (by rows) one or more matrices according to the shares in `parts`.
 * `parts`: A vector of the required shares (must sum to 1)
 * `shufle`: Whether to randomly shuffle the matrices (preserving the relative order between matrices)
 * `dims`: The dimension for which to partition [def: `1`]
+* `copy`: Wheter to _copy_ the actual data or only create a reference [def: `true`]
 * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Notes:
@@ -337,19 +335,19 @@ julia> y = collect(31:40)
 julia> ((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3])
  ```
  """
-function partition(data::AbstractArray{T,1},parts::AbstractArray{Float64,1};shuffle=true,dims=1,rng = Random.GLOBAL_RNG) where T <: AbstractArray
+function partition(data::AbstractArray{T,1},parts::AbstractArray{Float64,1};shuffle=true,dims=1,copy=true,rng = Random.GLOBAL_RNG) where T <: AbstractArray
         # the sets of vector/matrices
         N = size(data[1],dims)
         all(size.(data,dims) .== N) || @error "All matrices passed to `partition` must have the same number of elements for the required dimension"
         ridx = shuffle ? Random.shuffle(rng,1:N) : collect(1:N)
-        return partition.(data,Ref(parts);shuffle=shuffle,dims=dims,fixedRIdx = ridx,rng=rng)
+        return partition.(data,Ref(parts);shuffle=shuffle,dims=dims,fixedRIdx = ridx,copy=copy,rng=rng)
 end
 
-function partition(data::AbstractArray{T,Ndims}, parts::AbstractArray{Float64,1};shuffle=true,dims=1,fixedRIdx=Int64[],rng = Random.GLOBAL_RNG) where {T <: Number,Ndims}
+function partition(data::AbstractArray{T,Ndims}, parts::AbstractArray{Float64,1};shuffle=true,dims=1,fixedRIdx=Int64[],copy=true,rng = Random.GLOBAL_RNG) where {T <: Number,Ndims}
     # the individual vector/matrix
     N        = size(data,dims)
     nParts   = size(parts)
-    toReturn = Array{Array{T,Ndims},1}(undef,nParts)
+    toReturn = toReturn = Array{AbstractArray{T,Ndims},1}(undef,nParts)
     if !(sum(parts) ≈ 1)
         @error "The sum of `parts` in `partition` should total to 1."
     end
@@ -364,7 +362,7 @@ function partition(data::AbstractArray{T,Ndims}, parts::AbstractArray{Float64,1}
         cumPart += parts[i]
         final = i == nParts ? N : Int64(round(cumPart*N))
         allDimIdx[dims] = ridx[current:final]
-        toReturn[i]     = data[allDimIdx...]
+        toReturn[i]     = copy ? data[allDimIdx...] : @views data[allDimIdx...]
         current         = (final +=1)
     end
     return toReturn
@@ -978,9 +976,27 @@ print(cm::ConfusionMatrix{T};what="all") where T = println(Base.stdout,cm;what=w
 #import Base.println
 #println(cm::ConfusionMatrix;what="all") = begin print(cm;what=what); print("\n") end
 
+abstract type AbstractDataSampler end
 
-function crossValidation(f,data;verbosity=STD,rng=Random.GLOBAL_RNG)
+mutable struct KFold <: AbstractDataSampler
+    nSplits::Int64
+    nRepeats::Int64
+    shuffle::Bool
+    rng::AbstractRng
+    Kfold(;nSplits=5,nRepeats=1,shuffle=true,rng=Random.DEFAULT_RNG)
+        return new(nSplits,nRepeats,shuffle,rng)
+    end
+end
 
+function getData(sampler::AbstractDataSampler,data,dims)
+
+end
+function crossValidation(f,data;rng=Random.GLOBAL_RNG,sampler=KFold(rng=rng),dims=1,verbosity=STD)
+
+           for iData in getData(sampler)
+               out = = f(iData,rng=rng)
+               ϵ = out.ϵ
+           end
 
 
 end
