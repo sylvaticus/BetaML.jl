@@ -33,7 +33,7 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        bic, aic,
        autoJacobian,
        squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, classCounts, classCountsWithLabels, meanDicts, mode, gini, entropy, variance,
-       error, accuracy, meanRelError, ConfusionMatrix,
+       error, accuracy, meanRelError, ConfusionMatrix, crossValidate,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
        radialKernel, polynomialKernel
@@ -313,8 +313,9 @@ function batch(n::Integer,bSize::Integer;sequential=false,rng = Random.GLOBAL_RN
     return batches
 end
 
+# TODO: add dims to partition (see shuffle)
 """
-    partition(data,parts;shuffle=true)
+    partition(data,parts;shuffle,dims,rng)
 
 Partition (by rows) one or more matrices according to the shares in `parts`.
 
@@ -322,7 +323,12 @@ Partition (by rows) one or more matrices according to the shares in `parts`.
 * `data`: A matrix/vector or a vector of matrices/vectors
 * `parts`: A vector of the required shares (must sum to 1)
 * `shufle`: Whether to randomly shuffle the matrices (preserving the relative order between matrices)
+* `dims`: The dimension for which to partition [def: `1`]
 * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+
+# Notes:
+* The sum of parts must be equal to 1
+* The number of elements in the specified dimension must be the same for all the arrays in `data`
 
 # Example:
 ```julia
@@ -331,40 +337,35 @@ julia> y = collect(31:40)
 julia> ((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3])
  ```
  """
-function partition(data::AbstractArray{T,1},parts::AbstractArray{Float64,1};shuffle=true,rng = Random.GLOBAL_RNG) where T <: AbstractArray
+function partition(data::AbstractArray{T,1},parts::AbstractArray{Float64,1};shuffle=true,dims=1,rng = Random.GLOBAL_RNG) where T <: AbstractArray
         # the sets of vector/matrices
-        n = size(data[1],1)
-        if !all(size.(data,1) .== n)
-            @error "All matrices passed to `partition` must have the same number of rows"
-        end
-        ridx = shuffle ? Random.shuffle(rng,1:n) : collect(1:n)
-        return partition.(data,Ref(parts);shuffle=shuffle, fixedRIdx = ridx,rng=rng)
+        N = size(data[1],dims)
+        all(size.(data,dims) .== N) || @error "All matrices passed to `partition` must have the same number of elements for the required dimension"
+        ridx = shuffle ? Random.shuffle(rng,1:N) : collect(1:N)
+        return partition.(data,Ref(parts);shuffle=shuffle,dims=dims,fixedRIdx = ridx,rng=rng)
 end
 
-function partition(data::AbstractArray{T,N}, parts::AbstractArray{Float64,1};shuffle=true,fixedRIdx=Int64[],rng = Random.GLOBAL_RNG) where {T,N}
-    # the individual vecto/matrix
-    data = makeMatrix(data)
-    n = size(data,1)
-    nParts = size(parts)
-    toReturn = []
+function partition(data::AbstractArray{T,Ndims}, parts::AbstractArray{Float64,1};shuffle=true,dims=1,fixedRIdx=Int64[],rng = Random.GLOBAL_RNG) where {T <: Number,Ndims}
+    # the individual vector/matrix
+    N        = size(data,dims)
+    nParts   = size(parts)
+    toReturn = Array{Array{T,Ndims},1}(undef,nParts)
     if !(sum(parts) ≈ 1)
         @error "The sum of `parts` in `partition` should total to 1."
     end
     ridx = fixedRIdx
     if (isempty(ridx))
-       ridx = shuffle ? Random.shuffle(rng, 1:n) : collect(1:n)
+       ridx = shuffle ? Random.shuffle(rng, 1:N) : collect(1:N)
     end
+    allDimIdx = convert(Vector{Union{UnitRange{Int64},Vector{Int64}}},[1:i for i in size(data)])
     current = 1
     cumPart = 0.0
     for (i,p) in enumerate(parts)
         cumPart += parts[i]
-        final = i == nParts ? n : Int64(round(cumPart*n))
-        if N == 1
-            push!(toReturn,data[ridx[current:final]])
-        else
-            push!(toReturn,data[ridx[current:final],:])
-        end
-        current = (final +=1)
+        final = i == nParts ? N : Int64(round(cumPart*N))
+        allDimIdx[dims] = ridx[current:final]
+        toReturn[i]     = data[allDimIdx...]
+        current         = (final +=1)
     end
     return toReturn
 end
@@ -383,7 +384,7 @@ Shuffle a vector of n-dimensional arrays across dimension `dims` keeping the sam
 # Notes
 - All the arrays must have the same size for the dimension to shuffle
 
-#Example
+# Example
 ```
 julia> a = [1 2 30; 10 20 30]; b = [100 200 300];
 julia> (aShuffled, bShuffled) = shuffle([a,b],dims=2)
@@ -399,7 +400,8 @@ function shuffle(data::AbstractArray{T,1};dims=1,rng=Random.GLOBAL_RNG)  where T
     ridx = Random.shuffle(rng, 1:N)
     out = similar(data)
     for (i,a) in enumerate(data)
-       aidx = [collect(1:i) for i in size(a)]
+       aidx = convert(Vector{Union{UnitRange{Int64},Vector{Int64}}},[1:i for i in size(a)])
+       #aidx = [collect(1:i) for i in size(a)]
        aidx[dims] = ridx
        out[i] = a[aidx...]
     end
@@ -975,6 +977,15 @@ print(cm::ConfusionMatrix{T};what="all") where T = println(Base.stdout,cm;what=w
 
 #import Base.println
 #println(cm::ConfusionMatrix;what="all") = begin print(cm;what=what); print("\n") end
+
+
+function crossValidation(f,data;verbosity=STD,rng=Random.GLOBAL_RNG)
+
+
+
+end
+
+
 
 # ------------------------------------------------------------------------------
 # Regression tasks...

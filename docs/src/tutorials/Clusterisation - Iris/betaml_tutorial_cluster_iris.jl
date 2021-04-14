@@ -36,7 +36,22 @@ yLabels = unique(iris[:,5])
 y       = integerEncoder(iris[:,5],factors=yLabels)
 
 # We shuffle
-((xtest,xval,xtest),(ytest,yval,ytest)) = partition([x,y],[0.98,0.01,0.01],rng=copy(FIXEDRNG))
+((xtrain,xval,xtest),(ytrain,yval,ytest)) = partition([x,y],[0.7,0.15,0.15],rng=copy(FIXEDRNG))
+
+# We try 4 models: kmeans, kmedoids and the three versions of gmm
+trainingOut = kmeans(xtrain,3,rng=copy(FIXEDRNG))
+kMeansAccuracy = accuracy(trainingOut[1],ytrain,ignoreLabels=true)
+@btime kmeans(xtrain,3,rng=copy(FIXEDRNG))
+
+trainingOut = kmedoids(xtrain,3,rng=copy(FIXEDRNG))
+kMedoidsAccuracy = accuracy(trainingOut[1],ytrain,ignoreLabels=true)
+@btime kmedoids(xtrain,3,rng=copy(FIXEDRNG))
+
+
+t = @benchmark kmedoids(xtrain,3,rng=copy(FIXEDRNG))
+minTime =  minimum(t.times)
+
+
 
 # Run the gmm(em) algorithm for the various cases...
 sphOut   = [gmm(xtest,3,mixtures=[SphericalGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE) for v in minVarRange, cv in minCovarRange[1:1]]
