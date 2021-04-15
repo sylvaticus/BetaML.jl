@@ -2,7 +2,7 @@ using Test, Statistics, CategoricalArrays, Random, StableRNGs
 #using StableRNGs
 #rng = StableRNG(123)
 using BetaML
-import BetaML.Utils
+#import BetaML.Utils
 
 TESTRNG = FIXEDRNG # This could change...
 #TESTRNG = StableRNG(123)
@@ -363,6 +363,107 @@ x = [1:10 11:20]
 y = collect(31:40)
 ((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3], shuffle=false,rng=copy(TESTRNG))
 @test xtest[2,2] == 19 && ytest[2] == 39
+
+m1 = [1:2 11:12 31:32 41:42 51:52 61:62]
+out = partition(m1,[0.7,0.3],dims=2,rng=copy(TESTRNG))
+@test out == [[31 1 51 61; 32 2 52 62],[11 41; 12 42]]
+
+# Testing not numeric matrices
+ms = [[11:16 string.([21:26;])],[31:36;]]
+out = partition(ms,[0.7,0.3],dims=1,rng=copy(TESTRNG))
+@test out[1][2] == [12 "22"; 14 "24"] && out[2][2]== [32,34]
+
+# ==================================
+# New test
+println("** Testing KFold sampler with a single X matrix...")
+data           = [11:13 21:23 31:33 41:43 51:53 61:63]
+sampleIterator = SamplerWithData(KFold(nSplits=3,nRepeats=1,shuffle=true,rng=copy(TESTRNG)),data,2)
+for (i,d) in enumerate(sampleIterator)
+    if i == 1
+        @test d[1][1] == [51 61 21 41; 52 62 22 42; 53 63 23 43] && d[2][1] == [31 11; 32 12; 33 13]
+    elseif i == 2
+        @test d[1][1] == [31 11 21 41; 32 12 22 42; 33 13 23 43] && d[2][1] == [51 61; 52 62; 53 63]
+    elseif i ==3
+        @test d[1][1] == [31 11 51 61; 32 12 52 62; 33 13 53 63] && d[2][1] == [21 41; 22 42; 23 43]
+    else
+        @error "There shoudn't be more than 3 iterations for this iterator!"
+    end
+end
+
+println("** Testing KFold sampler with multiple matrices...")
+data           = [[11:16 string.([21:26;])],[31:36;]]
+sampleIterator = SamplerWithData(KFold(nSplits=3,nRepeats=2,shuffle=false,rng=copy(TESTRNG)),data,1)
+for (i,d) in enumerate(sampleIterator)
+    (xtrain,ytrain),(xval,yval) = d
+    if i == 1
+        @test xtrain == [13 "23"; 14 "24"; 15 "25"; 16 "26"] && ytrain == [33, 34, 35, 36] && xval == [11 "21"; 12 "22"] && yval == [31, 32]
+    elseif i == 5
+        @test xtrain == [11 "21"; 12 "22"; 15 "25"; 16 "26"] && ytrain == [31, 32, 35, 36] && xval == [13 "23"; 14 "24"]  && yval == [33, 34]
+    elseif i > 6
+        @error "There shoudn't be more than 6 iterations for this iterator!"
+    end
+end
+
+
+
+
+
+println("** Testing crossValidation...")
+
+X = [11:19 21:29 31:39 41:49 51:59 61:69]
+Y = [1:9;]
+sampler = KFold(nSplits=3,nRepeats=1,shuffle=true,rng=copy(TESTRNG))
+(μ,σ) = crossValidation([X,Y],sampler) do trainData,valData,rng
+        (xtrain,ytrain) = trainData; (xval,yval) = valData
+        trainedModel = buildForest(xtrain,ytrain,30,rng=rng)
+        predictions = predict(trainedModel,xval,rng=rng)
+        ϵ = meanRelError(predictions,yval,normRec=false)
+        return ϵ
+    end
+
+
+# ==================================
+# New test
+println("** Testing shuffle()...")
+
+a = [1 2 3; 10 20 30; 100 200 300; 1000 2000 4000; 10000 20000 40000]; b = [4,40,400,4000,40000]
+out = shuffle([a,b],rng=copy(FIXEDRNG))
+@test out[1] ==  [100 200 300; 1 2 3;10000 20000 40000; 10 20 30; 1000 2000 4000] && out[2] == [400,4,40000,40,4000]
+out2 = shuffle(copy(FIXEDRNG),[a,b])
+@test out2 == out
+
+
+a = [1 2 3 4 5; 10 20 30 40 50]; b = [100 200 300 400 500]
+out = shuffle([a,b],rng=copy(FIXEDRNG),dims=2)
+@test out[1] == [3 1 5 2 4; 30 10 50 20 40] && out[2] == [300 100 500 200 400]
+
+
+a = [1 2 30; 10 20 30]; b = [100 200 300];
+(aShuffled, bShuffled) = shuffle([a,b],dims=2)
+
+
+a = [1 2 3; 10 20 30]; b = [4,40]
+out = shuffle([a,b],rng=copy(FIXEDRNG))
+
+
+data = [a,b]
+dims = 1
+rng=Random.GLOBAL_RNG
+Ns = [size(m,dims) for m in data]
+length(Set(Ns)) == 1 || @error "In `shuffle(arrays)` all individual arrays need to have the same size on the dimension specified"
+N    = Ns[1]
+ridx = Random.shuffle(rng, 1:N)
+out = similar(data)
+for (i,a) in enumerate(data)
+i = 1
+a = data[1]
+aidx = convert(Vector{Union{UnitRange{Int64},Vector{Int64}}},[1:i for i in size(a)])
+aidx[dims] = ridx
+out[i] = a[aidx...]
+Vector{Union{UnitRange{Int64},Vector{Int64}}}
+end
+return out
+
 
 
 # ==================================

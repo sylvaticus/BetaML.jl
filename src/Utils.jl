@@ -33,7 +33,8 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        bic, aic,
        autoJacobian,
        squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, classCounts, classCountsWithLabels, meanDicts, mode, gini, entropy, variance,
-       error, accuracy, meanRelError, ConfusionMatrix, crossValidation,
+       error, accuracy, meanRelError, ConfusionMatrix,
+       crossValidation, AbstractDataSampler, SamplerWithData, KFold,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
        radialKernel, polynomialKernel
@@ -343,7 +344,7 @@ function partition(data::AbstractArray{T,1},parts::AbstractArray{Float64,1};shuf
         return partition.(data,Ref(parts);shuffle=shuffle,dims=dims,fixedRIdx = ridx,copy=copy,rng=rng)
 end
 
-function partition(data::AbstractArray{T,Ndims}, parts::AbstractArray{Float64,1};shuffle=true,dims=1,fixedRIdx=Int64[],copy=true,rng = Random.GLOBAL_RNG) where {T <: Number,Ndims}
+function partition(data::AbstractArray{T,Ndims}, parts::AbstractArray{Float64,1};shuffle=true,dims=1,fixedRIdx=Int64[],copy=true,rng = Random.GLOBAL_RNG) where {T,Ndims}
     # the individual vector/matrix
     N        = size(data,dims)
     nParts   = size(parts)
@@ -969,36 +970,20 @@ end
 println(cm::ConfusionMatrix{T};what="all") where T = println(Base.stdout,cm;what=what)
 print(io::IO,cm::ConfusionMatrix{T};what="all") where T = println(io,cm;what=what)
 print(cm::ConfusionMatrix{T};what="all") where T = println(Base.stdout,cm;what=what)
-#print(cm::ConfusionMatrix{T};what="all") where T = print(Base.stdout,cm;what=what)
-#println(io::IO,cm::ConfusionMatrix{T};what="all") where T =  println("aaa")
-#println(cm::ConfusionMatrix{T};what="all") where T = println(Base.stdout,cm;what=what)
 
-#import Base.println
-#println(cm::ConfusionMatrix;what="all") = begin print(cm;what=what); print("\n") end
+include("Samplers.jl")
 
-abstract type AbstractDataSampler end
 
-mutable struct KFold <: AbstractDataSampler
-    nSplits::Int64
-    nRepeats::Int64
-    shuffle::Bool
-    rng::AbstractRng
-    Kfold(;nSplits=5,nRepeats=1,shuffle=true,rng=Random.DEFAULT_RNG)
-        return new(nSplits,nRepeats,shuffle,rng)
+function crossValidation(f,data,sampler=KFold(rng=Random.GLOBAL_RNG);dims=1,verbosity=STD, returnStatistics=true)
+    iterResults = Union{Array{Float64},Float64}[]
+    for (i,iterData) in enumerate(SamplerWithData(sampler,data,dims))
+       iterResult = f(iterData[1],iterData[2],sampler.rng)
+       push!(iterResults,iterResult)
+       if verbosity > STD
+           println("Done iteration $i. This iteration output: $iterResult")
+       end
     end
-end
-
-function getData(sampler::AbstractDataSampler,data,dims)
-
-end
-function crossValidation(f,data;rng=Random.GLOBAL_RNG,sampler=KFold(rng=rng),dims=1,verbosity=STD)
-
-           for iData in getData(sampler)
-               out = = f(iData,rng=rng)
-               ϵ = out.ϵ
-           end
-
-
+    if returnStatistics  return (mean(iterResults),std(iterResults)) else return iterResults end
 end
 
 
