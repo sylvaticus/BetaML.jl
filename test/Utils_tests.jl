@@ -405,9 +405,6 @@ for (i,d) in enumerate(sampleIterator)
 end
 
 
-
-
-
 println("** Testing crossValidation...")
 
 X = [11:19 21:29 31:39 41:49 51:59 61:69]
@@ -420,6 +417,8 @@ sampler = KFold(nSplits=3,nRepeats=1,shuffle=true,rng=copy(TESTRNG))
         ϵ = meanRelError(predictions,yval,normRec=false)
         return ϵ
     end
+
+@test (μ,σ) == (0.3202242202242202, 0.04307662219315022)
 
 
 # ==================================

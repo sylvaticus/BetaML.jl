@@ -973,8 +973,51 @@ print(cm::ConfusionMatrix{T};what="all") where T = println(Base.stdout,cm;what=w
 
 include("Samplers.jl")
 
+"""
 
-function crossValidation(f,data,sampler=KFold(rng=Random.GLOBAL_RNG);dims=1,verbosity=STD, returnStatistics=true)
+crossValidation(f,data,sampler;dims,verbosity,returnStatistics)
+
+Perform crossValidation according to `sampler` rule by calling the function f and collecting its output
+
+# Parameters
+- `f`: The user-defined function that consume the specific train and validation data and return somehting (often the associated validation error). See later
+- `data`: A single n-dimenasional array or a vector of them (e.g. X,Y), depending on the tasks required by `f`.
+- sampler: An istance of a ` AbstractDataSampler`, defining the "rules" for sampling at each iteration. [def: `KFold(nSplits=5,nRepeats=1,shuffle=true,rng=Random.GLOBAL_RNG)` ]
+- `dims`: The dimension over performing the crossValidation i.e. the dimension containing the observations [def: `1`]
+- `verbosity`: The verbosity to print information during each iteration (this can also be printed in the `f` function) [def: `STD`]
+- `returnStatistics`: Wheter crossValidation should return the statistics of the output of `f` (mean and standard deviation) or the whole outputs [def: `true`].
+
+# Notes
+
+crossValidation works by calling the function `f`, defined by the user, passing to it the tuple `trainData`, `valData` and `rng` and collecting the result of the function f. The specific method for which `trainData`, and `valData` are selected at each iteration depends on the specific `sampler`, whith a single 5 k-fold rule being the default.
+
+This approach is very flexible because the specific model to employ or the metric to use is left within the user-provided function. The only thing that crossValidation does is provide the model defined in the function `f` with the opportune data (and the random number generator).
+
+**Input of the user-provided function**
+`trainData` and `valData` are both themselves tuples. In supervised models, crossValidations `data` should be a tuple of (X,Y) and `trainData` and `valData` will be equivalent to (xtrain, ytrain) and (xval, yval). In unsupervised models `data` is a single array, but the training and validation data should still need to be accessed as  `trainData[1]` and `valData[1]`.
+**Output of the user-provided function**
+The user-defined function can return whatever. However, if `returnStatistics` is left on its default `true` value the user-defined function must return a single scalar (e.g. some error measure) so that the mean and the standard deviation are returned.
+
+Note that `crossValidation` can beconveniently be employed using the `do` syntax, as Julia automatically rewrite `crossValidation(data,...) trainData,valData,rng  ...user defined body... end` as `crossValidation(f(trainData,valData,rng ), data,...)`
+
+# Example
+
+```
+julia> X = [11:19 21:29 31:39 41:49 51:59 61:69];
+julia> Y = [1:9;];
+julia> sampler = KFold(nSplits=3);
+julia> (μ,σ) = crossValidation([X,Y],sampler) do trainData,valData,rng
+                 (xtrain,ytrain) = trainData; (xval,yval) = valData
+                 trainedModel    = buildForest(xtrain,ytrain,30)
+                 predictions     = predict(trainedModel,xval)
+                 ϵ               = meanRelError(predictions,yval,normRec=false)
+                 return ϵ
+               end
+(0.3202242202242202, 0.04307662219315022)
+```
+
+"""
+function crossValidation(f,data,sampler=KFold(nSplits=5,nRepeats=1,shuffle=true,rng=Random.GLOBAL_RNG);dims=1,verbosity=STD, returnStatistics=true)
     iterResults = Union{Array{Float64},Float64}[]
     for (i,iterData) in enumerate(SamplerWithData(sampler,data,dims))
        iterResult = f(iterData[1],iterData[2],sampler.rng)
