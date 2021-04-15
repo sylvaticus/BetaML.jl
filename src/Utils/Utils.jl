@@ -974,8 +974,7 @@ print(cm::ConfusionMatrix{T};what="all") where T = println(Base.stdout,cm;what=w
 include("Samplers.jl")
 
 """
-
-crossValidation(f,data,sampler;dims,verbosity,returnStatistics)
+    crossValidation(f,data,sampler;dims,verbosity,returnStatistics)
 
 Perform crossValidation according to `sampler` rule by calling the function f and collecting its output
 

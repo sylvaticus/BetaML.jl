@@ -11,22 +11,7 @@ For documentation, please look at the individual modules:
 - `?BetaML.Clusters`: Clustering algorithms and collaborative filering using clusters
 - `?BetaML.Utils`: Various utility functions (scale, one-hot, distances, kernels,..)
 
-You can access the functionality of this package either by using the submodule and
-then directly the provided functionality (utilities are reexported by each of the
-other submodule) or using this root module and then using it to prefix each object
-provided by it, e.g.:
-
-```
-using BetaML.Nn
-myLayer = DenseLayer(2,3)
-```
-
-or
-
-```
-using BetaML
-myLayer = BetaML.DenseLayer(2,3)
-```
+While the code is organised in different sub-modules, all objects are re-exported at the BetaML root level, hence the functionality of this package can be accessed by simply `using BetaML` and then employing the required function directly. 
 
 """
 module BetaML
@@ -37,11 +22,11 @@ const MMI = MLJModelInterface
 using ForceImport, Reexport
 
 include("Api.jl")        # Shared names across modules
-include("Utils.jl")      # Utility function
-include("Nn.jl")         # Neural Networks
-include("Perceptron.jl") # Perceptron-like algorithms
-include("Trees.jl")      # Decision Trees and ensembles (Random Forests)
-include("Clustering.jl") # Clustering algorithms
+include("Utils/Utils.jl")      # Utility function
+include("Nn/Nn.jl")         # Neural Networks
+include("Perceptron/Perceptron.jl") # Perceptron-like algorithms
+include("Trees/Trees.jl")      # Decision Trees and ensembles (Random Forests)
+include("Clustering/Clustering.jl") # Clustering algorithms
 
 # "Merging" of the modules...
 @force    using .Api

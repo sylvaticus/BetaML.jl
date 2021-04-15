@@ -394,6 +394,7 @@ println("** Testing KFold sampler with multiple matrices...")
 data           = [[11:16 string.([21:26;])],[31:36;]]
 sampleIterator = SamplerWithData(KFold(nSplits=3,nRepeats=2,shuffle=false,rng=copy(TESTRNG)),data,1)
 for (i,d) in enumerate(sampleIterator)
+    local xtrain, ytrain, xval, yval
     (xtrain,ytrain),(xval,yval) = d
     if i == 1
         @test xtrain == [13 "23"; 14 "24"; 15 "25"; 16 "26"] && ytrain == [33, 34, 35, 36] && xval == [11 "21"; 12 "22"] && yval == [31, 32]
