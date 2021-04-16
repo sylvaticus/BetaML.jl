@@ -6,6 +6,7 @@
 #    - julia --project="." make.jl preview
 #    - push!(ARGS,"preview"); include("make.jl")
 
+
 using Documenter, Literate, BetaML, Test
 
 if "preview" in ARGS
@@ -18,10 +19,11 @@ push!(LOAD_PATH,"../src/")
 
 
 const _TUTORIAL_DIR = joinpath(@__DIR__, "src", "tutorials")
+# Important: If some tutorial is removed but the md file is left, this will continue to be used by Documenter
 const _TUTORIAL_SUBDIR = [
     "Getting started",
-    "Regression - bike sharing",
-    "Classification - cars",
+#    "Regression - bike sharing",
+#    "Classification - cars",
     "Clusterisation - Iris"
 ]
 
@@ -60,17 +62,22 @@ function literate_directory(dir)
             @testset "$(filename)" begin
                _include_sandbox(filename)
              end
-             codefencePair = "```@example" => "```"
+             Literate.markdown(
+                 filename,
+                 dir;
+                 documenter = true,
+                 postprocess = link_example
+             )
         else
-             codefencePair = "```julia" => "```"
+            Literate.markdown(
+                filename,
+                dir;
+                documenter = true,
+                postprocess = link_example,
+                codefence =  "```text" => "```"
+            )
         end
-        Literate.markdown(
-            filename,
-            dir;
-            documenter = true,
-            postprocess = link_example,
-            #codefence = codefencePair
-        )
+
     end
     return nothing
 end

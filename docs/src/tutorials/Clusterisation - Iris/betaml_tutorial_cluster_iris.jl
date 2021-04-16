@@ -1,4 +1,4 @@
-# # A classification task: the prediction of  plant species from floreal measures (the iris tdataset) (@id classification_clustering)
+# # [A classification task: the prediction of  plant species from floreal measures (the iris dataset)](@id classification_clustering)
 # The task is to estimate the species of a plant given some floreal measurements. It use the classical "Iris" dataset.
 # Note that in this example we are using clustering approaches, so we try to understand the "structure" of our data, without relying to actually knowing the true labels ("classes" or "factors"). However we have chosen a dataset for which the true labels are actually known, so to compare the accuracy of the algorithms we use, but these labels will not be used during the algorithms training.
 
@@ -19,7 +19,7 @@ using  Test     #src
 
 # We do a few tweeks for the Clustering and GaussianMixtures packages. Note that in BetaML we can also control both the random seed and the verbosity in the algorithm call, not only globally
 Random.seed!(123)
-logger  = Logging.SimpleLogger(stdout, Logging.Error); global_logger(logger); ## For suppressing GaussianMixtures output
+#logger  = Logging.SimpleLogger(stdout, Logging.Error); global_logger(logger); ## For suppressing GaussianMixtures output
 
 # Differently from the [regression tutorial](@ref regression_tutorial), we load the data here from `RDatasets`, a package providing standard datasets.
 iris = dataset("datasets", "iris")
@@ -104,7 +104,7 @@ accuracies = fill(0.0,(length(cOut),length(cOut[1])))
 μs = mean(accuracies,dims=1)
 σs = std(accuracies,dims=1)
 
-@test all(μs .> 0.7)
+@test all(μs .> 0.7) #src
 
 @test μs[1] > 0.89 &&  μs[4] > 0.89 &&  μs[9] > 0.96 #src
 modelLabels=["kMeansG","kMeansR","kMeansS","kMedoidsG","kMedoidsR","kMedoidsS","gmmSpher","gmmDiag","gmmFull","kMeans2","gmmDiag2","gmmFull2"]
@@ -193,3 +193,12 @@ plot(1:K,[μsBICS' μsAICS'], labels=["BIC" "AIC"], title="Information criteria 
 
 # We have shown in this tutorial how we can easily run clustering almgorithms in BetaML with just one line of code `choosenModel(x,k)`, but also how can we use cross-validation in order to help the model or parameter selection, with or whithout knowing the real classes.
 # We retrieve here what we observed with supervised models. Globally the accuracy of BetaML models are comparable to those of leading specialised packages (in this case they are even better), but there is a significant gap in computational efficiency that restricts the pratical usage of BetaML to mid-size datasets. However we trade this relative inefficiency with very flexible model definition and utility functions (for example the BetaML gmm works with missing data, allowing it to be used as the backbone of the [`predictMissing`](@ref) missing imputation function, or for colalborative reccomendation systems).
+
+#src 261.540 μs (3777 allocations: 442.53 KiB)
+#src 4.576 ms (97356 allocations: 10.42 MiB)
+#src 5.498 ms (133365 allocations: 8.42 MiB)
+#src 18.901 ms (404333 allocations: 25.65 MiB)
+#src 49.257 ms (351500 allocations: 61.95 MiB)
+#src 17.071 μs (23 allocations: 14.31 KiB)
+#src 530.528 μs (2088 allocations: 488.05 KiB)
+#src 4.166 ms (58910 allocations: 3.59 MiB)

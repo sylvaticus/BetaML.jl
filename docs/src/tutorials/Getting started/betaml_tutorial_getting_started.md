@@ -2,11 +2,11 @@
 EditURL = "<unknown>/src/tutorials/Getting started/betaml_tutorial_getting_started.jl"
 ```
 
-# Getting started
+# [Getting started](@id getting_started)
 ## This is markdown title
 This is also markdown
 
-```julia
+```@example betaml_tutorial_getting_started
 # This is a normal comment
 
 a = 1
@@ -17,28 +17,24 @@ b
 
 A markdown cell
 
-```julia
+```@example betaml_tutorial_getting_started
 using BenchmarkTools
 c = b + 1
 c
 ```
 
-```julia
+```@example betaml_tutorial_getting_started
 k = 100000
 @btime sum(1:k);
 nothing #hide
 ```
 
-```julia
-a = [1,2]   # src
-using Test  # src
-@test c == 3; # src
-nothing #hide
+```@example betaml_tutorial_getting_started
+a = [1,2]
 ```
 
-```julia
-@test c == 3;  # src
-nothing #hide
+```@example betaml_tutorial_getting_started
+println("hello")
 ```
 
 ## [Dealing with stochasticity](@id dealing_with_stochasticity)
