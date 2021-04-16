@@ -1017,7 +1017,7 @@ julia> (μ,σ) = crossValidation([X,Y],sampler) do trainData,valData,rng
 
 """
 function crossValidation(f,data,sampler=KFold(nSplits=5,nRepeats=1,shuffle=true,rng=Random.GLOBAL_RNG);dims=1,verbosity=STD, returnStatistics=true)
-    iterResults = Union{Array{Float64},Float64}[]
+    iterResults = []
     for (i,iterData) in enumerate(SamplerWithData(sampler,data,dims))
        iterResult = f(iterData[1],iterData[2],sampler.rng)
        push!(iterResults,iterResult)

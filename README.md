@@ -158,7 +158,8 @@ Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl)
 
 ### Short term
 
-- Improve documentation, utility functions to do cross-validate
+- Improve documentation, utility functions to do hyper-parameter tuning using cross-validation as backend
+
 
 ### Mid/Long term
 

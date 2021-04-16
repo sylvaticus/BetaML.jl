@@ -222,7 +222,7 @@ Compute K-Medoids algorithm to identify K clusters of X using distance definitio
 julia> (clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initStrategy="grid")
 ```
 """
-function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="shuffle",Z₀=nothing,rng = Random.GLOBAL_RNG)
+function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing,rng = Random.GLOBAL_RNG)
     X  = makeMatrix(X)
     (n,d) = size(X)
     # Random choice of initial representative vectors

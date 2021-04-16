@@ -81,7 +81,6 @@ ŷtrain,ŷtest   = predict.(Ref(myForest), [xtrain,xtest],rng=copy(FIXEDRNG));
 trainAccuracy,testAccuracy  = accuracy.([parse.(Int64,mode(ŷtrain,rng=copy(FIXEDRNG))),parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG)))],[ytrain,ytest])
 #src (0.9969230769230769,0.8024691358024691)
 
-@test testAccuracy > 1 #src
 @test testAccuracy > 0.8 #src
 
 

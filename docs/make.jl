@@ -19,10 +19,10 @@ push!(LOAD_PATH,"../src/")
 
 const _TUTORIAL_DIR = joinpath(@__DIR__, "src", "tutorials")
 const _TUTORIAL_SUBDIR = [
-    #"Getting started",
-    #"Regression - bike sharing",
+    "Getting started",
+    "Regression - bike sharing",
     "Classification - cars",
-    #"Clusterisation - Iris"
+    "Clusterisation - Iris"
 ]
 
 function link_example(content)
