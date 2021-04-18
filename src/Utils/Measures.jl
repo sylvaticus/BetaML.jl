@@ -13,15 +13,6 @@ l2²_distance(x,y)    = norm(x-y)^2
 """Cosine distance"""
 cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
 
-# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
-
-"""bic(lL,k,n) -  Bayesian information criterion (lower is better)"""
-bic(lL,k,n) = k*log(n)-2*lL
-"""aic(lL,k) -  Akaike information criterion (lower is better)"""
-aic(lL,k)   = 2*k-2*lL
-
-
 
 ################################################################################
 ### VARIOUS ERROR / LOSS / ACCURACY MEASURES

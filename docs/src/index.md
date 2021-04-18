@@ -8,7 +8,7 @@ The `BetaML` toolkit provides classical algorithms written in the Julia programm
 
 While specific packages exist for state-of-the art implementations of these algorithms (see the section "[Alternative Packages](https://github.com/sylvaticus/BetaML.jl#alternative-packages)"), thanks to the Just-In-Time compilation nature of Julia, `BetaML` is reasonably fast for datasets that fit in memory while keeping both the code and the usage as _simple_ as possible.
 
-Aside the algorithms themselves, `BetaML` provides many "utility" functions. Because algorithms are all self-contained in the library itself (you are invited to explore their source code by typing `@edit functionOfInterest(par1,par2)`), the utility functions have APIs that are coordinated with the algorithms, facilitating the "preparation" of the data for the analysis, the evaluation of the models or the implementation of several models in chains (pipelines).
+Aside the algorithms themselves, `BetaML` provides many "utility" functions. Because algorithms are all self-contained in the library itself (you are invited to explore their source code by typing `@edit functionOfInterest(par1,par2,...)`), the utility functions have APIs that are coordinated with the algorithms, facilitating the "preparation" of the data for the analysis, the evaluation of the models or the implementation of several models in chains (pipelines).
 While `BetaML` doesn't provide itself tools for hyper-parameters optimisation or complex pipeline building tools, most models have an interface for the [`MLJ`](https://github.com/alan-turing-institute/MLJ.jl) framework that allows it.
 
 Aside Julia, BetaML can be accessed in R or Python using respectively [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) and [PyJulia](https://github.com/JuliaPy/pyjulia). See [here](https://syl1.gitbook.io/julia-language-a-concise-tutorial/language-core/interfacing-julia-with-other-languages#use-julia-in-python) for a tutorial or the examples for some actual use of the _Beta Machine Learning Toolkit_ in R/Python.
@@ -43,7 +43,7 @@ For a list of supported algorithms please look at the individual modules:
 
 ## Examples
 
-See the tutorial page for a more hand-to-hand to the below and other examples
+**See the [tutorial](@reg getting_started) for a more step-by-step guide to the examples below and other examples**
 
 - **Using an Artificial Neural Network for multinomial categorisation**
 
@@ -133,7 +133,6 @@ plot(minVarRange,[sphAcc diagAcc fullAcc[:,1] fullAcc[:,15] fullAcc[:,30]], mark
 
 - **Further examples**
 
-We also provide [some Jupyter notebooks](Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes.
 Finally, you may want to give a look at the ["test" folder](https://github.com/sylvaticus/BetaML.jl/tree/master/test). While the primary reason of the scripts under the "test" folder is to provide automatic testing of the BetaML toolkit, they can also be used to see how functions should be called, as virtually all functions provided by BetaML are tested there.
 
 

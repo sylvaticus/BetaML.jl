@@ -160,6 +160,14 @@ end
 variance(x) = var(x,corrected=false)
 
 # ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+
+"""bic(lL,k,n) -  Bayesian information criterion (lower is better)"""
+bic(lL,k,n) = k*log(n)-2*lL
+"""aic(lL,k) -  Akaike information criterion (lower is better)"""
+aic(lL,k)   = 2*k-2*lL
+
+# ------------------------------------------------------------------------------
 # Various kernel functions (e.g. for Perceptron)
 """Radial Kernel (aka _RBF kernel_) parametrised with γ=1/2. For other gammas γᵢ use
 `K = (x,y) -> radialKernel(x,y,γ=γᵢ)` as kernel function in the supporting algorithms"""
