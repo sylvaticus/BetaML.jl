@@ -83,3 +83,34 @@ function iterate(iter::SamplerWithData{KFold},state)
         return (i,next)
     end
 end
+
+
+# ------------------------------------------------------------------------------
+# Used for NN
+"""
+  batch(n,bSize;sequential=false,rng)
+
+Return a vector of `bSize` vectors of indeces from `1` to `n`.
+Randomly unless the optional parameter `sequential` is used.
+
+# Example:
+```julia
+julia> Utils.batch(6,2,sequential=true)
+3-element Array{Array{Int64,1},1}:
+ [1, 2]
+ [3, 4]
+ [5, 6]
+ ```
+"""
+function batch(n::Integer,bSize::Integer;sequential=false,rng = Random.GLOBAL_RNG)
+    ridx = sequential ? collect(1:n) : shuffle(rng,1:n)
+    if bSize > n
+        return [ridx]
+    end
+    nBatches = Int64(floor(n/bSize))
+    batches = Array{Int64,1}[]
+    for b in 1:nBatches
+        push!(batches,ridx[b*bSize-bSize+1:b*bSize])
+    end
+    return batches
+end
