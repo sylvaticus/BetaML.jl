@@ -1,41 +1,15 @@
 ```@meta
-EditURL = "<unknown>/src/tutorials/Getting started/betaml_tutorial_getting_started.jl"
+EditURL = "<unknown>/docs/src/tutorials/Getting started/betaml_tutorial_getting_started.jl"
 ```
 
 # [Getting started](@id getting_started)
-## This is markdown title
-This is also markdown
 
-```@example betaml_tutorial_getting_started
-# This is a normal comment
+## Work in progress
 
-a = 1
-b = a + 1
-println("*** I am a line of code that is executed, and b is $b")
-b
-```
-
-A markdown cell
-
-```@example betaml_tutorial_getting_started
-using BenchmarkTools
-c = b + 1
-c
-```
-
-```@example betaml_tutorial_getting_started
-k = 100000
-@btime sum(1:k);
-nothing #hide
-```
-
-```@example betaml_tutorial_getting_started
-a = [1,2]
-```
-
-```@example betaml_tutorial_getting_started
-println("hello")
-```
+This document presents some general information concerning BetaML. For detailed information on the algorithms provided by the Toolkit refer to the individual module API or to the tutorial below:
+-  [Regression tutorial](@ref regression_tutorial) - Arguments: _Decision trees, Random forests, neural networks, hyper-parameter tuning_
+-  [Classification tutorial](@ref classification_tutorial) - Arguments: _Decision trees and random forests, neural networks (softmax), pre-processing workflow, confusion matrix_
+-  [Clustering tutorial](@ref classification_clustering) - Arguments: _k-means, kmedoids, generative gaussain models, cross-validation_
 
 ## [Dealing with stochasticity](@id dealing_with_stochasticity)
 
@@ -49,7 +23,7 @@ In particular, use `rng=StableRNG(FIXEDSEED)` to retrieve the exacty output as i
 
 Most of the stochasticity appears in _training_ a model. However in few cases (e.g. decision trees with missing values) some stocasticity appears also in _predicting_ new data with a trained model. In such cases the model doesn't stire the random seed, so that you can choose at _predict_ time to use a fixed or a variable random seed.
 
-[View this file on Github](<unknown>/src/tutorials/Getting started/betaml_tutorial_getting_started.jl).
+[View this file on Github](<unknown>/docs/src/tutorials/Getting started/betaml_tutorial_getting_started.jl).
 
 ---
 

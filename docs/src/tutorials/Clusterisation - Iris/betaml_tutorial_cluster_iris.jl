@@ -21,7 +21,7 @@ using  Test     #src
 Random.seed!(123)
 #logger  = Logging.SimpleLogger(stdout, Logging.Error); global_logger(logger); ## For suppressing GaussianMixtures output
 
-# Differently from the [regression tutorial](@ref regression_tutorial), we load the data here from `RDatasets`, a package providing standard datasets.
+# Differently from the [regression tutorial](@ref regression_tutorial), we load the data here from [`RDatasets`](https://github.com/JuliaStats/RDatasets.jl](https://github.com/JuliaStats/RDatasets.jl), a package providing standard datasets.
 iris = dataset("datasets", "iris")
 describe(iris)
 
@@ -127,7 +127,7 @@ report = DataFrame(mName = modelLabels, avgAccuracy = dropdims(round.(μs',digit
 
 # Up to now we used the real labels to compare the model accuracies. But in real clustering examples we don't have the true classes, or we wouln't need to do clustering in the first instance, so we don't know the number of classes to use.
 # There are several methods to judge clusters algorithms goodness, perhaps the simplest one, at least for the expectation-maximisation algorithm employed in `gmm` to fit the data to the unknown mixture, is to use a information criteria that trade the goodness of the lickelyhood with the parameters used to do the fit.
-# BetaML provide by default in the gmm clustering outputs both the _Bayesian information criterion_  ([`BIC`](@ref)) and the _Akaike information criterion_  ([`AIC`](@ref)), where for both a lower value is better.
+# BetaML provide by default in the gmm clustering outputs both the _Bayesian information criterion_  ([`BIC`](@ref bic)) and the _Akaike information criterion_  ([`AIC`](@ref aic)), where for both a lower value is better.
 
 # We can then run the model with different number of classes and see which one leads to the lower BIC or AIC.
 # We run hence `crossValidation` again with the `FullGaussian` gmm model
@@ -171,34 +171,29 @@ plot(1:K,[μsBICS' μsAICS'], labels=["BIC" "AIC"], title="Information criteria 
 
 # We now benchmark the time and memory required by the various models by using the `@btime` macro of the `BenchmarkTools` package:
 
-@btime kmeans($xs,3);
-#-
-@btime kmedoids($xs,3);
-#-
-@btime gmm($xs,3,mixtures=[SphericalGaussian() for i in 1:3], verbosity=NONE);
-#-
-@btime gmm($xs,3,mixtures=[DiagonalGaussian() for i in 1:3], verbosity=NONE);
-#-
-@btime gmm($xs,3,mixtures=[FullGaussian() for i in 1:3], verbosity=NONE);
-#-
-@btime Clustering.kmeans($xs', 3);
-#-
-@btime begin dGMM = GaussianMixtures.GMM(3, $xs; method=:kmeans, kind=:diag); GaussianMixtures.em!(dGMM, $xs) end;
-#-
-@btime begin fGMM = GaussianMixtures.GMM(3, $xs; method=:kmeans, kind=:full); GaussianMixtures.em!(fGMM, $xs) end;
+# ```
+# @btime kmeans($xs,3);
+# # 261.540 μs (3777 allocations: 442.53 KiB)
+# @btime kmedoids($xs,3);
+# 4.576 ms (97356 allocations: 10.42 MiB)
+# @btime gmm($xs,3,mixtures=[SphericalGaussian() for i in 1:3], verbosity=NONE);
+# # 5.498 ms (133365 allocations: 8.42 MiB)
+# @btime gmm($xs,3,mixtures=[DiagonalGaussian() for i in 1:3], verbosity=NONE);
+# # 18.901 ms (404333 allocations: 25.65 MiB)
+# @btime gmm($xs,3,mixtures=[FullGaussian() for i in 1:3], verbosity=NONE);
+# # 49.257 ms (351500 allocations: 61.95 MiB)
+# @btime Clustering.kmeans($xs', 3);
+# # 17.071 μs (23 allocations: 14.31 KiB)
+# @btime begin dGMM = GaussianMixtures.GMM(3, $xs; method=:kmeans, kind=:diag); GaussianMixtures.em!(dGMM, $xs) end;
+# # 530.528 μs (2088 allocations: 488.05 KiB)
+# @btime begin fGMM = GaussianMixtures.GMM(3, $xs; method=:kmeans, kind=:full); GaussianMixtures.em!(fGMM, $xs) end;
+# # 4.166 ms (58910 allocations: 3.59 MiB)
+# ```
+# (_note: the values reported here are of a local pc, not of the GitHub CI server, as sometimes - depending on data and random initialisation - `GaussainMixtures.em!`` fails with a `PosDefException`. This in turln would lead the whole documentation to fail to compile_)
 
 # Like for supervised models, dedicated models are much better optimized than BetaML models, and are order of magnitude more efficient. However even the slowest BetaML clusering model (gmm using full gaussians) is realtively fast and can handle mid-size datasets (tens to hundreds of thousand records) without significant slow downs.
 
 # ## Conclusions
 
 # We have shown in this tutorial how we can easily run clustering almgorithms in BetaML with just one line of code `choosenModel(x,k)`, but also how can we use cross-validation in order to help the model or parameter selection, with or whithout knowing the real classes.
-# We retrieve here what we observed with supervised models. Globally the accuracy of BetaML models are comparable to those of leading specialised packages (in this case they are even better), but there is a significant gap in computational efficiency that restricts the pratical usage of BetaML to mid-size datasets. However we trade this relative inefficiency with very flexible model definition and utility functions (for example the BetaML gmm works with missing data, allowing it to be used as the backbone of the [`predictMissing`](@ref) missing imputation function, or for colalborative reccomendation systems).
-
-#src 261.540 μs (3777 allocations: 442.53 KiB)
-#src 4.576 ms (97356 allocations: 10.42 MiB)
-#src 5.498 ms (133365 allocations: 8.42 MiB)
-#src 18.901 ms (404333 allocations: 25.65 MiB)
-#src 49.257 ms (351500 allocations: 61.95 MiB)
-#src 17.071 μs (23 allocations: 14.31 KiB)
-#src 530.528 μs (2088 allocations: 488.05 KiB)
-#src 4.166 ms (58910 allocations: 3.59 MiB)
+# We retrieve here what we observed with supervised models. Globally the accuracy of BetaML models are comparable to those of leading specialised packages (in this case they are even better), but there is a significant gap in computational efficiency that restricts the pratical usage of BetaML to mid-size datasets. However we trade this relative inefficiency with very flexible model definition and utility functions (for example the BetaML gmm works with missing data, allowing it to be used as the backbone of the [`predictMissing`](@ref) missing imputation function, or for collaborative reccomendation systems).

@@ -20,10 +20,10 @@ push!(LOAD_PATH,"../src/")
 
 const _TUTORIAL_DIR = joinpath(@__DIR__, "src", "tutorials")
 # Important: If some tutorial is removed but the md file is left, this will continue to be used by Documenter
-const _TUTORIAL_SUBDIR = [
+_TUTORIAL_SUBDIR = [
     "Getting started",
-#    "Regression - bike sharing",
-#    "Classification - cars",
+    "Regression - bike sharing",
+    "Classification - cars",
     "Clusterisation - Iris"
 ]
 
@@ -82,10 +82,10 @@ function literate_directory(dir)
     return nothing
 end
 
-
+println("Starting literating tutorials (.jl --> .md)...")
 literate_directory.(joinpath.(_TUTORIAL_DIR, _TUTORIAL_SUBDIR))
 
-
+println("Starting making the doculentation...")
 makedocs(sitename="BetaML.jl Documentation",
          authors = "Antonello Lobianco",
          pages = [
@@ -112,6 +112,7 @@ makedocs(sitename="BetaML.jl Documentation",
          #strict = true,
          #doctest = false
 )
+println("Starting deploying the documentation...")
 deploydocs(
     repo = "github.com/sylvaticus/BetaML.jl.git",
 )
