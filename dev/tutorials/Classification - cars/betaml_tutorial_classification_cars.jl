@@ -213,4 +213,6 @@ testAccuracy  = accuracy(ŷtest,ytest)
 
 # * on a Intel Core i5-8350U laptop
 
-# For this dataset Random Forests remain marginally more accurate than Neural Network, altought of course this depends on the hyper-parameters. When we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less verstatile).
+# We warn that this table just provides a rought idea of the various algorithms performances. Indeed there is a large amount of stochasticity both in the sampling of the data used for training/testing and in the initial settings of the parameters of the algorithm. For a statistically significant comparision we would have to repeat the analysis with multiple sampling (e.g. by cross-validation) and initial random parameters.
+# Neverthless the table above shows that, when we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less verstatile).
+# Also, for this dataset, Random Forests seems to remain marginally more accurate than Neural Network, altought of course this depends on the hyper-parameters and, with a single run of the models, we don't know if this difference is significant.
