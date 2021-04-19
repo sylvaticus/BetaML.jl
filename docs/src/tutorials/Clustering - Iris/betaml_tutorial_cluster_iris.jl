@@ -1,4 +1,4 @@
-# # [A classification task: the prediction of  plant species from floreal measures (the iris dataset)](@id classification_clustering)
+# # [A classification task: the prediction of  plant species from floreal measures (the iris dataset)](@id clustering_tutorial)
 # The task is to estimate the species of a plant given some floreal measurements. It use the classical "Iris" dataset.
 # Note that in this example we are using clustering approaches, so we try to understand the "structure" of our data, without relying to actually knowing the true labels ("classes" or "factors"). However we have chosen a dataset for which the true labels are actually known, so to compare the accuracy of the algorithms we use, but these labels will not be used during the algorithms training.
 
@@ -43,6 +43,14 @@ y       = integerEncoder(iris[:,5],factors=yLabels);
 # ## Main analysis
 
 # We will try 3 BetaML models ([`kmeans`](@ref), [`kmedoids`](@ref) and [`gmm`](@ref)) and we compare them with `kmeans` from Clusterings.jl and `GMM` from GaussianMixtures.jl
+# `Kmeans` and `kmedoids` works by first initialising the centers of the k-clusters (the "representative" (step a ) . For `kmeans` they must be selected within one of the data, for kmeans they are the geometrical center) n a nutshell. Then ( b ) iterate for each point to assign the point to the cluster of the closest representative (according with a user defined distance metric, default to Euclidean), and ( c ) move each representative at the center of its newly acquired cluster (where "center" depends again from the metric). Steps ( b ) and ( c ) are reiterated until the algorithm converge, i.e. the tentative k representative points (and their relative clusters) don't move any more. The result (output of the algorithm) is that each point is assigned to one of the clusters (classes).
+# The `gmm` algorithm is similar in that it employs an iterative approach (the Expectation_Minimisation algorithm, "em") but here we make the hipothesis that the data points are the observed outcomes of some _mixture_ probabilistic models where we have first a k-categorical variables whose outcomes are the (unobservble) parameters of a probabilistic distribution from which the data is finally drawn. Because the parameters of each of the k-possible distributions is unobservable this is also called a model with latent variables.
+# Most `gmm` models use the Gaussain distribution as the family of the mixture components, so we can tought the `gmm` acronym to indicate _Gaussian Mixture Model_. In BetaML we do implemented only Gaussain components, but any distribution could be used by just subclassing `AbstractMixture` and implementing a couple of methids (you are invited to contribute or just ask for a distribution family you are interested), so I prefer to think "gmm" as an acronym for _Generative Mixture Model_.
+# The algorithm try to find the mixture that maximises the likelihood that the data has been generated indeed from such mixture, where the "E" step refers to computing the probability that each point belongs to each of the k-composants (somehow similar to the step _b_ in the kmeans/kmedoids algorithm), and the "M" step estimates, giving the association probabilities in step "M", the parameters of the mixture and of the individual components (similar to step _c_).
+# The result here is that each point has a categorical distribution (PMF) representing the probabilities that it belongs to any of the k-components (our classes or clusters). This is interesting, as `gmm` can be used for many other things that clustering. It forms the backbone of the [`predictMissing`](@ref) function to impute missing values (on some or all dimensions) based to how close the record seems to its pears. For the same reasons, `predictMissing` can also be used to predict user's behaviours (or users' appreciation) according to the behaviour/ranking made by pears ("collaborative filtering").
+# While the result of `gmm` is a vector of PMFs (one for each record), error measures and reports with the true values (if known) can be directly applied, as in BetaML they internally call `mode()` to retrieve the class with the highest probability for each record.
+
+
 # As we are here, we also try different versions of the BetaML models, even if the default "versions" should be fine. For `kmeans` and `kmedoids` we will try different initialisation strategies ("gird", the default one, "random" and "shuffle"), while for the `gmm` model we'll choose different distributions of the Gaussain family (`SphericalGaussian` - where the variance is a scalar, `DiagonalGaussian` - with a vector variance, and `FullGaussian`, where the covariance is a matrix).
 
 # As the result would depend on stochasticity both in the data selected and in the random initialisation, we use a cross-validation approach to run our models several times (with different data) and then we average their results.
@@ -107,7 +115,7 @@ accuracies = fill(0.0,(length(cOut),length(cOut[1])))
 @test all(μs .> 0.7) #src
 
 @test μs[1] > 0.89 &&  μs[4] > 0.89 &&  μs[9] > 0.96 #src
-modelLabels=["kMeansG","kMeansR","kMeansS","kMedoidsG","kMedoidsR","kMedoidsS","gmmSpher","gmmDiag","gmmFull","kMeans2","gmmDiag2","gmmFull2"]
+modelLabels=["kMeansG","kMeansR","kMeansS","kMedoidsG","kMedoidsR","kMedoidsS","gmmSpher","gmmDiag","gmmFull","kMeans (Clustering.jl)","gmmDiag (GaussianMixtures.jl)","gmmFull (GaussianMixtures.jl)"]
 report = DataFrame(mName = modelLabels, avgAccuracy = dropdims(round.(μs',digits=3),dims=2), stdAccuracy = dropdims(round.(σs',digits=3),dims=2))
 
 #src plot(modelLabels,μs',seriestype=:scatter)

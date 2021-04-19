@@ -1,6 +1,12 @@
 import Base.iterate
 abstract type  AbstractDataSampler end
 
+"""
+  SamplerWithData{Tsampler}
+
+Associate an instance of an AbstractDataSampler with the actual data to sample.
+
+"""
 mutable struct SamplerWithData{Ts <: AbstractDataSampler, Td <: AbstractArray}
     sampler::Ts
     data::Td

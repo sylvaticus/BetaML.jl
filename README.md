@@ -24,16 +24,14 @@ That said, Julia is a relatively fast language and most hard job is done in mult
 
 ## Documentation
 
-Please refer to the package documentation ([stable](https://sylvaticus.github.io/BetaML.jl/stable) | [dev](https://sylvaticus.github.io/BetaML.jl/dev)) or use the Julia inline package system (just press the question mark `?` and then, on the special help prompt `help?>`, type the module or function name).
+Please refer to the package documentation ([stable](https://sylvaticus.github.io/BetaML.jl/stable) | [dev](https://sylvaticus.github.io/BetaML.jl/dev)) or use the Julia inline package system (just press the question mark `?` and then, on the special help prompt `help?>`, type the module or function name). The package documentation is made of two distinct parts. The first one is an extensively commented tutorial that covers most of the library, the second one is the reference manual covering the library's API.
 
-We currently implemented the following modules: [Perceptron](https://sylvaticus.github.io/BetaML.jl/dev/Perceptron.html) (linear and kernel-based classifiers), [Trees](https://sylvaticus.github.io/BetaML.jl/dev/Trees.html) (Decision Trees and Random Forests), [Nn](https://sylvaticus.github.io/BetaML.jl/dev/Nn.html) (Neural Networks), [Clustering](https://sylvaticus.github.io/BetaML.jl/dev/Clustering.html) (Kmean, Kmenoids, Expectation-Maximisation, Missing value imputation, ...) and [Utils](https://sylvaticus.github.io/BetaML.jl/dev/Utils.html).
+We currently implemented the following modules in BetaML: [Perceptron](https://sylvaticus.github.io/BetaML.jl/dev/Perceptron.html) (linear and kernel-based classifiers), [Trees](https://sylvaticus.github.io/BetaML.jl/dev/Trees.html) (Decision Trees and Random Forests), [Nn](https://sylvaticus.github.io/BetaML.jl/dev/Nn.html) (Neural Networks), [Clustering](https://sylvaticus.github.io/BetaML.jl/dev/Clustering.html) (Kmean, Kmenoids, Expectation-Maximisation, Missing value imputation, ...) and [Utils](https://sylvaticus.github.io/BetaML.jl/dev/Utils.html).
 
-We also provide some [notebooks](https://sylvaticus.github.io/BetaML.jl/dev/Notebooks.html) that can be run online without installing anything, so you can start playing with the library in minutes. [under re-arrangement]
 
 If you are looking for an introductory book on Julia, have a look on "[Julia Quick Syntax Reference](https://www.julia-book.com/)"(Apress,2019).
 
-The package can be easily used in R or Python employing [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) or [PyJulia](https://github.com/JuliaPy/pyjulia) respectively.
-
+The package can be easily used in R or Python employing [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) or [PyJulia](https://github.com/JuliaPy/pyjulia) respectively, see the documentation tutorial on the "Getting started" section.
 
 ### Examples
 
@@ -140,7 +138,7 @@ plot(minVarRange,[sphAcc diagAcc fullAcc[:,1] fullAcc[:,15] fullAcc[:,30]], mark
 
 - **Other examples**
 
-Further examples, with more advanced techniques in order to improve predictions, are provided as [Jupyter notebooks](https://sylvaticus.github.io/BetaML.jl/dev/Notebooks.html).
+Further examples, with more advanced techniques in order to improve predictions, are provided in the documentation tutorial. At the opposite, very "micro" examples of usage of the various functions can be studied in the unit-tests available in the [`test`](https://github.com/sylvaticus/BetaML.jl/tree/master/test) folder  
 
 ## Alternative packages
 
@@ -158,8 +156,7 @@ Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl)
 
 ### Short term
 
-- Improve documentation, utility functions to do hyper-parameter tuning using cross-validation as backend
-
+- Implement utility functions to do hyper-parameter tuning using cross-validation as back-end
 
 ### Mid/Long term
 
@@ -168,9 +165,10 @@ Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl)
 
 ## Contribute
 
-Contributions to the library are welcome. We are particularly interested in the areas covered in the "TODO" list above, but we are open to other areas as well. Please however consider that the focus is mostly didactic/research, so clear, easy to read (and well documented) code and simple API with reasonable defaults are more important that highly optimised algorithms. For the same reason, it is fine to use verbose names.
+Contributions to the library are welcome. We are particularly interested in the areas covered in the "TODO" list above, but we are open to other areas as well.
+Please however consider that the focus is mostly didactic/research, so clear, easy to read (and well documented) code and simple API with reasonable defaults are more important that highly optimised algorithms. For the same reason, it is fine to use verbose names.
 Please open an issue to discuss your ideas or make directly a well-documented pull request to the repository.
-
+While not required by any means, if you are customising BetaML and writing for example your own neural network layer type (by subclassing `AbstractLayer`), your own sampler (by subclassing `AbstractDataSampler`) or your own mixture component (by subclassing `AbstractMixture`), please consider to give it back to the community and open a pull request to integrate them in BetaML.
 
 ## Acknowledgements
 

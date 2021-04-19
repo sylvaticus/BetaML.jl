@@ -11,7 +11,7 @@ While specific packages exist for state-of-the art implementations of these algo
 Aside the algorithms themselves, `BetaML` provides many "utility" functions. Because algorithms are all self-contained in the library itself (you are invited to explore their source code by typing `@edit functionOfInterest(par1,par2,...)`), the utility functions have APIs that are coordinated with the algorithms, facilitating the "preparation" of the data for the analysis, the evaluation of the models or the implementation of several models in chains (pipelines).
 While `BetaML` doesn't provide itself tools for hyper-parameters optimisation or complex pipeline building tools, most models have an interface for the [`MLJ`](https://github.com/alan-turing-institute/MLJ.jl) framework that allows it.
 
-Aside Julia, BetaML can be accessed in R or Python using respectively [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) and [PyJulia](https://github.com/JuliaPy/pyjulia). See [here](https://syl1.gitbook.io/julia-language-a-concise-tutorial/language-core/interfacing-julia-with-other-languages#use-julia-in-python) for a tutorial or the examples for some actual use of the _Beta Machine Learning Toolkit_ in R/Python.
+Aside Julia, BetaML can be accessed in R or Python using respectively [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) and [PyJulia](https://github.com/JuliaPy/pyjulia). See [the tutorial](@ref using_betaml_from_other_languages) for details.
 
 ## Installation
 
@@ -41,9 +41,19 @@ For a list of supported algorithms please look at the individual modules:
 - [**`BetaML.Clustering``**](Clustering.html): Clustering algorithms (Kmeans, Mdedoids, EM/GMM) and missing imputation / collaborative filtering / recommandation systems using clusters;
 - [**`BetaML.Utils``**](Utils.html): Various utility functions (scale, one-hot, distances, kernels, pca, accuracy/error measures..).
 
+### MLJ interface
+
+BetaML exports the following modules for usage with the [`MLJ`](https://github.com/alan-turing-institute/MLJ.jl) toolkit:
+
+- Perceptron models: `PerceptronClassifier`, `KernelPerceptronClassifier`, `PegasosClassifier`
+- Decision trees/Random forest models:  `DecisionTreeClassifier`, `DecisionTreeRegressor`, `RandomForestClassifier`, `RandomForestRegressor`
+- Clustering models and derived models: `KMeans`, `KMedoids`, `GMMClusterer`, `MissingImputator`
+
+Currently BetaML neural network models are not available in MLJ.
+
 ## Examples
 
-**See the [tutorial](@reg getting_started) for a more step-by-step guide to the examples below and other examples**
+**See the [tutorial](@ref getting_started) for a more step-by-step guide to the examples below and to other examples**
 
 - **Using an Artificial Neural Network for multinomial categorisation**
 
@@ -133,7 +143,7 @@ plot(minVarRange,[sphAcc diagAcc fullAcc[:,1] fullAcc[:,15] fullAcc[:,30]], mark
 
 - **Further examples**
 
-Finally, you may want to give a look at the ["test" folder](https://github.com/sylvaticus/BetaML.jl/tree/master/test). While the primary reason of the scripts under the "test" folder is to provide automatic testing of the BetaML toolkit, they can also be used to see how functions should be called, as virtually all functions provided by BetaML are tested there.
+Finally, you may want to give a look at the ["test" folder](https://github.com/sylvaticus/BetaML.jl/tree/master/test). While the primary objective of the scripts under the "test" folder is to provide automatic testing of the BetaML toolkit, they can also be used to see how functions should be called, as virtually all functions provided by BetaML are tested there.
 
 
 ## Acknowledgements

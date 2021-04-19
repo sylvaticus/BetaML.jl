@@ -19,12 +19,12 @@ push!(LOAD_PATH,"../src/")
 
 
 const _TUTORIAL_DIR = joinpath(@__DIR__, "src", "tutorials")
-# Important: If some tutorial is removed but the md file is left, this will continue to be used by Documenter
+# Important: If some tutorial is removed but the md file is left, this may still  be used by Documenter
 _TUTORIAL_SUBDIR = [
-    "Getting started",
+    #"Getting started",
     "Regression - bike sharing",
     "Classification - cars",
-    "Clusterisation - Iris"
+    "Clustering - Iris"
 ]
 
 function link_example(content)
@@ -91,16 +91,16 @@ makedocs(sitename="BetaML.jl Documentation",
          pages = [
             "Index" => "index.md",
 
-            "Tutorial" => map(
-                subdir -> subdir => map(
-                    file -> joinpath("tutorials", subdir, file),
-                    filter(
-                        file -> endswith(file, ".md"),
-                        sort(readdir(joinpath(_TUTORIAL_DIR, subdir))),
+            "Tutorial" => vcat("tutorials/Betaml_tutorial_getting_started.md",map(
+                    subdir -> subdir => map(
+                        file -> joinpath("tutorials", subdir, file),
+                        filter(
+                            file -> endswith(file, ".md"),
+                            sort(readdir(joinpath(_TUTORIAL_DIR, subdir))),
+                        ),
                     ),
+                    _TUTORIAL_SUBDIR,
                 ),
-
-                _TUTORIAL_SUBDIR,
             ),
             "API (Reference manual)" => [
               "Perceptron" => "Perceptron.md",

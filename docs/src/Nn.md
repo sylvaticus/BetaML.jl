@@ -1,4 +1,4 @@
-# The BetaML.Nn Module
+# [The BetaML.Nn Module](@id nn_module)
 
 ```@docs
 Nn

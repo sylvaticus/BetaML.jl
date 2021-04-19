@@ -29,7 +29,7 @@ For the complete list of functions provided see below. The main ones are:
 
 ## Data processing
 - Various small and large utilities for helping processing the data, expecially before running a ML algorithm
-- Includes [`getPermutaitons`](@ref), [`oneHotEncoder`](@ref), [`integerEncoder`](@ref) (and [`integerDecoder)`](@ref)), [`partition`](@ref), [`scale`](@ref) (and [`getScaleFactors`](@ref)), [`pca`](@ref), [`crossValidation`](@ref)
+- Includes [`getPermutations`](@ref), [`oneHotEncoder`](@ref), [`integerEncoder`](@ref) (and [`integerDecoder`](@ref)), [`partition`](@ref), [`scale`](@ref) (and [`getScaleFactors`](@ref)), [`pca`](@ref), [`crossValidation`](@ref)
 
 ## Samplers
 - Utilities to sample from data (e.g. for neural network training or for cross-validation)

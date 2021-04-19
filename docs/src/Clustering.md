@@ -1,8 +1,7 @@
-# The BetaML.Clustering Module
+# [The BetaML.Clustering Module](@id clustering_module)
 
 ```@docs
 Clustering
-
 ```
 ## Module Index
 

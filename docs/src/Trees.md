@@ -1,4 +1,4 @@
-# The BetaML.Trees Module
+# [The BetaML.Trees Module](@id trees_module)
 
 ```@docs
 Trees

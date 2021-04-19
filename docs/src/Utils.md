@@ -1,4 +1,4 @@
-# The BetaML.Utils Module
+# [The BetaML.Utils Module](@id utils_module)
 
 ```@docs
 Utils
