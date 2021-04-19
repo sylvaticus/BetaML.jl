@@ -31,15 +31,16 @@ res     = kernelPerceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1]) # kernelPerce
 
 ## Usage
 
-Documentation for most algorithms can be retrieved using the inline Julia help system (just press the question mark `?` and then, on the special help prompt `help?>`, type the function name).
+New to BetaML or even to Julia / Machine Learning altogether? [Start from the tutorial](@ref getting_started)!
 
-For a list of supported algorithms please look at the individual modules:
+Detailed documentation for most algorithms can be retrieved using the inline Julia help system (just press the question mark `?` and then, on the special help prompt `help?>`, type the function name) or on these pages under the section "Api (Reference Manual)" for the individual modules:
 
 - [**`BetaML.Perceptron`**](Perceptron.html): The Perceptron, Kernel Perceptron and Pegasos classification algorithms;
 - [**`BetaML.Trees`**](Trees.html): The Decision Trees and Random Forests algorithms for classification or regression (with missing values supported);
 - [**`BetaML.Nn`**](Nn.html): Implementation of Artificial Neural Networks;
 - [**`BetaML.Clustering``**](Clustering.html): Clustering algorithms (Kmeans, Mdedoids, EM/GMM) and missing imputation / collaborative filtering / recommandation systems using clusters;
 - [**`BetaML.Utils``**](Utils.html): Various utility functions (scale, one-hot, distances, kernels, pca, accuracy/error measures..).
+
 
 ### MLJ interface
 
@@ -51,9 +52,9 @@ BetaML exports the following modules for usage with the [`MLJ`](https://github.c
 
 Currently BetaML neural network models are not available in MLJ.
 
-## Examples
+## Quick examples
 
-**See the [tutorial](@ref getting_started) for a more step-by-step guide to the examples below and to other examples**
+_(see the_ [tutorial](@ref getting_started) _for a more step-by-step guide to the examples below and to other examples)_
 
 - **Using an Artificial Neural Network for multinomial categorisation**
 

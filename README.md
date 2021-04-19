@@ -1,6 +1,8 @@
 # Beta Machine Learning Toolkit
 
-_Machine Learning made simple :-)_
+<!-- _Machine Learning made simple :-)_ -->
+
+_BetaML: makes simple machine learning tasks easy, and complex machine learning tasks possible._
 
 <img src="assets/BetaML_logo.png" width="300" valign="middle"/> &nbsp;&nbsp;&nbsp;<img src="assets/microExample_white.png" width="500" valign="middle"/>
 

@@ -2,30 +2,33 @@
 
 ## Introduction
 
-This page presents some general information concerning BetaML. For detailed information on the algorithms provided by the Toolkit refer to the individual modules API or to the tutorial sections below:
+This "tutorial" part of the documentation presents a step-by-step guide to the main algorithms and utility functions provided by BetaML and comparisons with the leading packages in each field.
+Aside this page, the tutorial is divided in the following sections:
 -  [Regression tutorial](@ref regression_tutorial) - Arguments: _Decision trees, Random forests, neural networks, hyper-parameter tuning, continuous error measures_
 -  [Classification tutorial](@ref classification_tutorial) - Arguments: _Decision trees and random forests, neural networks (softmax), pre-processing workflow, confusion matrix_
 -  [Clustering tutorial](@ref clustering_tutorial) - Arguments: _k-means, kmedoids, generative gaussain models, cross-validation_
 
-The following modules are currently implemented: [Perceptron](https://sylvaticus.github.io/BetaML.jl/dev/Perceptron.html) (linear and kernel-based classifiers), [Trees](https://sylvaticus.github.io/BetaML.jl/dev/Trees.html) (Decision Trees and Random Forests), [Nn](https://sylvaticus.github.io/BetaML.jl/dev/Nn.html) (Neural Networks), [Clustering](https://sylvaticus.github.io/BetaML.jl/dev/Clustering.html) (Kmean, Kmenoids, Expectation-Maximisation, Missing value imputation, ...) and [Utils](https://sylvaticus.github.io/BetaML.jl/dev/Utils.html).
+Detailed information on the algorithms can be instead found in the API (Reference manual) of the individual modules. The following modules are currently implemented: [Perceptron](@ref perceptron_module) (linear and kernel-based classifiers), [Trees](@ref trees_module) (Decision Trees and Random Forests), [Nn](@ref nn_module) (Neural Networks), [Clustering](@ref clustering_module) (Kmean, Kmenoids, Expectation-Maximisation, Missing value imputation, ...) and [Utils](@ref utils_module).
 
-The overall "philosophy" of BetaML is to be able to make simple things easy and complex things possible. On the most basic level, most algorithms have default parameters suitable for a basic analysis. A great level of flexibility can be already achieved by just employing the full set of model parameters, for example changing the distance function in `kmedoids` to `l1_distance` (aka "Manhattan distance").
-Finally, the greatest flexibility can be obtained by customising BetaML and writing for example your own neural network layer type (by subclassing `AbstractLayer`), your own sampler (by subclassing `AbstractDataSampler`) or your own mixture component (by subclassing `AbstractMixture`),
+Finally, theoretical notes describing most of these algorithms can be found at the companion repository [https://github.com/sylvaticus/MITx_6.86x](https://github.com/sylvaticus/MITx_6.86x).
+
+The overall "philosophy" of BetaML is to support simple machine learning tasks easily and make complex tasks possible. An the most basic level, the majority of  algorithms have default parameters suitable for a basic analysis. A great level of flexibility can be already achieved by just employing the full set of model parameters, for example changing the distance function in `kmedoids` to `l1_distance` (aka "Manhattan distance").
+Finally, the greatest flexibility can be obtained by customising BetaML and writing, for example, its own neural network layer type (by subclassing `AbstractLayer`), its own sampler (by subclassing `AbstractDataSampler`) or its own mixture component (by subclassing `AbstractMixture`),
 In such a case, while not required by any means, please consider to give it back to the community and open a pull request to integrate your types in BetaML.
 
-If you are looking for an introductory book on Julia, have a look on "[Julia Quick Syntax Reference](https://www.julia-book.com/)" (Apress,2019).
+If you are looking for an introductory book on Julia, you could have a look on "[Julia Quick Syntax Reference](https://www.julia-book.com/)" (Apress,2019).
 
 A few miscellaneous notes:
 - Functions and type names use the so-called "CamelCase" convention, where the words are separated by a capital letter rather than `_`;
-- While some functions provide a `dims` parameter, most BetaML algorithms expect the input data with observations organised in different rows and fields/features in columns. Almost everywhere we call `N` the number of observations/records, and `D` the number of dimensions;
-- While some algorithms accept as input dataframes, the usage of standard arrays is encourages (if the data is passed to the function as dataframe, it may be converted to standard arrays somewhere in inner loops, and hence becoming inefficient.
+- While some functions provide a `dims` parameter, most BetaML algorithms expect the input data layout with observations organised by rows and fields/features by columns. Almost everywhere we call `N` the number of observations/records, and `D` the number of dimensions;
+- While some algorithms accept as input DataFrames, the usage of standard arrays is encourages (if the data is passed to the function as dataframe, it may be converted to standard arrays somewhere inside inner loops, leading to great inefficiencies).
 
 
 ## [Using BetaML from other programming languages](@id using_betaml_from_other_languages)
 
 Thanks to respectively [PyJulia](https://github.com/JuliaPy/pyjulia) and [JuliaCall](https://github.com/Non-Contradiction/JuliaCall), using BetaML in Python or R is almost as simple as using a native library.
 In both cases we need first to download and install the Julia binaries for our operating system from [JuliaLang.org](https://julialang.org/). Be sure that Julia is working by opening the Julia terminal and e.g. typing `println("hello world")` (JuliaCall has an option to install a private-to-R version of Julia from within R).
-Also, in both case we do not need to think to converting Python/R objects to Julia objects when calling a Julia function and converting back the result from Julia object to a Pytoh/R object, as this is handled automatically by PyJulia and JuliaCall, at least for simple types (arrays, strings,...)
+Also, in both case we do not need to think to converting Python/R objects to Julia objects when calling a Julia function and converting back the result from the Julia object to a Pytoh or R object, as this is handled automatically by PyJulia and JuliaCall, at least for simple types (arrays, strings,...)
 
 ### Use BetaML in Python
 

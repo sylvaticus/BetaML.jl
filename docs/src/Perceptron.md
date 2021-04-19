@@ -1,4 +1,4 @@
-# The [BetaML.Perceptron Module](@id perceptron_module)
+# [The BetaML.Perceptron Module](@id perceptron_module)
 
 ```@docs
 Perceptron

@@ -288,7 +288,7 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestful
 
 # BetaML provides only _deep forward neural networks_, artificial neural network units where the individual "nodes" are arranged in _layers_, from the _input layer_, where each unit holds the input coordinate, through various _hidden layer_ transformations, until the actual _output_ of the model:
 
-# ![Neural Networks](https://raw.githubusercontent.com/sylvaticus/MITx_6.86x/master/Unit%2003%20-%20Neural%20networks/assets/nn_scheme.png "Neural networks conceptual scheme")
+# ![Neural Networks](imgs/nn_scheme.png)
 
 # In this layerwise computation, each unit in a particular layer takes input from _all_ the preceding layer units and it has its own parameters that are adjusted to perform the overall computation. The _training_ of the network consists in retrieving the coefficients that minimise a _loss_ function between the output of the model and the known data.
 # In particular, a _deep_ (feedforward) neural network refers to a neural network that contains not only the input and output layers, but also hidden layers in between.
