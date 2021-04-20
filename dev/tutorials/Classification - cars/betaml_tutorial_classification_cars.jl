@@ -59,6 +59,8 @@ x     = Matrix{Union{Missing,Float64}}(data[:,1:7]);
 y     = Vector{Int64}(data[:,8]);
 
 # Some algorithms that we will use today don't work with missing data, so we need to _impute_ them. We use the [`predictMissing`](@ref) function provided by the [`BetaML.Clustering`](@ref clustering_module) sub-module. Internally the function uses a Gaussian Mixture Model to assign to the missing walue of a given record an average of the values of the non-missing records weighted for how close they are to our specific record.
+# Note that the same function (`predictMissing`) can be used for Collaborative Filtering / recomendation systems. Using GMM has the advantage over traditional algorithms as k-nearest neighbors (KNN) that GMM can "detect" the hidden structure of the observed data, where some observation can be similar to a certain pool of other observvations for a certain characteristic, but similar to an other pool of observations for other characteristics.
+
 xFull = predictMissing(x,rng=copy(FIXEDRNG)).X̂;
 
 # Further, some models don't work with categorical data as such, so we need to represent our `y` as a matrix with a separate column for each possible categorical value (the so called "one-hot" representation).
