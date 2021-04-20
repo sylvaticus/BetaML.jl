@@ -18,10 +18,10 @@ Provide clustering methods and missing values imputation / collaborative filteri
 The module provides the following functions. Use `?[function]` to access their full signature and detailed documentation:
 
 - [`initRepresentatives(X,K;initStrategy,Z₀)`](@ref initRepresentatives): Initialisation strategies for Kmean and Kmedoids
-- [`kmeans(X,K;dist,initStrategy,Z₀)](@ref kmeans)`: Classical KMean algorithm
-- [`kmedoids(X,K;dist,initStrategy,Z₀)](@ref kmedoids)`: Kmedoids algorithm
-- [`gmm(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initStrategy)](@ref gmm)`: gmm algorithm over GMM
-- [`predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)](@ref predictMissing)`: Fill mixing values / collaborative filtering using gmm as backbone
+- [`kmeans(X,K;dist,initStrategy,Z₀)`](@ref kmeans): Classical KMean algorithm
+- [`kmedoids(X,K;dist,initStrategy,Z₀)`](@ref kmedoids): Kmedoids algorithm
+- [`gmm(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initStrategy)`](@ref gmm): gmm algorithm over GMM
+- [`predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)`](@ref predictMissing): Impute mixing values ("matrix completion") using gmm as backbone. Note that this can be used for collaborative filtering / reccomendation systems often with better results than traditional algorithms as k-nearest neighbors (KNN)
 
 {Spherical|Diagonal|Full}Gaussian mixtures for `gmm` / `predictMissing` are already provided. User defined mixtures can be used defining a struct as subtype of `Mixture` and implementing for that mixture the following functions:
 - `initMixtures!(mixtures, X; minVariance, minCovariance, initStrategy)`
@@ -445,10 +445,10 @@ end # end function
 """
   predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)
 
-Fill missing entries in a sparse matrix assuming an underlying Gaussian Mixture probabilistic Model (GMM) and implementing
+Fill missing entries in a sparse matrix (i.e. perform a "matrix completion") assuming an underlying Gaussian Mixture probabilistic Model (GMM) and implementing
 an Expectation-Maximisation algorithm.
 
-While the name of the function is `predictMissing`, the function can be used also for system reccomendation / collaborative filtering and GMM-based regressions.
+While the name of the function is `predictMissing`, the function can be also used for system reccomendation / collaborative filtering and GMM-based regressions. The advantage over traditional algorithms as k-nearest neighbors (KNN) is that GMM can "detect" the hidden structure of the observed data, where some observation can be similar to a certain pool of other observvations for a certain characteristic, but similar to an other pool of observations for other characteristics.
 
 Implemented in the log-domain for better numerical accuracy with many dimensions.
 

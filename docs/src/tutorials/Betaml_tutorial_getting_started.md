@@ -6,7 +6,7 @@ This "tutorial" part of the documentation presents a step-by-step guide to the m
 Aside this page, the tutorial is divided in the following sections:
 -  [Regression tutorial](@ref regression_tutorial) - Arguments: _Decision trees, Random forests, neural networks, hyper-parameter tuning, continuous error measures_
 -  [Classification tutorial](@ref classification_tutorial) - Arguments: _Decision trees and random forests, neural networks (softmax), pre-processing workflow, confusion matrix_
--  [Clustering tutorial](@ref clustering_tutorial) - Arguments: _k-means, kmedoids, generative gaussain models, cross-validation_
+-  [Clustering tutorial](@ref clustering_tutorial) - Arguments: _k-means, kmedoids, generative (gaussian) mixture models (gmm), cross-validation_
 
 Detailed information on the algorithms can be instead found in the API (Reference manual) of the individual modules. The following modules are currently implemented: [Perceptron](@ref perceptron_module) (linear and kernel-based classifiers), [Trees](@ref trees_module) (Decision Trees and Random Forests), [Nn](@ref nn_module) (Neural Networks), [Clustering](@ref clustering_module) (Kmean, Kmenoids, Expectation-Maximisation, Missing value imputation, ...) and [Utils](@ref utils_module).
 
