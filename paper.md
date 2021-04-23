@@ -19,13 +19,13 @@ affiliations:
    index: 1
  - name: Université de Strasbourg
    index: 2
- - name: AgroParisTech
+ - name: Institut des sciences et industries du vivant et de l'environnement (AgroParisTech)
    index: 3
- - name: CNRS
+ - name: Centre national de la recherche scientifique (CNRS)
    index: 4
- - name: INRAE
+ - name: Institut national de recherche pour l’agriculture, l’alimentation et l’environnement (INRAE)
    index: 5
- - name: BETA
+ - name: Bureau d'économie théorique et appliquée (BETA)
    index: 6
 date: 19 April 2021
 bibliography: docs/paper/paper.bib
@@ -64,43 +64,15 @@ While much better results can be obtained (in general) by scaling the variables 
 
 Still BetaML offers a fair level of flexibility. As we didn't aim for heavy optimisation, we were able to keep the API (Application Programming Interface) both beginner-friendly and flexible.
 
-<!--The overall "philosophy" of BetaML is to be able to make simple things easy and complex things possible. -->
-
 If a great level of flexibility can already be achieved by just employing the full set of model parameters, the greatest flexibility is obtained by customising BetaML and writing, for example, its own neural network layer type (by subclassing `AbstractLayer`), its own sampler (by subclassing `AbstractDataSampler`) or its own mixture component (by subclassing `AbstractMixture`).
 While the library is designed for Julia users, the documentation provides examples for using the package from R or Python (thanks to JuliaCall [@Li:2019] and PyJulia [@Arakaki:2020] respectively).
 
-<!--To help beginners, many parameters and functions have pretty longer but more explicit names than usual. For example the Dense layer is a `DenseLayer`, the RBF kernel is `radialKernel`, etc.-->
-
 A few packages try to provide a common Julia framework of the various ML algorithms available in Julia, like  ScikitLearn.jl [@St-Jean:2020], AutoMLPipeline.jl [@Paulito:2020] or MLJ.jl [@Blaom:2019]. They build up on existing Julia (and/or Python) ML specialised packages. While avoiding the problem of "reinventing the wheel", the wrapping level may unintentionally introduces complications for the end-user, like the need to load the models and learn framework-specific concepts as _model_ or _machine_ in MLJ or `@pipeline` and `fit_transform!` in AutoMLPipeline.
-
-<!--Also it make difficult for the user to trace back the code performing the computations and modify for his own needs.-->
 
 We chose instead to bundle the main ML algorithms directly within the package. This offers a complementary approach that we feel it is more beginner-friendly.
 
-<!--
-Parameters Start gradually
-
-Simplicity not like Flux that rather than passing the neural network object to the train function in order to flexibility and optimise pass ....
-
-
-
-Of course you can get much better results (in general) by scaling the variables, adding further layer(s) and/or tuning their activation functions or the optimisation algorithm (have a look at the notebooks 1 or at the documentation for that), but the idea is that while we can offer a fair level of flexibility (you can choose or define your own activation function, easy define your own layers, choose weight initialisation, choose or implement the optimisation algorithm and its parameters, choose the training parameters - epochs, batchsize,…-, the callback function to get informations during (long) training,…), still we try to keep it one step at the time. So for most stuff we provide default parameters that can be overridden when needed rather than pretend that the user already know and provide all the needed parameters.
--->
-
 We believe that the BetaML flexibility and simplicity, together with the efficiency and usability of a Just in Time compiled language like Julia and the convenience to have several ML algorithms and data-science utilities all in the same package,
 will support the needs of that community of <!-- can address significantly better the needs of  --> students and researchers  that, contrary to industrial practitioners or computer science specialists, don't necessarily need to work  with very large datasets that don't fit in memory or algorithms that require distributed computation.
-
-
-<!--
-Other approaches
-
-MLJ: @Blaom:2019
-Flux: @Innes:2018
-Knet: @Yuret:2016
-
--->
-
-<!-- Students and reserachers may find appealling to perform their research or as a platform to develop their own algorithms -->
 
 
 # Package organisation
@@ -119,7 +91,7 @@ Concerning the fist category `Utils` provides "classical" activation functions (
 Often ML algorithms work better if the data is normalised or dimensions are reduced to those explaining the greatest extent of data variability. This is the purpose of the functions `scale` and `pca` respectively. `scale` scales the data to $\mu=0$ and $\sigma=1$, optionally skipping dimensions that don't need to be normalised (like categorical ones). The related function `getScaleFactors` saves the scaling factors so that inverse scaling (typically for the predictions of the ML algorithm) can be applied. `pca` performs Principal Component Analysis, where the user can specify either the number of dimensions to retain or the maximum approximation error that she/he is willing to accept, either _ex-ante_ or _ex-post_, after having analysed the distribution of the explained variance by number of dimensions. Other "general support" functions provided are `oneHotEncoder`, `batch`, `partition` and `crossValidation`.
 
 Concerning the last category, several functions are provided to assess the goodness of fit of a single datapoint or of the whole dataset, whether the output of the ML algorithm is in $R^n$ or categorical. Notably, `accuracy` provides categorical accuracy given a probabilistic prediction (as PMF) of a datapoint and `ConfusionMatrix` allows a detailed analysis of categorical predictions.
-<!--, with a parameter `tol` to determine the tollerance of the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values.-->
+
 Finally, the Bayesian Information Criterion `bic` and Akaike Information Criterion `aic` functions can be used for regularisation.
 
 ## The `Perceptron` module
@@ -158,55 +130,9 @@ Like for the other modules the two algorithms provided by the `Trees` module (de
 
 The nature of the task (classification or regression) is automatically determined by the numerical nature of the training labels but it can be overridden by the user, together with many other parameters. Support for missing data and the direct usage of mixed categorical and numerical dimensions in the data (without the need to encode the categories) make the algorithms of the `Trees` module very convenient to use.
 
-<!--
-
-# Mathematics
-
-Single dollars ($) are required for inline mathematics e.g. $f(x) = e^{\pi/x}$
-
-Double dollars make self-standing equations:
-
-$$\Theta(x) = \left\{\begin{array}{l}
-0\textrm{ if } x < 0\cr
-1\textrm{ else}
-\end{array}\right.$$
-
-You can also use plain \LaTeX for equations
-\begin{equation}\label{eq:fourier}
-\hat f(\omega) = \int_{-\infty}^{\infty} f(x) e^{i\omega x} dx
-\end{equation}
-and refer to \autoref{eq:fourier} from text.
-
-# Citations
-
-Citations to entries in paper.bib should be in
-[rMarkdown](http://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html)
-format.
-
-If you want to cite a software repository URL (e.g. something on GitHub without a preferred
-citation) then you can do it with the example BibTeX entry below for fidgit.
-
-For a quick reference, the following citation commands can be used:
-- `arobase author:2001`  ->  "Author et al. (2001)"
-- `[arobase author:2001]` -> "(Author et al., 2001)"
-- `[arobase author1:2001; arobase author2:2001]` -> "(Author1 et al., 2001; Author2 et al., 2002)"
-
-# Figures
-
-Figures can be included like this:
-![Caption for example figure.\label{fig:example}](figure.png)
-and referenced from text using \autoref{fig:example}.
-
-Fenced code blocks are rendered with syntax highlighting:
-
-```python
-for n in range(10):
-    yield f(n)
-```
--->
 
 # Acknowledgements
 
-This work was supported by: (i) the French National Research Agency through the Laboratory of Excellence ARBRE, part of the "Investissements d'Avenir" Program (ANR 11 – LABX-0002-01), and the ORACLE project (ANR-10-CEPL-011); (ii) a grant overseen by Office National des Forêts through the Forêts pour Demain International Teaching and Research Chair.
+This work was supported by a grant overseen by the French National Research Agency (ANR) as part of the "Investissements d'Avenir" program (ANR-11-LABX-0002-01, Lab of Excellence ARBRE).
 
 # References
