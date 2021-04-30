@@ -39,7 +39,7 @@ bibliography: docs/paper/paper.bib
 
 # Summary
 
-A serie of _machine learning_ algorithms has been implemented and bundled together with several "utility" functions in a single package for the Julia programming language.
+A series of _machine learning_ algorithms has been implemented and bundled together with several "utility" functions in a single package for the Julia programming language.
 Currently, algorithms are available in the areas of classification (perceptron, kernel perceptron, pegasos), neural networks (feed-forward), clustering (kmeans, kmenoids, gmm, missing values imputation) and decision trees/random forests. Development of these algorithms started following the theoretical notes of the MOOC class "Machine Learning with Python: from Linear Models to Deep Learning" from MITx/edX.
 
 This paper presents the motivations and the general approach of the package and gives an overview of its organisation. We refer the reader to the [package documentation](https://sylvaticus.github.io/BetaML.jl/stable) for instructions on how to use the various algorithms provided or to the MOOC notes available on GitHub [@Lobianco:2020] for their mathematical backgrounds.
@@ -67,12 +67,12 @@ Still BetaML offers a fair level of flexibility. As we didn't aim for heavy opti
 If a great level of flexibility can already be achieved by just employing the full set of model parameters, the greatest flexibility is obtained by customising BetaML and writing, for example, its own neural network layer type (by subclassing `AbstractLayer`), its own sampler (by subclassing `AbstractDataSampler`) or its own mixture component (by subclassing `AbstractMixture`).
 While the library is designed for Julia users, the documentation provides examples for using the package from R or Python (thanks to JuliaCall [@Li:2019] and PyJulia [@Arakaki:2020] respectively).
 
-A few packages try to provide a common Julia framework of the various ML algorithms available in Julia, like  ScikitLearn.jl [@St-Jean:2020], AutoMLPipeline.jl [@Paulito:2020] or MLJ.jl [@Blaom:2019]. They build up on existing Julia (and/or Python) ML specialised packages. While avoiding the problem of "reinventing the wheel", the wrapping level may unintentionally introduces complications for the end-user, like the need to load the models and learn framework-specific concepts as _model_ or _machine_ in MLJ or `@pipeline` and `fit_transform!` in AutoMLPipeline.
+A few packages try to provide a common Julia framework of the various ML algorithms available in Julia, like ScikitLearn.jl [@St-Jean:2020], AutoMLPipeline.jl [@Paulito:2020] or MLJ.jl [@Blaom:2019]. They build up on existing Julia (and/or Python) ML specialised packages. While avoiding the problem of "reinventing the wheel", the wrapping level may unintentionally introduces complications for the end-user, like the need to load the models and learn framework-specific concepts as _model_ or _machine_ in MLJ or `@pipeline` and `fit_transform!` in AutoMLPipeline.
 
 We chose instead to bundle the main ML algorithms directly within the package. This offers a complementary approach that we feel it is more beginner-friendly.
 
-We believe that the BetaML flexibility and simplicity, together with the efficiency and usability of a Just in Time compiled language like Julia and the convenience to have several ML algorithms and data-science utilities all in the same package,
-will support the needs of that community of <!-- can address significantly better the needs of  --> students and researchers  that, contrary to industrial practitioners or computer science specialists, don't necessarily need to work  with very large datasets that don't fit in memory or algorithms that require distributed computation.
+We believe that the BetaML flexibility and simplicity, together with the efficiency and usability of a Just in Time compiled language like Julia and the convenience of having several ML algorithms and data-science utilities all in the same package,
+will support the needs of that community of students and researchers that, contrary to industrial practitioners or computer science specialists, don't necessarily need to work with very large datasets that don't fit in memory or algorithms that require distributed computation.
 
 
 # Package organisation
@@ -84,7 +84,7 @@ All sub-module functionalities are re-exported at the root level, so the user do
 
 ## The `Utils` module
 
-The `Utils` module is intended to provide functionalities that are either: (a) used in other modules but are not strictly part of that specific module's logic (for example activation functions would be most likely used in neural networks, but could be of more general usage); (b) general methods that are used alongside the ML algorithms, e.g. to improve their predictions capabilities; or (c ) general methods to assess the goodness of fits of ML algorithms.
+The `Utils` module is intended to provide functionalities that are either: (a) used in other modules but are not strictly part of that specific module's logic (for example activation functions would be most likely used in neural networks, but could be of more general usage); (b) general methods that are used alongside the ML algorithms, e.g. to improve their predictions capabilities; or (c) general methods to assess the goodness of fits of ML algorithms.
 
 Concerning the fist category `Utils` provides "classical" activation functions (and their respective derivatives) like `relu`, `sigmoid`, `softmax`, but also more recent implementations like `elu` [@Clevert:2015], `celu` [@Barron:2017], `plu` [@Nicolae:2018], `softplus` [@Glorot:2011] and `mish` [@Misra:2019].  Kernel functions (`radialKernel` - aka "KBF", `polynomialKernel`), distance metrics (`l1_distance` - aka "Manhattan", `l2_distance`, `l2²_distance`, `cosine_distance`), and functions typically used to improve numerical stability (`lse`) are also provided with the intention to be available in the different ML algorithms.
 
@@ -103,10 +103,10 @@ The basic Perceptron classifier is implemented in the `perceptron` function, whe
 ## The `Nn` module
 
 Artificial neural networks can be implemented using the functions provided by the `Nn` module.
-Currently only feed-forward networks for regression or classification tasks are fully provided, but more complex layers (convolutional, pooling, recursive,...) can be eventually defined and implemented directly by the user.
+Currently only feed-forward networks for regression or classification tasks are fully provided, but more complex layers (convolutional, pooling, recursive, ...) can be eventually defined and implemented directly by the user.
 The instantiation of the layers required by the network can be done indeed either using one of the layer provided (`DenseLayer`, `DenseNoBiasLayer` or `VectorFunctionLayer`, the latter one being a parameterless layer whose activation function, like `softMax` or `pool1d`, is applied to the ensemble of the neurons rather than individually on each of them) or by creating a user-defined layer by subclassing the `AbstractLayer` type and implementing the functions `forward`, `backward`, `getParams`, `getGradient`, `setParams` and `size`.
 
-While in the provided layers the computation of the derivatives for `backward` and `getParams` is coded manually^[For the derivatives of the activation function the user can (a) provide one of the derivative functions defined in `Utils`, (b) implement it by himself, or (c ) just leave the library use automatic differentiation (using Zygote) to compute it.], for complex user-defined layers the two functions can benefit of automatic differentiation packages like `Zygote`[@Innes:2018b], eventually wrapped in the function `autoJacobian` defined in `Utils`.
+While in the provided layers the computation of the derivatives for `backward` and `getParams` is coded manually^[For the derivatives of the activation function the user can (a) provide one of the derivative functions defined in `Utils`, (b) implement it by himself, or (c) just leave the library use automatic differentiation (using Zygote) to compute it.], for complex user-defined layers the two functions can benefit of automatic differentiation packages like `Zygote`[@Innes:2018b], eventually wrapped in the function `autoJacobian` defined in `Utils`.
 
 Once the layers are defined, the neural network is modelled by setting the layers in an array, giving the network a cost function and a name. The `show` function can be employ to print the structure of the network.
 
