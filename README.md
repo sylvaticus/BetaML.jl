@@ -10,13 +10,15 @@ The **Beta Machine Learning Toolkit** is a repository with several Machine Learn
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://sylvaticus.github.io/BetaML.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sylvaticus.github.io/BetaML.jl/dev)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.02849/status.svg)](https://doi.org/10.21105/joss.02849)
 [![Build status](https://github.com/sylvaticus/BetaML.jl/workflows/CI/badge.svg)](https://github.com/sylvaticus/BetaML.jl/actions)
 [![codecov.io](http://codecov.io/github/sylvaticus/BetaML.jl/coverage.svg?branch=master)](http://codecov.io/github/sylvaticus/BetaML.jl?branch=master)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/sylvaticus/BetaML.jl/master)
+
 
 Theoretical notes describing most of these algorithms are at the companion repository https://github.com/sylvaticus/MITx_6.86x.
 
-The focus of the library is skewed toward user-friendliness rather than computational efficiency, the code is (relatively) easy to read but it is not heavily optimised (and GPU is not supported). For excellent and mature machine learning algorithms in Julia that support huge datasets or to organise complex and partially automated pipelines of algorithms please consider the packages in the above section "Alternative packages".
+The focus of the library is skewed toward user-friendliness rather than computational efficiency, the code is (relatively) easy to read and, for the algorithms implementation, uses mostly Julia core without external libraries (a little bit like [numpy-ml](https://github.com/ddbourgin/numpy-ml) for Python-Numpy) but it is not heavily optimised (and GPU is not supported).
+. For excellent and mature machine learning algorithms in Julia that support huge datasets or to organise complex and partially automated pipelines of algorithms please consider the packages in the above section "Alternative packages".
 
 As the focus is on simplicity, functions have pretty longer but more explicit names than usual.. for example the `Dense` layer is a `DenseLayer`, the `RBF` kernel is `radialKernel`, etc.
 As we didn't aim for heavy optimisation, we were able to keep the API (Application Programming Interface) both beginner-friendly and flexible. Contrary to established packages, most methods provide reasonable defaults that can be overridden when needed (like the neural network optimiser, the verbosity level, or the loss function).
@@ -171,6 +173,29 @@ Contributions to the library are welcome. We are particularly interested in the 
 Please however consider that the focus is mostly didactic/research, so clear, easy to read (and well documented) code and simple API with reasonable defaults are more important that highly optimised algorithms. For the same reason, it is fine to use verbose names.
 Please open an issue to discuss your ideas or make directly a well-documented pull request to the repository.
 While not required by any means, if you are customising BetaML and writing for example your own neural network layer type (by subclassing `AbstractLayer`), your own sampler (by subclassing `AbstractDataSampler`) or your own mixture component (by subclassing `AbstractMixture`), please consider to give it back to the community and open a pull request to integrate them in BetaML.
+
+## Citations
+
+If you use `BetaML` please cite as:
+
+- Lobianco, A., (2021). BetaML: The Beta Machine Learning Toolkit, a self-contained repository of Machine Learning algorithms in Julia. Journal of Open Source Software, 6(60), 2849, https://doi.org/10.21105/joss.02849
+
+
+```Bibtex
+@article{Lobianco2021,
+  doi       = {10.21105/joss.02849},
+  url       = {https://doi.org/10.21105/joss.02849},
+  year      = {2021},
+  publisher = {The Open Journal},
+  volume    = {6},
+  number    = {60},
+  pages     = {2849},
+  author    = {Antonello Lobianco},
+  title     = {BetaML: The Beta Machine Learning Toolkit, a self-contained repository of Machine Learning algorithms in Julia},
+  journal   = {Journal of Open Source Software}
+}
+```
+
 
 ## Acknowledgements
 
