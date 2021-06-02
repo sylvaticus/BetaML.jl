@@ -113,6 +113,7 @@ makedocs(sitename="BetaML.jl Documentation",
          format = Documenter.HTML(prettyurls = false),
          #strict = true,
          #doctest = false
+         analytics = "G-JYKX8QY5JW",
 )
 println("Starting deploying the documentation...")
 deploydocs(
