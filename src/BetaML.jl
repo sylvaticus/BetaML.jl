@@ -21,11 +21,12 @@ const MMI = MLJModelInterface
 
 using ForceImport, Reexport
 
-include("Api.jl")        # Shared names across modules
-include("Utils/Utils.jl")      # Utility function
-include("Nn/Nn.jl")         # Neural Networks
+include("Api.jl")                   # Shared names across modules
+include("Utils/Utils.jl")           # Utility function
+include("Stats/Stats.jl")           # Classical statistical functions
+include("Nn/Nn.jl")                 # Neural Networks
 include("Perceptron/Perceptron.jl") # Perceptron-like algorithms
-include("Trees/Trees.jl")      # Decision Trees and ensembles (Random Forests)
+include("Trees/Trees.jl")           # Decision Trees and ensembles (Random Forests)
 include("Clustering/Clustering.jl") # Clustering algorithms
 
 # "Merging" of the modules...
@@ -33,6 +34,8 @@ include("Clustering/Clustering.jl") # Clustering algorithms
 @reexport using .Api
 @force    using .Utils
 @reexport using .Utils
+@force    using .Stats
+@reexport using .Stats
 @force    using .Nn
 @reexport using .Nn
 @force    using .Perceptron

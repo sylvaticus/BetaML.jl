@@ -27,6 +27,10 @@ if "all" in ARGS || "Clustering" in ARGS || nArgs == 0
     include("Clustering_tests.jl")
 end
 
+if "all" in ARGS || "Stats" in ARGS || nArgs == 0
+    include("Stats_tests.jl")
+end
+
 if "all" in ARGS
     # run optional long tests
     include("Perceptron_tests_additional.jl")
