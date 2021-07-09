@@ -34,7 +34,7 @@ using  ForceImport
 @force using ..Utils
 
 
-export welchSatterthwaite, huberLoss, check, mEstimationBruteForce, findQuantile, goodnessOfFitDiscrete, ksTest
+export welchSatterthwaite, huberLoss, check, mEstimationBruteForce, findQuantile, goodnessOfFitDiscrete, ksTest, computeDensity
 
 
 welchSatterthwaite(σx, σy,n,m) = Int(floor(((σx^2/n) + (σy^2/m))^2 / ( (σx^4/(n^2*(n-1)) + (σy^4/(m^2*(m-1)) ) ))))
@@ -90,7 +90,7 @@ function goodnessOfFitDiscrete(data,p0=[1/length(data) for i in 1:length(data)];
     return (testValue=T, threashold=quantile(χDist,1-α),rejectedH₀=rejectedH₀, p_value=p_value)
   end
 
-function distribute(data,support)
+function computeDensity(data,support)
     counts =  [count(i -> i==s,data) for s in support]
     if length(data) > sum(counts)
         error("There are some data not in the support !")
@@ -108,7 +108,7 @@ H₀ can be either the PDF with a specified set of parameters or the PDF in gene
 """
 function goodnessOfFitDiscrete(data,support,f₀;compressedData=true,α=0.05,d=0)
     if !compressedData
-        data   = distribute(data,support)
+        data   = computeDensity(data,support)
     end
     K          = length(support)
     N          = sum(data)

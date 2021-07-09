@@ -57,25 +57,60 @@ out     = goodnessOfFitDiscrete(data,support,Binomial(3,θhat),compressedData=tr
 @test out.testValue == 0.8828551921498722
 @test out.p_value == 0.643117653187048
 
+#=
+f₀ = Binomial(1000,0.7)
+reps = 1000
+outs = fill(false,reps)
+for rep in 1:reps
+    data      = rand(Binomial(1000,0.2),1000)
+    support   = minimum(data):(maximum(data))
+    support   = 0:1000
+    out       = goodnessOfFitDiscrete(data,support,f₀,compressedData=false,α=0.05,d=0)
+    outs[rep] = out.rejectedH₀
+end
+sum(outs)/reps
+
+data      = rand(f₀ ,10000)
+
+density(data)
+support=collect(0:100)
+d = computeDensity(data,support)
+plot(support[50:90],d[50:90])
+=#
+
 # ----------------------------------------
 
-ksdist = KSDist(7)
-cdf(ksdist,0.48342)
+#ksdist = KSDist(7)
+#cdf(ksdist,0.48342)
 #quantile(ksdist,0.95)
-Distributions.quantile_bisect(ksdist,0.95)
+#Distributions.quantile_bisect(ksdist,0.95)
 
-kong = Kolmogorov()
-quantile(kong,0.95)
-
-
+#kong = Kolmogorov()
+#quantile(kong,0.95)
 
 f₀ = Normal(0,1)
 data = rand(Normal(0.1,1) ,500)
 out  = ksTest(data,f₀;α=0.05)
 
-N          = length(data)
-cdfhat     = collect(1:N) ./ N
-cdftrue    = [cdf(f₀,x) for x in sort(data)]
+#N          = length(data)
+#cdfhat     = collect(1:N) ./ N
+#cdftrue    = [cdf(f₀,x) for x in sort(data)]
 
-plot(cdftrue)
-plot!(cdfhat)
+#plot(cdftrue)
+#plot!(cdfhat)
+
+
+#=
+
+f₀ = Normal(0,1)
+
+f₀ = Exponential(1)
+reps = 500
+outs = fill(false,reps)
+for rep in 1:reps
+    data = rand(f₀ ,1000)
+    out  = ksTest(data,f₀;α=0.05)
+    outs[rep] = out.rejectedH₀
+end
+sum(outs)/reps
+=#
