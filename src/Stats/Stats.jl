@@ -34,7 +34,7 @@ using  ForceImport
 @force using ..Utils
 
 
-export welchSatterthwaite, huberLoss, check, mEstimationBruteForce, findQuantile, goodnessOfFitDiscrete, ksTest, computeDensity
+export welchSatterthwaite, huberLoss, check, mEstimationBruteForce, findQuantile, goodnessOfFitDiscrete, ksTest, computeDensity, computeKSTableValue
 
 
 welchSatterthwaite(σx, σy,n,m) = Int(floor(((σx^2/n) + (σy^2/m))^2 / ( (σx^4/(n^2*(n-1)) + (σy^4/(m^2*(m-1)) ) ))))
@@ -87,18 +87,21 @@ function goodnessOfFitDiscrete(data,p0=[1/length(data) for i in 1:length(data)];
     χDist = Chisq(K-1)
     rejectedH₀ = T > quantile(χDist,1-α)
     p_value = 1 - cdf(χDist,T)
-    return (testValue=T, threashold=quantile(χDist,1-α),rejectedH₀=rejectedH₀, p_value=p_value)
+    return (testValue=T, threshold=quantile(χDist,1-α),rejectedH₀=rejectedH₀, p_value=p_value)
   end
 
 function computeDensity(data,support)
     counts =  [count(i -> i==s,data) for s in support]
     if length(data) > sum(counts)
-        error("There are some data not in the support !")
+        shareDataNotInSupport = (length(data) -  sum(counts)) / length(data)
+        if shareDataNotInSupport >= 0.0001
+            @warn "$shareDataNotInSupport of the data is not in the support"
+        end
     end
     return counts
 end
 
-""" 
+"""
     goodnessOfFitDiscrete(data,support,f₀;compressedData=true,α=0.05,d=0)
 
 Perform a goodness to fit chi-squared test to check for a particular MMF.
@@ -119,28 +122,62 @@ function goodnessOfFitDiscrete(data,support,f₀;compressedData=true,α=0.05,d=0
     χDist      = Chisq(df)
     rejectedH₀ = T > quantile(χDist,1-α)
     p_value    = 1 - cdf(χDist,T)
-    return (testValue=T, threashold=quantile(χDist,1-α),rejectedH₀=rejectedH₀, p_value=p_value)
+    return (testValue=T, threshold=quantile(χDist,1-α),rejectedH₀=rejectedH₀, p_value=p_value)
 end
 
-function ksTest(data,f₀;α=0.05)
+
+"""
+   ksTest(data,f₀;α=0.05,asymptoticThreshold)
+
+Perform the Kolmogorov-Smirnov goodness-of-fits table using the asymptotic Kolmogorov distribution (for N > 30, as it is faster) or the non-asymptotic KS Table for N < 30.
+
+Note that as n → ∞, Distributions.quantile_bisect(distr,1-α) * sqrt(N) → quantile(distr,1-α)
+For a three-digit precision use a asymptoticThreshold >= 1000, but slower!
+"""
+function ksTest(data,f₀,;α=0.05,asymptoticThreshold=100)
     data       = sort(data)
     N          = length(data)
     cdfhat     = collect(0:N) ./ N
     maxDist    = 0.0
     for (n,x) in enumerate(data)
-        dist = max(abs(cdfhat[n]-cdf(f₀,x)), abs(cdfhat[n]-cdf(f₀,x)))
+        dist = max(abs(cdfhat[n]-cdf(f₀,x)), abs(cdfhat[n+1]-cdf(f₀,x)))
         if dist > maxDist
             maxDist = dist
         end
     end
     T          = sqrt(N) * maxDist
-    dist       = Kolmogorov()
-    rejectedH₀ = T > quantile(dist,1-α)
-    p_value    = 1 - cdf(dist,T)
-    return (testValue=T, threashold=quantile(dist,1-α),rejectedH₀=rejectedH₀, p_value=p_value)
+    distr      = N > asymptoticThreshold ? Kolmogorov() : KSDist(N)
+    q          = N > asymptoticThreshold ? quantile(distr,1-α) : Distributions.quantile_bisect(distr,1-α) * sqrt(N)
+    rejectedH₀ = T > q
+    p_value    = 1 - cdf(distr,T)
+    return (testValue=T, threshold=q,rejectedH₀=rejectedH₀, p_value=p_value)
 end
 
+"""
+   computeKSTableValue(f₀,N,α,repetitions=1000)
 
+Compute the values of the Kolmogorov-Smirnov table by numerical simulation
+
+"""
+function computeKSTableValue(f₀,N,α,repetitions=1000)
+    Ts = Array{Float64,1}(undef,repetitions)
+    for rep in 1:repetitions
+        data       = sort(rand(f₀,N))
+        N          = length(data)
+        cdfhat     = collect(0:N) ./ N
+        maxDist    = 0.0
+        for (n,x) in enumerate(data)
+            dist = max(abs(cdfhat[n]-cdf(f₀,x)), abs(cdfhat[n+1]-cdf(f₀,x)))
+            if dist > maxDist
+                maxDist = dist
+            end
+        end
+        T          = sqrt(N) * maxDist
+        Ts[rep]    = T
+    end
+    Ts = sort(Ts)
+    return Ts[Int(ceil((1-α)*repetitions))]/sqrt(N)
+end
 
 
 end # end module

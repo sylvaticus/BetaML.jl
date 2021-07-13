@@ -35,19 +35,15 @@ q0  = findQuantile(obs,0.2)
 q0_2 = sort(obs)[Int(round(length(obs)*0.2))]
 @test isapprox(q0,q0_2,atol=0.01)
 
-
 # ----------------------------------------
 out = goodnessOfFitDiscrete([205,26,25,19],[0.72,0.07,0.12,0.09],α=0.05)
 @test out.testValue ≈ 5.889610389610388
 @test out.p_value ≈  0.1171061913085063
 
-
 # ----------------------------------------
-
 data    = ["a","y","y","b","b","a","b"]
 support = ["a","b","y"]
-
-@test distribute(data,support) == [2,3,2]
+@test computeDensity(data,support) == [2,3,2]
 
 # ----------------------------------------
 support = [0,1,2,3]
@@ -57,60 +53,53 @@ out     = goodnessOfFitDiscrete(data,support,Binomial(3,θhat),compressedData=tr
 @test out.testValue == 0.8828551921498722
 @test out.p_value == 0.643117653187048
 
-#=
-f₀ = Binomial(1000,0.7)
-reps = 1000
-outs = fill(false,reps)
-for rep in 1:reps
-    data      = rand(Binomial(1000,0.2),1000)
-    support   = minimum(data):(maximum(data))
-    support   = 0:1000
-    out       = goodnessOfFitDiscrete(data,support,f₀,compressedData=false,α=0.05,d=0)
-    outs[rep] = out.rejectedH₀
-end
-sum(outs)/reps
 
-data      = rand(f₀ ,10000)
+#----------------------------------------
 
-density(data)
-support=collect(0:100)
-d = computeDensity(data,support)
-plot(support[50:90],d[50:90])
-=#
-
-# ----------------------------------------
-
-#ksdist = KSDist(7)
-#cdf(ksdist,0.48342)
-#quantile(ksdist,0.95)
-#Distributions.quantile_bisect(ksdist,0.95)
-
-#kong = Kolmogorov()
-#quantile(kong,0.95)
-
-f₀ = Normal(0,1)
-data = rand(Normal(0.1,1) ,500)
+f₀   = Uniform(0,1)
+data = [0.8,0.7,0.4,0.7,0.2]
 out  = ksTest(data,f₀;α=0.05)
+@test out.testValue = 0.6708203932499368
+@test out.p_value   = 0.009598291426747618)
 
-#N          = length(data)
-#cdfhat     = collect(1:N) ./ N
-#cdftrue    = [cdf(f₀,x) for x in sort(data)]
+# --------------------------------------
 
-#plot(cdftrue)
-#plot!(cdfhat)
-
-
-#=
-
+#f₀ = Exponential(10)
+#f₀ = Normal(0,1)
+#f₀ = Uniform(0,10)
 f₀ = Normal(0,1)
-
-f₀ = Exponential(1)
-reps = 500
-outs = fill(false,reps)
-for rep in 1:reps
-    data = rand(f₀ ,1000)
+repetitions = 500
+outs = fill(false,repetitions)
+for rep in 1:repetitions
+    data = rand(f₀ ,31)
     out  = ksTest(data,f₀;α=0.05)
     outs[rep] = out.rejectedH₀
 end
-sum(outs)/reps
+@test isapprox(sum(outs)/repetitions,0.05,atol=0.01)
+
+#=
+# -------------------------
+function computeKSTableValue(f₀,N,α,repetitions=1000)
+    Ts = Array{Float64,1}(undef,repetitions)
+    for rep in 1:repetitions
+        data       = sort(rand(f₀,N))
+        N          = length(data)
+        cdfhat     = collect(0:N) ./ N
+        maxDist    = 0.0
+        for (n,x) in enumerate(data)
+            dist = max(abs(cdfhat[n]-cdf(f₀,x)), abs(cdfhat[n+1]-cdf(f₀,x)))
+            if dist > maxDist
+                maxDist = dist
+            end
+        end
+        T          = sqrt(N) * maxDist
+        Ts[rep]    = T
+    end
+    Ts = sort(Ts)
+    return Ts[Int(ceil((1-α)*repetitions))]/sqrt(N)
+end
+(N,α,f₀) = 7,0.05,Normal(20,20)
+computeKSTableValue(f₀,N,α,1000000) * sqrt(N)
+quantile(Kolmogorov(),1-α)
+Distributions.quantile_bisect(KSDist(N),1-α) *sqrt(N)
 =#
