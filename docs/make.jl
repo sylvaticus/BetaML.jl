@@ -68,6 +68,12 @@ function literate_directory(dir)
                  documenter = true,
                  postprocess = link_example
              )
+            # Literate.notebook(
+            #     filename,
+            #     dir;
+            #     documenter = true,
+            #     postprocess = link_example
+            # )
         else
             Literate.markdown(
                 filename,
@@ -76,6 +82,13 @@ function literate_directory(dir)
                 postprocess = link_example,
                 codefence =  "```text" => "```"
             )
+           # Literate.notebook(
+           #     filename,
+           #     dir;
+           #     documenter = true,
+           #     postprocess = link_example,
+           #     codefence =  "```text" => "```"
+           # )
         end
 
     end

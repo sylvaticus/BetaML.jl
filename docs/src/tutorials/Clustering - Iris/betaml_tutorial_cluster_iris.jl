@@ -1,4 +1,4 @@
-# # [A classification task: the prediction of  plant species from floreal measures (the iris dataset)](@id clustering_tutorial)
+# # [A clustering task: the prediction of  plant species from floreal measures (the iris dataset)](@id clustering_tutorial)
 # The task is to estimate the species of a plant given some floreal measurements. It use the classical "Iris" dataset.
 # Note that in this example we are using clustering approaches, so we try to understand the "structure" of our data, without relying to actually knowing the true labels ("classes" or "factors"). However we have chosen a dataset for which the true labels are actually known, so to compare the accuracy of the algorithms we use, but these labels will not be used during the algorithms training.
 

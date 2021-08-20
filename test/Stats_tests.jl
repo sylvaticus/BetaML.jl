@@ -50,8 +50,8 @@ support = [0,1,2,3]
 data    = [339,455,180,26]
 θhat    = sum(data .* support)/(sum(data)*3)
 out     = goodnessOfFitDiscrete(data,support,Binomial(3,θhat),compressedData=true,α=0.05,d=1)
-@test out.testValue == 0.8828551921498722
-@test out.p_value == 0.643117653187048
+@test out.testValue  ≈  0.8828551921498722
+@test out.p_value  ≈  0.643117653187048
 
 
 #----------------------------------------
@@ -59,8 +59,8 @@ out     = goodnessOfFitDiscrete(data,support,Binomial(3,θhat),compressedData=tr
 f₀   = Uniform(0,1)
 data = [0.8,0.7,0.4,0.7,0.2]
 out  = ksTest(data,f₀;α=0.05)
-@test out.testValue == 0.6708203932499368
-@test out.p_value   == 0.009598291426747618
+@test out.testValue  ≈  0.6708203932499368
+@test out.p_value    ≈  0.009598291426747618
 
 # --------------------------------------
 
@@ -71,8 +71,8 @@ f₀ = Normal(0,1)
 repetitions = 1000
 outs = fill(false,repetitions)
 for rep in 1:repetitions
-    data = rand(f₀ ,31)
-    out  = ksTest(data,f₀;α=0.05)
+    local data = rand(f₀ ,31)
+    local out  = ksTest(data,f₀;α=0.05)
     outs[rep] = out.rejectedH₀
 end
 @test isapprox(sum(outs)/repetitions,0.05,atol=0.05)
