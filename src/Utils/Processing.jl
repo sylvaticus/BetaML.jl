@@ -327,21 +327,21 @@ Perform Principal Component Analysis returning the matrix reprojected among the 
 # Example:
 ```julia
 julia> X = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95]
-6×3 Array{Float64,2}:
+6×3 Matrix{Float64}:
  1.0   10.0  100.0
  1.1   15.0  120.0
  0.95  23.0   90.0
  0.99  17.0  120.0
  1.05   8.0   90.0
  1.1   12.0   95.0
- julia> X = pca(X,error=0.05).X
-6×2 Array{Float64,2}:
-  3.1783   100.449
-  6.80764  120.743
- 16.8275    91.3551
-  8.80372  120.878
-  1.86179   90.3363
-  5.51254   95.5965
+julia> X = pca(X,error=0.05).X
+6×2 Matrix{Float64}:
+ 100.449    3.1783
+ 120.743    6.80764
+  91.3551  16.8275
+ 120.878    8.80372
+  90.3363   1.86179
+  95.5965   5.51254
 ```
 
 """
@@ -372,7 +372,7 @@ function pca(X;K=nothing,error=0.05)
         propVarExplained = explVarByDim[K]
     end
 
-    P = E.vectors[:,D-K+1:end]
+    P = E.vectors[:,end:-1:D-K+1] # bug corrected 2/9/2021
 
     return (X=X*P,K=K,error=1-propVarExplained,P=P,explVarByDim=explVarByDim)
 end

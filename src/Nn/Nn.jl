@@ -527,6 +527,7 @@ Abstract type representing an Optimisation algorithm.
 
 Currently supported algorithms:
 - `SGD` (Stochastic) Gradient Descent
+- `ADAM` The ADAM algorithm, an adaptive moment estimation optimiser.
 
 See `?[Name OF THE ALGORITHM]` for their details
 
