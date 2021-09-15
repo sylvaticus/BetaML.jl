@@ -1,7 +1,7 @@
 name = "BetaML"
 uuid = "024491cd-cc6b-443e-8034-08ea7eb7db2b"
 authors = ["Antonello Lobianco <antonello@lobianco.org>"]
-version = "0.5.4"
+version = "0.5.5"
 
 [deps]
 CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
