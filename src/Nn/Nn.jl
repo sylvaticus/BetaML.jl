@@ -80,7 +80,7 @@ import Base: +, -, *, /, sum, sqrt
 # module own functions
 export AbstractLayer, forward, backward, getParams, getNParams, getGradient, setParams!, size, NN,
        buildNetwork, predict, loss, train!, getindex, initOptAlg!, singleUpdate!,
-       DenseLayer, DenseNoBiasLayer, VectorFunctionLayer,
+       DenseLayer, DenseNoBiasLayer, VectorFunctionLayer, ScalarFunctionLayer,
        Learnable,
        show
 
@@ -189,7 +189,7 @@ Compute backpropagation for this layer
 # Parameters:
 * `layer`:        Worker layer
 * `x`:            Input to the layer
-* `nextGradient`: Derivative of the overaall loss with respect to the input of the next layer (output of this layer)
+* `nextGradient`: Derivative of the overal loss with respect to the input of the next layer (output of this layer)
 
 # Return:
 * The evaluated gradient of the loss with respect to this layer inputs
