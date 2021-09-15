@@ -296,3 +296,126 @@ function size(layer::VectorFunctionLayer)
     # We test its length with dummy values
     return (layer.nₗ,layer.n)
 end
+
+
+# ------------------------------------------------------------------------------
+# VectorFunctionLearnable layer
+
+"""
+   VectorFunctionLearnableLayer
+
+Representation of a VectorFunctionLearnable layer in the network. Vector
+function layer expects a vector activation function, i.e. a function taking the
+whole output of the previous layer an input rather than working on a single node
+as "normal" activation functions would do.
+Useful for example with the SoftMax function in classification or with the `pool1D`
+function to implement a "pool" layer in 1 dimensions.
+As it is weightless, it doesn't apply any transformation to the output coming
+from the previous layer. It means that the number of nodes must be set to the same
+as in the previous layer (and if you are using this for classification, to the
+number of classes, i.e. the _previous_ layer must be set equal to the number of
+classes in the predictions).
+
+# Fields:
+* `nₗ`: Number of nodes in input (i.e. length of previous layer)
+* `n`:  Number of nodes in output (automatically inferred in the constructor)
+* `f`:  Activation function (vector)
+* `df`: Derivative of the (vector) activation function
+
+# Notes:
+* The output `size` of this layer is given by the size of the output function,
+that not necessarily is the same as the previous layers.
+"""
+mutable struct VectorFunctionLayerLearnable{N} <: AbstractLayer
+     w::Array{Float64,N}
+     nₗ::Int64
+     n::Int64
+     f::Function
+     dfx::Union{Function,Nothing}
+     dfw::Union{Function,Nothing}
+     """
+        VectorFunctionLayerLearnable(f,n;df)
+
+     Instantiate a new VectorFunctionLayerLearnable
+
+     # Positional arguments:
+     * `nₗ`: Number of nodes (must be same as in the previous layer)
+     # Keyword arguments:
+     * `f`:  Activation function [def: `softMax`]
+     * `df`: Derivative of the activation function [default: `nothing` (i.e. use AD)]
+     * `dummyDataToTestOutputSize`: Dummy data to test the output size [def: `ones(nₗ)`]
+
+     # Notes:
+     - If the derivative is provided, it should return the gradient as a (n,n) matrix (i.e. the Jacobian)
+     - To avoid recomputing the activation function just to determine its output size,
+       we compute the output size once here in the layer constructor by calling the
+       activation function with `dummyDataToTestOutputSize`. Feel free to change
+       it if it doesn't match with the activation function you are setting
+     """
+     #function DenseLayer(nₗ,n;rng = Random.GLOBAL_RNG,w=rand(rng, Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n)),n,nₗ),wb=rand(rng, Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n)),n),f=identity,df=nothing)
+     function VectorFunctionLayerLearnable(nₗ;rng = Random.GLOBAL_RNG,dims=Int64[],w=rand(Uniform(-1,1),Tuple(dims)), f=softMax,dfx=nothing,dfw=nothing,dummyDataToTestOutputSize=ones(nₗ))
+        nw = length(dims) 
+        if nw ==0 
+          n  = length(f(dummyDataToTestOutputSize))
+        else
+         n  = length(f(dummyDataToTestOutputSize,w))
+        end
+        return new{nw}(w,nₗ,n,f,dfx,dfw)
+     end
+end
+
+function forward(layer::VectorFunctionLayerLearnable{N},x) where {N}
+  return N == 0 ? layer.f(x) : layer.f(x,layer.w)
+end
+
+function backward(layer::VectorFunctionLayerLearnable{N},x,nextGradient) where N
+   if N == 0
+      if layer.dfx != nothing
+         dϵ_dI = layer.dfx(x)' * nextGradient
+      else  # using AD
+         j = autoJacobian(layer.f,x; nY=layer.n)
+         dϵ_dI = j' * nextGradient
+      end
+      return dϵ_dI
+   else
+      if layer.dfx != nothing
+         dϵ_dI = layer.dfx(x,layer.w)' * nextGradient
+      else  # using AD
+        tempfunction(x) = layer.f(x,layer.w)
+        nYl = layer.n
+        j = autoJacobian(tempfunction,x; nY=nYl)
+        dϵ_dI = j' * nextGradient
+      end
+     return dϵ_dI
+   end
+end
+
+function getParams(layer::VectorFunctionLayerLearnable{N}) where {N}
+   return N == 0 ? Learnable(()) : Learnable((layer.w,))
+end
+
+function getGradient(layer::VectorFunctionLayerLearnable{N},x,nextGradient) where {N}
+   if N == 0
+     return Learnable(()) # parameterless layer
+   else
+      if layer.dfw != nothing
+         dϵ_dw = layer.dfw(x,layer.w)' * nextGradient
+      else  # using AD
+        j = autoJacobian(wt -> layer.f(x,wt),layer.w; nY=layer.n)
+        dϵ_dw = j' * nextGradient
+      end
+     return Learnable((dϵ_dw,))
+   end
+end
+
+function setParams!(layer::VectorFunctionLayerLearnable{N},w) where {N}
+   if N > 0
+      layer.w = w.data[1]
+   end
+   return nothing
+end
+function size(layer::VectorFunctionLayerLearnable{N}) where {N}
+    # Output size for the VectorFunctionLayer is given by its activation function
+    # We test its length with dummy values
+    return (layer.nₗ,layer.n)
+end

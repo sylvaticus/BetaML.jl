@@ -80,7 +80,7 @@ import Base: +, -, *, /, sum, sqrt
 # module own functions
 export AbstractLayer, forward, backward, getParams, getNParams, getGradient, setParams!, size, NN,
        buildNetwork, predict, loss, train!, getindex, initOptAlg!, singleUpdate!,
-       DenseLayer, DenseNoBiasLayer, VectorFunctionLayer,
+       DenseLayer, DenseNoBiasLayer, VectorFunctionLayer, VectorFunctionLayerLearnable,
        Learnable,
        show
 
