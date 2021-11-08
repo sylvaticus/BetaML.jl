@@ -103,7 +103,7 @@ trainAccuracy,testAccuracy  = accuracy.([parse.(Int64,mode(ŷtrain,rng=copy(FIX
 # We fist build the [`ConfusionMatrix`](@ref BetaML.Utils.ConfusionMatrix) object between `ŷ` and `y` and then we print it (we do it here for the test subset):
 
 cm = ConfusionMatrix(parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG))),ytest,classes=[1,2,3],labels=["US","EU","Japan"])
-print(cm;what="all")
+## print(cm;what="all")
 
 # Because the printing of the confusion matrix employs `display`, the confusion matrix is printed on the script building this documentation pages rather than on the documentation pages themselves. Here it is:
 
