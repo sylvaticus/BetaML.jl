@@ -219,12 +219,14 @@ MMI.metadata_model(KMedoids,
 
 MMI.metadata_model(GMMClusterer,
     input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
-    output_scitype   = AbstractArray{<:MMI.Multiclass},              # scitype of the output of `transform`
+    output_scitype   = AbstractArray{<:MMI.Multiclass},       # scitype of the output of `transform`
     target_scitype   = AbstractArray{<:MMI.Multiclass},       # scitype of the output of `predict`
+    #prediction_type  = :probabilistic,  # option not added to metadata_model function, need to do it separately
     supports_weights = false,                                 # does the model support sample weights?
     descr            = "A Expectation-Maximisation clustering algorithm with customisable mixtures, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Clustering.GMMClusterer"
 )
+MMI.prediction_type(::Type{<:GMMClusterer}) = :probabilistic
 
 MMI.metadata_model(MissingImputator,
     input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
