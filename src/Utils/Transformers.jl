@@ -46,7 +46,7 @@ sigmoid(x)            = one(x)/(one(x)+exp(-x))
 dsigmoid(x)           = exp(-x)*sigmoid(x)^2
 """softmax (x; β=1) \n\n The input x is a vector. Return a PMF"""
 softmax(x; β=one.(x)) = exp.((β .* x) .- lse(β .* x))  # efficient implementation of softmax(x)  = exp.(x) ./  sum(exp.(x))
-softmax(x, β=one.(x)) = softmax(x, β=β)
+softmax(x, β) = softmax(x, β=β)
 """ dsoftmax(x; β=1) \n\n Derivative of the softmax function \n\n https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/"""
 function dsoftmax(x; β=one(x[1]))
     x = makeColVector(x)
