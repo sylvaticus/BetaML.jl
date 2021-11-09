@@ -6,6 +6,16 @@
 #    - julia --project="." make.jl preview
 #    - push!(ARGS,"preview"); include("make.jl")
 
+# Format notes:
+
+
+# # A markdown H1 title
+# A non-code markdown normal line
+
+## A comment within the code chunk
+
+#src: line exclusive to the source code and thus filtered out unconditionally
+
 
 using Documenter, Literate, BetaML, Test
 

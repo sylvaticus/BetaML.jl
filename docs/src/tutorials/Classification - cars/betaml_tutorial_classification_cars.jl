@@ -191,7 +191,7 @@ testAccuracy    = accuracy(ŷtest,ytest,rng=copy(FIXEDRNG))
 #src accuracy(mode(ŷtest,rng=copy(FIXEDRNG)),ytest)
 
 cm = ConfusionMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"],rng=copy(FIXEDRNG))
-print(cm)
+# print(cm)
 
 # 4×4 Matrix{Any}:
 #  "Labels"    "US"    "EU"   "Japan"
