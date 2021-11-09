@@ -103,7 +103,8 @@ trainAccuracy,testAccuracy  = accuracy.([parse.(Int64,mode(ŷtrain,rng=copy(FIX
 # We fist build the [`ConfusionMatrix`](@ref BetaML.Utils.ConfusionMatrix) object between `ŷ` and `y` and then we print it (we do it here for the test subset):
 
 cm = ConfusionMatrix(parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG))),ytest,classes=[1,2,3],labels=["US","EU","Japan"])
-## print(cm;what="all")
+
+# Here we would print with: print(cm;what="all")
 
 # Because the printing of the confusion matrix employs `display`, the confusion matrix is printed on the script building this documentation pages rather than on the documentation pages themselves. Here it is:
 
@@ -138,8 +139,8 @@ model = DecisionTree.build_forest(ytrain, xtrainFull,-1,30,rng=123)
 (trainAccuracy,testAccuracy) = accuracy.([ŷtrain,ŷtest],[ytrain,ytest])
 #src (0.9969230769230769, 0.7530864197530864)
 
-#src cm = ConfusionMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"])
-#src println(cm)
+#src nothing; cm = ConfusionMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"])
+#src nothing; println(cm)
 @test testAccuracy > 0.75 #src
 
 # While the accuracy on the training set is exactly the same as for `BetaML` random forets, `DecisionTree.jl` random forests are slighly less accurate in the testing sample.
