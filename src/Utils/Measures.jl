@@ -261,59 +261,52 @@ Print a `ConfusionMatrix` object
 
 The `what` parameter is a string vector that can include "all", "scores", "normalisedScores" or "report" [def: `["all"]`]
 """
-function println(io::IO,cm::ConfusionMatrix{T};what="all") where T
+function print(io::IO,cm::ConfusionMatrix{T};what="all") where T
    if what == "all" || what == ["all"]
        what = ["scores", "normalisedScores", "report" ]
    end
    nCl = length(cm.labels)
 
-   println(io,"\n-----------------------------------------------------------------\n")
+   println("\n-----------------------------------------------------------------\n")
    if( "scores" in what || "normalisedScores" in what)
-     println(io,"*** CONFUSION MATRIX ***")
+     println("*** CONFUSION MATRIX ***")
    end
    if "scores" in what
-       println(io,"")
-       println(io,"Scores actual (rows) vs predicted (columns):\n")
+       println("")
+       println("Scores actual (rows) vs predicted (columns):\n")
        displayScores = vcat(permutedims(cm.labels),cm.scores)
        displayScores = hcat(vcat("Labels",cm.labels),displayScores)
-       display(displayScores)
+       show(stdout, "text/plain", displayScores)
    end
    if "normalisedScores" in what
        println(io,"")
        println(io,"Normalised scores actual (rows) vs predicted (columns):\n")
        displayScores = vcat(permutedims(cm.labels),cm.normalisedScores)
        displayScores = hcat(vcat("Labels",cm.labels),displayScores)
-       display(displayScores)
+       show(stdout, "text/plain", displayScores)
    end
    if "report" in what
-     println(io,"\n *** CONFUSION REPORT ***\n")
+     println("\n *** CONFUSION REPORT ***\n")
      labelWidth =  max(8,   maximum(length.(string.(cm.labels)))+1  )
-     println(io,"- Accuracy:               $(cm.accuracy)")
-     println(io,"- Misclassification rate: $(cm.misclassification)")
-     println(io,"- Number of classes:      $(nCl)")
-     println(io,"")
-     println(io,"  N ",rpad("Class",labelWidth),"precision   recall  specificity  f1Score  actualCount  predictedCount")
-     println(io,"    ",rpad(" ",labelWidth), "              TPR       TNR                 support                  ")
-     println(io,"")
+     println("- Accuracy:               $(cm.accuracy)")
+     println("- Misclassification rate: $(cm.misclassification)")
+     println("- Number of classes:      $(nCl)")
+     println("")
+     println("  N ",rpad("Class",labelWidth),"precision   recall  specificity  f1Score  actualCount  predictedCount")
+     println("    ",rpad(" ",labelWidth), "              TPR       TNR                 support                  ")
+     println("")
      # https://discourse.julialang.org/t/printf-with-variable-format-string/3805/4
      print_formatted(fmt, args...) = @eval @printf($fmt, $(args...))
      for i in 1:nCl
         print_formatted("%3d %-$(labelWidth)s %8.3f %8.3f %12.3f %8.3f %12i %15i\n", i, string(cm.labels[i]),  cm.precision[i], cm.recall[i], cm.specificity[i], cm.f1Score[i], cm.actualCount[i], cm.predictedCount[i])
      end
-     println(io,"")
+     println("")
      print_formatted("- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Simple   avg.",  cm.meanPrecision[1], cm.meanRecall[1], cm.meanSpecificity[1], cm.meanF1Score[1])
      print_formatted("- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Weigthed avg.",  cm.meanPrecision[2], cm.meanRecall[2], cm.meanSpecificity[2], cm.meanF1Score[2])
    end
-   println(io,"\n-----------------------------------------------------------------")
+   println("\n-----------------------------------------------------------------")
    return nothing
 end
-
-println(cm::ConfusionMatrix{T};what="all") where T = println(Base.stdout,cm;what=what)
-print(io::IO,cm::ConfusionMatrix{T};what="all") where T = println(io,cm;what=what)
-print(cm::ConfusionMatrix{T};what="all") where T = println(Base.stdout,cm;what=what)
-
-
-
 
 # ------------------------------------------------------------------------------
 # Regression tasks...
