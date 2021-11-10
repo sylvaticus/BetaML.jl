@@ -254,14 +254,15 @@ function ConfusionMatrix(ŷ,y::AbstractArray{T};classes=unique(y),labels=string
 end
 
 
+import Base.print, Base.println
 """
-    print(cm;what)
+    print(cm,what)
 
 Print a `ConfusionMatrix` object
 
 The `what` parameter is a string vector that can include "all", "scores", "normalisedScores" or "report" [def: `["all"]`]
 """
-function print(io::IO,cm::ConfusionMatrix{T};what="all") where T
+function print(io::IO,cm::ConfusionMatrix{T},what="all") where T
    if what == "all" || what == ["all"]
        what = ["scores", "normalisedScores", "report" ]
    end
@@ -307,6 +308,7 @@ function print(io::IO,cm::ConfusionMatrix{T};what="all") where T
    println("\n-----------------------------------------------------------------")
    return nothing
 end
+println(io::IO, cm::ConfusionMatrix{T}, what="all") where T = begin  print(cm,what);print("\n"); return nothing end
 
 # ------------------------------------------------------------------------------
 # Regression tasks...

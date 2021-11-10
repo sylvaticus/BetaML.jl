@@ -275,6 +275,7 @@ cm = ConfusionMatrix(ŷ,["Lemon","Lemon","Apple","Grape","Lemon"],rng=copy(FIXE
 @test cm.scores == [2 0 1; 0 1 0; 0 0 1]
 @test cm.tp == [2,1,1] && cm.tn == [2,4,3] && cm.fp == [0,0,1] && cm.fn == [1, 0, 0]
 
+
 # Example from https://scikit-learn.org/stable/modules/model_evaluation.html#classification-report
 y = [0,1,2,2,0]
 ŷ = [0,0,2,1,0]
@@ -294,8 +295,8 @@ cm = ConfusionMatrix(ŷ,y,labels=labels)
 @test cm.accuracy == 0.6
 @test cm.misclassification == 0.4
 
-@test BetaML.Utils.print(cm,what=["all"]) == nothing
-@test BetaML.Utils.println(cm,what=["all"]) == nothing
+@test BetaML.Utils.print(cm,["report"]) == nothing
+@test BetaML.Utils.println(cm) == nothing
 
 # ==================================
 # New test

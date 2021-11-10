@@ -9,6 +9,8 @@
 
 # Note that even if we are estimating a time serie, we are not using here a recurrent neural network as we assume the temporal dependence to be negligible (i.e. $Y_t = f(X_t)$ alone).
 
+# !!! warning As the above example is automatically executed by GitHub on every code update, it uses parameters (epoch numbers, parameter space of hyperparameter validation, number of trees,...) that minimise the computation. In real case you will want to use better but more computationally intensive ones. For the same reason benchmarks codes are commented and the pre-run output reported rather than actually being executed.
+
 # ## Library and data loading
 
 # We first load all the packages we are going to use
@@ -114,14 +116,17 @@ end
 
 # We can now run the hyperparameter optimisation function with some "reasonable" ranges. To obtain replicable results we call `tuneHyperParameters` with `rng=copy(FIXEDRNG)`, where `FIXEDRNG` is a fixed-seeded random number generator guaranteed to maintain the same stream of random numbers even between different julia versions. That's also what we use for our unit tests (see the [`Getting started`](@ref dealing_with_stochasticity) for more details).
 (bestRme,bestMaxDepth,bestMaxFeatures,bestMinRecords) = tuneHyperParameters("DecisionTree",xtrain,ytrain,xval,yval,
-           maxDepthRange=3:7,maxFeaturesRange=10:12,minRecordsRange=2:6,repetitions=10,rng=copy(FIXEDRNG))
+           maxDepthRange=4:5,maxFeaturesRange=11:12,minRecordsRange=5:5,repetitions=3,rng=copy(FIXEDRNG))
 println("DT: $bestRme - $bestMaxDepth - $bestMaxFeatures - $bestMinRecords") #src
 
 # Now that we have found the "optimal" hyperparameters we can build ("train") our model using them:
 myTree = buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,rng=copy(FIXEDRNG));
 
 # Let's benchmark the time and memory usage of the training step of a decision tree:
-@btime  buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,rng=copy(FIXEDRNG));
+# ```
+# @btime  buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,rng=copy(FIXEDRNG));
+# 26.538 ms (55753 allocations: 58.57 MiB)
+# ```
 # Individual decision trees are blazing fast, among the fastest algorithms we could use.
 
 #-
@@ -185,7 +190,7 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestful
 # Being made of many decision trees, random forests are hovever more computationally expensive to train, but luckily they tend to self-tune (or self-regularise). In particular the parameters `maxDepth` and `maxFeatures` shouldn't need tuning.
 
 # We still tune however the model for other parameters, and in particular the β parameter, a prerogative of BetaML Random Forests that allows to assign more weigth to the best performing trees in the forest. It may be particularly important if there are many outliers in the data we don't want to "learn" from.
-minRecordsRange=[2,4,5]; nTreesRange=60:10:80; βRange=100:100:300
+minRecordsRange=[5]; nTreesRange=[60]; βRange=100:100:300
 (bestRme,bestMaxDepth,bestMaxFeatures,bestMinRecords,bestNTrees,bestβ) = tuneHyperParameters("RandomForest",xtrain,ytrain,xval,yval,
         maxDepthRange=size(xtrain,1):size(xtrain,1),maxFeaturesRange=Int(round(sqrt(size(xtrain,2)))):Int(round(sqrt(size(xtrain,2)))),
         minRecordsRange=minRecordsRange,nTreesRange=nTreesRange,βRange=βRange,repetitions=5,rng=copy(FIXEDRNG))
@@ -197,7 +202,8 @@ println("RF: $bestRme $bestMinRecords $bestNTrees $bestβ") #src
 myForest = buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,β=bestβ,oob=true,rng=copy(FIXEDRNG));
 
 # Let's now benchmark the training of the BetaML Random Forest model
-@btime buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,β=bestβ,oob=true,rng=copy(FIXEDRNG));
+# @btime buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,β=bestβ,oob=true,rng=copy(FIXEDRNG));
+# 863.842 ms (2451894 allocations: 971.33 MiB)
 # Random forests are evidently slower than individual decision trees but are still relativly fast. We should also consider that they are by default efficiently parallelised, so their speed increases with the number of available cores (in building this documentation page, GitHub CI servers allow for a single core, so all the bechmark you see in this tutorial are run with a single core available).
 
 #-
@@ -251,15 +257,18 @@ model = DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
 (ŷtrain,ŷval,ŷtest) = DecisionTree.apply_forest.([model],[xtrain,xval,xtest]);
 
 # Let's benchmark the DecisionTrees.jl Random Forest training
-@btime  DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
-                     n_subfeatures,
-                     n_trees,
-                     partial_sampling,
-                     max_depth,
-                     min_samples_leaf,
-                     min_samples_split,
-                     min_purity_increase;
-                     rng = seed);
+# ```
+# @btime  DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
+#                      n_subfeatures,
+#                      n_trees,
+#                      partial_sampling,
+#                      max_depth,
+#                      min_samples_leaf,
+#                      min_samples_split,
+#                      min_purity_increase;
+#                      rng = seed);
+# 144.026 ms (41085 allocations: 11.01 MiB)
+# ```
 # DecisionTrees.jl makes a good job in optimising the Random Forest algorithm, as it is over 3 times faster that BetaML.
 
 (rmeTrain, rmeVal, rmeTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
@@ -386,8 +395,8 @@ end
 #-
 
 ## Note: the following code block may take a bit to run...
-epochsToTest     = [100,400]
-hiddenLayerSizes = [5,15,30]
+epochsToTest     = [100]
+hiddenLayerSizes = [5,10]
 (bestRme,bestEpoch,bestSize) = tuneHyperParameters(xtrainScaled,ytrainScaled,xvalScaled,yvalScaled;epochRange=epochsToTest,hiddenLayerSizeRange=hiddenLayerSizes,repetitions=3,rng=copy(FIXEDRNG))
 println("NN: $bestRme $bestEpoch $bestSize") #src
 #src NN: 0.12631777965957725 100 5
@@ -425,7 +434,10 @@ println("Final training of $bestEpoch epochs, with layer size $bestSize ...")
 res  = train!(mynn,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG)) ## Use optAlg=SGD() to use Stochastic Gradient Descent
 
 # Let's benchmark the BetaML neural network training
-@btime train!(mynnManual,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG), verbosity=NONE);
+# ```
+# @btime train!(mynnManual,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG), verbosity=NONE);
+# 1.951 s (8716955 allocations: 702.71 MiB)
+# ```
 # As we can see the model training is one order of magnitude slower than random forests, altought the memory requirement is approximatly the same.
 
 #-
@@ -487,7 +499,10 @@ ps2        = Flux.params(Flux_nn2)  ## A copy for the time benchmarking
 Flux.@epochs bestEpoch Flux.train!(loss, ps, nndata, Flux.ADAM(0.001, (0.9, 0.8)));
 
 # ..and we benchmark it..
-@btime begin for i in 1:bestEpoch Flux.train!(loss, ps2, nndata, Flux.ADAM(0.001, (0.9, 0.8))) end end
+# ```
+# @btime begin for i in 1:bestEpoch Flux.train!(loss, ps2, nndata, Flux.ADAM(0.001, (0.9, 0.8))) end end
+# 690.231 ms (3349901 allocations: 266.76 MiB)
+# ```
 #src # Quite surprisling, Flux training seems a bit slow. The actual results seems to depend from the actual hardware and by default Flux seems not to use multi-threading. While I suspect Flux scales better with larger networks and/or data, for these small examples on my laptop it is still a bit slower than BetaML even on a single thread.
 # On this small example the speed of Flux is on the same order than BetaML (the actual difference seems to depend on the specific RNG seed and hardware), however I suspect that Flux scales much better with larger networks and/or data.
 

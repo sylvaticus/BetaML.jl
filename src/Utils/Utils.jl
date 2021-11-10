@@ -69,7 +69,7 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        radialKernel, polynomialKernel
 
 # Various functions that we add a method to
-import Base.print, Base.findfirst, Base.findall, Base.error, Random.shuffle
+import Base.print, Base.println, Base.findfirst, Base.findall, Base.error, Random.shuffle
 
 
 #include("Miscelanneous.jl")

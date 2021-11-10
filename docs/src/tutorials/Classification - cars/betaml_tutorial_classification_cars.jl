@@ -22,7 +22,7 @@
 # 8. origin:        _multi-valued discrete_
 # 9. car name:      _string (unique for each instance)_ - not used here
 
-
+# !!! warning As the above example is automatically executed by GitHub on every code update, it uses parameters (epoch numbers, parameter space of hyperparameter validation, number of trees,...) that minimise the computation. In real case you will want to use better but more computationally intensive ones. For the same reason benchmarks codes are commented and the pre-run output reported rather than actually being executed.
 
 # ## Library and data loading
 
@@ -103,30 +103,13 @@ trainAccuracy,testAccuracy  = accuracy.([parse.(Int64,mode(ŷtrain,rng=copy(FIX
 # We fist build the [`ConfusionMatrix`](@ref BetaML.Utils.ConfusionMatrix) object between `ŷ` and `y` and then we print it (we do it here for the test subset):
 
 cm = ConfusionMatrix(parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG))),ytest,classes=[1,2,3],labels=["US","EU","Japan"])
-
-# Here we would print with: print(cm;what="all")
-
-# Because the printing of the confusion matrix employs `display`, the confusion matrix is printed on the script building this documentation pages rather than on the documentation pages themselves. Here it is:
-
-#
-# ```text
-# 4×4 Matrix{Any}:
-#  "Labels"    "US"    "EU"   "Japan"
-#  "US"      43       3      3
-#  "EU"       2      13      1
-#  "Japan"    5       2      9
-# 4×4 Matrix{Any}:
-#  "Labels"   "US"      "EU"       "Japan"
-#  "US"      0.877551  0.0612245  0.0612245
-#  "EU"      0.125     0.8125     0.0625
-#  "Japan"   0.3125    0.125      0.5625
-# ```
+print(cm,"all")
 
 # From the report we can see that Japanese cars have more trouble in being correctly classified, and in particular many Japanease cars are classified as US ones. This is likely a result of the class imbalance of the data set, and could be solved by balancing the dataset with various sampling tecniques before training the model.
 
 # When we benchmark the resourse used (time and memory) we find that Random Forests remain pretty fast, expecially when we compare them with neural networks (see later)
-@btime buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),forceClassification=true);
-#src   134.096 ms (781027 allocations: 196.30 MiB)
+# @btime buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),forceClassification=true);
+# 134.096 ms (781027 allocations: 196.30 MiB)
 
 # ### Comparision with DecisionTree.jl
 
@@ -147,8 +130,8 @@ model = DecisionTree.build_forest(ytrain, xtrainFull,-1,30,rng=123)
 # Where however `DecisionTrees.jl` excell is in the efficiency: they are extremelly fast and memory thrifty, even if to this benchmark we should add the resources needed to impute the missing values.
 
 # Also, one of the reasons DecisionTrees are such efficient is that internally they sort the data to avoid repeated comparision, but in this way they work only with features that are sortable, while BetaML random forests accept virtually any kind of input without the need of adapt it.
-@btime  DecisionTree.build_forest(ytrain, xtrainFull,-1,30,rng=123);
-#src 1.431 ms (10875 allocations: 1.52 MiB)
+# @btime  DecisionTree.build_forest(ytrain, xtrainFull,-1,30,rng=123);
+# 1.431 ms (10875 allocations: 1.52 MiB)
 
 # ### Neural network
 
@@ -209,8 +192,8 @@ cm = ConfusionMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"],rn
 # We see a bit the limits of neural networks in this example. While NN can be extremelly performant in many domains, they also require lot of data and computational power, expecially considering the many possible hyper-parameters and hence its large space in the hyper-parameter tuning.
 # In this example we arrive short to the performance of random forests, yet with a significant numberof neurons.
 
-@btime train!(mynn,scale(xtrainFull),ytrain_oh,epochs=300,batchSize=8,rng=copy(FIXEDRNG),verbosity=NONE);
-#src  11.841 s (62860672 allocations: 4.21 GiB)
+# @btime train!(mynn,scale(xtrainFull),ytrain_oh,epochs=300,batchSize=8,rng=copy(FIXEDRNG),verbosity=NONE);
+# 11.841 s (62860672 allocations: 4.21 GiB)
 
 
 # ### Comparisons with Flux
@@ -248,8 +231,8 @@ testAccuracy  = accuracy(ŷtest,ytest)
 @test testAccuracy > 0.74 #src
 
 # However the time is again lower than BetaML, even if here for "just" a factor 2
-@btime begin for i in 1:500 Flux.train!(loss, ps, nndata, Flux.ADAM()) end end;
-#src  5.665 s (8943640 allocations: 1.07 GiB)
+# @btime begin for i in 1:500 Flux.train!(loss, ps, nndata, Flux.ADAM()) end end;
+# 5.665 s (8943640 allocations: 1.07 GiB)
 
 
 # ## Summary
