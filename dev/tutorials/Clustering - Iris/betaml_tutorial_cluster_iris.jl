@@ -1,4 +1,4 @@
-# # [A classification task: the prediction of  plant species from floreal measures (the iris dataset)](@id clustering_tutorial)
+# # [A clustering task: the prediction of  plant species from floreal measures (the iris dataset)](@id clustering_tutorial)
 # The task is to estimate the species of a plant given some floreal measurements. It use the classical "Iris" dataset.
 # Note that in this example we are using clustering approaches, so we try to understand the "structure" of our data, without relying to actually knowing the true labels ("classes" or "factors"). However we have chosen a dataset for which the true labels are actually known, so to compare the accuracy of the algorithms we use, but these labels will not be used during the algorithms training.
 
@@ -6,6 +6,9 @@
 # Data origin:
 # - dataset description: [https://en.wikipedia.org/wiki/Iris_flower_data_set](https://en.wikipedia.org/wiki/Iris_flower_data_set)
 # - data source we use here: [https://github.com/JuliaStats/RDatasets.jl](https://github.com/JuliaStats/RDatasets.jl)
+
+
+# !!! warning As the above example is automatically executed by GitHub on every code update, it uses parameters (epoch numbers, parameter space of hyperparameter validation, number of trees,...) that minimise the computation. In real case you will want to use better but more computationally intensive ones. For the same reason benchmarks codes are commented and the pre-run output reported rather than actually being executed.
 
 
 # ## Library and data loading
@@ -141,9 +144,9 @@ report = DataFrame(mName = modelLabels, avgAccuracy = dropdims(round.(μs',digit
 # We run hence `crossValidation` again with the `FullGaussian` gmm model
 # Note that we use the BIC/AIC criteria here for establishing the "best" number of classes but we could have used it also to select the kind of Gaussain distribution to use. This is one example of hyper-parameter tuning that we developed more in detail (but without using cross-validation) in the [regression tutorial](@ref regression_tutorial).
 
-# Let's try up to 8 possible classes:
+# Let's try up to 4 possible classes:
 
-K = 8
+K = 4
 sampler = KFold(nSplits=5,nRepeats=2,shuffle=true, rng=copy(FIXEDRNG))
 cOut = crossValidation([x,y],sampler,returnStatistics=false) do trainData,testData,rng
     (xtrain,ytrain)  = trainData;
@@ -197,7 +200,7 @@ plot(1:K,[μsBICS' μsAICS'], labels=["BIC" "AIC"], title="Information criteria 
 # @btime begin fGMM = GaussianMixtures.GMM(3, $xs; method=:kmeans, kind=:full); GaussianMixtures.em!(fGMM, $xs) end;
 # # 4.166 ms (58910 allocations: 3.59 MiB)
 # ```
-# (_note: the values reported here are of a local pc, not of the GitHub CI server, as sometimes - depending on data and random initialisation - `GaussainMixtures.em!`` fails with a `PosDefException`. This in turln would lead the whole documentation to fail to compile_)
+# (_note: the values reported here are of a local pc, not of the GitHub CI server, as sometimes - depending on data and random initialisation - `GaussainMixtures.em!`` fails with a `PosDefException`. This in turn would lead the whole documentation to fail to compile_)
 
 # Like for supervised models, dedicated models are much better optimized than BetaML models, and are order of magnitude more efficient. However even the slowest BetaML clusering model (gmm using full gaussians) is realtively fast and can handle mid-size datasets (tens to hundreds of thousand records) without significant slow downs.
 
