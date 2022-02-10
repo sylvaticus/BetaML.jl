@@ -52,12 +52,12 @@ iris  = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data"
 x = iris[:,1:4]
 y = iris[:,5]
 ((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.7,0.3])
-(ytrain,ytest) = dropdims.([ytrain,ytest],dims=2)
 myForest       = buildForest(xtrain,ytrain,30)
 ŷtrain         = predict(myForest, xtrain)
 ŷtest          = predict(myForest, xtest)
 trainAccuracy  = accuracy(ŷtrain,ytrain) # 1.00
 testAccuracy   = accuracy(ŷtest,ytest)   # 0.956
+ConfusionMatrix(ŷtest,ytest) |> print    # For details
 ```
 
 - **Using an Artificial Neural Network for multinomial categorisation**

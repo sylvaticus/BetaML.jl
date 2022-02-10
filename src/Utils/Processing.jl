@@ -452,6 +452,18 @@ function crossValidation(f,data,sampler=KFold(nSplits=5,nRepeats=1,shuffle=true,
     if returnStatistics  return (mean(iterResults),std(iterResults)) else return iterResults end
 end
 
+#= TODO
+abstract type ParametersSet
+
+        
+Base.@kwdef struct NNModelParametersSet <: ParametersSet
+  neuronsRange::Vector{Int64}   = 6:4:12
+  epochesRange::Vector{Int64}   = 200:100:300
+  batchSizeRange::Vector{Int64} = 4:2:6
+end
+function tuneHyperParameters(model,Pset::ParameterSet,xtrain,ytrain;neuronsRange=6:4:12,epochesRange= 200:100:300:size(xtrain,2),batchSizeRange = 4:2:6,repetitions=5,rng=Random.GLOBAL_RNG) 
+
+=#
 
 
 
