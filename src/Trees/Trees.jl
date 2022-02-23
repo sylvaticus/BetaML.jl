@@ -662,7 +662,11 @@ function oobError(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
         unseenTreesBools  = in.(n,notSampledByTree)
         unseenTrees = trees[(1:B)[unseenTreesBools]]
         unseenTreesWeights = weights[(1:B)[unseenTreesBools]]
-        ŷ[n] = predictSingle(Forest{Ty}(unseenTrees,jobIsRegression,forest.oobData,0.0,unseenTreesWeights),x,rng=rng)
+        ŷi   = predictSingle(Forest{Ty}(unseenTrees,jobIsRegression,forest.oobData,0.0,unseenTreesWeights),x,rng=rng)
+        if !jobIsRegression && Ty <: Number # we are in the ugly case where we want integers but we have dict of Strings, need to convert
+            ŷi   = Dict(map((k,v) -> parse(Int,k)=>v, keys(ŷi), values(ŷi)))
+        end
+        ŷ[n] = ŷi
     end
     if jobIsRegression
         return meanRelError(ŷ,y,normDim=false,normRec=false)
