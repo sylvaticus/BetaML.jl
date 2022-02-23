@@ -642,6 +642,7 @@ end
 Comute the Out-Of-Bag error, an estimation of the validation error.
 
 This function is called at time of train the forest if the parameter `oob` is `true`, or can be used later to get the oob error on an already trained forest.
+The oob error reported is the mismatching error for classification and the relative mean error for regression. 
 """
 function oobError(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
     trees            = forest.trees
@@ -664,7 +665,7 @@ function oobError(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
         ŷ[n] = predictSingle(Forest{Ty}(unseenTrees,jobIsRegression,forest.oobData,0.0,unseenTreesWeights),x,rng=rng)
     end
     if jobIsRegression
-        return meanRelError(ŷ,y)
+        return meanRelError(ŷ,y,normDim=false,normRec=false)
     else
         return error(ŷ,y)
     end

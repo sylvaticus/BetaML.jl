@@ -324,6 +324,13 @@ It is mostly used for regression problems.
 """
 squaredCost(ŷ,y)   = (1/2)*norm(y - ŷ)^2
 dSquaredCost(ŷ,y)  = ( ŷ - y)
+"""
+    mse(ŷ,y)
+
+Compute the mean squared error (MSE) (aka mean squared deviation - MSD) between two vectors ŷ and y.
+Note that while the deviation is averaged by the length of `y` is is not scaled to give it a relative meaning.
+"""
+mse(ŷ,y) = (sum((y-ŷ).^(2))/length(y))
 
 """
   meanRelError(ŷ,y;normDim=true,normRec=true,p=1)

@@ -61,7 +61,7 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
        autoJacobian,
-       squaredCost, dSquaredCost, crossEntropy, dCrossEntropy, classCounts, classCountsWithLabels, meanDicts, mode, gini, entropy, variance,
+       squaredCost, dSquaredCost, mse, crossEntropy, dCrossEntropy, classCounts, classCountsWithLabels, meanDicts, mode, gini, entropy, variance,
        error, accuracy, meanRelError, ConfusionMatrix,
        crossValidation, AbstractDataSampler, SamplerWithData, KFold,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
