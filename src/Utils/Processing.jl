@@ -586,6 +586,9 @@ If the original valueas are probabilities (non-negative items summing to 1), the
 
 """
 function meanDicts(dicts; weights=ones(length(dicts)))
+    if length(dicts) == 1
+        return dicts[1]
+    end
     T = eltype(keys(dicts[1]))
     allkeys = union([keys(i) for i in dicts]...)
     outDict = Dict{T,Float64}()

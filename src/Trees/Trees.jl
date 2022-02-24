@@ -657,9 +657,15 @@ function oobError(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
     else
         ŷ = Array{Dict{Ty,Float64},1}(undef,N)
     end
-
+    # Rarelly a given n has been visited by al lthe trees of the forest, so there is no trees available to compute the oob error
+    # This serves as a mask to remove this n from the computation of the oob error
+    nMask = fill(true,N)
     for (n,x) in enumerate(eachrow(x))
         unseenTreesBools  = in.(n,notSampledByTree)
+        if sum(unseenTreesBools) == 0 # this particular record has been visited by all trees of the forest
+            nMask[n] = false
+            continue
+        end
         unseenTrees = trees[(1:B)[unseenTreesBools]]
         unseenTreesWeights = weights[(1:B)[unseenTreesBools]]
         ŷi   = predictSingle(Forest{Ty}(unseenTrees,jobIsRegression,forest.oobData,0.0,unseenTreesWeights),x,rng=rng)
@@ -669,9 +675,9 @@ function oobError(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
         ŷ[n] = ŷi
     end
     if jobIsRegression
-        return meanRelError(ŷ,y,normDim=false,normRec=false)
+        return meanRelError(ŷ[nMask],y[nMask],normDim=false,normRec=false)
     else
-        return error(ŷ,y)
+        return error(ŷ[nMask],y[nMask])
     end
 end
 
