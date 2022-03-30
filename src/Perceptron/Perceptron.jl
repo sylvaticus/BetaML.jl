@@ -162,7 +162,7 @@ function perceptronBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=10,
        ϵ = 0
        if shuffle
           # random shuffle x and y
-          ridx = Base.shuffle(rng, 1:size(x)[1])
+          ridx = Random.shuffle(rng, 1:size(x)[1])
           x = x[ridx, :]
           y = y[ridx]
        end

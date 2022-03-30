@@ -162,6 +162,7 @@ Base.length(iter::Learnable) = length(iter.data)
 # See nn_default_layers.jl for actual implementations
 
 abstract type AbstractLayer end
+abstract type RecursiveLayer <: AbstractLayer end
 
 include("Nn_default_layers.jl")
 
