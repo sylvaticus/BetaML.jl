@@ -328,7 +328,7 @@ end
 
 
 """
- pegasos(x,y;θ,θ₀,λ,η,T,nMsgs,shuffle,forceOrigin,returnMeanHyperplane)
+    pegasos(x,y;θ,θ₀,λ,η,T,nMsgs,shuffle,forceOrigin,returnMeanHyperplane)
 
 Train the multiclass classifier "pegasos" algorithm according to x (features) and y (labels)
 
