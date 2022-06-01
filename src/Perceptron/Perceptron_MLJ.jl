@@ -81,12 +81,13 @@ function MMI.fit(model::PerceptronClassifier, verbosity, X, y)
 end
 
 function MMI.fit(model::KernelPerceptronClassifier, verbosity, X, y)
- x = MMI.matrix(X)                     # convert table to matrix
- initialα  = length(model.initialα) == 0 ? zeros(Int64,length(y)) : model.initialα
- fitresult = kernelPerceptron(x, y; K=model.K, T=model.maxEpochs, α=initialα, nMsgs=0, shuffle=model.shuffle,rng=model.rng)
- cache=nothing
- report=nothing
- return fitresult, cache, report
+ x          = MMI.matrix(X)                     # convert table to matrix
+ allClasses = levels(y)
+ initialα   = length(model.initialα) == 0 ? zeros(Int64,length(y)) : model.initialα
+ fitresult  = kernelPerceptron(x, y; K=model.K, T=model.maxEpochs, α=initialα, nMsgs=0, shuffle=model.shuffle,rng=model.rng)
+ cache      = nothing
+ report     = nothing
+ return (fitresult,allClasses), cache, report
 end
 
 function MMI.fit(model::PegasosClassifier, verbosity, X, y)
@@ -123,10 +124,11 @@ function MMI.predict(model::Union{PerceptronClassifier,PegasosClassifier}, fitre
 end
 
 function MMI.predict(model::KernelPerceptronClassifier, fitresult, Xnew)
-    fittedModel      = fitresult
+    fittedModel      = fitresult[1]
     #classes          = CategoricalVector(fittedModel.classes)
     classes          = fittedModel.classes
-    nLevels          = length(classes)
+    allClasses       = fitresult[2] # as classes do not includes classes unsees at training time
+    nLevels          = length(allClasses)
     nRecords         = MMI.nrows(Xnew)
     #ŷtrain = Perceptron.predict([10 10; 2.2 2.5],model.x,model.y,model.α, model.classes,K=model.K)
     modelPredictions = Perceptron.predict(MMI.matrix(Xnew), fittedModel.x, fittedModel.y, fittedModel.α, fittedModel.classes, K=fittedModel.K)
@@ -134,14 +136,14 @@ function MMI.predict(model::KernelPerceptronClassifier, fitresult, Xnew)
     # Transform the predictions from a vector of dictionaries to a matrix
     # where the rows are the PMF of each record
     for n in 1:nRecords
-        for (c,cl) in enumerate(classes)
+        for (c,cl) in enumerate(allClasses)
             predMatrix[n,c] = get(modelPredictions[n],cl,0.0)
         end
     end
     #predictions = [MMI.UnivariateFinite(classes, predMatrix[i,:])
     #              for i in 1:nRecords]
     #predictions = MMI.UnivariateFinite(classes, predMatrix)
-    predictions = MMI.UnivariateFinite(fittedModel.classes,predMatrix,pool=missing)
+    predictions = MMI.UnivariateFinite(allClasses,predMatrix,pool=missing)
     #predictions4 = MMI.UnivariateFinite(modelPredictions,pool=classes,ordered=false)
     #predictions = MMI.UnivariateFinite(modelPredictions,pool=fittedModel.classes)
     return predictions
