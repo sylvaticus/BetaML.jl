@@ -129,6 +129,28 @@ function oneHotEncoder(Y::Union{Ti,AbstractVector{Ti}};d=maximum(maximum.(Y)),fa
     return out
 end
 
+"""
+    oneHotDecoder(x)
+
+Given a matrix of one-hot encoded values (e.g. [0 1 0; 1 0 0]) returns a vector of the integer positions
+(e.g. [2,1]).
+"""
+function oneHotDecoder(x)
+    function findfirst_custom(f,x)
+        for i in keys(pairs(x))
+            if ismissing(x[i])
+                return missing
+            elseif f(x[i])
+                return i
+            end
+        end
+        return nothing
+    end
+    [findfirst_custom(i -> i == 1, r) for r in eachrow(x)]
+end
+
+
+
 findfirst(el::T,cont::Array{T};returnTuple=true) where {T<:Union{AbstractString,Number}} = ndims(cont) > 1 && returnTuple ? Tuple(findfirst(x -> isequal(x,el),cont)) : findfirst(x -> isequal(x,el),cont)
 #findfirst(el::T,cont::Array{T,N};returnTuple=true) where {T,N} = returnTuple ? Tuple(findfirst(x -> isequal(x,el),cont)) : findfirst(x -> isequal(x,el),cont)
 #findfirst(el::T,cont::Array{T,1};returnTuple=true) where {T} =  findfirst(x -> isequal(x,el),cont)

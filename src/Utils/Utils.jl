@@ -56,7 +56,7 @@ using ForceImport
 export Verbosity, NONE, LOW, STD, HIGH, FULL,
        FIXEDSEED, FIXEDRNG, @codeLocation, generateParallelRngs,
        reshape, makeColVector, makeRowVector, makeMatrix, issortable, getPermutations,
-       oneHotEncoder, integerEncoder, integerDecoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, shuffle, pca,
+       oneHotEncoder, oneHotDecoder, integerEncoder, integerDecoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, shuffle, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
