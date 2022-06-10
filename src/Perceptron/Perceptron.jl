@@ -200,7 +200,7 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
 
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
-* `y`:        Associated labels of the training data, in the format of ⨦ 1
+* `y`:        Associated labels of the training data
 * `K`:        Kernel function to employ. See `?radialKernel` or `?polynomialKernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]
 * `T`:        Maximum number of iterations (aka "epochs") across the whole set (if the set is not fully classified earlier) [def: 100]
 * `α`:        Initial distribution of the errors [def: `zeros(length(y))`]
@@ -220,9 +220,8 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
 
 # Example:
 ```jldoctest
-julia> model  = kernelPerceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
-julia> ŷtrain = Perceptron.predict(xtrain,model.x,model.y,model.α, model.classes,K=model.K)
-julia> ϵtrain = error(ytrain, mode(ŷtrain))
+julia> model = kernelPerceptron([1.1 1.1; 5.3 4.2; 1.8 1.7; 7.5 5.2;], ["a","c","b","c"])
+julia> ŷtest = Perceptron.predict([10 10; 2.2 2.5; 1 1],model.x,model.y,model.α, model.classes,K=model.K)
 ```
 """
 function kernelPerceptron(x, y; K=radialKernel, T=100, α=zeros(Int64,length(y)), nMsgs=0, shuffle=false, rng = Random.GLOBAL_RNG)
@@ -234,11 +233,10 @@ function kernelPerceptron(x, y; K=radialKernel, T=100, α=zeros(Int64,length(y))
     outX = Array{typeof(x),1}(undef,nModels)
     outY = Array{Array{Int64,1},1}(undef,nModels)
     outα = Array{Array{Int64,1},1}(undef,nModels)
-
     modelCounter = 1
     for (i,c) in enumerate(yclasses)
         for (i2,c2) in enumerate(yclasses)
-            if i2 <= i continue end
+            if i2 <= i continue end # never false with a single class (always "continue")
             ids = ( (y .== c) .| (y .== c2) )
             thisx = x[ids,:]
             thisy = y[ids]
@@ -257,7 +255,7 @@ end
 """
    kernelPerceptronBinary(x,y;K,T,α,nMsgs,shuffle)
 
-Train a multiclass kernel classifier "perceptron" algorithm based on x and y
+Train a binary kernel classifier "perceptron" algorithm based on x and y
 
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
@@ -578,6 +576,10 @@ function predict(x,xtrain,ytrain,α;K=radialKernel)
     (n,d) = size(x)
     (ntrain,d2) = size(xtrain)
     if (d2 != d) error("xtrain and x must have the same dimensions."); end
+    # corner case all one category
+    if length(unique(ytrain)) == 1
+        return fill(unique(ytrain)[1],n)
+    end
     if ( length(ytrain) != ntrain || length(α) != ntrain) error("xtrain, ytrain and α must all have the same length."); end
     y = zeros(Int64,n)
     for i in 1:n
@@ -616,6 +618,10 @@ function predict(x,xtrain,ytrain,α;K=radialKernel)
      (n,d)   = size(x)
      nCl     = length(classes)
      y       = Array{Dict{Tcl,Float64},1}(undef,n)
+     # corner case single class in training
+     if nCl == 1
+        return fill(Dict(classes[1] => 100.0),n)
+     end
      nModels = Int((nCl  * (nCl - 1)) / 2)
      if !(nModels == length(xtrain) == length(ytrain) == length(α)) error("xtrain, ytrain or α have a length not compatible with the number of classes in this model."); end
      x = makeMatrix(x)
