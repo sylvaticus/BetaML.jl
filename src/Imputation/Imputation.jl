@@ -24,8 +24,8 @@ Imputations for all these models can be optained by running `impute([Imputator m
 """
 module Imputation
 
-
-using ForceImport, Statistics
+using Statistics, Random
+using ForceImport
 @force using ..Api
 @force using ..Utils
 @force using ..Clustering
@@ -47,23 +47,33 @@ struct MeanImputerResult <: ImputerResult
     imputed
     nImputedValues::Int64
 end
-function impute(X,imputer::MeanImputer)
-    i = imputer
+function impute(imputer::MeanImputer,X)
+    X̂ = copy(X)
+    imp = imputer
     nR,nC = size(X)
     missingMask = ismissing.(X)
-    for k in 1:i.meanIterations
-        cMeans    = [mean(skipmissing(X[:,i])) for i in 1:nC]
-        rMeans    = [mean(skipmissing(X[i,:])) for i in 1:nR]
-        [X[r,c] = cMeans[c]*(1-i.recordCorrection) + rMeans[r]*i.recordCorrection for c in 1:nC, r in 1:nR if missingMask[r,c] ]
+    for k in 1:imp.meanIterations
+        cMeans    = [mean(skipmissing(X̂[:,i])) for i in 1:nC]
+        rMeans    = [mean(skipmissing(X̂[i,:])) for i in 1:nR]
+        X̂ = [missingMask[r,c] ? cMeans[c]*(1-imp.recordCorrection) + rMeans[r]*imp.recordCorrection : X̂[r,c] for r in 1:nR, c in 1:nC]
     end
-    return MeanImputerResult(X,sum(missingMask))
+    return MeanImputerResult(X̂,sum(missingMask))
 end
 imputed(r::MeanImputerResult) = r.imputed
 imputedValues(r::MeanImputerResult) = [r.imputed]
-info(r::MeanImputerResult) = (nImputedValues = r.nImputedValues)
+info(r::MeanImputerResult) = (nImputedValues = r.nImputedValues,)
 
 # ------------------------------------------------------------------------------
 # GMMImputer
+"""
+    GMMImputer
+
+Impute using Generated (Gaussian) mixture models.
+Limitations:
+- data must be numerical
+- the resulted matrix is a Matrix{Float64}
+- currently the Mixtures available do not support random initialisation, so there is no random component involved (i.e. no multiple imputations)    
+"""
 Base.@kwdef mutable struct GMMImputer <: Imputer
     K::Int64                           = 3
     p₀::Union{Nothing,Vector{Float64}} = nothing
@@ -75,7 +85,7 @@ Base.@kwdef mutable struct GMMImputer <: Imputer
     initStrategy::String               = "kmeans"
     maxIter::Int64                     = -1
     multipleImputations::Int64         = 1
-    rng::Random._GLOBAL_RNG            = Random.GLOBAL_RNG
+    rng::AbstractRNG                   = Random.GLOBAL_RNG
 end
 
 struct GMMImputerResult <: ImputerResult
@@ -86,9 +96,9 @@ struct GMMImputerResult <: ImputerResult
     AIC::Vector{Float64}
 end
 
-function impute(X,imputer::GMMImputer)
-    i = imputer
-    if i.verbosity > STD
+function impute(imputer::GMMImputer,X)
+    imp = imputer
+    if imp.verbosity > STD
         @codeLocation
     end
     (N,D) = size(X)
@@ -98,53 +108,60 @@ function impute(X,imputer::GMMImputer)
     XMask = .! ismissing.(X)
     nFill = (N * D) - sum(XMask)
 
-    imputedValues = Array{nmT,nDim}[]
+    imputedValues = Array{Float64,nDim}[]
     nImputedValues = nFill
     lLs  = Float64[]
     BICs = Float64[]
     AICs = Float64[]
 
-    for mi in 1:i.multipleImputations
-        emOut = gmm(X,i.K;p₀=i.p₀,mixtures=i.mixtures,tol=i.tol,verbosity=i.verbosity,minVariance=i.minVariance,minCovariance=i.minCovariance,initStrategy=i.initStrategy,maxIter=i.maxIter,rng=i.rng)
-
+    for mi in 1:imp.multipleImputations
+        emOut = gmm(X,imp.K;p₀=imp.p₀,mixtures=imp.mixtures,tol=imp.tol,verbosity=imp.verbosity,minVariance=imp.minVariance,minCovariance=imp.minCovariance,initStrategy=imp.initStrategy,maxIter=imp.maxIter,rng=imp.rng)
+        #=
         X̂ = copy(X)
         for n in 1:N
             for d in 1:D
                 if !XMask[n,d]
-                    X̂[n,d] = sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:K])
+                    X̂[n,d] = sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:imp.K])
                 end
             end
         end
-        X̂ = convert(Array{nmT,nDim},X̂)
+        =#
+        X̂ = [XMask[n,d] ? X[n,d] : sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:imp.K]) for n in 1:N, d in 1:D ]
+        #X̂ = identity.(X̂)
+        #X̂ = convert(Array{nmT,nDim},X̂)
         push!(imputedValues,X̂)
         push!(lLs,emOut.lL)
         push!(BICs,emOut.BIC)
-        push!(AICss,emOut.AIC)
+        push!(AICs,emOut.AIC)
     end
     return GMMImputerResult(imputedValues,nImputedValues,lLs,BICs,AICs)
 end
 
-imputed(r::MeanImputerResult) = mean(r.imputed)
-imputedValues(r::MeanImputerResult) = r.imputed
-info(r::MeanImputerResult) = (nImputedValues = r.nImputedValues, lL=r.lL, BIC=r.BIC, AIC=r.AIC)
+imputed(r::GMMImputerResult) = mean(r.imputed)
+imputedValues(r::GMMImputerResult) = r.imputed
+info(r::GMMImputerResult) = (nImputedValues = r.nImputedValues, lL=r.lL, BIC=r.BIC, AIC=r.AIC)
 
 # ------------------------------------------------------------------------------
 # RFImputer
 
 Base.@kwdef mutable struct RFImputer <: Imputer
     multipleImputations::Int64         = 1
-    rng::Random._GLOBAL_RNG            = Random.GLOBAL_RNG
+    rng::AbstractRNG                   = Random.GLOBAL_RNG
 end
 
-struct RFmputerResult <: ImputerResult
+struct RFImputerResult <: ImputerResult
     imputed
     nImputedValues::Int64
 end
 
 
 
-function impute(X,imputer::RFImputer)
-   return 
+function impute(imputer::RFImputer,X)
+   return nothing 
 end
 
+imputed(r::RFImputerResult) = r.imputed[1]
+imputedValues(r::RFImputerResult) = r.imputed
+info(r::RFImputerResult) = nothing
 
+end # end Imputation module

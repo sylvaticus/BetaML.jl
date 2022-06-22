@@ -350,6 +350,7 @@ function gmm(X,K;p₀=nothing,mixtures=[DiagonalGaussian() for i in 1:K],tol=10^
 
 
     # Initialisation of the parameters of the mixtures
+    mixtures = identity.(mixtures) # to set the container to the minimum common denominator of element types
     initMixtures!(mixtures,X,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,rng=rng)
 
     pₙₖ = zeros(Float64,N,K) # The posteriors, i.e. the prob that item n belong to cluster k
@@ -489,12 +490,14 @@ function predictMissing(X,K=3;p₀=nothing,mixtures=[DiagonalGaussian() for i in
         @codeLocation
     end
     emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,maxIter=maxIter,rng=rng)
+
     (N,D) = size(X)
     nDim  = ndims(X)
     nmT   = nonmissingtype(eltype(X))
     #K = size(emOut.μ)[1]
     XMask = .! ismissing.(X)
     nFill = (N * D) - sum(XMask)
+    #=
     X̂ = copy(X)
     for n in 1:N
         for d in 1:D
@@ -503,7 +506,10 @@ function predictMissing(X,K=3;p₀=nothing,mixtures=[DiagonalGaussian() for i in
             end
         end
     end
-    X̂ = convert(Array{nmT,nDim},X̂)
+    =#
+    X̂ = [XMask[n,d] ? X[n,d] : sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:K]) for n in 1:N, d in 1:D ]
+    X̂ = identity.(X̂)
+    #X̂ = convert(Array{nmT,nDim},X̂)
     return (X̂=X̂,nFill=nFill,lL=emOut.lL,BIC=emOut.BIC,AIC=emOut.AIC)
 end
 

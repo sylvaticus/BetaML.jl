@@ -53,8 +53,9 @@ include("Imputation/Imputation.jl") # (Missing) imputation algorithms
 const MLJ_PERCEPTRON_MODELS = (PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier)
 const MLJ_TREES_MODELS      = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
 const MLJ_CLUSTERING_MODELS = (KMeans, KMedoids, GMMClusterer, MissingImputator)
-const MLJ_INTERFACED_MODELS = (MLJ_PERCEPTRON_MODELS..., MLJ_TREES_MODELS..., MLJ_CLUSTERING_MODELS...)
-const MLJ_IMPUTERS_MODELS   = (GMMImputer, FeatureMeanImputer, RandomForestImputer)
+#const MLJ_IMPUTERS_MODELS   = (MeanImputer, GMMImputer,RFImputer) # attention these will be the name of the MLJ models, not the BetaML ones...
+const MLJ_INTERFACED_MODELS = (MLJ_PERCEPTRON_MODELS..., MLJ_TREES_MODELS..., MLJ_CLUSTERING_MODELS...) # TODO add MLJ_IMPUTERS_MODELS
+
 
 function __init__()
     MMI.metadata_pkg.(MLJ_INTERFACED_MODELS,
