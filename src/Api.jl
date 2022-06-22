@@ -5,11 +5,11 @@ module Api
 # Modules are free to use other functions but these are defined here to avoid name conflicts
 # and allows instead Multiple Dispatch to handle them
 
-export predict, fit, fit!, partition
+export predict, fit, fit!, partition, info
 
 predict()   = nothing
 fit()       = nothing
 fit!()      = nothing
 partition() = nothing
-
+info()      = nothing
 end

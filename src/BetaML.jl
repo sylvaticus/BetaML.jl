@@ -28,6 +28,7 @@ include("Nn/Nn.jl")                 # Neural Networks
 include("Perceptron/Perceptron.jl") # Perceptron-like algorithms
 include("Trees/Trees.jl")           # Decision Trees and ensembles (Random Forests)
 include("Clustering/Clustering.jl") # Clustering algorithms
+include("Imputation/Imputation.jl") # (Missing) imputation algorithms
 
 # "Merging" of the modules...
 @force    using .Api
@@ -44,6 +45,8 @@ include("Clustering/Clustering.jl") # Clustering algorithms
 @reexport using .Trees
 @force    using .Clustering
 @reexport using .Clustering
+@force    using .Imputation
+@reexport using .Imputation
 
 # ------------------------------------------------------------------------------
 #MLJ interface...
@@ -51,6 +54,7 @@ const MLJ_PERCEPTRON_MODELS = (PerceptronClassifier, KernelPerceptronClassifier,
 const MLJ_TREES_MODELS      = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
 const MLJ_CLUSTERING_MODELS = (KMeans, KMedoids, GMMClusterer, MissingImputator)
 const MLJ_INTERFACED_MODELS = (MLJ_PERCEPTRON_MODELS..., MLJ_TREES_MODELS..., MLJ_CLUSTERING_MODELS...)
+const MLJ_IMPUTERS_MODELS   = (GMMImputer, FeatureMeanImputer, RandomForestImputer)
 
 function __init__()
     MMI.metadata_pkg.(MLJ_INTERFACED_MODELS,

@@ -30,6 +30,9 @@ end
 if "all" in ARGS || "Stats" in ARGS || nArgs == 0
     include("Stats_tests.jl")
 end
+if "all" in ARGS || "Imputation" in ARGS || nArgs == 0
+    include("Imputation_tests.jl")
+end
 
 if "all" in ARGS
     # run optional long tests

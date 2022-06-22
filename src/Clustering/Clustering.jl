@@ -38,7 +38,7 @@ using  ForceImport
 @force using ..Api
 @force using ..Utils
 
-export initRepresentatives, kmeans, kmedoids, gmm, predictMissing
+export initRepresentatives, kmeans, kmedoids, gmm, predictMissing, AbstractMixture
 
 abstract type AbstractMixture end
 include("Mixtures.jl")

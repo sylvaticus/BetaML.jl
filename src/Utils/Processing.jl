@@ -137,10 +137,10 @@ Given a matrix of one-hot encoded values (e.g. [0 1 0; 1 0 0]) returns a vector 
 """
 function oneHotDecoder(x)
     function findfirst_custom(f,x)
-        for i in keys(pairs(x))
-            if ismissing(x[i])
+        for (i,val) in pairs(x)
+            if ismissing(val)
                 return missing
-            elseif f(x[i])
+            elseif f(val)
                 return i
             end
         end
