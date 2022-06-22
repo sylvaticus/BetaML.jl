@@ -51,4 +51,19 @@ mod = GMMImputer(K=2,multipleImputations=3,rng=copy(TESTRNG),verbosity=NONE, ini
 imputerResults = impute(mod,X)
 x̂ = imputerResults |> imputed
 X̂s = imputerResults |> imputedValues
-x̂ = imputerResults |> imputed
+@test x̂[1,2] = X̂s[1][1,2] = X̂s[2][1,2] = X̂s[3][1,2] ≈ 6.281803477634331
+infos = imputerResults |> infos
+@test infos.nImputedValues == 1 && infos.lL[1] ≈ -58.47338193522323  && infos.BIC[1] ≈ 134.96859056500503 && infos.AIC[1] ≈ 142.94676387044646
+
+# ------------------------------------------------------------------------------
+
+println("Testing RFFImputer...")
+
+X = [2 missing 10 "aaa" missing; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
+
+mod = RFImputer(forcedCategoricalCols=[3])
+impute(mod,X)
+
+missingMask = ismissing.(X)
+
+reverse(sortperm(makeColVector(sum(missingMask,dims=1))))

@@ -53,7 +53,7 @@ using  ForceImport
 export buildTree, buildForest, updateTreesWeights!, predictSingle, predict, print
 import Base.print
 
-export AbstractDecisionNode,Leaf, DecisionNode, Forest  # cancelalble
+export AbstractDecisionNode,Leaf, DecisionNode, Forest
 
 """
    Question

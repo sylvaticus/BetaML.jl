@@ -29,6 +29,7 @@ using ForceImport
 @force using ..Api
 @force using ..Utils
 @force using ..Clustering
+@force using ..Trees
 
 export Imputer, MeanImputer, GMMImputer, RFImputer,
        ImputerResult, MeanImputerResult, GMMImputerResult, RFImputerResult, 
@@ -145,19 +146,43 @@ info(r::GMMImputerResult) = (nImputedValues = r.nImputedValues, lL=r.lL, BIC=r.B
 # RFImputer
 
 Base.@kwdef mutable struct RFImputer <: Imputer
-    multipleImputations::Int64         = 1
-    rng::AbstractRNG                   = Random.GLOBAL_RNG
+    nTrees::Int64                               = 30
+    maxDepth::Int64                             = typemax(Int64)
+    minGain::Float64                            = 0.0
+    minRecords::Int64                           = 2
+    maxFeatures::Int64                          = typemax(Int64)
+    forcedCategoricalCols::Vector{Int64}        = Int64[] # like in RF, normally integers are considered ordinal
+    splittingCriterion::Union{Function,Nothing} = nothing
+    β::Float64                                  = 0.0
+    oob::Bool                                   = false
+    recursivePassages                           = 1
+    multipleImputations::Int64                  = 1
+    rng::AbstractRNG                            = Random.GLOBAL_RNG
 end
 
 struct RFImputerResult <: ImputerResult
     imputed
     nImputedValues::Int64
+    oob::Vector{Float64}
 end
 
 
 
 function impute(imputer::RFImputer,X)
-   return nothing 
+    nR,nC = size(X)
+    if imputer.maxFeatures == typemax(Int64) && imputer.nTrees >1
+      maxFeatures = Int(round(sqrt(size(X,2))))
+    end
+    maxFeatures   = min(nC,imputer.maxFeatures) 
+    maxDepth      = min(nR,imputer.maxDepth)
+
+    catCols = [! (nonmissingtype(eltype(identity.(X[:,c]))) <: Number ) || c in imputer.forcedCategoricalCols for c in 1:nC]
+
+    forestModels  = Array{Forest,1}(undef,nC)
+    missingMask = ismissing.(X) 
+    sortedDims = reverse(sortperm(makeColVector(sum(missingMask,dims=1)))) # sorted from the dim with more missing values
+
+    return sortedDims
 end
 
 imputed(r::RFImputerResult) = r.imputed[1]
