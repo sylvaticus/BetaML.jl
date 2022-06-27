@@ -60,10 +60,17 @@ infos = imputerResults |> infos
 println("Testing RFFImputer...")
 
 X = [2 missing 10 "aaa" missing; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
+mod = RFImputer(forcedCategoricalCols=[5],recursivePassages=3,multipleImputations=10, rng=copy(TESTRNG))
+out = impute(mod,X)
+@test imputedValues(out)[1][1,2] == imputed(out)[1,2] == 400
+@test imputedValues(out)[2][1,2] == 40
 
-mod = RFImputer(forcedCategoricalCols=[3])
-impute(mod,X)
-
-missingMask = ismissing.(X)
-
-reverse(sortperm(makeColVector(sum(missingMask,dims=1))))
+X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
+mod = RFImputer(multipleImputations=10, rng=copy(TESTRNG),oob=true)
+out = impute(mod,X)
+vals = imputedValues(out)
+medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
+@test medianValues[1,2] == 4.0
+infos = info(out)
+@test infos.nImputedValues == 1
+@test infos.oob[1] ≈ [0.6482801664254283, 0.5447602979262367, 1.4813804498107928]

@@ -637,7 +637,7 @@ function updateTreesWeights!(forest::Forest{Ty},x,y;β=50,rng = Random.GLOBAL_RN
 end
 
 """
-   oobError(forest,x,y)
+   oobError(forest,x,y;rng)
 
 Comute the Out-Of-Bag error, an estimation of the validation error.
 

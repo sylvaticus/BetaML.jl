@@ -562,7 +562,7 @@ end
 """
    mode(v::AbstractVector{T};rng)
 
-Return the position with the highest mode (using rand in case of multimodal values)
+Return the position with the highest value in an array, interpreted as mode (using rand in case of multimodal values)
 
 """
 function mode(v::AbstractVector{T};rng = Random.GLOBAL_RNG) where {T <: Number}
