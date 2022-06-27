@@ -12,19 +12,22 @@ Implement the BetaML.Imputation module
 """
     Imputation module
 
-Provide various imputation methods for missing data. Note that the interpretation of "missing" can be very wide. Reccomendation systems / collaborative filtering (e.g. suggestion of the film to watch) may well be representated as missing data to impute.
+Provide various imputation methods for missing data. Note that the interpretation of "missing" can be very wide.
+For example, reccomendation systems / collaborative filtering (e.g. suggestion of the film to watch) can well be representated as missing data to impute.
 
-- [`MeanImputer`](@ref): Simple imputator using the features or the records (or both) means (fastest)
+- [`MeanImputer`](@ref): Simple imputator using the features or the records means, with optional record normalisation (fastest)
 - [`GMMImputer`](@ref): Impute data using a Generative (Gaussian) Mixture Model (good trade off)
 - [`RFImputer`](@ref): Impute missing data using Random Forests, with optional replicable multiple imputations (most accurate).
 
 
-Imputations for all these models can be optained by running `impute([Imputator model],X)`. The function returns an `ImputerResult` that can be queried with `imputed(x::ImputerResult)`, `imputedValues(x::ImputerResult)` (for multiple imputations) and `info(x::ImputerResult)` to query further informations concerning the imputation.
-Note that if multiple imputations are run (for the supporting ipmutators) `impute()` just returns the last one. If you want the average, the mode or other functions of your differently imputed data use directly the output of `imputedValues()`.
+Imputations for all these models can be optained by running `fit!([Imputator model],X)`. The data with the missing values imputed can then be queried with `predict(m::Imputer)` or `info(m::Imputer)` to retrieve further information concerning the imputation.
+Note that if multiple imputations are run (for the supporting imputators) `predict()` will return a vector of predictions rather than a single one`.
 
 ## Example   
 
 ```julia
+julia> using Statistics, BetaML
+
 julia> X            = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
 6×3 Matrix{Union{Missing, Int64}}:
     2      missing     10
@@ -33,10 +36,13 @@ julia> X            = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4
     3     5            12
     4     8            20
     1     2             5
-julia> mod          = RFImputer(multipleImputations=10, rng=copy(FIXEDRNG))
-RFImputer(30, 9223372036854775807, 0.0, 2, 9223372036854775807, Int64[], nothing, 0.0, false, 1, 10, StableRNGs.LehmerRNG(state=0x000000000000000000000000000000f7))
-julia> results      = impute(mod,X);
-julia> vals         = imputedValues(results)
+
+julia> mod          = RFImputer(multipleImputations=10,  rng=copy(FIXEDRNG));
+
+julia> fit!(mod,X)
+true
+
+julia> vals         = predict(mod)
 10-element Vector{Matrix{Union{Missing, Int64}}}:
  [2 3 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
  [2 4 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
@@ -48,6 +54,10 @@ julia> vals         = imputedValues(results)
  [2 4 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
  [2 137 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
  [2 137 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
+
+julia> nR,nC        = size(vals[1])
+(6, 3)
+
 julia> medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 6×3 Matrix{Float64}:
     2.0     4.0     10.0
@@ -56,14 +66,16 @@ julia> medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
     3.0     5.0     12.0
     4.0     8.0     20.0
     1.0     2.0      5.0
-julia> infos        = info(results);
+
+julia> infos        = info(mod);
+
 julia> infos.nImputedValues
 1
 ```
 """
 module Imputation
 
-using Statistics, Random
+using Statistics, Random, LinearAlgebra
 using ForceImport
 @force using ..Api
 @force using ..Utils
@@ -72,57 +84,87 @@ using ForceImport
 
 export Imputer, MeanImputer, GMMImputer, RFImputer,
        ImputerResult, MeanImputerResult, GMMImputerResult, RFImputerResult, 
-       impute, imputed, imputedValues, info
+       fit!, predict, info
 
-abstract type Imputer end   
+abstract type Imputer <: BetaMLModel end   
 abstract type ImputerResult end
 
 # ------------------------------------------------------------------------------
 # MeanImputer
 
+struct MeanImputerResult <: ImputerResult
+    imputedValues
+    nImputedValues::Int64
+end
+
 """
     MeanImputer
 
-Impute using Generated (Gaussian) mixture models.
+Simple imputer using the feature mean, optionally normalised by record l-1 norm
+
+Parameters:
+- `normaliseRecords`: Normalise the feature mean by l-1 norm of the records [default: `false`]. Use `true` if the records are highly heterogeneus (e.g. quantity exports of different countries).  
+
 Limitations:
 - data must be numerical
-- the resulted matrix is a Matrix{Float64}
-- currently the Mixtures available do not support random initialisation, so there is no random component involved (i.e. no multiple imputations)    
 """
 Base.@kwdef mutable struct MeanImputer <: Imputer
-    recordCorrection::Float64 = 0.0
-    meanIterations::Int64     = 1
+    normaliseRecords::Bool = false
+    fitResults::Union{MeanImputerResult,Nothing} = nothing
+    fitted::Bool = false
 end
-struct MeanImputerResult <: ImputerResult
-    imputed
-    nImputedValues::Int64
-end
-function impute(imputer::MeanImputer,X)
+
+"""
+    fit!(imputer::MeanImputer,X)
+
+Fit a matrix with mixed data using `MeanImputer`
+"""
+function fit!(imputer::MeanImputer,X)
     X̂ = copy(X)
-    imp = imputer
     nR,nC = size(X)
     missingMask = ismissing.(X)
-    for k in 1:imp.meanIterations
-        cMeans    = [mean(skipmissing(X̂[:,i])) for i in 1:nC]
-        rMeans    = [mean(skipmissing(X̂[i,:])) for i in 1:nR]
-        X̂ = [missingMask[r,c] ? cMeans[c]*(1-imp.recordCorrection) + rMeans[r]*imp.recordCorrection : X̂[r,c] for r in 1:nR, c in 1:nC]
+    cMeans   = [mean(skipmissing(X̂[:,i])) for i in 1:nC]
+    if ! imputer.normaliseRecords
+        X̂ = [missingMask[r,c] ? cMeans[c] : X̂[r,c] for r in 1:nR, c in 1:nC]
+    else
+        adjNorms = [norm(collect(skipmissing(r)),1) /   (nC - sum(ismissing.(r))) for r in eachrow(X)]
+        X̂        = [missingMask[r,c] ? cMeans[c]*adjNorms[r]/sum(adjNorms) : X̂[r,c] for r in 1:nR, c in 1:nC]
     end
-    return MeanImputerResult(X̂,sum(missingMask))
+    imputer.fitResults = MeanImputerResult(X̂,sum(missingMask))
+    imputer.fitted = true
+    return true
 end
-imputed(r::MeanImputerResult) = r.imputed
-imputedValues(r::MeanImputerResult) = [r.imputed]
-info(r::MeanImputerResult) = (nImputedValues = r.nImputedValues,)
+predict(m::MeanImputer) = m.fitResults.imputedValues
+
+"""
+    info(m::MeanImputer)
+
+Return wheter the model has been fitted and the number of imputed values.
+"""
+info(m::MeanImputer) = m.fitted ? (fitted = true, nImputedValues = m.fitResults.nImputedValues) : (fitted = false, nImputedValues = nothing)
 
 # ------------------------------------------------------------------------------
 # GMMImputer
+
+struct GMMImputerResult <: ImputerResult
+    imputedValues
+    nImputedValues::Int64
+    lL::Vector{Float64}
+    BIC::Vector{Float64}
+    AIC::Vector{Float64}
+end
+
 """
     GMMImputer
 
 Impute using Generated (Gaussian) mixture models.
+
+For the parameters (`K`,`p₀`,`mixtures`,`tol`,`verbosity`,`minVariance`,`minCovariance`,`initStrategy`,`maxIter`) see the underlying [`gmm`](@ref) clustering model.
+
 Limitations:
 - data must be numerical
 - the resulted matrix is a Matrix{Float64}
-- currently the Mixtures available do not support random initialisation, so there is no random component involved (i.e. no multiple imputations)    
+- currently the Mixtures available do not support random initialisation for missing imputation, so there is no random component involved (i.e. no multiple imputations)    
 """
 Base.@kwdef mutable struct GMMImputer <: Imputer
     K::Int64                           = 3
@@ -136,17 +178,13 @@ Base.@kwdef mutable struct GMMImputer <: Imputer
     maxIter::Int64                     = -1
     multipleImputations::Int64         = 1
     rng::AbstractRNG                   = Random.GLOBAL_RNG
+    fitResults::Union{GMMImputerResult,Nothing} = nothing
+    fitted::Bool = false
 end
 
-struct GMMImputerResult <: ImputerResult
-    imputed
-    nImputedValues::Int64
-    lL::Vector{Float64}
-    BIC::Vector{Float64}
-    AIC::Vector{Float64}
-end
 
-function impute(imputer::GMMImputer,X)
+
+function fit!(imputer::GMMImputer,X)
     imp = imputer
     if imp.verbosity > STD
         @codeLocation
@@ -184,16 +222,58 @@ function impute(imputer::GMMImputer,X)
         push!(BICs,emOut.BIC)
         push!(AICs,emOut.AIC)
     end
-    return GMMImputerResult(imputedValues,nImputedValues,lLs,BICs,AICs)
+    imputer.fitResults = GMMImputerResult(imputedValues,nImputedValues,lLs,BICs,AICs)
+    imputer.fitted = true
+    return true
 end
 
-imputed(r::GMMImputerResult) = mean(r.imputed)
-imputedValues(r::GMMImputerResult) = r.imputed
-info(r::GMMImputerResult) = (nImputedValues = r.nImputedValues, lL=r.lL, BIC=r.BIC, AIC=r.AIC)
+"""
+    predict(m::GMMImputer)
+
+Return the data with the missing values imputed.
+"""
+predict(m::GMMImputer) = (! m.fitted) ? nothing : (m.multipleImputations == 1 ? m.fitResults.imputedValues[1] : m.fitResults.imputedValues) 
+
+"""
+    info(m::GMMImputer)
+
+Return wheter the model has been fitted, the number of imputed values and statistics like the log likelihood, the Bayesian Information Criterion (BIC) and the Akaike Information Criterion (AIC).
+"""
+info(m::GMMImputer)    = m.fitted ? (fitted = true, nImputedValues = m.fitResults.nImputedValues, lL = m.fitResults.lL, BIC = m.fitResults.BIC, AIC = m.fitResults.AIC) : (fitted = false, nImputedValues = nothing, lL = nothing, BIC = nothing, AIC = nothing) 
 
 # ------------------------------------------------------------------------------
 # RFImputer
+struct RFImputerResult <: ImputerResult
+    imputedValues
+    nImputedValues::Int64
+    oob::Vector{Vector{Float64}}
+end
 
+"""
+    RFImputer
+
+Impute missing data using Random Forests, with optional replicable multiple imputations. 
+
+For the parameters (`K`,`p₀`,`mixtures`,`tol`,`verbosity`,`minVariance`,`minCovariance`,`initStrategy`,`maxIter`) see the underlying [`gmm`](@ref) clustering model.
+
+
+nTrees::Int64                               = 30
+maxDepth::Int64                             = typemax(Int64)
+minGain::Float64                            = 0.0
+minRecords::Int64                           = 2
+maxFeatures::Int64                          = typemax(Int64)
+forcedCategoricalCols::Vector{Int64}        = Int64[] # like in RF, normally integers are considered ordinal
+splittingCriterion::Union{Function,Nothing} = nothing
+β::Float64                                  = 0.0
+oob::Bool                                   = false
+
+
+
+Limitations:
+- data must be numerical
+- the resulted matrix is a Matrix{Float64}
+- currently the Mixtures available do not support random initialisation for missing imputation, so there is no random component involved (i.e. no multiple imputations)    
+"""
 Base.@kwdef mutable struct RFImputer <: Imputer
     nTrees::Int64                               = 30
     maxDepth::Int64                             = typemax(Int64)
@@ -207,15 +287,13 @@ Base.@kwdef mutable struct RFImputer <: Imputer
     recursivePassages                           = 1
     multipleImputations::Int64                  = 1
     rng::AbstractRNG                            = Random.GLOBAL_RNG
+    fitResults::Union{RFImputerResult,Nothing} = nothing
+    fitted::Bool = false
 end
 
-struct RFImputerResult <: ImputerResult
-    imputed
-    nImputedValues::Int64
-    oob::Vector{Vector{Float64}}
-end
 
-function impute(imputer::RFImputer,X)
+
+function fit!(imputer::RFImputer,X)
     nR,nC   = size(X)
     
     imputed = fill(similar(X),imputer.multipleImputations)
@@ -254,10 +332,10 @@ function impute(imputer::RFImputer,X)
                 Xd   = Matrix(Xout[nmy,[1:(d-1);(d+1):end]])
                 dfor = buildForest(Xd,y, # forest model specific for this dimension
                             imputer.nTrees,
-                            maxDepth            = imputer.maxDepth,
+                            maxDepth            = maxDepth,
                             minGain             = imputer.minGain,
                             minRecords          = imputer.minRecords,
-                            maxFeatures         = imputer.maxFeatures,
+                            maxFeatures         = maxFeatures,
                             splittingCriterion  = splittingCriterion,
                             β                   = imputer.β,
                             oob                 = false,
@@ -293,12 +371,24 @@ function impute(imputer::RFImputer,X)
         imputed[imputation]   = Xout
         oobErrors[imputation] = oobErrorsImputation
     end # end individual imputation
-    return RFImputerResult(imputed,nImputedValues,oobErrors)
+    imputer.fitResults = RFImputerResult(imputed,nImputedValues,oobErrors)
+    imputer.fitted = true
+    return true
     
 end
 
-imputed(r::RFImputerResult) = r.imputed[1]
-imputedValues(r::RFImputerResult) = r.imputed
-info(r::RFImputerResult) = (nImputedValues=r.nImputedValues,oob=r.oob)
+"""
+    predict(m::RFImputer)
+
+Return the data with the missing values imputed. If `multipleImputations` was set >1 this is a vector of matrices (the individual imputed data) instead of a single matrix.
+"""
+predict(m::RFImputer) =  (! m.fitted) ? nothing : (m.multipleImputations == 1 ? m.fitResults.imputedValues[1] : m.fitResults.imputedValues)
+
+"""
+    info(m::RFImputer)
+
+Return wheter the model has been fitted, the number of imputed values and, if the option `oob` was set, the estimated _out-of-bag_ errors for each dimension (and individual imputation)
+"""
+info(m::RFImputer) = m.fitted ? (fitted = true, nImputedValues = m.fitResults.nImputedValues, oob = m.fitResults.oob) : (fitted= false, nImputedValues = nothing, oob = nothing)
 
 end # end Imputation module
