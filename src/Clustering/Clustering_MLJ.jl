@@ -1,7 +1,7 @@
 # MLJ interface for clustering models
 
 import MLJModelInterface       # It seems that having done this in the top module is not enought
-const MMI = MLJModelInterface  # We need to repoeat it here
+const MMI = MLJModelInterface  # We need to repeat it here
 
 export KMeans, KMedoids, GMMClusterer, MissingImputator
 

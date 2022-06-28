@@ -13,14 +13,14 @@ Implement the BetaML.Imputation module
     Imputation module
 
 Provide various imputation methods for missing data. Note that the interpretation of "missing" can be very wide.
-For example, reccomendation systems / collaborative filtering (e.g. suggestion of the film to watch) can well be representated as missing data to impute.
+For example, reccomendation systems / collaborative filtering (e.g. suggestion of the film to watch) can well be representated as a missing data to impute problem.
 
 - [`MeanImputer`](@ref): Simple imputator using the features or the records means, with optional record normalisation (fastest)
 - [`GMMImputer`](@ref): Impute data using a Generative (Gaussian) Mixture Model (good trade off)
 - [`RFImputer`](@ref): Impute missing data using Random Forests, with optional replicable multiple imputations (most accurate).
 
 
-Imputations for all these models can be optained by running `fit!([Imputator model],X)`. The data with the missing values imputed can then be queried with `predict(m::Imputer)` or `info(m::Imputer)` to retrieve further information concerning the imputation.
+Imputations for all these models can be optained by running `fit!([Imputator model],X)`. The data with the missing values imputed can then be obtained with `predict(m::Imputer)`. Use`info(m::Imputer)` to retrieve further information concerning the imputation.
 Note that if multiple imputations are run (for the supporting imputators) `predict()` will return a vector of predictions rather than a single one`.
 
 ## Example   
@@ -100,7 +100,7 @@ end
 """
     MeanImputer
 
-Simple imputer using the feature mean, optionally normalised by record l-1 norm
+Simple imputer using the feature (column) mean, optionally normalised by l-1 norms of the records (rows)
 
 Parameters:
 - `normaliseRecords`: Normalise the feature mean by l-1 norm of the records [default: `false`]. Use `true` if the records are highly heterogeneus (e.g. quantity exports of different countries).  
@@ -117,7 +117,7 @@ end
 """
     fit!(imputer::MeanImputer,X)
 
-Fit a matrix with mixed data using `MeanImputer`
+Fit a matrix with missing data using [`MeanImputer`](@ref)
 """
 function fit!(imputer::MeanImputer,X)
     X̂ = copy(X)
@@ -134,6 +134,11 @@ function fit!(imputer::MeanImputer,X)
     imputer.fitted = true
     return true
 end
+"""
+    predict(m::MeanImputer)
+
+Return the data with the missing values replaced with the imputed ones using [`MeanImputer`](@ref).
+"""
 predict(m::MeanImputer) = m.fitResults.imputedValues
 
 """
@@ -157,14 +162,14 @@ end
 """
     GMMImputer
 
-Impute using Generated (Gaussian) mixture models.
+Missing data imputer that uses a Generated (Gaussian) Mixture Model.
 
 For the parameters (`K`,`p₀`,`mixtures`,`tol`,`verbosity`,`minVariance`,`minCovariance`,`initStrategy`,`maxIter`) see the underlying [`gmm`](@ref) clustering model.
 
 Limitations:
 - data must be numerical
 - the resulted matrix is a Matrix{Float64}
-- currently the Mixtures available do not support random initialisation for missing imputation, so there is no random component involved (i.e. no multiple imputations)    
+- currently the Mixtures available do not support random initialisation for missing imputation, and the rest of the algorithm (we use the Expectation-Maximisation) is deterministic, so there is no random component involved (i.e. no multiple imputations)    
 """
 Base.@kwdef mutable struct GMMImputer <: Imputer
     K::Int64                           = 3
@@ -182,8 +187,11 @@ Base.@kwdef mutable struct GMMImputer <: Imputer
     fitted::Bool = false
 end
 
+"""
+    fit!(imputer::GMMImputer,X)
 
-
+Fit a matrix with missing data using [`GMMImputer`](@ref)
+"""
 function fit!(imputer::GMMImputer,X)
     imp = imputer
     if imp.verbosity > STD
@@ -203,7 +211,7 @@ function fit!(imputer::GMMImputer,X)
     AICs = Float64[]
 
     for mi in 1:imp.multipleImputations
-        emOut = gmm(X,imp.K;p₀=imp.p₀,mixtures=imp.mixtures,tol=imp.tol,verbosity=imp.verbosity,minVariance=imp.minVariance,minCovariance=imp.minCovariance,initStrategy=imp.initStrategy,maxIter=imp.maxIter,rng=imp.rng)
+        emOut = gmm(X,imp.K;p₀=deepcopy(imp.p₀),mixtures=imp.mixtures,tol=imp.tol,verbosity=imp.verbosity,minVariance=imp.minVariance,minCovariance=imp.minCovariance,initStrategy=imp.initStrategy,maxIter=imp.maxIter,rng=imp.rng)
         #=
         X̂ = copy(X)
         for n in 1:N
@@ -230,7 +238,7 @@ end
 """
     predict(m::GMMImputer)
 
-Return the data with the missing values imputed.
+Return the data with the missing values replaced with the imputed ones using [`GMMImputer`](@ref).
 """
 predict(m::GMMImputer) = (! m.fitted) ? nothing : (m.multipleImputations == 1 ? m.fitResults.imputedValues[1] : m.fitResults.imputedValues) 
 
@@ -254,25 +262,16 @@ end
 
 Impute missing data using Random Forests, with optional replicable multiple imputations. 
 
-For the parameters (`K`,`p₀`,`mixtures`,`tol`,`verbosity`,`minVariance`,`minCovariance`,`initStrategy`,`maxIter`) see the underlying [`gmm`](@ref) clustering model.
+For the underlying random forest algorithm parameters (`nTrees`,`maxDepth`,`minGain`,`minRecords`,`maxFeatures:`,`splittingCriterion`,`β`,`initStrategy`, `oob` and `rng`) see [`buildTree`](@ref) and [`buildForest`](@ref).
 
+### Specific parameters:
+- `forcedCategoricalCols`: specify the positions of the integer columns to treat as categorical instead of cardinal. [Default: empty vector (all numerical cols are treated as cardinal by default and the others as categorical)]
+- `recursivePassages `: Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`].
+- `multipleImputations`: Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG).
 
-nTrees::Int64                               = 30
-maxDepth::Int64                             = typemax(Int64)
-minGain::Float64                            = 0.0
-minRecords::Int64                           = 2
-maxFeatures::Int64                          = typemax(Int64)
-forcedCategoricalCols::Vector{Int64}        = Int64[] # like in RF, normally integers are considered ordinal
-splittingCriterion::Union{Function,Nothing} = nothing
-β::Float64                                  = 0.0
-oob::Bool                                   = false
-
-
-
-Limitations:
-- data must be numerical
-- the resulted matrix is a Matrix{Float64}
-- currently the Mixtures available do not support random initialisation for missing imputation, so there is no random component involved (i.e. no multiple imputations)    
+### Notes:
+- Given a certain RNG and its status (e.g. `RFImputer(...,rng=StableRNG(FIXEDSEED))`), the algorithm is completely deterministic, i.e. replicable. 
+- The algorithm accepts virtually any kind of data, sortable or not
 """
 Base.@kwdef mutable struct RFImputer <: Imputer
     nTrees::Int64                               = 30
@@ -291,8 +290,11 @@ Base.@kwdef mutable struct RFImputer <: Imputer
     fitted::Bool = false
 end
 
+"""
+    fit!(imputer::RFImputer,X)
 
-
+Fit a matrix with missing data using [`RFImputer`](@ref)
+"""
 function fit!(imputer::RFImputer,X)
     nR,nC   = size(X)
     
@@ -305,7 +307,6 @@ function fit!(imputer::RFImputer,X)
 
     catCols = [! (nonmissingtype(eltype(identity.(X[:,c]))) <: Number ) || c in imputer.forcedCategoricalCols for c in 1:nC]
 
-    #forestModels   = Array{Forest,1}(undef,nC)
     missingMask    = ismissing.(X)
     nonMissingMask = .! missingMask 
     nImputedValues = sum(missingMask)
@@ -374,20 +375,19 @@ function fit!(imputer::RFImputer,X)
     imputer.fitResults = RFImputerResult(imputed,nImputedValues,oobErrors)
     imputer.fitted = true
     return true
-    
 end
 
 """
     predict(m::RFImputer)
 
-Return the data with the missing values imputed. If `multipleImputations` was set >1 this is a vector of matrices (the individual imputed data) instead of a single matrix.
+Return the data with the missing values replaced with the imputed ones using [`RFImputer`](@ref). If `multipleImputations` was set >1 this is a vector of matrices (the individual imputations) instead of a single matrix.
 """
 predict(m::RFImputer) =  (! m.fitted) ? nothing : (m.multipleImputations == 1 ? m.fitResults.imputedValues[1] : m.fitResults.imputedValues)
 
 """
     info(m::RFImputer)
 
-Return wheter the model has been fitted, the number of imputed values and, if the option `oob` was set, the estimated _out-of-bag_ errors for each dimension (and individual imputation)
+Return wheter the model has been fitted, the number of imputed values and, if the option `oob` was set, the estimated _out-of-bag_ errors for each dimension (and individual imputation). The oob error reported is the mismatching error for classification and the relative mean error for regression.
 """
 info(m::RFImputer) = m.fitted ? (fitted = true, nImputedValues = m.fitResults.nImputedValues, oob = m.fitResults.oob) : (fitted= false, nImputedValues = nothing, oob = nothing)
 

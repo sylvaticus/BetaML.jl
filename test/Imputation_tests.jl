@@ -79,5 +79,3 @@ medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 infos = info(mod)
 @test infos.nImputedValues == 1
 @test infos.oob[1] ≈ [0.6482801664254283, 0.5447602979262367, 1.4813804498107928]
-
-
