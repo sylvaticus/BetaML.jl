@@ -3,6 +3,9 @@ using Test
 using Statistics
 using BetaML
 
+import MLJBase
+const Mlj = MLJBase
+
 TESTRNG = FIXEDRNG # This could change...
 
 
@@ -79,3 +82,20 @@ medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 infos = info(mod)
 @test infos.nImputedValues == 1
 @test infos.oob[1] ≈ [0.6482801664254283, 0.5447602979262367, 1.4813804498107928]
+
+
+# ------------------------------------------------------------------------------
+
+println("Testing MLJ Interfaces...")
+
+# ------------------------------------------------------------------------------
+
+println("Testing MLJ Interface for BetaMLGMMImputer...")
+
+X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+X = Mlj.table(X)
+model                       =  BetaMLGMMImputer(rng=copy(TESTRNG))
+modelMachine                =  Mlj.machine(model,X)
+(fitResults, cache, report) =  Mlj.fit(model, 0, X)
+x̂ = Mlj.matrix(fitResults)
+@test isapprox(fitResults[2,2],15.444302849673049)

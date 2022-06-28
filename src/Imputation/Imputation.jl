@@ -391,4 +391,8 @@ Return wheter the model has been fitted, the number of imputed values and, if th
 """
 info(m::RFImputer) = m.fitted ? (fitted = true, nImputedValues = m.fitResults.nImputedValues, oob = m.fitResults.oob) : (fitted= false, nImputedValues = nothing, oob = nothing)
 
+
+# MLJ interface
+include("Imputation_MLJ.jl")
+
 end # end Imputation module
