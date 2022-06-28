@@ -94,8 +94,8 @@ println("Testing MLJ Interface for BetaMLGMMImputer...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 X = Mlj.table(X)
-model                       =  BetaMLGMMImputer(rng=copy(TESTRNG))
+model                       =  BetaMLGMMImputer(initStrategy="grid",rng=copy(TESTRNG))
 modelMachine                =  Mlj.machine(model,X)
 (fitResults, cache, report) =  Mlj.fit(model, 0, X)
-x̂ = Mlj.matrix(fitResults)
-@test isapprox(fitResults[2,2],15.444302849673049)
+x̂                           =  Mlj.matrix(fitResults)
+@test isapprox(x̂[2,2],14.588514438886131)
