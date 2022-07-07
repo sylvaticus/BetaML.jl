@@ -283,10 +283,11 @@ Base.@kwdef mutable struct RFImputer <: Imputer
     splittingCriterion::Union{Function,Nothing} = nothing
     β::Float64                                  = 0.0
     oob::Bool                                   = false
-    recursivePassages                           = 1
+    recursivePassages::Int64                    = 1
     multipleImputations::Int64                  = 1
     rng::AbstractRNG                            = Random.GLOBAL_RNG
-    fitResults::Union{RFImputerResult,Nothing} = nothing
+    verbosity::Verbosity                        = STD
+    fitResults::Union{RFImputerResult,Nothing}  = nothing
     fitted::Bool = false
 end
 
@@ -313,14 +314,17 @@ function fit!(imputer::RFImputer,X)
     oobErrors      = fill(fill(Inf,nC),imputer.multipleImputations) # by imputations and dimensions
     
     for imputation in 1:imputer.multipleImputations
+        imputer.verbosity >= STD && println("** Processing imputation $imputation")
         Xout    = copy(X)
         sortedDims     = reverse(sortperm(makeColVector(sum(missingMask,dims=1)))) # sorted from the dim with more missing values
         oobErrorsImputation = fill(Inf,nC)
         for pass in 1:imputer.recursivePassages 
+            imputer.verbosity >= HIGH && println("- processing passage $pass")
             if pass > 1
                 shuffle!(imputer.rng, sortedDims) # randomise the order we go trough the various dimensions at this passage
             end 
             for d in sortedDims
+                imputer.verbosity >= FULL && println("  - processing dimension $d")
                 if imputer.splittingCriterion == nothing
                     splittingCriterion = catCols[d] ?  gini : variance
                 else

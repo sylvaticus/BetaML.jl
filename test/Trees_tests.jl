@@ -26,9 +26,14 @@ xtrain = [
 
 ytrain = ["Apple",  "Apple", "Grape", "Grape", "Lemon"]
 myTree = buildTree(xtrain,ytrain,rng=copy(TESTRNG))
+m = DTModel(rng=copy(TESTRNG))
+train!(m,xtrain,ytrain)
 
-ŷtrain = predict(myTree, xtrain,rng=copy(TESTRNG))
+ŷtrain  = predict(myTree, xtrain,rng=copy(TESTRNG))
+ŷtrain2 = predict(m,xtrain)
+
 @test accuracy(ŷtrain,ytrain,rng=copy(TESTRNG)) >= 0.8
+@test ŷtrain == ŷtrain2
 
 xtest = [
     "Green"  3;
@@ -38,10 +43,14 @@ xtest = [
     "Yellow" 3
 ]
 
-ytest = ["Apple","Apple","Grape","Grape","Lemon"]
-ŷtest = predict(myTree, xtest,rng=copy(TESTRNG))
-@test accuracy(ŷtest,ytest,rng=copy(TESTRNG)) >= 0.8
+ytest  = ["Apple","Apple","Grape","Grape","Lemon"]
+ŷtest  = predict(myTree, xtest,rng=copy(TESTRNG))
+ŷtest2 = predict(m, xtest)
 
+@test accuracy(ŷtest,ytest,rng=copy(TESTRNG)) >= 0.8
+@test ŷtest == ŷtest2
+
+@test info(m) == Dict(:jobIsRegression => 0,:maxDepth => 3, :dimensions => 2, :trainedRecords => 5, :avgDepth => 2.6666666666666665)
 #print(myTree)
 
 # ==================================
@@ -81,6 +90,9 @@ mreTrain = meanRelError(ŷtrain,ytrain)
 @test mreTrain <= 0.06
 mreTest  = meanRelError(ŷtest,ytest)
 @test mreTest <= 0.3
+m = DTModel(minGain=0.001,minRecords=2,maxDepth=3,rng=copy(TESTRNG))
+train!(m,xtrain,ytrain)
+@test predict(m,xtrain) == ŷtrain
 
 # ==================================
 # NEW TEST

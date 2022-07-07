@@ -266,8 +266,8 @@ end
 """
     getScaleFactors(x;skip)
 
-Return the scale factors (for each dimensions) in order to scale a matrix X (n,d)
-such that each dimension has mean 0 and variance 1.
+Return the scale factors (for each dimensions) in order to scale a matrix X (n,d) such that each dimension has mean 0 and variance 1.
+Note that missing values are skipped.
 
 # Parameters
 - `x`: the (n × d) dimension matrix to scale on each dimension d
@@ -278,8 +278,8 @@ such that each dimension has mean 0 and variance 1.
 term to make the scale.
 """
 function getScaleFactors(x;skip=[])
-    μ  = mean(x,dims=1)
-    σ² = var(x,corrected=false,dims=1)
+    μ  = transpose([mean(skipmissing(x[:,c])) for c in 1:size(x,2)])
+    σ² = transpose([var(skipmissing(x[:,c]),corrected=false ) for c in 1:size(x,2)])
     sfμ = - μ
     sfσ² = 1 ./ sqrt.(σ²)
     for i in skip
@@ -304,10 +304,14 @@ respectively [def: the scaling factors needed to scale x to mean 0 and variance 
 - The scaled matrix
 
 # Notes:
-- Also available `scale!(x,scaleFactors)` for in-place scaling.
-- Retrieve the scale factors with the `getScaleFactors()` function
+- Also available [`scale!(x,scaleFactors)`](@ref) for in-place scaling
+- Retrieve the scale factors with the [`getScaleFactors()`](@ref) function
+- Note that missing values are skipped
 """
-function scale(x,scaleFactors=(-mean(x,dims=1),1 ./ sqrt.(var(x,corrected=false,dims=1))); rev=false )
+function scale(x,scaleFactors=(
+    -transpose([mean(skipmissing(x[:,c])) for c in 1:size(x,2)]),
+    1 ./ sqrt.(transpose([var(skipmissing(x[:,c]),corrected=false ) for c in 1:size(x,2)]))
+    ); rev=false )
     if (!rev)
       y = (x .+ scaleFactors[1]) .* scaleFactors[2]
     else
@@ -315,7 +319,10 @@ function scale(x,scaleFactors=(-mean(x,dims=1),1 ./ sqrt.(var(x,corrected=false,
     end
     return y
 end
-function scale!(x,scaleFactors=(-mean(x,dims=1),1 ./ sqrt.(var(x,corrected=false,dims=1))); rev=false)
+function scale!(x,scaleFactors=(
+    -transpose([mean(skipmissing(x[:,c])) for c in 1:size(x,2)]),
+    1 ./ sqrt.(transpose([var(skipmissing(x[:,c]),corrected=false ) for c in 1:size(x,2)]))
+    ); rev=false)
     if (!rev)
         x .= (x .+ scaleFactors[1]) .* scaleFactors[2]
     else

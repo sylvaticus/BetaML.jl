@@ -53,6 +53,7 @@ using LinearAlgebra, Printf, Random, Statistics, Combinatorics, Zygote, Categori
 
 using ForceImport
 @force using ..Api
+using ..Api
 
 export Verbosity, NONE, LOW, STD, HIGH, FULL,
        FIXEDSEED, FIXEDRNG, @codeLocation, generateParallelRngs,
@@ -70,7 +71,7 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        radialKernel, polynomialKernel
 
 # Various functions that we add a method to
-import Base.print, Base.println, Base.findfirst, Base.findall, Base.error, Random.shuffle
+import Base.print, Base.println, Base.findfirst, Base.findall, Base.error, Random.shuffle, Base.show
 
 
 #include("Miscelanneous.jl")

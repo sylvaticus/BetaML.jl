@@ -47,11 +47,16 @@ using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays
 
 using  ForceImport
 @force using ..Api
+#using ..Api
 @force using ..Utils
 
-
-export buildTree, buildForest, updateTreesWeights!, predictSingle, predict, print
 import Base.print
+import Base.show
+
+export buildTree, buildForest, updateTreesWeights!, predictSingle
+export BetaMLHyperParametersSet, DTOptionsSet, DTLearnableParameters, DTModel
+
+
 
 export AbstractDecisionNode,Leaf, DecisionNode, Forest
 
@@ -429,7 +434,7 @@ end
 Print a Decision Tree (textual)
 
 """
-function print(node::AbstractNode, rootDepth="")
+function _printNode(node::AbstractNode, rootDepth="")
 
     depth     = node.depth
     fullDepth = rootDepth*string(depth)*"."
@@ -453,12 +458,29 @@ function print(node::AbstractNode, rootDepth="")
 
     # Call this function recursively on the true branch
     print(spacing * "--> True :")
-    print(node.trueBranch, fullDepth)
+    _printNode(node.trueBranch, fullDepth)
 
     # Call this function recursively on the false branch
     print(spacing * "--> False:")
-    print(node.falseBranch, fullDepth)
+    _printNode(node.falseBranch, fullDepth)
 end
+
+function computeDepths(node::AbstractNode)
+    leafDepths = Int64[]
+    nodeQueue = AbstractNode[]
+    push!(nodeQueue,node)
+    while length(nodeQueue) > 0
+      thisNode = pop!(nodeQueue)
+      if(typeof(thisNode)  <: AbstractLeaf )
+        push!(leafDepths, thisNode.depth)
+      else
+        push!(nodeQueue, thisNode.trueBranch)
+        push!(nodeQueue, thisNode.falseBranch)
+      end
+    end
+    return (mean(leafDepths),maximum(leafDepths))
+end
+
 
 
 """
@@ -738,9 +760,112 @@ function tune(model::AbstractNode,xtrain,ytrain,xval,yval,parameters;loss=(ŷ,y
 end
 =#
 
+# V2 Api
 
+Base.@kwdef mutable struct DTHyperParametersSet <: BetaMLHyperParametersSet
+    maxDepth::Union{Nothing,Int64}              = nothing
+    minGain::Float64                            = 0.0
+    minRecords::Int64                           = 2
+    maxFeatures::Union{Nothing,Int64}           = nothing
+    forceClassification::Bool                   = false
+    splittingCriterion::Union{Nothing,Function} = nothing
+end
 
+Base.@kwdef mutable struct DTOptionsSet <: BetaMLOptionsSet
+    rng                  = Random.GLOBAL_RNG
+    verbosity::Verbosity = STD
+end
 
+Base.@kwdef mutable struct DTLearnableParameters <: BetaMLLearnableParametersSet
+    tree::Union{Nothing,AbstractNode} = nothing
+end
+
+mutable struct DTModel <: BetaMLSupervisedModel
+    hyperparameters::DTHyperParametersSet
+    options::DTOptionsSet
+    learnableparameters::DTLearnableParameters
+    trained::Bool
+    info
+end
+
+function DTModel(;kwargs...)
+    m              = DTModel(DTHyperParametersSet(),DTOptionsSet(),DTLearnableParameters(),false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(typeof(m))
+    for (kw,kwv) in kwargs
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+          end
+        end
+    end
+    return m
+end
+
+function train!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
+
+    if m.trained
+        @warn "This model has already been trained and not support multiple training. This training will override the previous one(s)"
+    end
+
+    # Setting default parameters that depends from the data...
+    maxDepth    = m.hyperparameters.maxDepth    == nothing ?  size(x,1) : m.hyperparameters.maxDepth
+    maxFeatures = m.hyperparameters.maxFeatures == nothing ?  size(x,2) : m.hyperparameters.maxFeatures
+    splittingCriterion = m.hyperparameters.splittingCriterion == nothing ? ( (Ty <: Number && !m.hyperparameters.forceClassification) ? variance : gini) : m.hyperparameters.splittingCriterion
+    # Setting schortcuts to other hyperparameters/options....
+    minGain             = m.hyperparameters.minGain
+    minRecords          = m.hyperparameters.minRecords
+    forceClassification = m.hyperparameters.forceClassification
+    rng                 = m.options.rng
+    verbosity           = m.options.verbosity
+
+    m.learnableparameters.tree = buildTree(x, y; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, mCols=nothing, rng = rng)
+
+    m.trained = true
+
+    jobIsRegression = (forceClassification || ! (Ty <: Number) ) ? false : true
+    
+    m.info[:trainedRecords]             = size(x,1)
+    m.info[:dimensions]                 = size(x,2)
+    m.info[:jobIsRegression]            = jobIsRegression ? 1 : 0
+    (m.info[:avgDepth],m.info[:maxDepth]) = computeDepths(m.learnableparameters.tree)
+    return true
+end
+
+function reset!(m::DTModel)
+    m.learnableparameters = DTLearnableParameters()
+    m.trained             = false
+    # note info is NOT resetted
+end
+
+function predict(m::DTModel,x)
+    return predictSingle.(Ref(m.learnableparameters.tree),eachrow(x),rng=m.options.rng)
+end
+
+function info(m::DTModel)
+    return m.info
+end
+
+function show(io::IO, ::MIME"text/plain", m::DTModel)
+    if m.trained == false
+        print(io,"DTModel - A Decision Tree model (untrained)")
+    else
+        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
+        print(io,"DTModel - A Decision Tree $job (trained on $(m.info[:trainedRecords]) records)")
+    end
+end
+
+function show(io::IO, m::DTModel)
+    if m.trained == false
+        print(io,"DTModel - A Decision Tree model (untrained)")
+    else
+        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
+        println(io,"DTModel - A Decision Tree $job (trained on $(m.info[:trainedRecords]) records)")
+        println(io,m.info)
+        _printNode(m.learnableparameters.tree)
+    end
+end
+    
 
 # MLJ interface
 include("Trees_MLJ.jl")
