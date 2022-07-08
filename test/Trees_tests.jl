@@ -116,13 +116,53 @@ ŷtrain = predict(myForest, xtrain,rng=copy(TESTRNG))
 @test accuracy(ŷtrain,ytrain,rng=copy(TESTRNG)) >= 0.96
 ŷtest = predict(myForest, xtest,rng=copy(TESTRNG))
 @test accuracy(ŷtest,ytest,rng=copy(TESTRNG))  >= 0.96
-updateTreesWeights!(myForest,xtrain,ytrain;β=1)
+updateTreesWeights!(myForest,xtrain,ytrain;β=1,rng=copy(TESTRNG))
 ŷtrain2 = predict(myForest, xtrain,rng=copy(TESTRNG))
 @test accuracy(ŷtrain2,ytrain,rng=copy(TESTRNG)) >= 0.98
 ŷtest2 = predict(myForest, xtest,rng=copy(TESTRNG))
 @test accuracy(ŷtest2,ytest,rng=copy(TESTRNG))  >= 0.96
 @test oobError <= 0.1
 
+m = RFModel(maxDepth=20,oob=true,beta=0,rng=copy(TESTRNG))
+train!(m,xtrain,ytrain)
+m.options.rng=copy(TESTRNG) 
+ŷtrainNew = predict(m,xtrain)
+@test ŷtrainNew == ŷtrain 
+m.options.rng=copy(TESTRNG) 
+ŷtestNew = predict(m,xtest)
+@test ŷtestNew == ŷtest 
+#=
+m.options.rng=copy(TESTRNG) 
+m.learnableparameters.weights = updateTreesWeights!(myForest,xtrain,ytrain;β=1, rng=copy(TESTRNG))
+m.learnableparameters.weights == myForest.weights
+
+
+m.options.rng=copy(TESTRNG) 
+ŷtrain2New = predict(m,xtrain)
+ŷtrain2New == ŷtrain2
+
+m.learnableparameters.trees == trees
+
+m.options.rng=copy(TESTRNG) 
+ŷtrain3 = predict(m, xtrain)
+m.options.rng=copy(TESTRNG) 
+ŷtest3  = predict(m, xtest)
+ŷtrain2 == ŷtrain3
+
+@test accuracy(ŷtest2,ytest,rng=copy(TESTRNG)) ≈ accuracy(ŷtest3,ytest,rng=copy(TESTRNG))
+@test info(m)[:oobE] ≈ oobError
+=#
+
+predictionsByTree = [] # don't use weights...
+for i in 1:30
+    old = trees[i]
+    new = m.learnableparameters.trees[i]
+    pold = predict(old,xtrain, rng=copy(TESTRNG))
+    pnew = predict(old,xtrain, rng=copy(TESTRNG))
+    push!(predictionsByTree,pold == pnew)
+end
+
+@test sum(predictionsByTree) == 30
 
 # ==================================
 # NEW TEST
@@ -180,6 +220,13 @@ ŷtest = predict(myForest,xtest,rng=copy(TESTRNG))
 mreTrain2 = meanRelError(ŷtrain,ytrain)
 mreTest2  = meanRelError(ŷtest,ytest)
 @test mreTest2 <= mreTest * 1.5
+
+m = RFModel(oob=true,beta=1,rng=copy(TESTRNG))
+train!(m,xtrain,ytrain)
+m.options.rng=copy(TESTRNG) # the model RNG is consumed at each operation
+ŷtest2 = predict(m,xtest)
+
+@test meanRelError(ŷtest,ytest,normDim=false,normRec=false) ≈ meanRelError(ŷtest2,ytest,normDim=false,normRec=false)
 
 myTree2 = buildTree(xtrain,ytrainInt,rng=copy(TESTRNG))
 myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true,rng=copy(TESTRNG))

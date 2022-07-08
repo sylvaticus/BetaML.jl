@@ -54,8 +54,7 @@ import Base.print
 import Base.show
 
 export buildTree, buildForest, updateTreesWeights!, predictSingle
-export BetaMLHyperParametersSet, DTOptionsSet, DTLearnableParameters, DTModel
-
+export DTModel, RFModel
 
 
 export AbstractDecisionNode,Leaf, DecisionNode, Forest
@@ -160,7 +159,7 @@ Individual trees are stored in the array `trees`. The "type" of the forest is gi
 - `oobError`:     The out of bag error (if it has been computed)
 - `weights`:      A weight for each tree depending on the tree's score on the oobData (see [`buildForest`](@ref))
 """
-mutable struct Forest{Ty}
+mutable struct Forest{Ty} <: BetaMLLearnableParametersSet
     trees::Array{Union{AbstractDecisionNode,Leaf{Ty}},1}
     isRegression::Bool
     oobData::Array{Array{Int64,1},1}
@@ -770,8 +769,22 @@ Base.@kwdef mutable struct DTHyperParametersSet <: BetaMLHyperParametersSet
     forceClassification::Bool                   = false
     splittingCriterion::Union{Nothing,Function} = nothing
 end
-
+Base.@kwdef mutable struct RFHyperParametersSet <: BetaMLHyperParametersSet
+    nTrees::Int64                               = 30
+    maxDepth::Union{Nothing,Int64}              = nothing
+    minGain::Float64                            = 0.0
+    minRecords::Int64                           = 2
+    maxFeatures::Union{Nothing,Int64}           = nothing
+    forceClassification::Bool                   = false
+    splittingCriterion::Union{Nothing,Function} = nothing
+    beta::Float64                               = 0.0
+    oob::Bool                                   = false
+end
 Base.@kwdef mutable struct DTOptionsSet <: BetaMLOptionsSet
+    rng                  = Random.GLOBAL_RNG
+    verbosity::Verbosity = STD
+end
+Base.@kwdef mutable struct RFOptionsSet <: BetaMLOptionsSet
     rng                  = Random.GLOBAL_RNG
     verbosity::Verbosity = STD
 end
@@ -780,10 +793,19 @@ Base.@kwdef mutable struct DTLearnableParameters <: BetaMLLearnableParametersSet
     tree::Union{Nothing,AbstractNode} = nothing
 end
 
+
 mutable struct DTModel <: BetaMLSupervisedModel
     hyperparameters::DTHyperParametersSet
     options::DTOptionsSet
     learnableparameters::DTLearnableParameters
+    trained::Bool
+    info
+end
+
+mutable struct RFModel <: BetaMLSupervisedModel
+    hyperparameters::RFHyperParametersSet
+    options::RFOptionsSet
+    learnableparameters::Union{Nothing,Forest}
     trained::Bool
     info
 end
@@ -802,10 +824,24 @@ function DTModel(;kwargs...)
     return m
 end
 
+function RFModel(;kwargs...)
+    m              = RFModel(RFHyperParametersSet(),RFOptionsSet(),nothing,false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(typeof(m))
+    for (kw,kwv) in kwargs
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+          end
+        end
+    end
+    return m
+end
+
 function train!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
 
     if m.trained
-        @warn "This model has already been trained and not support multiple training. This training will override the previous one(s)"
+        @warn "This model has already been trained and it doesn't support multiple training. This training will override the previous one(s)"
     end
 
     # Setting default parameters that depends from the data...
@@ -832,8 +868,52 @@ function train!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
     return true
 end
 
+function train!(m::RFModel,x,y::AbstractArray{Ty,1}) where {Ty}
+
+    if m.trained
+        @warn "This model has already been trained and it doesn't support multiple training. This training will override the previous one(s)"
+    end
+
+    # Setting default parameters that depends from the data...
+    maxDepth    = m.hyperparameters.maxDepth    == nothing ?  size(x,1) : m.hyperparameters.maxDepth
+    maxFeatures = m.hyperparameters.maxFeatures == nothing ?  Int(round(sqrt(size(x,2)))) : m.hyperparameters.maxFeatures
+    splittingCriterion = m.hyperparameters.splittingCriterion == nothing ? ( (Ty <: Number && !m.hyperparameters.forceClassification) ? variance : gini) : m.hyperparameters.splittingCriterion
+    # Setting schortcuts to other hyperparameters/options....
+    minGain             = m.hyperparameters.minGain
+    minRecords          = m.hyperparameters.minRecords
+    forceClassification = m.hyperparameters.forceClassification
+    nTrees              = m.hyperparameters.nTrees
+    β                   = m.hyperparameters.beta
+    oob                 = m.hyperparameters.oob
+    rng                 = m.options.rng
+    verbosity           = m.options.verbosity
+      
+    m.learnableparameters = buildForest(x, y, nTrees; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, β=β, oob=false,  rng = rng)
+    
+    if oob
+        m.learnableparameters.oobError = oobError(m.learnableparameters,x,y;rng = rng) 
+    end
+
+    m.trained = true
+    
+    m.info[:trainedRecords]             = size(x,1)
+    m.info[:dimensions]                 = maxFeatures
+    m.info[:jobIsRegression]            = m.learnableparameters.isRegression ? 1 : 0
+    m.info[:oobE]                       = m.learnableparameters.oobError
+    depths = vcat([transpose([computeDepths(tree)[1],computeDepths(tree)[2]]) for tree in m.learnableparameters.trees]...)
+    (m.info[:avgAvgDepth],m.info[:avgMmaxDepth]) = mean(depths,dims=1)[1], mean(depths,dims=1)[2]
+    return true
+end
+
+
 function reset!(m::DTModel)
     m.learnableparameters = DTLearnableParameters()
+    m.trained             = false
+    # note info is NOT resetted
+end
+
+function reset!(m::RFModel)
+    m.learnableparameters = nothing
     m.trained             = false
     # note info is NOT resetted
 end
@@ -842,7 +922,11 @@ function predict(m::DTModel,x)
     return predictSingle.(Ref(m.learnableparameters.tree),eachrow(x),rng=m.options.rng)
 end
 
-function info(m::DTModel)
+function predict(m::RFModel,x)
+    return predictSingle.(Ref(m.learnableparameters),eachrow(x),rng=m.options.rng)
+end
+
+function info(m::Union{DTModel,RFModel})
     return m.info
 end
 
@@ -863,6 +947,26 @@ function show(io::IO, m::DTModel)
         println(io,"DTModel - A Decision Tree $job (trained on $(m.info[:trainedRecords]) records)")
         println(io,m.info)
         _printNode(m.learnableparameters.tree)
+    end
+end
+
+
+function show(io::IO, ::MIME"text/plain", m::RFModel)
+    if m.trained == false
+        print(io,"RFModel - A $(m.hyperparameters.nTrees) trees Random Forest model (untrained)")
+    else
+        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
+        print(io,"RFModel - A $(m.hyperparameters.nTrees) trees Random Forest $job (trained on $(m.info[:trainedRecords]) records)")
+    end
+end
+
+function show(io::IO, m::RFModel)
+    if m.trained == false
+        print(io,"RFModel - A $(m.hyperparameters.nTrees) trees Random Forest model (untrained)")
+    else
+        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
+        println(io,"RFModel - A $(m.hyperparameters.nTrees) trees Random Forest $job (trained on $(m.info[:trainedRecords]) records)")
+        println(io,m.info)
     end
 end
     
