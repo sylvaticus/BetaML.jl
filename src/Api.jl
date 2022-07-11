@@ -29,7 +29,11 @@ train!(::BetaMLModel)  = nothing
 Predict new information (including transformation) based on a trained BetaMLModel, eventually applied to new features when the algorithms generalise to new data.
 """ 
 predict(::BetaMLModel) = nothing
-info(::BetaMLModel)    = nothing
+
+function info(m::BetaMLModel)
+   return m.info
+end
+
 partition()            = nothing
 
 # old to remove
