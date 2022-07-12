@@ -112,11 +112,11 @@ end
 
 
 mutable struct DTModel <: BetaMLSupervisedModel
-    hyperparameters::DTHyperParametersSet
-    options::DTOptionsSet
-    learnableparameters::DTLearnableParameters
+    hpar::DTHyperParametersSet
+    opt::DTOptionsSet
+    par::DTLearnableParameters
     trained::Bool
-    info
+    report
 end
 
 function DTModel(;kwargs...)
@@ -394,26 +394,26 @@ function train!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
     end
 
     # Setting default parameters that depends from the data...
-    maxDepth    = m.hyperparameters.maxDepth    == nothing ?  size(x,1) : m.hyperparameters.maxDepth
-    maxFeatures = m.hyperparameters.maxFeatures == nothing ?  size(x,2) : m.hyperparameters.maxFeatures
-    splittingCriterion = m.hyperparameters.splittingCriterion == nothing ? ( (Ty <: Number && !m.hyperparameters.forceClassification) ? variance : gini) : m.hyperparameters.splittingCriterion
+    maxDepth    = m.hpar.maxDepth    == nothing ?  size(x,1) : m.hpar.maxDepth
+    maxFeatures = m.hpar.maxFeatures == nothing ?  size(x,2) : m.hpar.maxFeatures
+    splittingCriterion = m.hpar.splittingCriterion == nothing ? ( (Ty <: Number && !m.hpar.forceClassification) ? variance : gini) : m.hpar.splittingCriterion
     # Setting schortcuts to other hyperparameters/options....
-    minGain             = m.hyperparameters.minGain
-    minRecords          = m.hyperparameters.minRecords
-    forceClassification = m.hyperparameters.forceClassification
-    rng                 = m.options.rng
-    verbosity           = m.options.verbosity
+    minGain             = m.hpar.minGain
+    minRecords          = m.hpar.minRecords
+    forceClassification = m.hpar.forceClassification
+    rng                 = m.opt.rng
+    verbosity           = m.opt.verbosity
 
-    m.learnableparameters.tree = buildTree(x, y; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, mCols=nothing, rng = rng)
+    m.par.tree = buildTree(x, y; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, mCols=nothing, rng = rng)
 
     m.trained = true
 
     jobIsRegression = (forceClassification || ! (Ty <: Number) ) ? false : true
     
-    m.info[:trainedRecords]             = size(x,1)
-    m.info[:dimensions]                 = size(x,2)
-    m.info[:jobIsRegression]            = jobIsRegression ? 1 : 0
-    (m.info[:avgDepth],m.info[:maxDepth]) = computeDepths(m.learnableparameters.tree)
+    m.report[:trainedRecords]             = size(x,1)
+    m.report[:dimensions]                 = size(x,2)
+    m.report[:jobIsRegression]            = jobIsRegression ? 1 : 0
+    (m.report[:avgDepth],m.report[:maxDepth]) = computeDepths(m.par.tree)
     return true
 end
 
@@ -466,14 +466,14 @@ end
 
 # API V2...
 function predict(m::DTModel,x)
-    return predictSingle.(Ref(m.learnableparameters.tree),eachrow(x),rng=m.options.rng)
+    return predictSingle.(Ref(m.par.tree),eachrow(x),rng=m.opt.rng)
 end
 
 # ------------------------------------------------------------------------------
 # OTHER (MODEL OPTIONAL PARTS, INFO, VISUALISATION,...)
 
 function reset!(m::DTModel)
-    m.learnableparameters = DTLearnableParameters()
+    m.par = DTLearnableParameters()
     m.trained             = false
     # note info is NOT resetted
 end
@@ -544,8 +544,8 @@ function show(io::IO, ::MIME"text/plain", m::DTModel)
     if m.trained == false
         print(io,"DTModel - A Decision Tree model (untrained)")
     else
-        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        print(io,"DTModel - A Decision Tree $job (trained on $(m.info[:trainedRecords]) records)")
+        job = m.report[:jobIsRegression] == 1 ? "regressor" : "classifier"
+        print(io,"DTModel - A Decision Tree $job (trained on $(m.report[:trainedRecords]) records)")
     end
 end
 
@@ -553,9 +553,9 @@ function show(io::IO, m::DTModel)
     if m.trained == false
         print(io,"DTModel - A Decision Tree model (untrained)")
     else
-        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        println(io,"DTModel - A Decision Tree $job (trained on $(m.info[:trainedRecords]) records)")
-        println(io,m.info)
-        _printNode(m.learnableparameters.tree)
+        job = m.report[:jobIsRegression] == 1 ? "regressor" : "classifier"
+        println(io,"DTModel - A Decision Tree $job (trained on $(m.report[:trainedRecords]) records)")
+        println(io,m.report)
+        _printNode(m.par.tree)
     end
 end

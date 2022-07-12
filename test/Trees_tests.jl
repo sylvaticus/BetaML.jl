@@ -50,7 +50,7 @@ ŷtest2 = predict(m, xtest)
 @test accuracy(ŷtest,ytest,rng=copy(TESTRNG)) >= 0.8
 @test ŷtest == ŷtest2
 
-@test info(m) == Dict(:jobIsRegression => 0,:maxDepth => 3, :dimensions => 2, :trainedRecords => 5, :avgDepth => 2.6666666666666665)
+@test report(m) == Dict(:jobIsRegression => 0,:maxDepth => 3, :dimensions => 2, :trainedRecords => 5, :avgDepth => 2.6666666666666665)
 #print(myTree)
 
 # ==================================
@@ -125,10 +125,10 @@ ŷtest2 = predict(myForest, xtest,rng=copy(TESTRNG))
 
 m = RFModel(maxDepth=20,oob=true,beta=0,rng=copy(TESTRNG))
 train!(m,xtrain,ytrain)
-m.options.rng=copy(TESTRNG) 
+m.opt.rng=copy(TESTRNG) 
 ŷtrainNew = predict(m,xtrain)
 @test ŷtrainNew == ŷtrain 
-m.options.rng=copy(TESTRNG) 
+m.opt.rng=copy(TESTRNG) 
 ŷtestNew = predict(m,xtest)
 @test ŷtestNew == ŷtest 
 #=
@@ -156,7 +156,7 @@ ŷtrain2 == ŷtrain3
 predictionsByTree = [] # don't use weights...
 for i in 1:30
     old = trees[i]
-    new = m.learnableparameters.trees[i]
+    new = m.par.trees[i]
     pold = predict(old,xtrain, rng=copy(TESTRNG))
     pnew = predict(old,xtrain, rng=copy(TESTRNG))
     push!(predictionsByTree,pold == pnew)
@@ -223,7 +223,7 @@ mreTest2  = meanRelError(ŷtest,ytest)
 
 m = RFModel(oob=true,beta=1,rng=copy(TESTRNG))
 train!(m,xtrain,ytrain)
-m.options.rng=copy(TESTRNG) # the model RNG is consumed at each operation
+m.opt.rng=copy(TESTRNG) # the model RNG is consumed at each operation
 ŷtest2 = predict(m,xtest)
 
 @test meanRelError(ŷtest,ytest,normDim=false,normRec=false) ≈ meanRelError(ŷtest2,ytest,normDim=false,normRec=false)
@@ -290,26 +290,26 @@ println("Testing MLJ interface for Trees models....")
 X, y                           = Mlj.@load_boston
 model_dtr                      = DecisionTreeRegressor(rng=copy(TESTRNG))
 regressor_dtr                  = Mlj.machine(model_dtr, X, y)
-(fitresult_dtr, cache, report) = Mlj.fit(model_dtr, 0, X, y)
+(fitresult_dtr, cache, reportobj) = Mlj.fit(model_dtr, 0, X, y)
 yhat_dtr                       = Mlj.predict(model_dtr, fitresult_dtr, X)
 @test meanRelError(yhat_dtr,y) < 0.02
 
 model_rfr                      = RandomForestRegressor(rng=copy(TESTRNG))
 regressor_rfr                  = Mlj.machine(model_rfr, X, y)
-(fitresult_rfr, cache, report) = Mlj.fit(model_rfr, 0, X, y)
+(fitresult_rfr, cache, reportObj) = Mlj.fit(model_rfr, 0, X, y)
 yhat_rfr                       = Mlj.predict(model_rfr, fitresult_rfr, X)
 @test meanRelError(yhat_rfr,y) < 0.06
 
 X, y                           = Mlj.@load_iris
 model_dtc                      = DecisionTreeClassifier(rng=copy(TESTRNG))
 regressor_dtc                  = Mlj.machine(model_dtc, X, y)
-(fitresult_dtc, cache, report) = Mlj.fit(model_dtc, 0, X, y)
+(fitresult_dtc, cache, reportObj) = Mlj.fit(model_dtc, 0, X, y)
 yhat_dtc                       = Mlj.predict(model_dtc, fitresult_dtc, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_dtc, y)) < 0.0002
 
 model_rfc                      = RandomForestClassifier(maxFeatures=3,rng=copy(TESTRNG))
 regressor_rfc                  = Mlj.machine(model_rfc, X, y)
-(fitresult_rfc, cache, report) = Mlj.fit(model_rfc, 0, X, y)
+(fitresult_rfc, cache, reportObj) = Mlj.fit(model_rfc, 0, X, y)
 yhat_rfc                       = Mlj.predict(model_rfc, fitresult_rfc, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_rfc, y)) < 0.04
 

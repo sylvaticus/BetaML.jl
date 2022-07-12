@@ -45,11 +45,11 @@ Base.@kwdef mutable struct RFOptionsSet <: BetaMLOptionsSet
 end
 
 mutable struct RFModel <: BetaMLSupervisedModel
-    hyperparameters::RFHyperParametersSet
-    options::RFOptionsSet
-    learnableparameters::Union{Nothing,Forest}
+    hpar::RFHyperParametersSet
+    opt::RFOptionsSet
+    par::Union{Nothing,Forest} #TODO: Forest contain info that is actualy in report. Currently we duplicate, we should just remofe them from par by making a dedicated struct instead of Forest
     trained::Bool
-    info
+    report
 end
 
 function RFModel(;kwargs...)
@@ -143,33 +143,33 @@ function train!(m::RFModel,x,y::AbstractArray{Ty,1}) where {Ty}
     end
 
     # Setting default parameters that depends from the data...
-    maxDepth    = m.hyperparameters.maxDepth    == nothing ?  size(x,1) : m.hyperparameters.maxDepth
-    maxFeatures = m.hyperparameters.maxFeatures == nothing ?  Int(round(sqrt(size(x,2)))) : m.hyperparameters.maxFeatures
-    splittingCriterion = m.hyperparameters.splittingCriterion == nothing ? ( (Ty <: Number && !m.hyperparameters.forceClassification) ? variance : gini) : m.hyperparameters.splittingCriterion
+    maxDepth    = m.hpar.maxDepth    == nothing ?  size(x,1) : m.hpar.maxDepth
+    maxFeatures = m.hpar.maxFeatures == nothing ?  Int(round(sqrt(size(x,2)))) : m.hpar.maxFeatures
+    splittingCriterion = m.hpar.splittingCriterion == nothing ? ( (Ty <: Number && !m.hpar.forceClassification) ? variance : gini) : m.hpar.splittingCriterion
     # Setting schortcuts to other hyperparameters/options....
-    minGain             = m.hyperparameters.minGain
-    minRecords          = m.hyperparameters.minRecords
-    forceClassification = m.hyperparameters.forceClassification
-    nTrees              = m.hyperparameters.nTrees
-    β                   = m.hyperparameters.beta
-    oob                 = m.hyperparameters.oob
-    rng                 = m.options.rng
-    verbosity           = m.options.verbosity
+    minGain             = m.hpar.minGain
+    minRecords          = m.hpar.minRecords
+    forceClassification = m.hpar.forceClassification
+    nTrees              = m.hpar.nTrees
+    β                   = m.hpar.beta
+    oob                 = m.hpar.oob
+    rng                 = m.opt.rng
+    verbosity           = m.opt.verbosity
       
-    m.learnableparameters = buildForest(x, y, nTrees; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, β=β, oob=false,  rng = rng)
+    m.par = buildForest(x, y, nTrees; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, β=β, oob=false,  rng = rng)
     
     if oob
-        m.learnableparameters.oobError = oobError(m.learnableparameters,x,y;rng = rng) 
+        m.par.oobError = oobError(m.par,x,y;rng = rng) 
     end
 
     m.trained = true
     
-    m.info[:trainedRecords]             = size(x,1)
-    m.info[:dimensions]                 = maxFeatures
-    m.info[:jobIsRegression]            = m.learnableparameters.isRegression ? 1 : 0
-    m.info[:oobE]                       = m.learnableparameters.oobError
-    depths = vcat([transpose([computeDepths(tree)[1],computeDepths(tree)[2]]) for tree in m.learnableparameters.trees]...)
-    (m.info[:avgAvgDepth],m.info[:avgMmaxDepth]) = mean(depths,dims=1)[1], mean(depths,dims=1)[2]
+    m.report[:trainedRecords]             = size(x,1)
+    m.report[:dimensions]                 = maxFeatures
+    m.report[:jobIsRegression]            = m.par.isRegression ? 1 : 0
+    m.report[:oobE]                       = m.par.oobError
+    depths = vcat([transpose([computeDepths(tree)[1],computeDepths(tree)[2]]) for tree in m.par.trees]...)
+    (m.report[:avgAvgDepth],m.report[:avgMmaxDepth]) = mean(depths,dims=1)[1], mean(depths,dims=1)[2]
     return true
 end
 
@@ -214,14 +214,14 @@ end
 
 # API V2...
 function predict(m::RFModel,x)
-    return predictSingle.(Ref(m.learnableparameters),eachrow(x),rng=m.options.rng)
+    return predictSingle.(Ref(m.par),eachrow(x),rng=m.opt.rng)
 end
 
 # ------------------------------------------------------------------------------
 # OTHER (MODEL OPTIONAL PARTS, INFO, VISUALISATION,...)
 
 function reset!(m::RFModel)
-    m.learnableparameters = nothing
+    m.par = nothing
     m.trained             = false
     # note info is NOT resetted
 end
@@ -301,19 +301,19 @@ end
 
 function show(io::IO, ::MIME"text/plain", m::RFModel)
     if m.trained == false
-        print(io,"RFModel - A $(m.hyperparameters.nTrees) trees Random Forest model (untrained)")
+        print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest model (untrained)")
     else
-        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        print(io,"RFModel - A $(m.hyperparameters.nTrees) trees Random Forest $job (trained on $(m.info[:trainedRecords]) records)")
+        job = m.report[:jobIsRegression] == 1 ? "regressor" : "classifier"
+        print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (trained on $(m.report[:trainedRecords]) records)")
     end
 end
 
 function show(io::IO, m::RFModel)
     if m.trained == false
-        print(io,"RFModel - A $(m.hyperparameters.nTrees) trees Random Forest model (untrained)")
+        print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest model (untrained)")
     else
-        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        println(io,"RFModel - A $(m.hyperparameters.nTrees) trees Random Forest $job (trained on $(m.info[:trainedRecords]) records)")
-        println(io,m.info)
+        job = m.report[:jobIsRegression] == 1 ? "regressor" : "classifier"
+        println(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (trained on $(m.report[:trainedRecords]) records)")
+        println(io,m.report)
     end
 end
