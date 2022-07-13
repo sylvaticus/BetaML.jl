@@ -27,7 +27,7 @@ mutable struct BetaMLGMMImputer <: MMI.Unsupervised
 end
 BetaMLGMMImputer(;
     K             = 3,
-    p₀            = nothing,
+    p₀            = Int64[],
     mixtures      = :diag_gaussian,
     tol           = 10^(-6),
     minVariance   = 0.05,

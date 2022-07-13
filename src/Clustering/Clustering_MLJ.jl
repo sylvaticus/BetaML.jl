@@ -40,7 +40,7 @@ KMeans(;
 
 mutable struct GMMClusterer <: MMI.Unsupervised
   K::Int64
-  p₀::Union{Nothing,AbstractArray{Float64,1}}
+  p₀::AbstractArray{Float64,1}
   mixtures::Symbol
   tol::Float64
   minVariance::Float64
@@ -50,7 +50,7 @@ mutable struct GMMClusterer <: MMI.Unsupervised
 end
 GMMClusterer(;
     K             = 3,
-    p₀            = nothing,
+    p₀            = Float64[],
     mixtures      = :diag_gaussian,
     tol           = 10^(-6),
     minVariance   = 0.05,
@@ -61,7 +61,7 @@ GMMClusterer(;
 
 mutable struct MissingImputator <: MMI.Unsupervised
     K::Int64
-    p₀::Union{Nothing,AbstractArray{Float64,1}}
+    p₀::AbstractArray{Float64,1}
     mixtures::Symbol
     tol::Float64
     minVariance::Float64
@@ -71,7 +71,7 @@ mutable struct MissingImputator <: MMI.Unsupervised
 end
 MissingImputator(;
     K             = 3,
-    p₀            = nothing,
+    p₀            = Float64[],
     mixtures      = :diag_gaussian,
     tol           = 10^(-6),
     minVariance   = 0.05,

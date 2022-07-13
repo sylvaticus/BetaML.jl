@@ -116,7 +116,7 @@ mutable struct DTModel <: BetaMLSupervisedModel
     opt::DTOptionsSet
     par::DTLearnableParameters
     trained::Bool
-    report
+    info
 end
 
 function DTModel(;kwargs...)
@@ -410,10 +410,10 @@ function train!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
 
     jobIsRegression = (forceClassification || ! (Ty <: Number) ) ? false : true
     
-    m.report[:trainedRecords]             = size(x,1)
-    m.report[:dimensions]                 = size(x,2)
-    m.report[:jobIsRegression]            = jobIsRegression ? 1 : 0
-    (m.report[:avgDepth],m.report[:maxDepth]) = computeDepths(m.par.tree)
+    m.info[:trainedRecords]             = size(x,1)
+    m.info[:dimensions]                 = size(x,2)
+    m.info[:jobIsRegression]            = jobIsRegression ? 1 : 0
+    (m.info[:avgDepth],m.info[:maxDepth]) = computeDepths(m.par.tree)
     return true
 end
 
@@ -544,8 +544,8 @@ function show(io::IO, ::MIME"text/plain", m::DTModel)
     if m.trained == false
         print(io,"DTModel - A Decision Tree model (untrained)")
     else
-        job = m.report[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        print(io,"DTModel - A Decision Tree $job (trained on $(m.report[:trainedRecords]) records)")
+        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
+        print(io,"DTModel - A Decision Tree $job (trained on $(m.info[:trainedRecords]) records)")
     end
 end
 
@@ -553,9 +553,9 @@ function show(io::IO, m::DTModel)
     if m.trained == false
         print(io,"DTModel - A Decision Tree model (untrained)")
     else
-        job = m.report[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        println(io,"DTModel - A Decision Tree $job (trained on $(m.report[:trainedRecords]) records)")
-        println(io,m.report)
+        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
+        println(io,"DTModel - A Decision Tree $job (trained on $(m.info[:trainedRecords]) records)")
+        println(io,m.info)
         _printNode(m.par.tree)
     end
 end

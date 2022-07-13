@@ -50,7 +50,7 @@ ŷtest2 = predict(m, xtest)
 @test accuracy(ŷtest,ytest,rng=copy(TESTRNG)) >= 0.8
 @test ŷtest == ŷtest2
 
-@test report(m) == Dict(:jobIsRegression => 0,:maxDepth => 3, :dimensions => 2, :trainedRecords => 5, :avgDepth => 2.6666666666666665)
+@test info(m) == Dict(:jobIsRegression => 0,:maxDepth => 3, :dimensions => 2, :trainedRecords => 5, :avgDepth => 2.6666666666666665)
 #print(myTree)
 
 # ==================================
@@ -290,26 +290,26 @@ println("Testing MLJ interface for Trees models....")
 X, y                           = Mlj.@load_boston
 model_dtr                      = DecisionTreeRegressor(rng=copy(TESTRNG))
 regressor_dtr                  = Mlj.machine(model_dtr, X, y)
-(fitresult_dtr, cache, reportobj) = Mlj.fit(model_dtr, 0, X, y)
+(fitresult_dtr, cache, report) = Mlj.fit(model_dtr, 0, X, y)
 yhat_dtr                       = Mlj.predict(model_dtr, fitresult_dtr, X)
 @test meanRelError(yhat_dtr,y) < 0.02
 
 model_rfr                      = RandomForestRegressor(rng=copy(TESTRNG))
 regressor_rfr                  = Mlj.machine(model_rfr, X, y)
-(fitresult_rfr, cache, reportObj) = Mlj.fit(model_rfr, 0, X, y)
+(fitresult_rfr, cache, report) = Mlj.fit(model_rfr, 0, X, y)
 yhat_rfr                       = Mlj.predict(model_rfr, fitresult_rfr, X)
 @test meanRelError(yhat_rfr,y) < 0.06
 
 X, y                           = Mlj.@load_iris
 model_dtc                      = DecisionTreeClassifier(rng=copy(TESTRNG))
 regressor_dtc                  = Mlj.machine(model_dtc, X, y)
-(fitresult_dtc, cache, reportObj) = Mlj.fit(model_dtc, 0, X, y)
+(fitresult_dtc, cache, report) = Mlj.fit(model_dtc, 0, X, y)
 yhat_dtc                       = Mlj.predict(model_dtc, fitresult_dtc, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_dtc, y)) < 0.0002
 
 model_rfc                      = RandomForestClassifier(maxFeatures=3,rng=copy(TESTRNG))
 regressor_rfc                  = Mlj.machine(model_rfc, X, y)
-(fitresult_rfc, cache, reportObj) = Mlj.fit(model_rfc, 0, X, y)
+(fitresult_rfc, cache, report) = Mlj.fit(model_rfc, 0, X, y)
 yhat_rfc                       = Mlj.predict(model_rfc, fitresult_rfc, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_rfc, y)) < 0.04
 

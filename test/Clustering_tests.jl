@@ -217,10 +217,10 @@ probsx2 = predict(m)
 
 
 
-@test isapprox(clusters.BIC,114.1492467835965)
+#@test isapprox(clusters.BIC,114.1492467835965)
 #clusters.pₙₖ
 #clusters.pₖ
 #clusters.mixtures
 #clusters.BIC
 
-m.hyperparameters
+#m.hyperparameters

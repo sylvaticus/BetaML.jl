@@ -49,7 +49,7 @@ mutable struct RFModel <: BetaMLSupervisedModel
     opt::RFOptionsSet
     par::Union{Nothing,Forest} #TODO: Forest contain info that is actualy in report. Currently we duplicate, we should just remofe them from par by making a dedicated struct instead of Forest
     trained::Bool
-    report
+    info
 end
 
 function RFModel(;kwargs...)
@@ -164,12 +164,12 @@ function train!(m::RFModel,x,y::AbstractArray{Ty,1}) where {Ty}
 
     m.trained = true
     
-    m.report[:trainedRecords]             = size(x,1)
-    m.report[:dimensions]                 = maxFeatures
-    m.report[:jobIsRegression]            = m.par.isRegression ? 1 : 0
-    m.report[:oobE]                       = m.par.oobError
+    m.info[:trainedRecords]             = size(x,1)
+    m.info[:dimensions]                 = maxFeatures
+    m.info[:jobIsRegression]            = m.par.isRegression ? 1 : 0
+    m.info[:oobE]                       = m.par.oobError
     depths = vcat([transpose([computeDepths(tree)[1],computeDepths(tree)[2]]) for tree in m.par.trees]...)
-    (m.report[:avgAvgDepth],m.report[:avgMmaxDepth]) = mean(depths,dims=1)[1], mean(depths,dims=1)[2]
+    (m.info[:avgAvgDepth],m.info[:avgMmaxDepth]) = mean(depths,dims=1)[1], mean(depths,dims=1)[2]
     return true
 end
 
@@ -303,8 +303,8 @@ function show(io::IO, ::MIME"text/plain", m::RFModel)
     if m.trained == false
         print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest model (untrained)")
     else
-        job = m.report[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (trained on $(m.report[:trainedRecords]) records)")
+        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
+        print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (trained on $(m.info[:trainedRecords]) records)")
     end
 end
 
@@ -312,8 +312,8 @@ function show(io::IO, m::RFModel)
     if m.trained == false
         print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest model (untrained)")
     else
-        job = m.report[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        println(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (trained on $(m.report[:trainedRecords]) records)")
-        println(io,m.report)
+        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
+        println(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (trained on $(m.info[:trainedRecords]) records)")
+        println(io,m.info)
     end
 end

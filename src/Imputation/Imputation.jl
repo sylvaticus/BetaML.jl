@@ -173,14 +173,14 @@ Limitations:
 """
 Base.@kwdef mutable struct GMMImputer <: Imputer
     K::Int64                           = 3
-    p₀::Union{Nothing,Vector{Float64}} = nothing
+    p₀::Vector{Float64}                = Float64[]
     mixtures::Vector{AbstractMixture}  = [DiagonalGaussian() for i in 1:K]
     tol::Float64                       = 10^(-6)
     verbosity::Verbosity               = STD
     minVariance::Float64               = 0.05
     minCovariance::Float64             = 0.0
     initStrategy::String               = "kmeans"
-    maxIter::Int64                     = -1
+    maxIter::Int64                     = typemax(Int64)
     multipleImputations::Int64         = 1
     rng::AbstractRNG                   = Random.GLOBAL_RNG
     fitResults::Union{GMMImputerResult,Nothing} = nothing

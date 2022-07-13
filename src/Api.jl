@@ -8,7 +8,7 @@ module Api
 
 export BetaMLModel, BetaMLSupervisedModel, BetaMLUnsupervisedModel,
        BetaMLOptionsSet, BetaMLHyperParametersSet, BetaMLLearnableParametersSet,
-       predict, fit, fit!, train!, partition, report
+       predict, fit, fit!, train!, partition, info
 
 abstract type BetaMLModel end
 abstract type BetaMLSupervisedModel <: BetaMLModel end
@@ -30,8 +30,8 @@ Predict new information (including transformation) based on a trained BetaMLMode
 """ 
 predict(::BetaMLModel) = nothing
 
-function report(m::BetaMLModel)
-   return m.report
+function info(m::BetaMLModel)
+   return m.info
 end
 
 partition()            = nothing

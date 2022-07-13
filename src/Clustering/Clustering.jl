@@ -393,7 +393,7 @@ function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=1
     end
 
     # finding empty/non_empty values
-    Xmask     =  .! ismissing.(X)
+    #Xmask     =  .! ismissing.(X)
  
 
     lL = -Inf
@@ -401,43 +401,8 @@ function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=1
     while(true)
         oldlL = lL
         # E Step: assigning the posterior prob p(j|xi) and computing the log-Likelihood of the parameters given the set of data
-        # (this last one for informative purposes and terminating the algorithm)
         pₙₖlagged = copy(pₙₖ)
-        
-        logpₙₖ = log.(pₙₖ)
-        lL = 0
-        for n in 1:N
-            if any(Xmask[n,:]) # if at least one true
-                Xu = X[n,Xmask[n,:]]
-                #=if (length(ϵ) == 2)
-                    println("here I am")
-                    for m in mixtures[3:end]
-                        println(m.μ)
-                        println(m.σ²)
-                        println(Xu)
-                        println(Xmask[n,:])
-                        lpdf(m,Xu,Xmask[n,:])
-                        println("here I am partially")
-                    end
-                    println("here I am dead")
-                end=#
-                logpx = lse([log(pₖ[k] + 1e-16) + lpdf(mixtures[k],Xu,Xmask[n,:]) for k in 1:K])
-                lL += logpx
-                #px = sum([pⱼ[k]*normalFixedSd(Xu,μ[k,XMask[n,:]],σ²[k]) for k in 1:K])
-                #println(n)
-                for k in 1:K
-                    logpₙₖ[n,k] = log(pₖ[k] + 1e-16)+lpdf(mixtures[k],Xu,Xmask[n,:])-logpx
-                end
-            else
-                logpₙₖ[n,:] = log.(pₖ)
-            end
-        end
-        pₙₖ = exp.(logpₙₖ)
-        
-        pₙₖ2, lL2 = estep(X,pₖ,mixtures) 
-        @assert pₙₖ == pₙₖ2
-        @assert lL == lL2
-
+        pₙₖ, lL = estep(X,pₖ,mixtures) 
         push!(ϵ,norm(pₙₖlagged - pₙₖ))
 
         # M step: find parameters that maximise the likelihood
@@ -466,17 +431,6 @@ function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=1
     end # end while loop
 end # end function
 
-#using BenchmarkTools
-#@benchmark clusters = emGMM([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,msgStep=0)
-#@benchmark clusters = emGMM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
-#@benchmark clusters = emGMM([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
-#@benchmark clusters = emGMM([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3,msgStep=0)
-#@code_warntype gmm([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0)
-#using Profile
-#Juno.@profiler (for i = 1:1000 gmm([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,msgStep=0,missingValue=0) end)
-#Profile.clear()
-#Profile.print()
-
 #  - For mixtures with full covariance matrix (i.e. `FullGaussian(μ,σ²)`) the minCovariance should NOT be set equal to the minVariance, or if the covariance matrix goes too low, it will become singular and not invertible.
 """
   predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)
@@ -498,7 +452,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 * `minVariance`:   Minimum variance for the mixtures [default: 0.05]
 * `minCovariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes).
 * `initStrategy`:  Mixture initialisation algorithm [def: `grid`]
-* `maxIter`:       Maximum number of iterations [def: `-1`, i.e. ∞]
+* `maxIter`:       Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]
 * `rng`:           Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
@@ -520,7 +474,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 julia>  cFOut = predictMissing([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3)
 ```
 """
-function predictMissing(X,K=3;p₀=[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans",maxIter=-1,rng = Random.GLOBAL_RNG)
+function predictMissing(X,K=3;p₀=[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans",maxIter=typemax(Int64),rng = Random.GLOBAL_RNG)
     if verbosity > STD
         @codeLocation
     end
