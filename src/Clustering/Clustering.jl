@@ -38,7 +38,8 @@ using  ForceImport
 @force using ..Api
 @force using ..Utils
 
-export initRepresentatives, kmeans, kmedoids, gmm, predictMissing, AbstractMixture, GMMClusterModel
+export initRepresentatives, kmeans, kmedoids, gmm, predictMissing, AbstractMixture,
+       KMeansModel, KMedoidsModel, GMMClusterModel
 
 abstract type AbstractMixture end
 include("Mixtures.jl")
@@ -102,6 +103,33 @@ function initRepresentatives(X,K;initStrategy="grid",Z₀=nothing,rng = Random.G
     return Z
 end
 
+function classAssignation(X,Z,dist)
+    cIdx      = zeros(Int64,size(X,1))
+    for (i,x) in enumerate(eachrow(X))
+        cost = Inf
+        for (k,z) in enumerate(eachrow(Z))
+           if (dist(x,z)  < cost)
+               cost    =  dist(x,z)
+               cIdx[i] = k
+           end
+        end
+    end
+    return cIdx
+end
+
+function updateKMeansRepresentatives!(Z,X,cIdx)
+    K,D = size(Z)
+    for j in  1:K
+        Cⱼ = X[cIdx .== j,:] # Selecting the constituency by boolean selection
+        if size(Cⱼ)[1] > 0
+            Z[j,:] = sum(Cⱼ,dims=1) ./ size(Cⱼ)[1]
+        else
+            # move toward the center if no costituency
+            xAvg = mean(X,dims=1)'
+            Z[j,:] = Z[j,:] .+ ((xAvg - Z[j,:]) .* 0.01)
+        end
+    end
+end
 
 ## Basic K-Means Algorithm (Lecture/segment 13.7 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
 
@@ -137,12 +165,12 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 julia> (clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3)
 ```
 """
-function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing,rng = Random.GLOBAL_RNG)
-    X  = makeMatrix(X)
+function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing,verbosity=STD,rng = Random.GLOBAL_RNG)
+    X     = makeMatrix(X)
     (N,D) = size(X)
     # Random choice of initial representative vectors (any point, not just in X!)
-    minX = minimum(X,dims=1)
-    maxX = maximum(X,dims=1)
+    minX  = minimum(X,dims=1)
+    maxX  = maximum(X,dims=1)
     Z₀ = initRepresentatives(X,K,initStrategy=initStrategy,Z₀=Z₀,rng=rng)
     Z  = Z₀
     cIdx_prev = zeros(Int64,N)
@@ -150,34 +178,11 @@ function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing,rng
     # Looping
     while true
         # Determining the constituency of each cluster
-        cIdx      = zeros(Int64,N)
-        for (i,x) in enumerate(eachrow(X))
-            cost = Inf
-            for (j,z) in enumerate(eachrow(Z))
-               if (dist(x,z)  < cost)
-                   cost    =  dist(x,z)
-                   cIdx[i] = j
-               end
-            end
-        end
+        cIdx = classAssignation(X,Z,dist)
 
         # Determining the new representative by each cluster
         # for (j,z) in enumerate(eachrow(Z))
-        for j in  1:K
-            Cⱼ = X[cIdx .== j,:] # Selecting the constituency by boolean selection
-            #debug  =  sum(Cⱼ,dims=1)
-            #debug2 = size(Cⱼ)[1]
-            if size(Cⱼ)[1] > 0
-                Z[j,:] = sum(Cⱼ,dims=1) ./ size(Cⱼ)[1]
-            else
-                # move toward the center if no costituency
-                xAvg = mean(X,dims=1)'
-                Z[j,:] = Z[j,:] .+ ((xAvg - Z[j,:]) .* 0.01)
-                #debug  = sum(Cⱼ,dims=1)
-                # debug2 = size(Cⱼ)[1]
-            end
-            #Z[j,:] = median(Cⱼ,dims=1) # for l1 distance
-        end
+        updateKMeansRepresentatives!(Z,X,cIdx)
 
         # Checking termination condition: clusters didn't move any more
         if cIdx == cIdx_prev
@@ -185,7 +190,28 @@ function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing,rng
         else
             cIdx_prev = cIdx
         end
+    end
+end
 
+function updateKMedoidsRepresentatives!(Z,X,cIdx,dist)
+    K,D = size(Z)
+    for j in  1:K
+        Cⱼ = X[cIdx .== j,:] # Selecting the constituency by boolean selection
+        nⱼ = size(Cⱼ)[1]     # Size of the cluster
+        if nⱼ == 0 continue end # empty continuency. Let's not do anything. Stil in the next batch other representatives could move away and points could enter this cluster
+        bestCost = Inf
+        bestCIdx = 0
+        for cIdx in 1:nⱼ      # candidate index
+             candidateCost = 0.0
+             for tIdx in 1:nⱼ # target index
+                 candidateCost += dist(Cⱼ[cIdx,:],Cⱼ[tIdx,:])
+             end
+             if candidateCost < bestCost
+                 bestCost = candidateCost
+                 bestCIdx = cIdx
+             end
+        end
+        Z[j,:] = reshape(Cⱼ[bestCIdx,:],1,D)
     end
 end
 
@@ -222,7 +248,7 @@ Compute K-Medoids algorithm to identify K clusters of X using distance definitio
 julia> (clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initStrategy="grid")
 ```
 """
-function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing,rng = Random.GLOBAL_RNG)
+function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing, verbosity=STD, rng = Random.GLOBAL_RNG)
     X  = makeMatrix(X)
     (n,d) = size(X)
     # Random choice of initial representative vectors
@@ -233,37 +259,11 @@ function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing,r
     # Looping
     while true
         # Determining the constituency of each cluster
-        cIdx      = zeros(Int64,n)
-        for (i,x) in enumerate(eachrow(X))
-            cost = Inf
-            for (j,z) in enumerate(eachrow(Z))
-               if (dist(x,z) < cost)
-                   cost =  dist(x,z)
-                   cIdx[i] = j
-               end
-            end
-        end
+        cIdx = classAssignation(X,Z,dist)
 
         # Determining the new representative by each cluster (within the points member)
         #for (j,z) in enumerate(eachrow(Z))
-        for j in  1:K
-            Cⱼ = X[cIdx .== j,:] # Selecting the constituency by boolean selection
-            nⱼ = size(Cⱼ)[1]     # Size of the cluster
-            if nⱼ == 0 continue end # empty continuency. Let's not do anything. Stil in the next batch other representatives could move away and points could enter this cluster
-            bestCost = Inf
-            bestCIdx = 0
-            for cIdx in 1:nⱼ      # candidate index
-                 candidateCost = 0.0
-                 for tIdx in 1:nⱼ # target index
-                     candidateCost += dist(Cⱼ[cIdx,:],Cⱼ[tIdx,:])
-                 end
-                 if candidateCost < bestCost
-                     bestCost = candidateCost
-                     bestCIdx = cIdx
-                 end
-            end
-            Z[j,:] = reshape(Cⱼ[bestCIdx,:],1,d)
-        end
+        updateKMedoidsRepresentatives!(Z,X,cIdx,dist)
 
         # Checking termination condition: clusters didn't move any more
         if cIdx == cIdx_prev
@@ -505,6 +505,22 @@ end
 
 
 # Avi v2..
+
+
+Base.@kwdef mutable struct KMeansHyperParametersSet <: BetaMLHyperParametersSet
+    nClasses::Int64                   = 3
+    dist::Function                    = (x,y) -> norm(x-y)
+    initStrategy::String              = "Grid"
+    initialRepresentatives::Union{Nothing,Matrix{Float64}} = nothing
+end
+
+Base.@kwdef mutable struct KMedoidsHyperParametersSet <: BetaMLHyperParametersSet
+    nClasses::Int64                   = 3
+    dist::Function                    = (x,y) -> norm(x-y)
+    initStrategy::String              = "Grid"
+    initialRepresentatives::Union{Nothing,Matrix{Float64}} = nothing
+end
+
 Base.@kwdef mutable struct GMMClusterHyperParametersSet <: BetaMLHyperParametersSet
     nClasses::Int64                   = 3
     probMixtures::Vector{Float64}     = []
@@ -516,31 +532,59 @@ Base.@kwdef mutable struct GMMClusterHyperParametersSet <: BetaMLHyperParameters
     maxIter::Int64                    = typemax(Int64)
  
 end
-
+Base.@kwdef mutable struct KMeansOptionsSet <: BetaMLOptionsSet
+    verbosity::Verbosity = STD
+    rng                  = Random.GLOBAL_RNG
+end
+Base.@kwdef mutable struct KMedoidsOptionsSet <: BetaMLOptionsSet
+    verbosity::Verbosity = STD
+    rng                  = Random.GLOBAL_RNG
+end
 Base.@kwdef mutable struct GMMClusterOptionsSet <: BetaMLOptionsSet
     verbosity::Verbosity = STD
     rng                  = Random.GLOBAL_RNG
 end
-
-
+Base.@kwdef mutable struct KMeansLearnableParameters <: BetaMLLearnableParametersSet
+    representatives::Union{Nothing,Matrix{Float64}}  = nothing
+    assignments::Vector{Int64}        = Int64[]
+end
+Base.@kwdef mutable struct KMedoidsLearnableParameters <: BetaMLLearnableParametersSet
+    representatives::Union{Nothing,Matrix{Float64}}  = nothing
+    assignments::Vector{Int64}        = Int64[]
+end
 Base.@kwdef mutable struct GMMClusterLearnableParameters <: BetaMLLearnableParametersSet
-    mixtures::Vector{AbstractMixture}      = []
+    mixtures::Vector{AbstractMixture}           = []
     probMixtures::Vector{Float64}               = []
     probRecords::Union{Nothing,Matrix{Float64}} = nothing
 end
 
+mutable struct KMeansModel <: BetaMLUnsupervisedModel
+    hpar::KMeansHyperParametersSet
+    opt::KMeansOptionsSet
+    par::Union{Nothing,KMeansLearnableParameters}
+    trained::Bool
+    info::Dict{Symbol,Any}
+end
+
+mutable struct KMedoidsModel <: BetaMLUnsupervisedModel
+    hpar::KMedoidsHyperParametersSet
+    opt::KMedoidsOptionsSet
+    par::Union{Nothing,KMedoidsLearnableParameters}
+    trained::Bool
+    info::Dict{Symbol,Any}
+end
 
 mutable struct GMMClusterModel <: BetaMLUnsupervisedModel
     hpar::GMMClusterHyperParametersSet
     opt::GMMClusterOptionsSet
-    par::GMMClusterLearnableParameters
+    par::Union{Nothing,GMMClusterLearnableParameters}
     trained::Bool
-    info
+    info::Dict{Symbol,Any}
 end
 
-function GMMClusterModel(;kwargs...)
-    m = GMMClusterModel(GMMClusterHyperParametersSet(),GMMClusterOptionsSet(),GMMClusterLearnableParameters(),false,Dict{Symbol,Any}())
-    thisobjfields  = fieldnames(typeof(m))
+function KMeansModel(;kwargs...)
+    m = KMeansModel(KMeansHyperParametersSet(),KMeansOptionsSet(),KMeansLearnableParameters(),false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
           fobj = getproperty(m,f)
@@ -552,6 +596,69 @@ function GMMClusterModel(;kwargs...)
     return m
 end
 
+function KMedoidsModel(;kwargs...)
+    m = KMedoidsModel(KMedoidsHyperParametersSet(),KMedoidsOptionsSet(),KMedoidsLearnableParameters(),false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+          end
+        end
+    end
+    return m
+end
+
+function GMMClusterModel(;kwargs...)
+    m = GMMClusterModel(GMMClusterHyperParametersSet(),GMMClusterOptionsSet(),GMMClusterLearnableParameters(),false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+          end
+        end
+    end
+    return m
+end
+
+
+"""
+    train!(m::KMeansModel,x)
+"""
+function train!(m::KMeansModel,x)
+
+    # Parameter alias..
+    K                      = m.hpar.nClasses
+    dist                   = m.hpar.dist
+    initStrategy           = m.hpar.initStrategy
+    initialRepresentatives = m.hpar.initialRepresentatives
+    verbosity              = m.opt.verbosity
+    rng                    = m.opt.rng
+
+    if m.trained
+        verbosity >= STD && @warn "Continuing training of a pre-trained model"
+        (clIdx,Z) = kmeans(x,K,dist=dist,initStrategy="given",initialRepresentatives=initialRepresentatives,verbosity=verbosity,rng=rng)
+
+    else
+        (clIdx,Z) = kmeans(x,K,dist=dist,initStrategy=initStrategy,Z₀=initialRepresentatives,verbosity=verbosity,rng=rng)
+    end
+    m.par  = KMeansLearnableParameters(representatives=Z,assignments=clIdx)
+
+    m.info[:trainedRecords] = get(m.info,:trainedRecords,0) + size(x,1)
+    m.info[:dimensions]     = size(x,2)
+    m.trained=true
+    return true
+end   
+
+"""
+    train!(m::GMMClusterModel,x)
+
+## Notes:
+`train!` caches as record probabilities only those of the last set of data used to train the model
+"""
 function train!(m::GMMClusterModel,x)
 
     # Parameter alias..
@@ -572,12 +679,14 @@ function train!(m::GMMClusterModel,x)
     else
         gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,maxIter=maxIter,rng = rng)
     end
-    m.par = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, probMixtures=makeColVector(gmmOut.pₖ), probRecords = gmmOut.pₙₖ)
+    m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, probMixtures=makeColVector(gmmOut.pₖ), probRecords = gmmOut.pₙₖ)
 
-    m.info[:error]        = gmmOut.ϵ
-    m.info[:lL]           = gmmOut.lL
-    m.info[:BIC]          = gmmOut.BIC
-    m.info[:AIC]          = gmmOut.AIC
+    m.info[:error]          = gmmOut.ϵ
+    m.info[:lL]             = gmmOut.lL
+    m.info[:BIC]            = gmmOut.BIC
+    m.info[:AIC]            = gmmOut.AIC
+    m.info[:trainedRecords] = get(m.info,:trainedRecords,0) + size(x,1)
+    m.info[:dimensions]     = size(x,2)
     m.trained=true
     return true
 end    
@@ -587,11 +696,38 @@ function predict(m::GMMClusterModel)
 end
 
 function predict(m::GMMClusterModel,X)
-    x = makeMatrix(x)
+    X = makeMatrix(X)
     mixtures = m.par.mixtures
     probMixtures = m.par.probMixtures
+    probRecords, lL = estep(X,probMixtures,mixtures)
+    return probRecords
+end
 
-    return m.par.probRecords
+function reset!(m::GMMClusterModel)
+    m.par = GMMClusterLearnableParameters()
+    m.trained             = false
+    # note info is NOT resetted
+end
+
+function show(io::IO, ::MIME"text/plain", m::GMMClusterModel)
+    if m.trained == false
+        print(io,"GMMClusterModel - A Generative Mixture Model (untrained)")
+    else
+        print(io,"GMMClusterModel - A Generative Mixture Model (trained on $(m.info[:trainedRecords]) records)")
+    end
+end
+
+function show(io::IO, m::GMMClusterModel)
+    if m.trained == false
+        print(io,"GMMClusterModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes Generative Mixture Model (untrained)")
+    else
+        print(io,"GMMClusterModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes Generative Mixture Model(trained on $(m.info[:trainedRecords]) records)")
+        println(io,m.info)
+        println(io,"Mixtures:")
+        println(io,m.par.mixtures)
+        println(io,"Probability of each mixture:")
+        println(io,m.par.probMixtures)
+    end
 end
 
 
@@ -599,3 +735,4 @@ end
 include("Clustering_MLJ.jl")
 
 end
+

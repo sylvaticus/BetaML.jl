@@ -49,12 +49,12 @@ mutable struct RFModel <: BetaMLSupervisedModel
     opt::RFOptionsSet
     par::Union{Nothing,Forest} #TODO: Forest contain info that is actualy in report. Currently we duplicate, we should just remofe them from par by making a dedicated struct instead of Forest
     trained::Bool
-    info
+    info::Dict{Symbol,Any}
 end
 
 function RFModel(;kwargs...)
 m              = RFModel(RFHyperParametersSet(),RFOptionsSet(),nothing,false,Dict{Symbol,Any}())
-thisobjfields  = fieldnames(typeof(m))
+thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
 for (kw,kwv) in kwargs
     for f in thisobjfields
         fobj = getproperty(m,f)
@@ -219,12 +219,6 @@ end
 
 # ------------------------------------------------------------------------------
 # OTHER (MODEL OPTIONAL PARTS, INFO, VISUALISATION,...)
-
-function reset!(m::RFModel)
-    m.par = nothing
-    m.trained             = false
-    # note info is NOT resetted
-end
 
 """
    updateTreesWeights!(forest,x,y;β)

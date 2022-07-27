@@ -27,16 +27,25 @@ Z₀ = initRepresentatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 
 # ==================================
 println("Testing kmeans...")
 
-(clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initStrategy="grid",rng=copy(TESTRNG))
-@test clIdx == [2, 2, 2, 2, 3, 3, 3, 1, 1]
+X = [1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4]
+
+(clIdxKMeans,Z) = kmeans(X,3,initStrategy="grid",rng=copy(TESTRNG))
+@test clIdxKMeans == [2, 2, 2, 2, 3, 3, 3, 1, 1]
 #@test (clIdx,Z) .== ([2, 2, 2, 2, 3, 3, 3, 1, 1], [5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664])
+m = KMeansModel(nClasses=3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+train!(m,X)
+probs = predict(m)
+gmmOut = gmm(X,3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+@test gmmOut.pₙₖ == probs
+
+
 
 # ==================================
 # New test
 # ==================================
 println("Testing kmedoids...")
-(clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initStrategy="shuffle",rng=copy(TESTRNG))
-@test clIdx == [1, 1, 1, 1, 2, 2, 2, 3, 3]
+(clIdxKMedoids,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initStrategy="shuffle",rng=copy(TESTRNG))
+@test clIdxKMedoids == [1, 1, 1, 1, 2, 2, 2, 3, 3]
 
 # ==================================
 # New test
@@ -190,6 +199,7 @@ mach                        =  MLJBase.fit!(modelMachine)
 yhat_prob                   =  MLJBase.predict(mach, nothing)
 =#
 
+
 println("Testing GMMClusterModel...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 
@@ -200,7 +210,7 @@ gmmOut = gmm(X,3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
 @test gmmOut.pₙₖ == probs
 
 μ_x1alone = hcat([m.par.mixtures[i].μ for i in 1:3]...)
-#pk_x1alone = m.par.probMixtures
+pk_x1alone = m.par.probMixtures
 
 X2 = [2.0 12; 3 20; 4 15; 1.5 11]
 
@@ -210,12 +220,15 @@ train!(m2,X2)
 probsx2alone = predict(m2)
 @test probsx2alone[1,1] < 0.999
 
-train!(m,X2)
+probX2onX1model = predict(m,X2)
+@test probX2onX1model[1,1] ≈ 0.5214795038476924 
+
+train!(m,X2) # this greately reduces mixture variance
 #μ_x1x2 = hcat([m.par.mixtures[i].μ for i in 1:3]...)
 probsx2 = predict(m)
 @test probsx2[1,1] > 0.999 # it feels more certain as it uses the info of he first training
 
-
+reset!(m)
 
 #@test isapprox(clusters.BIC,114.1492467835965)
 #clusters.pₙₖ

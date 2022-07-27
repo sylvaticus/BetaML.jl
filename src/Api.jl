@@ -8,7 +8,7 @@ module Api
 
 export BetaMLModel, BetaMLSupervisedModel, BetaMLUnsupervisedModel,
        BetaMLOptionsSet, BetaMLHyperParametersSet, BetaMLLearnableParametersSet,
-       predict, fit, fit!, train!, partition, info
+       predict, fit, fit!, train!, partition, info, reset!
 
 abstract type BetaMLModel end
 abstract type BetaMLSupervisedModel <: BetaMLModel end
@@ -32,6 +32,12 @@ predict(::BetaMLModel) = nothing
 
 function info(m::BetaMLModel)
    return m.info
+end
+function reset!(m::BetaMLModel)
+   m.par     = nothing
+   m.info    = Dict{Symbol,Any}()
+   m.trained = false 
+   return true
 end
 
 partition()            = nothing

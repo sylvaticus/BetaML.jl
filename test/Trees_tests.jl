@@ -93,6 +93,8 @@ mreTest  = meanRelError(ŷtest,ytest)
 m = DTModel(minGain=0.001,minRecords=2,maxDepth=3,rng=copy(TESTRNG))
 train!(m,xtrain,ytrain)
 @test predict(m,xtrain) == ŷtrain
+reset!(m)
+@test m.par == nothing
 
 # ==================================
 # NEW TEST
@@ -231,6 +233,8 @@ ŷtest2 = predict(m,xtest)
 myTree2 = buildTree(xtrain,ytrainInt,rng=copy(TESTRNG))
 myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true,rng=copy(TESTRNG))
 @test typeof(myTree1) <: Trees.DecisionNode && typeof(myTree2) <: Trees.DecisionNode && typeof(myTree3) <: Trees.DecisionNode
+
+reset!(m)
 
 # ==================================
 # NEW TEST

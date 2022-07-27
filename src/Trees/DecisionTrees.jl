@@ -114,14 +114,14 @@ end
 mutable struct DTModel <: BetaMLSupervisedModel
     hpar::DTHyperParametersSet
     opt::DTOptionsSet
-    par::DTLearnableParameters
+    par::Union{Nothing,DTLearnableParameters}
     trained::Bool
-    info
+    info::Dict{Symbol,Any}
 end
 
 function DTModel(;kwargs...)
     m              = DTModel(DTHyperParametersSet(),DTOptionsSet(),DTLearnableParameters(),false,Dict{Symbol,Any}())
-    thisobjfields  = fieldnames(typeof(m))
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
           fobj = getproperty(m,f)
@@ -404,7 +404,7 @@ function train!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
     rng                 = m.opt.rng
     verbosity           = m.opt.verbosity
 
-    m.par.tree = buildTree(x, y; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, mCols=nothing, rng = rng)
+    m.par = DTLearnableParameters(tree = buildTree(x, y; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, mCols=nothing, rng = rng))
 
     m.trained = true
 
@@ -471,12 +471,6 @@ end
 
 # ------------------------------------------------------------------------------
 # OTHER (MODEL OPTIONAL PARTS, INFO, VISUALISATION,...)
-
-function reset!(m::DTModel)
-    m.par = DTLearnableParameters()
-    m.trained             = false
-    # note info is NOT resetted
-end
 
 function computeDepths(node::AbstractNode)
     leafDepths = Int64[]
