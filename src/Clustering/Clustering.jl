@@ -275,6 +275,8 @@ function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing, 
 
 end
 
+# ---------------------------------------------------------------------
+# GMM stuff here....
 
 """
    estep(X,pₖ,mixtures)
@@ -639,8 +641,10 @@ function train!(m::KMeansModel,x)
     rng                    = m.opt.rng
 
     if m.trained
+        # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee ntrained with milions of records.
+        # So, training 1000 records doesn't give the same output as training 990 records and then training again with 10 records
         verbosity >= STD && @warn "Continuing training of a pre-trained model"
-        (clIdx,Z) = kmeans(x,K,dist=dist,initStrategy="given",initialRepresentatives=initialRepresentatives,verbosity=verbosity,rng=rng)
+        (clIdx,Z) = kmeans(x,K,dist=dist,Z₀=m.par.representatives,initStrategy="given",verbosity=verbosity,rng=rng)
 
     else
         (clIdx,Z) = kmeans(x,K,dist=dist,initStrategy=initStrategy,Z₀=initialRepresentatives,verbosity=verbosity,rng=rng)
@@ -652,6 +656,47 @@ function train!(m::KMeansModel,x)
     m.trained=true
     return true
 end   
+
+"""
+    train!(m::KMeansModel,x)
+"""
+function train!(m::KMedoidsModel,x)
+
+    # Parameter alias..
+    K                      = m.hpar.nClasses
+    dist                   = m.hpar.dist
+    initStrategy           = m.hpar.initStrategy
+    initialRepresentatives = m.hpar.initialRepresentatives
+    verbosity              = m.opt.verbosity
+    rng                    = m.opt.rng
+
+    if m.trained
+        # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee ntrained with milions of records.
+        # So, training 1000 records doesn't give the same output as training 990 records and then training again with 10 records
+        verbosity >= STD && @warn "Continuing training of a pre-trained model"
+        (clIdx,Z) = kmedoids(x,K,dist=dist,Z₀=m.par.representatives,initStrategy="given",verbosity=verbosity,rng=rng)
+
+    else
+        (clIdx,Z) = kmedoids(x,K,dist=dist,initStrategy=initStrategy,Z₀=initialRepresentatives,verbosity=verbosity,rng=rng)
+    end
+    m.par  = KMedoidsLearnableParameters(representatives=Z,assignments=clIdx)
+
+    m.info[:trainedRecords] = get(m.info,:trainedRecords,0) + size(x,1)
+    m.info[:dimensions]     = size(x,2)
+    m.trained=true
+    return true
+end  
+
+function predict(m::Union{KMeansModel,KMedoidsModel})
+    return m.par.assignments
+end
+
+function predict(m::Union{KMeansModel,KMedoidsModel},X)
+    X               = makeMatrix(X)
+    representatives = m.par.representatives
+    classes = classAssignation(X,representatives,m.hpar.dist)
+    return classes
+end
 
 """
     train!(m::GMMClusterModel,x)
