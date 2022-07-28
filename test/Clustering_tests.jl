@@ -42,6 +42,13 @@ classes2 = predict(m,X2)
 train!(m,X2)
 classes3 = predict(m)
 @test classes3 == [2,3,3,1]
+reset!(m)
+train!(m,X)
+classes = predict(m)
+@test clIdxKMeans == classes
+@test info(m)[:trainedRecords] == 9
+print(m)
+@test sprint(print, m) == "KMeansModel - A 2-dimensions 3-classes K-Means Model (trained on 9 records)Dict{Symbol, Any}(:dimensions => 2, :trainedRecords => 9)\nRepresentatives:\n[5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664]\n"
 
 # ==================================
 # New test
@@ -59,6 +66,9 @@ classes2 = predict(m,X2)
 train!(m,X2)
 classes3 = predict(m)
 @test classes3 == [1,2,2,3]
+@test info(m)[:trainedRecords] == 13
+reset!(m)
+@test sprint(print, m) == "KMedoidsModel - A 3-classes K-Medoids Model (untrained)"
 
 # ==================================
 # New test
@@ -119,6 +129,37 @@ out2 = predictMissing(X,3,mixtures=[DiagonalGaussian() for i in 1:3],verbosity=N
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 out3 = predictMissing(X,3,mixtures=[FullGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
 @test out3.X̂[2,2] ≈ 11.166652292936876
+
+
+println("Testing GMMClusterModel...")
+X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+
+m = GMMClusterModel(nClasses=3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+train!(m,X)
+probs = predict(m)
+gmmOut = gmm(X,3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+@test gmmOut.pₙₖ == probs
+
+μ_x1alone = hcat([m.par.mixtures[i].μ for i in 1:3]...)
+pk_x1alone = m.par.probMixtures
+
+X2 = [2.0 12; 3 20; 4 15; 1.5 11]
+
+m2 = GMMClusterModel(nClasses=3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+train!(m2,X2)
+#μ_x2alone = hcat([m.par.mixtures[i].μ for i in 1:3]...)
+probsx2alone = predict(m2)
+@test probsx2alone[1,1] < 0.999
+
+probX2onX1model = predict(m,X2)
+@test probX2onX1model[1,1] ≈ 0.5214795038476924 
+
+train!(m,X2) # this greately reduces mixture variance
+#μ_x1x2 = hcat([m.par.mixtures[i].μ for i in 1:3]...)
+probsx2 = predict(m)
+@test probsx2[1,1] > 0.999 # it feels more certain as it uses the info of he first training
+reset!(m)
+@test sprint(print,m) == "GMMClusterModel - A 3-classes Generative Mixture Model (untrained)"
 
 # ==================================
 # NEW TEST
@@ -213,35 +254,6 @@ yhat_prob                   =  MLJBase.predict(mach, nothing)
 =#
 
 
-println("Testing GMMClusterModel...")
-X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-
-m = GMMClusterModel(nClasses=3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
-train!(m,X)
-probs = predict(m)
-gmmOut = gmm(X,3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
-@test gmmOut.pₙₖ == probs
-
-μ_x1alone = hcat([m.par.mixtures[i].μ for i in 1:3]...)
-pk_x1alone = m.par.probMixtures
-
-X2 = [2.0 12; 3 20; 4 15; 1.5 11]
-
-m2 = GMMClusterModel(nClasses=3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
-train!(m2,X2)
-#μ_x2alone = hcat([m.par.mixtures[i].μ for i in 1:3]...)
-probsx2alone = predict(m2)
-@test probsx2alone[1,1] < 0.999
-
-probX2onX1model = predict(m,X2)
-@test probX2onX1model[1,1] ≈ 0.5214795038476924 
-
-train!(m,X2) # this greately reduces mixture variance
-#μ_x1x2 = hcat([m.par.mixtures[i].μ for i in 1:3]...)
-probsx2 = predict(m)
-@test probsx2[1,1] > 0.999 # it feels more certain as it uses the info of he first training
-
-reset!(m)
 
 #@test isapprox(clusters.BIC,114.1492467835965)
 #clusters.pₙₖ

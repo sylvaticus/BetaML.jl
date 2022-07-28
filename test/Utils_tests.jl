@@ -224,8 +224,10 @@ out = pca(X,error=0.05)
 @test out.explVarByDim ≈ [0.873992272007021,0.9999894437302522,1.0]
 X = [1 8; 4.5 5.5; 9.5 0.5]
 out = pca(X;K=2)
-@test isapprox(out.X,[-4.58465   6.63182;-0.308999  7.09961; 6.75092   6.70262],atol=0.00001)
-@test isapprox(out.P,[0.745691  0.666292;-0.666292  0.745691],atol=0.00001)
+expectedX = [-4.58465   6.63182;-0.308999  7.09961; 6.75092   6.70262]
+expectedP = [0.745691  0.666292;-0.666292  0.745691]
+@test isapprox(out.X,expectedX,atol=0.00001) || isapprox(out.X, (.- expectedX),atol=0.00001) 
+@test isapprox(out.P,expectedP,atol=0.00001) || isapprox(out.P, (.- expectedP),atol=0.00001)
 
 
 # ==================================
