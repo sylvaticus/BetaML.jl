@@ -310,9 +310,9 @@ end
 
 
 """
-    train!(m::KMeansModel,x)
+    fit!(m::KMeansModel,x)
 """
-function train!(m::KMeansModel,x)
+function fit!(m::KMeansModel,x)
 
     # Parameter alias..
     K                      = m.hpar.nClasses
@@ -340,9 +340,9 @@ function train!(m::KMeansModel,x)
 end   
 
 """
-    train!(m::KMeansModel,x)
+    fit!(m::KMeansModel,x)
 """
-function train!(m::KMedoidsModel,x)
+function fit!(m::KMedoidsModel,x)
 
     # Parameter alias..
     K                      = m.hpar.nClasses

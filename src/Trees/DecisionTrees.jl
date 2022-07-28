@@ -387,7 +387,7 @@ function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0,
 end
 
 # API V2
-function train!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
+function fit!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
 
     if m.trained
         @warn "This model has already been trained and it doesn't support multiple training. This training will override the previous one(s)"

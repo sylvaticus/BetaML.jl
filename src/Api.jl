@@ -8,7 +8,7 @@ module Api
 
 export BetaMLModel, BetaMLSupervisedModel, BetaMLUnsupervisedModel,
        BetaMLOptionsSet, BetaMLHyperParametersSet, BetaMLLearnableParametersSet,
-       predict, train!, partition, info, reset!
+       predict, fit!, partition, info, reset!
 
 abstract type BetaMLModel end
 abstract type BetaMLSupervisedModel <: BetaMLModel end
@@ -18,11 +18,11 @@ abstract type BetaMLHyperParametersSet end
 abstract type BetaMLLearnableParametersSet end
 
 """
-   train!(m::BetaMLModel,X,[y])
+   fit!(m::BetaMLModel,X,[y])
 
-Train ("fit") a BetaMLModel (i.e. learn the algorithm's parameters) based on data, either only features or features and labels
+Fit ("train") a BetaMLModel (i.e. learn the algorithm's parameters) based on data, either only features or features and labels
 """ 
-train!(::BetaMLModel)  = nothing
+fit!(::BetaMLModel)  = nothing
 """
    predict(m::BetaMLModel,[X])
 

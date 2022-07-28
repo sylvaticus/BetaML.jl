@@ -275,12 +275,12 @@ function GMMClusterModel(;kwargs...)
 end
 
 """
-    train!(m::GMMClusterModel,x)
+    fit!(m::GMMClusterModel,x)
 
 ## Notes:
-`train!` caches as record probabilities only those of the last set of data used to train the model
+`fit!` caches as record probabilities only those of the last set of data used to train the model
 """
-function train!(m::GMMClusterModel,x)
+function fit!(m::GMMClusterModel,x)
 
     # Parameter alias..
     K             = m.hpar.nClasses

@@ -27,7 +27,7 @@ xtrain = [
 ytrain = ["Apple",  "Apple", "Grape", "Grape", "Lemon"]
 myTree = buildTree(xtrain,ytrain,rng=copy(TESTRNG))
 m = DTModel(rng=copy(TESTRNG))
-train!(m,xtrain,ytrain)
+fit!(m,xtrain,ytrain)
 
 ŷtrain  = predict(myTree, xtrain,rng=copy(TESTRNG))
 ŷtrain2 = predict(m,xtrain)
@@ -91,7 +91,7 @@ mreTrain = meanRelError(ŷtrain,ytrain)
 mreTest  = meanRelError(ŷtest,ytest)
 @test mreTest <= 0.3
 m = DTModel(minGain=0.001,minRecords=2,maxDepth=3,rng=copy(TESTRNG))
-train!(m,xtrain,ytrain)
+fit!(m,xtrain,ytrain)
 @test predict(m,xtrain) == ŷtrain
 reset!(m)
 @test m.par == nothing
@@ -126,7 +126,7 @@ ŷtest2 = predict(myForest, xtest,rng=copy(TESTRNG))
 @test oobError <= 0.1
 
 m = RFModel(maxDepth=20,oob=true,beta=0,rng=copy(TESTRNG))
-train!(m,xtrain,ytrain)
+fit!(m,xtrain,ytrain)
 m.opt.rng=copy(TESTRNG) 
 ŷtrainNew = predict(m,xtrain)
 @test ŷtrainNew == ŷtrain 
@@ -224,7 +224,7 @@ mreTest2  = meanRelError(ŷtest,ytest)
 @test mreTest2 <= mreTest * 1.5
 
 m = RFModel(oob=true,beta=1,rng=copy(TESTRNG))
-train!(m,xtrain,ytrain)
+fit!(m,xtrain,ytrain)
 m.opt.rng=copy(TESTRNG) # the model RNG is consumed at each operation
 ŷtest2 = predict(m,xtest)
 

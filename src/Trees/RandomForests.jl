@@ -136,7 +136,7 @@ function buildForest(x, y::AbstractArray{Ty,1}, nTrees=30; maxDepth = size(x,1),
 end
 
 # API V2
-function train!(m::RFModel,x,y::AbstractArray{Ty,1}) where {Ty}
+function fit!(m::RFModel,x,y::AbstractArray{Ty,1}) where {Ty}
 
     if m.trained
         @warn "This model has already been trained and it doesn't support multiple training. This training will override the previous one(s)"
