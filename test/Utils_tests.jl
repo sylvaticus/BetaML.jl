@@ -297,9 +297,83 @@ cm = ConfusionMatrix(ŷ,y,labels=labels)
 @test cm.accuracy == 0.6
 @test cm.misclassification == 0.4
 
+# If I want to actually test the print content...
+#=
+@testset "Testing cm printing" begin
+    original_stdout = stdout
+    (rd, wr) = redirect_stdout()
+    BetaML.Utils.print(cm,["report"])
+    redirect_stdout(original_stdout)
+    close(wr)
+    s = read(rd,String)
+    @test s == """\n-----------------------------------------------------------------
+
+
+    *** CONFUSION REPORT ***
+   
+   - Accuracy:               0.6
+   - Misclassification rate: 0.4
+   - Number of classes:      3
+   
+     N Class                                      precision   recall  specificity  f1Score  actualCount  predictedCount
+                                                                TPR       TNR                 support                  
+   
+     1 Class 0                                        0.667    1.000        0.667    0.800            2               3
+     2 Class 1 with an extra long name super long     0.000    0.000        0.750    0.000            1               1
+     3 Class 2                                        1.000    0.500        1.000    0.667            2               1
+   
+   - Simple   avg.                                    0.556    0.500        0.806    0.489
+   - Weigthed avg.                                    0.667    0.600        0.817    0.587
+   
+   -----------------------------------------------------------------\n"""
+   (rd, wr) = redirect_stdout()
+   BetaML.Utils.println(cm)
+   redirect_stdout(original_stdout)
+   close(wr)
+   s = read(rd,String)
+   @test s == """\n-----------------------------------------------------------------
+
+   *** CONFUSION MATRIX ***
+   
+   Scores actual (rows) vs predicted (columns):
+   
+   4×4 Matrix{Any}:
+    "Labels"                                       "Class 0"   "Class 1 with an extra long name super long"   "Class 2"
+    "Class 0"                                     2           0                                              0
+    "Class 1 with an extra long name super long"  1           0                                              0
+    "Class 2"                                     0           1                                              1
+   Normalised scores actual (rows) vs predicted (columns):
+   
+   4×4 Matrix{Any}:
+    "Labels"                                       "Class 0"   "Class 1 with an extra long name super long"   "Class 2"
+    "Class 0"                                     1.0         0.0                                            0.0
+    "Class 1 with an extra long name super long"  1.0         0.0                                            0.0
+    "Class 2"                                     0.0         0.5                                            0.5
+    *** CONFUSION REPORT ***
+   
+   - Accuracy:               0.6
+   - Misclassification rate: 0.4
+   - Number of classes:      3
+   
+     N Class                                      precision   recall  specificity  f1Score  actualCount  predictedCount
+                                                                TPR       TNR                 support                  
+   
+     1 Class 0                                        0.667    1.000        0.667    0.800            2               3
+     2 Class 1 with an extra long name super long     0.000    0.000        0.750    0.000            1               1
+     3 Class 2                                        1.000    0.500        1.000    0.667            2               1
+   
+   - Simple   avg.                                    0.556    0.500        0.806    0.489
+   - Weigthed avg.                                    0.667    0.600        0.817    0.587
+   
+   -----------------------------------------------------------------\n\n"""
+end
+=#
+original_stdout = stdout
+(rd, wr) = redirect_stdout()
 @test BetaML.Utils.print(cm,["report"]) == nothing
 @test BetaML.Utils.println(cm) == nothing
-
+redirect_stdout(original_stdout)
+close(wr)
 # ==================================
 # New test
 println("** Testing classCounts()...")
