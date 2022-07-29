@@ -80,6 +80,7 @@ julia> clusters = gmm([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3;
 ```
 """
 function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans",maxIter=typemax(Int64),rng = Random.GLOBAL_RNG)
+# TODO: benchmark with this one: https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-022-04740-9 
  if verbosity > STD
      @codeLocation
  end

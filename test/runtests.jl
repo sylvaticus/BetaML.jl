@@ -26,6 +26,10 @@ end
 if "all" in ARGS || "Clustering" in ARGS || nArgs == 0
     include("Clustering_tests.jl")
 end
+end
+if "all" in ARGS || "GMM" in ARGS || nArgs == 0
+    include("GMM_tests.jl")
+end
 
 if "all" in ARGS || "Stats" in ARGS || nArgs == 0
     include("Stats_tests.jl")

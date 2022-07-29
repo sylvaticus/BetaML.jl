@@ -108,6 +108,7 @@ MMI.hyperparameter_ranges(::Type{<:DecisionTreeRegressor}) = (
 function MMI.fit(model::Union{DecisionTreeRegressor,RandomForestRegressor}, verbosity, X, y)
    x = MMI.matrix(X)                     # convert table to matrix
    maxDepth         = model.maxDepth == 0 ? size(x,1) : model.maxDepth
+   # Using low level API here. We could switch to APIV2...
    if (typeof(model) == DecisionTreeRegressor)
        maxFeatures = model.maxFeatures == 0 ? size(x,2) : model.maxFeatures
        fitresult   = buildTree(x, y, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion,rng=model.rng)
@@ -126,6 +127,7 @@ function MMI.fit(model::Union{DecisionTreeClassifier,RandomForestClassifier}, ve
    #y_plain          = MMI.int(y) .- 1                     # integer relabeling should start at 0
    yarray           = convert(Vector{eltype(levels(y))},y) # convert to a simple Array{T}
    maxDepth         = model.maxDepth == 0 ? size(x,1) : model.maxDepth
+   # Using low level API here. We could switch to APIV2...
    if (typeof(model) == DecisionTreeClassifier)
        maxFeatures   = model.maxFeatures == 0 ? size(x,2) : model.maxFeatures
        fittedmodel   = buildTree(x, yarray, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true,rng=model.rng)

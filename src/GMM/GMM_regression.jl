@@ -80,7 +80,6 @@ using ForceImport
 @force using ..Api
 @force using ..Utils
 @force using ..Clustering
-@force using ..GMM
 @force using ..Trees
 
 export Imputer, MeanImputer, GMMImputer, RFImputer,

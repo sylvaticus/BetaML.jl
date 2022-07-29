@@ -27,7 +27,8 @@ include("Stats/Stats.jl")           # Classical statistical functions
 include("Nn/Nn.jl")                 # Neural Networks
 include("Perceptron/Perceptron.jl") # Perceptron-like algorithms
 include("Trees/Trees.jl")           # Decision Trees and ensembles (Random Forests)
-include("Clustering/Clustering.jl") # Clustering algorithms
+include("Clustering/Clustering.jl") # Clustering (hard) algorithms
+include("GMM/GMM.jl")               # GMM-based learners (clustering, fitter, regression) 
 include("Imputation/Imputation.jl") # (Missing) imputation algorithms
 
 # "Merging" of the modules...
@@ -45,6 +46,8 @@ include("Imputation/Imputation.jl") # (Missing) imputation algorithms
 @reexport using .Trees
 @force    using .Clustering
 @reexport using .Clustering
+@force    using .GMM
+@reexport using .GMM
 @force    using .Imputation
 @reexport using .Imputation
 
