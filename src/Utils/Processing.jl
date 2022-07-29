@@ -19,6 +19,9 @@ makeMatrix(x::AbstractArray) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
 issortable(::AbstractArray{T,N})  where {T,N} = hasmethod(isless, Tuple{nonmissingtype(T),nonmissingtype(T)})
 
 
+allowmissing!(x::AbstractArray{T,N}) where {T,N}    = convert(Union{Array{T,N},Missing},x)
+disallowmissing!(x::AbstractArray{T,N}) where {T,N} = convert(Array{nonmissingtype(T),N},x)
+
 """
     getPermutations(v::AbstractArray{T,1};keepStructure=false)
 

@@ -95,6 +95,29 @@ probsx2 = predict(m)
 reset!(m)
 @test sprint(print,m) == "GMMClusterModel - A 3-classes Generative Mixture Model (untrained)"
 
+# Testing GMM Regressor 2
+
+ϵtrain = [1.023,1.08,0.961,0.919,0.933,0.993,1.011,0.923,1.084,1.037,1.012]
+ϵtest  = [1.056,0.902,0.998,0.977]
+xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1; 0.4 0.2; 0.3 0.3; 0.6 0.9; 0.3 0.4; 0.9 0.8]
+ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtrain[i] for (i,x) in enumerate(eachrow(xtrain))]
+xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
+ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest))]
+
+m = GMMRegressor2(nClasses=2,rng=copy(TESTRNG))
+fit!(m,xtrain,ytrain)
+
+ŷtrain = predict(m, xtrain)
+ŷtest = predict(m, xtest)
+mreTrain = meanRelError(ŷtrain,ytrain)
+@test mreTrain <= 0.08
+mreTest  = meanRelError(ŷtest,ytest)
+@test mreTest <= 0.35
+
+
+
+
+
 # ==================================
 # NEW TEST
 println("Testing MLJ interface for GMM models....")

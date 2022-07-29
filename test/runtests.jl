@@ -1,6 +1,10 @@
 using Test
 
-# choose what to test with  Pkg.test("BetaML", test_args=["Trees","Clustering","all"])
+#using Pkg # seems Julia bug: can't find pkg `Pkg` !!
+#Pkg.activate(@__DIR__)
+
+# choose what to test with `Pkg.test("BetaML", test_args=["Trees","Clustering","all"])``
+# or `$ julia runtests.jl Trees Clustering all`
 
 nArgs = length(ARGS)
 
@@ -25,7 +29,6 @@ if "all" in ARGS || "Perceptron" in ARGS || nArgs == 0
 end
 if "all" in ARGS || "Clustering" in ARGS || nArgs == 0
     include("Clustering_tests.jl")
-end
 end
 if "all" in ARGS || "GMM" in ARGS || nArgs == 0
     include("GMM_tests.jl")

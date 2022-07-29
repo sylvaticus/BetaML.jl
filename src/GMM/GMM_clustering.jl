@@ -262,7 +262,14 @@ mutable struct GMMClusterModel <: BetaMLUnsupervisedModel
 end
 
 function GMMClusterModel(;kwargs...)
-    m = GMMClusterModel(GMMClusterHyperParametersSet(),GMMClusterOptionsSet(),GMMClusterLearnableParameters(),false,Dict{Symbol,Any}())
+    # ugly manual case...
+    if (:nClasses in keys(kwargs) && ! (:mixtures in keys(kwargs)))
+        nClasses = kwargs[:nClasses]
+        hps = GMMClusterHyperParametersSet(nClasses = nClasses, mixtures = [DiagonalGaussian() for i in 1:nClasses])
+    else 
+        hps = GMMClusterHyperParametersSet()
+    end
+    m = GMMClusterModel(hps,GMMClusterOptionsSet(),GMMClusterLearnableParameters(),false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
