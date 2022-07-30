@@ -167,7 +167,7 @@ abstract type RecursiveLayer <: AbstractLayer end
 include("Nn_default_layers.jl")
 
 """
-   forward(layer,x)
+    forward(layer,x)
 
 Predict the output of the layer given the input
 
@@ -183,7 +183,7 @@ function forward(layer::AbstractLayer,x)
 end
 
 """
-   backward(layer,x,nextGradient)
+    backward(layer,x,nextGradient)
 
 Compute backpropagation for this layer
 
@@ -201,7 +201,7 @@ function backward(layer::AbstractLayer,x,nextGradient)
 end
 
 """
-   getParams(layer)
+    getParams(layer)
 
 Get the layers current value of its trainable parameters
 
@@ -216,7 +216,7 @@ function getParams(layer::AbstractLayer)
 end
 
 """
-   getGradient(layer,x,nextGradient)
+    getGradient(layer,x,nextGradient)
 
 Compute backpropagation for this layer
 
@@ -233,7 +233,7 @@ function getGradient(layer::AbstractLayer,x,nextGradient)
   end
 
 """
-     setParams!(layer,w)
+    setParams!(layer,w)
 
 Set the trainable parameters of the layer with the given values
 

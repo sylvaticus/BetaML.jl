@@ -2,29 +2,7 @@
 # Various helper/ utility functions concerning stochastiticy management
 
 
-"""
-    FIXEDSEED
-
-Fixed seed to allow reproducible results.
-This is the seed used to obtain the same results under unit tests.
-
-Use it with:
-- `myAlgorithm(;rng=FIXEDRNG)`             # always produce the same sequence of results on each run of the script ("pulling" from the same rng object on different calls)
-- `myAlgorithm(;rng=copy(FIXEDRNG)`        # always produce the same result (new rng object on each call)
-"""
-const FIXEDSEED = 123
-
-"""
-    FIXEDRNG
-
-Fixed ring to allow reproducible results
-
-Use it with:
-- `myAlgorithm(;rng=FIXEDRNG)`         # always produce the same sequence of results on each run of the script ("pulling" from the same rng object on different calls)
-- `myAlgorithm(;rng=copy(FIXEDRNG))`   # always produce the same result (new rng object on each function call)
-
-"""
-const FIXEDRNG  = StableRNG(FIXEDSEED) #StableRNG(FIXEDSEED) Random.default_rng() #MersenneTwister(FIXEDSEED)
+ #StableRNG(FIXEDSEED) Random.default_rng() #MersenneTwister(FIXEDSEED)
 #const FIXEDRNG  = MersenneTwister(FIXEDSEED) #StableRNG(FIXEDSEED) Random.default_rng()
 
 

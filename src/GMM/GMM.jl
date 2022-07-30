@@ -24,7 +24,7 @@ The module provides the following functions. Use `?[function]` to access their f
 """
 module GMM
 
-using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays
+using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays, DocStringExtensions
 import Distributions
 
 using  ForceImport

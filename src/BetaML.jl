@@ -4,12 +4,9 @@
 The Beta Machine Learning toolkit
 https://github.com/sylvaticus/BetaML.jl
 
-For documentation, please look at the individual modules:
+Licence is MIT
 
-- `?BetaML.Perceptron`: Linear and kernel classifiers
-- `?BetaML.Nn`: Neural networks
-- `?BetaML.Clusters`: Clustering algorithms and collaborative filering using clusters
-- `?BetaML.Utils`: Various utility functions (scale, one-hot, distances, kernels,..)
+For documentation, please look at the individual modules or online.
 
 While the code is organised in different sub-modules, all objects are re-exported at the BetaML root level, hence the functionality of this package can be accessed by simply `using BetaML` and then employing the required function directly. 
 

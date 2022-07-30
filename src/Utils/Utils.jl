@@ -49,14 +49,13 @@ For the complete list of functions provided see below. The main ones are:
 """
 module Utils
 
-using LinearAlgebra, Printf, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, StableRNGs
+using LinearAlgebra, Printf, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, Random
 
 using ForceImport
 @force using ..Api
 using ..Api
 
-export Verbosity, NONE, LOW, STD, HIGH, FULL,
-       FIXEDSEED, FIXEDRNG, @codeLocation, generateParallelRngs,
+export @codeLocation, generateParallelRngs,
        reshape, makeColVector, makeRowVector, makeMatrix, issortable, getPermutations,
        oneHotEncoder, oneHotDecoder, integerEncoder, integerDecoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, shuffle, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units

@@ -105,6 +105,7 @@ function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=1
 
  # Initialisation of the parameters of the mixtures
  mixtures = identity.(deepcopy(mixtures)) # to set the container to the minimum common denominator of element types the deepcopy is not to change the function argument
+
  initMixtures!(mixtures,X,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,rng=rng)
 
  pₙₖ = zeros(Float64,N,K) # The posteriors, i.e. the prob that item n belong to cluster k
@@ -228,22 +229,39 @@ end
 
 # Avi v2..
 
+"""
+$(TYPEDEF)
 
+Hyperparameters for GMM clusters and other GMM-related algorithms
+
+## Parameters:
+$(FIELDS)
+"""
 Base.@kwdef mutable struct GMMClusterHyperParametersSet <: BetaMLHyperParametersSet
+    "Number of mixtures (latent classes) to consider [def: 3]"
     nClasses::Int64                   = 3
+    "Initial probabilities of the categorical distribution (nClasses x 1) [default: `[]`]"
     probMixtures::Vector{Float64}     = []
+    "An array (of length K) of the mixture to employ (see notes) [def: `[DiagonalGaussian() for i in 1:K]`]"
     mixtures::Vector{AbstractMixture} = [DiagonalGaussian() for i in 1:nClasses]
+    "Tolerance to stop the algorithm [default: 10^(-6)]"
     tol::Float64                      = 10^(-6)
+    "Minimum variance for the mixtures [default: 0.05]"
     minVariance::Float64              = 0.05
+    "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes)."
     minCovariance::Float64            = 0.0
+    "Mixture initialisation algorithm [def: `kmeans`]"
     initStrategy::String              = "kmeans"
+    "Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]"
     maxIter::Int64                    = typemax(Int64)
 end
 
+#=
 Base.@kwdef mutable struct GMMClusterOptionsSet <: BetaMLOptionsSet
     verbosity::Verbosity = STD
     rng                  = Random.GLOBAL_RNG
 end
+=#
 
 Base.@kwdef mutable struct GMMClusterLearnableParameters <: BetaMLLearnableParametersSet
     mixtures::Vector{AbstractMixture}           = []
@@ -255,7 +273,7 @@ end
 
 mutable struct GMMClusterModel <: BetaMLUnsupervisedModel
     hpar::GMMClusterHyperParametersSet
-    opt::GMMClusterOptionsSet
+    opt::BetaMLDefultOptionsSet
     par::Union{Nothing,GMMClusterLearnableParameters}
     trained::Bool
     info::Dict{Symbol,Any}
@@ -269,7 +287,7 @@ function GMMClusterModel(;kwargs...)
     else 
         hps = GMMClusterHyperParametersSet()
     end
-    m = GMMClusterModel(hps,GMMClusterOptionsSet(),GMMClusterLearnableParameters(),false,Dict{Symbol,Any}())
+    m = GMMClusterModel(hps,BetaMLDefultOptionsSet(),GMMClusterLearnableParameters(),false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields

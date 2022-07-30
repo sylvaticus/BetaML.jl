@@ -158,15 +158,15 @@ yhat_prob                   =  Mlj.predict(model, fitResults, X)  # Mlj.transfor
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 X = Mlj.table(X)
-model                       =  MissingImputator(rng=copy(TESTRNG))
-modelMachine                =  Mlj.machine(model,X)
+model                       = MissingImputator(rng=copy(TESTRNG))
+modelMachine                = Mlj.machine(model,X)
 (fitResults, cache, report) = Mlj.fit(model, 0, X)
-XD                          =  Mlj.transform(model,fitResults,X)
-XDM                         =  Mlj.matrix(XD)
-@test isapprox(XDM[2,2],15.441553354222702)
+XD                          = Mlj.transform(model,fitResults,X)
+XDM                         = Mlj.matrix(XD)
+@test isapprox(XDM[2,2],11.166666666667362)
 # Use the previously learned structure to imput missings..
 Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
 XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
-XDMNew                      =  Mlj.matrix(XDNew)
-@test isapprox(XDMNew[1,2],13.818691793037452)
+XDMNew                      = Mlj.matrix(XDNew)
+@test isapprox(XDMNew[1,2],XDM[2,2])
 

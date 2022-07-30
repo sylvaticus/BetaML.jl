@@ -1,7 +1,7 @@
 # Part of submodule Utils of BetaML _ the Beta Machine Learning Toolkit
 # Vatious utils to help in logging/debugging
 
-@enum Verbosity NONE=0 LOW=10 STD=20 HIGH=30 FULL=40
+
 
 """
     @codeLocation()
