@@ -104,7 +104,7 @@ function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=1
 
 
  # Initialisation of the parameters of the mixtures
- mixtures = identity.(mixtures) # to set the container to the minimum common denominator of element types
+ mixtures = identity.(deepcopy(mixtures)) # to set the container to the minimum common denominator of element types the deepcopy is not to change the function argument
  initMixtures!(mixtures,X,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,rng=rng)
 
  pₙₖ = zeros(Float64,N,K) # The posteriors, i.e. the prob that item n belong to cluster k

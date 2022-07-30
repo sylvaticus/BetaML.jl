@@ -106,7 +106,6 @@ ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest
 
 m = GMMRegressor2(nClasses=2,rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
-
 ŷtrain = predict(m, xtrain)
 ŷtest = predict(m, xtest)
 mreTrain = meanRelError(ŷtrain,ytrain)
@@ -114,9 +113,13 @@ mreTrain = meanRelError(ŷtrain,ytrain)
 mreTest  = meanRelError(ŷtest,ytest)
 @test mreTest <= 0.35
 
-
-
-
+# testing it with multidimensional Y
+ytrain2d = hcat(ytrain,ytrain .+ 0.1)
+reset!(m)
+fit!(m,xtrain,ytrain2d)
+ŷtrain2d = predict(m, xtrain)
+mreTrain2d = meanRelError(ŷtrain2d,ytrain2d)
+@test mreTrain2d <= 0.08
 
 # ==================================
 # NEW TEST
