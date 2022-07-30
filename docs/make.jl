@@ -113,7 +113,6 @@ makedocs(sitename="BetaML.jl Documentation",
          authors = "Antonello Lobianco",
          pages = [
             "Index" => "index.md",
-
             "Tutorial" => vcat("tutorials/Betaml_tutorial_getting_started.md",map(
                     subdir -> subdir => map(
                         file -> joinpath("tutorials", subdir, file),
@@ -125,12 +124,18 @@ makedocs(sitename="BetaML.jl Documentation",
                     _TUTORIAL_SUBDIR,
                 ),
             ),
-            "API (Reference manual)" => [
-              "Perceptron" => "Perceptron.md",
-              "Trees" => "Trees.md",
-              "Nn"   => "Nn.md",
-              "Clustering" => "Clustering.md",
-              "Utils" => "Utils.md",
+            "API (Reference manual)"     => [
+              "API V2 (current testing)" => [
+                "Introduction for user"  => "Api_v2_user.md",
+                "For developers"         => "Api_v2_developer.md"
+                ],
+              "Perceptron"               => "Perceptron.md",
+              "Trees"                    => "Trees.md",
+              "Nn"                       => "Nn.md",
+              "Clustering"               => "Clustering.md",
+              "GMM"                      => "GMM.jl",
+              "Imputation"               => "Imputation.jl"
+              "Utils"                    => "Utils.md",
             ],
          ],
          format = Documenter.HTML(prettyurls = false, analytics = "G-JYKX8QY5JW"),

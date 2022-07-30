@@ -38,7 +38,9 @@ Detailed documentation for most algorithms can be retrieved using the inline Jul
 - [**`BetaML.Perceptron`**](Perceptron.html): The Perceptron, Kernel Perceptron and Pegasos classification algorithms;
 - [**`BetaML.Trees`**](Trees.html): The Decision Trees and Random Forests algorithms for classification or regression (with missing values supported);
 - [**`BetaML.Nn`**](Nn.html): Implementation of Artificial Neural Networks;
-- [**`BetaML.Clustering``**](Clustering.html): Clustering algorithms (Kmeans, Mdedoids, EM/GMM) and missing imputation / collaborative filtering / recommandation systems using clusters;
+- [**`BetaML.Clustering`**](Clustering.html): (hard) Clustering algorithms (Kmeans, Mdedoids
+- [**`BetaML.GMM`**](GMM.html): Various algorithms (Clustering, regressor, missing imputation / collaborative filtering / recommandation systems) that use a Generative (Gaussian) mixture models (probabilistic) fitter fitted using a EM algorithm;
+- [**`BetaML.Imputation`**](Imputation.html): Imputation algorithms;
 - [**`BetaML.Utils``**](Utils.html): Various utility functions (scale, one-hot, distances, kernels, pca, accuracy/error measures..).
 
 
@@ -55,6 +57,8 @@ Currently BetaML neural network models are not available in MLJ.
 ## Quick examples
 
 _(see the_ [tutorial](@ref getting_started) _for a more step-by-step guide to the examples below and to other examples)_
+
+A "V2" API that uses a more uniform `fit!(model,X,[Y])`, `predict(model,X)` workflow is currently worked on.
 
 - **Using an Artificial Neural Network for multinomial categorisation**
 
