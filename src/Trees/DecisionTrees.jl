@@ -99,12 +99,12 @@ Base.@kwdef mutable struct DTHyperParametersSet <: BetaMLHyperParametersSet
     forceClassification::Bool                   = false
     splittingCriterion::Union{Nothing,Function} = nothing
 end
-
+#=
 Base.@kwdef mutable struct DTOptionsSet <: BetaMLOptionsSet
     rng                  = Random.GLOBAL_RNG
     verbosity::Verbosity = STD
 end
-
+=#
 
 Base.@kwdef mutable struct DTLearnableParameters <: BetaMLLearnableParametersSet
     tree::Union{Nothing,AbstractNode} = nothing
@@ -113,14 +113,14 @@ end
 
 mutable struct DTModel <: BetaMLSupervisedModel
     hpar::DTHyperParametersSet
-    opt::DTOptionsSet
+    opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,DTLearnableParameters}
     trained::Bool
     info::Dict{Symbol,Any}
 end
 
 function DTModel(;kwargs...)
-    m              = DTModel(DTHyperParametersSet(),DTOptionsSet(),DTLearnableParameters(),false,Dict{Symbol,Any}())
+    m              = DTModel(DTHyperParametersSet(),BetaMLDefaultOptionsSet(),DTLearnableParameters(),false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields

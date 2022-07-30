@@ -39,21 +39,23 @@ Base.@kwdef mutable struct RFHyperParametersSet <: BetaMLHyperParametersSet
     oob::Bool                                   = false
 end
 
+#=
 Base.@kwdef mutable struct RFOptionsSet <: BetaMLOptionsSet
     rng                  = Random.GLOBAL_RNG
     verbosity::Verbosity = STD
 end
+=#
 
 mutable struct RFModel <: BetaMLSupervisedModel
     hpar::RFHyperParametersSet
-    opt::RFOptionsSet
+    opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,Forest} #TODO: Forest contain info that is actualy in report. Currently we duplicate, we should just remofe them from par by making a dedicated struct instead of Forest
     trained::Bool
     info::Dict{Symbol,Any}
 end
 
 function RFModel(;kwargs...)
-m              = RFModel(RFHyperParametersSet(),RFOptionsSet(),nothing,false,Dict{Symbol,Any}())
+m              = RFModel(RFHyperParametersSet(),BetaMLDefaultOptionsSet(),nothing,false,Dict{Symbol,Any}())
 thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
 for (kw,kwv) in kwargs
     for f in thisobjfields

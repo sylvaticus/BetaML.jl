@@ -231,13 +231,14 @@ end
 
 # Avi v2..
 
-Base.@kwdef mutable struct KMeansHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct KMeansMedoidsHyperParametersSet <: BetaMLHyperParametersSet
     nClasses::Int64                   = 3
     dist::Function                    = (x,y) -> norm(x-y)
     initStrategy::String              = "Grid"
     initialRepresentatives::Union{Nothing,Matrix{Float64}} = nothing
 end
 
+#=
 Base.@kwdef mutable struct KMedoidsHyperParametersSet <: BetaMLHyperParametersSet
     nClasses::Int64                   = 3
     dist::Function                    = (x,y) -> norm(x-y)
@@ -252,35 +253,38 @@ Base.@kwdef mutable struct KMedoidsOptionsSet <: BetaMLOptionsSet
     verbosity::Verbosity = STD
     rng                  = Random.GLOBAL_RNG
 end
+=#
 
-Base.@kwdef mutable struct KMeansLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct KMeansMedoidsLearnableParameters <: BetaMLLearnableParametersSet
     representatives::Union{Nothing,Matrix{Float64}}  = nothing
-    assignments::Vector{Int64}        = Int64[]
+    assignments::Vector{Int64}                       = Int64[]
 end
+#=
 Base.@kwdef mutable struct KMedoidsLearnableParameters <: BetaMLLearnableParametersSet
     representatives::Union{Nothing,Matrix{Float64}}  = nothing
     assignments::Vector{Int64}        = Int64[]
 end
+=#
 
 mutable struct KMeansModel <: BetaMLUnsupervisedModel
-    hpar::KMeansHyperParametersSet
-    opt::KMeansOptionsSet
-    par::Union{Nothing,KMeansLearnableParameters}
+    hpar::KMeansMedoidsHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{Nothing,KMeansMedoidsLearnableParameters}
     trained::Bool
     info::Dict{Symbol,Any}
 end
 
 mutable struct KMedoidsModel <: BetaMLUnsupervisedModel
-    hpar::KMedoidsHyperParametersSet
-    opt::KMedoidsOptionsSet
-    par::Union{Nothing,KMedoidsLearnableParameters}
+    hpar::KMeansMedoidsHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{Nothing,KMeansMedoidsLearnableParameters}
     trained::Bool
     info::Dict{Symbol,Any}
 end
 
 
 function KMeansModel(;kwargs...)
-    m = KMeansModel(KMeansHyperParametersSet(),KMeansOptionsSet(),KMeansLearnableParameters(),false,Dict{Symbol,Any}())
+    m = KMeansModel(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -294,7 +298,7 @@ function KMeansModel(;kwargs...)
 end
 
 function KMedoidsModel(;kwargs...)
-    m = KMedoidsModel(KMedoidsHyperParametersSet(),KMedoidsOptionsSet(),KMedoidsLearnableParameters(),false,Dict{Symbol,Any}())
+    m = KMedoidsModel(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -331,7 +335,7 @@ function fit!(m::KMeansModel,x)
     else
         (clIdx,Z) = kmeans(x,K,dist=dist,initStrategy=initStrategy,Z₀=initialRepresentatives,verbosity=verbosity,rng=rng)
     end
-    m.par  = KMeansLearnableParameters(representatives=Z,assignments=clIdx)
+    m.par  = KMeansMedoidsLearnableParameters(representatives=Z,assignments=clIdx)
 
     m.info[:trainedRecords] = get(m.info,:trainedRecords,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
@@ -361,7 +365,7 @@ function fit!(m::KMedoidsModel,x)
     else
         (clIdx,Z) = kmedoids(x,K,dist=dist,initStrategy=initStrategy,Z₀=initialRepresentatives,verbosity=verbosity,rng=rng)
     end
-    m.par  = KMedoidsLearnableParameters(representatives=Z,assignments=clIdx)
+    m.par  = KMeansMedoidsLearnableParameters(representatives=Z,assignments=clIdx)
 
     m.info[:trainedRecords] = get(m.info,:trainedRecords,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)

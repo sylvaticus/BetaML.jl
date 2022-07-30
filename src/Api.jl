@@ -1,7 +1,7 @@
 
 module Api
 
-using StableRNGs, DocStringExtensions
+using StableRNGs, DocStringExtensions, Random
 
 # Shared api trough the modules, i.e. names used by more than one module
 # Modules are free to use other functions but these are defined here to avoid name conflicts
@@ -10,7 +10,7 @@ using StableRNGs, DocStringExtensions
 export Verbosity, NONE, LOW, STD, HIGH, FULL,     
        FIXEDSEED, FIXEDRNG,
        BetaMLModel, BetaMLSupervisedModel, BetaMLUnsupervisedModel,
-       BetaMLOptionsSet, BetaMLDefultOptionsSet, BetaMLHyperParametersSet, BetaMLLearnableParametersSet,
+       BetaMLOptionsSet, BetaMLDefaultOptionsSet, BetaMLHyperParametersSet, BetaMLLearnableParametersSet,
        predict, fit!, partition, info, reset!, learned
 
 abstract type BetaMLModel end
@@ -47,14 +47,14 @@ Use it with:
 const FIXEDRNG  = StableRNG(FIXEDSEED)
 
 """
-   BetaMLDefultOptionsSet
+   BetaMLDefaultOptionsSet
 
 A struct defining the options used by default by the algorithms that do not override it with their own option sets
 
 ## Parameters:
 $(FIELDS)
 """
-Base.@kwdef mutable struct BetaMLDefultOptionsSet
+Base.@kwdef mutable struct BetaMLDefaultOptionsSet
    "The verbosity level to be used in training or prediction (see [`Verbosity`](@ref)) [deafult: `STD`]
    "
    verbosity::Verbosity = STD

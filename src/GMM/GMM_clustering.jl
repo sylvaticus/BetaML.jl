@@ -105,6 +105,7 @@ function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=1
 
  # Initialisation of the parameters of the mixtures
  mixtures = identity.(deepcopy(mixtures)) # to set the container to the minimum common denominator of element types the deepcopy is not to change the function argument
+ #mixtures = identity.(mixtures) 
 
  initMixtures!(mixtures,X,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,rng=rng)
 
@@ -119,7 +120,6 @@ function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=1
 
  # finding empty/non_empty values
  #Xmask     =  .! ismissing.(X)
-
 
  lL = -Inf
  iter = 1
@@ -157,6 +157,7 @@ function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=1
 end # end function
 
 #  - For mixtures with full covariance matrix (i.e. `FullGaussian(μ,σ²)`) the minCovariance should NOT be set equal to the minVariance, or if the covariance matrix goes too low, it will become singular and not invertible.
+
 """
 predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)
 
@@ -273,7 +274,7 @@ end
 
 mutable struct GMMClusterModel <: BetaMLUnsupervisedModel
     hpar::GMMClusterHyperParametersSet
-    opt::BetaMLDefultOptionsSet
+    opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,GMMClusterLearnableParameters}
     trained::Bool
     info::Dict{Symbol,Any}
@@ -287,7 +288,7 @@ function GMMClusterModel(;kwargs...)
     else 
         hps = GMMClusterHyperParametersSet()
     end
-    m = GMMClusterModel(hps,BetaMLDefultOptionsSet(),GMMClusterLearnableParameters(),false,Dict{Symbol,Any}())
+    m = GMMClusterModel(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields

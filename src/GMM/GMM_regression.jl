@@ -27,7 +27,7 @@ At predict time, the new data is first fitted to the learned mixtures using the 
 """
 mutable struct GMMRegressor1 <: BetaMLUnsupervisedModel
     hpar::GMMClusterHyperParametersSet
-    opt::BetaMLDefultOptionsSet
+    opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,GMMRegressor1LearnableParameters}
     trained::Bool
     info::Dict{Symbol,Any}
@@ -41,7 +41,7 @@ function GMMRegressor1(;kwargs...)
     else 
         hps = GMMClusterHyperParametersSet()
     end
-    m = GMMRegressor1(hps,BetaMLDefultOptionsSet(),GMMRegressor1LearnableParameters(),false,Dict{Symbol,Any}())
+    m = GMMRegressor1(hps,BetaMLDefaultOptionsSet(),GMMRegressor1LearnableParameters(),false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -149,7 +149,7 @@ At predict time, the new data is first fitted to the learned mixtures using the 
 """
 mutable struct GMMRegressor2 <: BetaMLUnsupervisedModel
     hpar::GMMClusterHyperParametersSet
-    opt::BetaMLDefultOptionsSet
+    opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,GMMClusterLearnableParameters}
     trained::Bool
     info::Dict{Symbol,Any}
@@ -163,7 +163,7 @@ function GMMRegressor2(;kwargs...)
     else 
         hps = GMMClusterHyperParametersSet()
     end
-    m = GMMRegressor2(hps,BetaMLDefultOptionsSet(),GMMClusterLearnableParameters(),false,Dict{Symbol,Any}())
+    m = GMMRegressor2(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
