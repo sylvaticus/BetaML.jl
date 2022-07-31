@@ -79,12 +79,25 @@ x̂ = predict(mod)
 @test x̂[2,2] ≈ 11.166652292936876
 
 X = [2 missing 10; 2000 4000 10000; 2000 4000 10000; 3 5 12; 4 8 20; 2000 4000 8000; 1 5 8 ]
-mod = GMMImputer(K=2,multipleImputations=3,rng=copy(TESTRNG),verbosity=NONE, initStrategy="kmeans")
+mod = GMMImputer(nClasses=2,rng=copy(TESTRNG),verbosity=NONE, initStrategy="kmeans")
 fit!(mod,X)
 x̂ = predict(mod)
-@test x̂[1][1,2] == x̂[2][1,2] == x̂[3][1,2] ≈ 6.0
+@test x̂[1,2] ≈ 6.0
 infos = info(mod)
-@test infos.fitted == true && infos.nImputedValues == 1 && infos.lL[1] ≈ -163.12896063447343  && infos.BIC[1] ≈ 351.5547532066659 && infos.AIC[1] ≈ 352.25792126894686
+@test infos[:nImputedValues] == 1 && infos[:lL] ≈ -163.12896063447343  && infos[:BIC] ≈ 351.5547532066659 && infos[:AIC] ≈ 352.25792126894686
+
+X2 = [3 6 9; 2000 missing 10000; 1 2 5; 1500 3000 9000; 1.5 3 6]
+
+fit!(mod,X2)
+X̂2 =  predict(mod)
+@test X̂2[1,1] == 3
+@test X̂2[2,2] == 4000
+
+X3 = [1 2 missing; 2 4 6]
+X̂3 = predict(mod,X3)
+@test X̂3[1,3] ≈ 6.666666666717062
+reset!(mod)
+#predict(mod,X3)
 
 
 # ------------------------------------------------------------------------------

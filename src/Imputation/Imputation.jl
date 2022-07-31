@@ -83,9 +83,11 @@ using ForceImport
 @force using ..GMM
 @force using ..Trees
 
+import ..GMM.estep
+
 export predictMissing,
        Imputer, MeanImputer, GMMImputer, RFImputer,
-       ImputerResult, MeanImputerResult, GMMImputerResult, RFImputerResult, 
+       ImputerResult, RFImputerResult, 
        fit!, predict, info
 
 abstract type Imputer <: BetaMLModel end   
@@ -262,91 +264,127 @@ function predict(m::MeanImputer,X)
     return X̂
 end
 
+function show(io::IO, ::MIME"text/plain", m::MeanImputer)
+    if m.fitted == false
+        print(io,"MeanImputer - A simple feature-mean imputer (unfitted)")
+    else
+        print(io,"MeanImputer - A simple feature-mean imputer (fitted)")
+    end
+end
+
+function show(io::IO, m::MeanImputer)
+    if m.fitted == false
+        print(io,"MeanImputer - A simple feature-mean imputer (unfitted)")
+    else
+        print(io,"MeanImputer - A simple feature-mean imputer (fitted)")
+        println(io,m.info)
+    end
+end
+
 
 # ------------------------------------------------------------------------------
 # GMMImputer
-
-struct GMMImputerResult <: ImputerResult
-    imputedValues
-    nImputedValues::Int64
-    lL::Vector{Float64}
-    BIC::Vector{Float64}
-    AIC::Vector{Float64}
+Base.@kwdef mutable struct GMMImputerLearnableParameters <: BetaMLLearnableParametersSet
+    mixtures::Vector{AbstractMixture}           = []
+    probMixtures::Vector{Float64}               = []
+    probRecords::Union{Nothing,Matrix{Float64}} = nothing
+    imputedValues                               = nothing
 end
+
 
 """
     GMMImputer
 
 Missing data imputer that uses a Generated (Gaussian) Mixture Model.
 
-For the parameters (`K`,`p₀`,`mixtures`,`tol`,`verbosity`,`minVariance`,`minCovariance`,`initStrategy`,`maxIter`) see the underlying [`gmm`](@ref) clustering model.
+For the parameters (`nClasses`,`mixtures`,..) see  [`GMMImputerLearnableParameters`](@ref).
 
 Limitations:
 - data must be numerical
 - the resulted matrix is a Matrix{Float64}
 - currently the Mixtures available do not support random initialisation for missing imputation, and the rest of the algorithm (we use the Expectation-Maximisation) is deterministic, so there is no random component involved (i.e. no multiple imputations)    
 """
-Base.@kwdef mutable struct GMMImputer <: Imputer
-    K::Int64                           = 3
-    p₀::Vector{Float64}                = Float64[]
-    mixtures::Vector{AbstractMixture}  = [DiagonalGaussian() for i in 1:K]
-    tol::Float64                       = 10^(-6)
-    verbosity::Verbosity               = STD
-    minVariance::Float64               = 0.05
-    minCovariance::Float64             = 0.0
-    initStrategy::String               = "kmeans"
-    maxIter::Int64                     = typemax(Int64)
-    multipleImputations::Int64         = 1
-    rng::AbstractRNG                   = Random.GLOBAL_RNG
-    fitResults::Union{GMMImputerResult,Nothing} = nothing
-    fitted::Bool = false
+mutable struct GMMImputer <: Imputer
+    hpar::GMMClusterHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{GMMImputerLearnableParameters,Nothing}
+    fitted::Bool
+    info::Dict{Symbol,Any}    
 end
+
+function GMMImputer(;kwargs...)
+    # ugly manual case...
+    if (:nClasses in keys(kwargs) && ! (:mixtures in keys(kwargs)))
+        nClasses = kwargs[:nClasses]
+        hps = GMMClusterHyperParametersSet(nClasses = nClasses, mixtures = [DiagonalGaussian() for i in 1:nClasses])
+    else 
+        hps = GMMClusterHyperParametersSet()
+    end
+    m              = GMMImputer(hps,BetaMLDefaultOptionsSet(),GMMImputerLearnableParameters(),false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+          end
+        end
+    end
+    return m
+end
+
 
 """
     fit!(imputer::GMMImputer,X)
 
 Fit a matrix with missing data using [`GMMImputer`](@ref)
 """
-function fit!(imputer::GMMImputer,X)
-    imp = imputer
-    if imp.verbosity > STD
+function fit!(m::GMMImputer,X)
+    
+
+    # Parameter alias..
+    K             = m.hpar.nClasses
+    p₀            = m.hpar.probMixtures
+    mixtures      = m.hpar.mixtures
+    tol           = m.hpar.tol
+    minVariance   = m.hpar.minVariance
+    minCovariance = m.hpar.minCovariance
+    initStrategy  = m.hpar.initStrategy
+    maxIter       = m.hpar.maxIter
+    verbosity     = m.opt.verbosity
+    rng           = m.opt.rng
+
+    if m.opt.verbosity > STD
         @codeLocation
     end
+    if m.fitted
+        verbosity >= STD && @warn "Continuing training of a pre-fitted model"
+        emOut = gmm(X,K;p₀=m.par.probMixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy="given",maxIter=maxIter,rng = rng)
+    else
+        emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,maxIter=maxIter,rng = rng)
+    end
+
     (N,D) = size(X)
     nDim  = ndims(X)
     nmT   = nonmissingtype(eltype(X))
-    #K = size(emOut.μ)[1]
+
     XMask = .! ismissing.(X)
     nFill = (N * D) - sum(XMask)
 
-    imputedValues = Array{Float64,nDim}[]
     nImputedValues = nFill
-    lLs  = Float64[]
-    BICs = Float64[]
-    AICs = Float64[]
 
-    for mi in 1:imp.multipleImputations
-        emOut = gmm(X,imp.K;p₀=deepcopy(imp.p₀),mixtures=imp.mixtures,tol=imp.tol,verbosity=imp.verbosity,minVariance=imp.minVariance,minCovariance=imp.minCovariance,initStrategy=imp.initStrategy,maxIter=imp.maxIter,rng=imp.rng)
-        #=
-        X̂ = copy(X)
-        for n in 1:N
-            for d in 1:D
-                if !XMask[n,d]
-                    X̂[n,d] = sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:imp.K])
-                end
-            end
-        end
-        =#
-        X̂ = [XMask[n,d] ? X[n,d] : sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:imp.K]) for n in 1:N, d in 1:D ]
-        #X̂ = identity.(X̂)
-        #X̂ = convert(Array{nmT,nDim},X̂)
-        push!(imputedValues,X̂)
-        push!(lLs,emOut.lL)
-        push!(BICs,emOut.BIC)
-        push!(AICs,emOut.AIC)
-    end
-    imputer.fitResults = GMMImputerResult(imputedValues,nImputedValues,lLs,BICs,AICs)
-    imputer.fitted = true
+    X̂ = [XMask[n,d] ? X[n,d] : sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:K]) for n in 1:N, d in 1:D ]
+    
+    m.par  = GMMImputerLearnableParameters(mixtures = emOut.mixtures, probMixtures=makeColVector(emOut.pₖ), probRecords = emOut.pₙₖ, imputedValues=X̂)
+
+    m.info[:error]          = emOut.ϵ
+    m.info[:lL]             = emOut.lL
+    m.info[:BIC]            = emOut.BIC
+    m.info[:AIC]            = emOut.AIC
+    m.info[:fittedRecords] = get(m.info,:fittedRecords,0) + size(X,1)
+    m.info[:dimensions]     = size(X,2)
+    m.info[:nImputedValues]     = nImputedValues
+    m.fitted=true
     return true
 end
 
@@ -355,14 +393,38 @@ end
 
 Return the data with the missing values replaced with the imputed ones using [`GMMImputer`](@ref).
 """
-predict(m::GMMImputer) = (! m.fitted) ? nothing : (m.multipleImputations == 1 ? m.fitResults.imputedValues[1] : m.fitResults.imputedValues) 
+predict(m::GMMImputer) = (! m.fitted) ? nothing : m.par.imputedValues 
 
-"""
-    info(m::GMMImputer)
+function predict(m::GMMImputer,X)
+    m.fitted || error("Trying to predict from an untrained model")
+    X   = makeMatrix(X)
+    N,D = size(X)
+    XMask = .! ismissing.(X)
+    mixtures = m.par.mixtures
+    probMixtures = m.par.probMixtures
+    probRecords, lL = estep(X,probMixtures,mixtures)
 
-Return wheter the model has been fitted, the number of imputed values and statistics like the log likelihood, the Bayesian Information Criterion (BIC) and the Akaike Information Criterion (AIC).
-"""
-info(m::GMMImputer)    = m.fitted ? (fitted = true, nImputedValues = m.fitResults.nImputedValues, lL = m.fitResults.lL, BIC = m.fitResults.BIC, AIC = m.fitResults.AIC) : (fitted = false, nImputedValues = nothing, lL = nothing, BIC = nothing, AIC = nothing) 
+    X̂ = [XMask[n,d] ? X[n,d] : sum([mixtures[k].μ[d] * probRecords[n,k] for k in 1:m.hpar.nClasses]) for n in 1:N, d in 1:D ]
+    
+    return X̂
+end
+
+function show(io::IO, ::MIME"text/plain", m::GMMImputer)
+    if m.fitted == false
+        print(io,"GMMImputer - A Gaussian Mixture Model based imputer (unfitted)")
+    else
+        print(io,"GMMImputer - A Gaussian Mixture Model based imputer (fitted)")
+    end
+end
+
+function show(io::IO, m::GMMImputer)
+    if m.fitted == false
+        print(io,"GMMImputer - A Gaussian Mixture Model based imputer (unfitted)")
+    else
+        print(io,"GMMImputer - A Gaussian Mixture Model based imputer (fitted)")
+        println(io,m.info)
+    end
+end
 
 # ------------------------------------------------------------------------------
 # RFImputer

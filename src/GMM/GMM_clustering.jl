@@ -92,7 +92,7 @@ function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=1
  # ---------
  X     = makeMatrix(X)
  (N,D) = size(X)
- pₖ    = isempty(p₀) ? fill(1/K,K) : p₀
+ pₖ    = isempty(p₀) ? fill(1/K,K) : copy(p₀)
 
  # no longer true with the numerical trick implemented
  #if (minVariance == minCovariance)

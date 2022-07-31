@@ -77,7 +77,7 @@ fit!(m,X2) # this greately reduces mixture variance
 probsx2 = predict(m)
 @test probsx2[1,1] > 0.999 # it feels more certain as it uses the info of he first training
 reset!(m)
-@test sprint(print,m) == "GMMClusterModel - A 3-classes Generative Mixture Model (untrained)"
+@test sprint(print,m) == "GMMClusterModel - A 3-classes Generative Mixture Model (unfitted)"
 
 # Testing GMM Regressor 1
 ϵtrain = [1.023,1.08,0.961,0.919,0.933,0.993,1.011,0.923,1.084,1.037,1.012]

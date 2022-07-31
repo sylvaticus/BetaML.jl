@@ -40,9 +40,9 @@ reset!(m)
 fit!(m,X)
 classes = predict(m)
 @test clIdxKMeans == classes
-@test info(m)[:trainedRecords] == 9
+@test info(m)[:fittedRecords] == 9
 print(m)
-@test sprint(print, m) == "KMeansModel - A 2-dimensions 3-classes K-Means Model (trained on 9 records)Dict{Symbol, Any}(:dimensions => 2, :trainedRecords => 9)\nRepresentatives:\n[5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664]\n"
+@test sprint(print, m) == "KMeansModel - A 2-dimensions 3-classes K-Means Model (fitted on 9 records)\nDict{Symbol, Any}(:fittedRecords => 9, :dimensions => 2)\nRepresentatives:\n[5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664]\n"
 
 # ==================================
 # New test
@@ -60,9 +60,9 @@ classes2 = predict(m,X2)
 fit!(m,X2)
 classes3 = predict(m)
 @test classes3 == [1,2,2,3]
-@test info(m)[:trainedRecords] == 13
+@test info(m)[:fittedRecords] == 13
 reset!(m)
-@test sprint(print, m) == "KMedoidsModel - A 3-classes K-Medoids Model (untrained)"
+@test sprint(print, m) == "KMedoidsModel - A 3-classes K-Medoids Model (unfitted)"
 # ==================================
 # NEW TEST
 println("Testing MLJ interface for Clustering models....")

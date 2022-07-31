@@ -404,7 +404,7 @@ function show(io::IO, m::KMeansModel)
     if m.fitted == false
         print(io,"KMeansModel - A $(m.hpar.nClasses)-classes K-Means Model (unfitted)")
     else
-        print(io,"KMeansModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Means Model (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"KMeansModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Means Model (fitted on $(m.info[:fittedRecords]) records)")
         println(io,m.info)
         println(io,"Representatives:")
         println(io,m.par.representatives)
@@ -416,7 +416,7 @@ function show(io::IO, m::KMedoidsModel)
     if m.fitted == false
         print(io,"KMedoidsModel - A $(m.hpar.nClasses)-classes K-Medoids Model (unfitted)")
     else
-        print(io,"KMedoidsModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Medoids Model (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"KMedoidsModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Medoids Model (fitted on $(m.info[:fittedRecords]) records)")
         println(io,m.info)
         println(io,"Distance function used:")
         println(io,m.hpar.dist)
