@@ -134,7 +134,7 @@ makedocs(sitename="BetaML.jl Documentation",
               "Nn"                       => "Nn.md",
               "Clustering"               => "Clustering.md",
               "GMM"                      => "GMM.jl",
-              "Imputation"               => "Imputation.jl"
+              "Imputation"               => "Imputation.jl",
               "Utils"                    => "Utils.md",
             ],
          ],
