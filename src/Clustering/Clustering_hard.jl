@@ -270,7 +270,7 @@ mutable struct KMeansModel <: BetaMLUnsupervisedModel
     hpar::KMeansMedoidsHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,KMeansMedoidsLearnableParameters}
-    trained::Bool
+    fitted::Bool
     info::Dict{Symbol,Any}
 end
 
@@ -278,7 +278,7 @@ mutable struct KMedoidsModel <: BetaMLUnsupervisedModel
     hpar::KMeansMedoidsHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,KMeansMedoidsLearnableParameters}
-    trained::Bool
+    fitted::Bool
     info::Dict{Symbol,Any}
 end
 
@@ -326,10 +326,10 @@ function fit!(m::KMeansModel,x)
     verbosity              = m.opt.verbosity
     rng                    = m.opt.rng
 
-    if m.trained
-        # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee ntrained with milions of records.
+    if m.fitted
+        # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee fitted with milions of records.
         # So, training 1000 records doesn't give the same output as training 990 records and then training again with 10 records
-        verbosity >= STD && @warn "Continuing training of a pre-trained model"
+        verbosity >= STD && @warn "Continuing training of a pre-fitted model"
         (clIdx,Z) = kmeans(x,K,dist=dist,Z₀=m.par.representatives,initStrategy="given",verbosity=verbosity,rng=rng)
 
     else
@@ -337,9 +337,9 @@ function fit!(m::KMeansModel,x)
     end
     m.par  = KMeansMedoidsLearnableParameters(representatives=Z,assignments=clIdx)
 
-    m.info[:trainedRecords] = get(m.info,:trainedRecords,0) + size(x,1)
+    m.info[:fittedRecords] = get(m.info,:fittedRecords,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
-    m.trained=true
+    m.fitted=true
     return true
 end   
 
@@ -356,10 +356,10 @@ function fit!(m::KMedoidsModel,x)
     verbosity              = m.opt.verbosity
     rng                    = m.opt.rng
 
-    if m.trained
-        # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee ntrained with milions of records.
+    if m.fitted
+        # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee fitted with milions of records.
         # So, training 1000 records doesn't give the same output as training 990 records and then training again with 10 records
-        verbosity >= STD && @warn "Continuing training of a pre-trained model"
+        verbosity >= STD && @warn "Continuing training of a pre-fitted model"
         (clIdx,Z) = kmedoids(x,K,dist=dist,Z₀=m.par.representatives,initStrategy="given",verbosity=verbosity,rng=rng)
 
     else
@@ -367,9 +367,9 @@ function fit!(m::KMedoidsModel,x)
     end
     m.par  = KMeansMedoidsLearnableParameters(representatives=Z,assignments=clIdx)
 
-    m.info[:trainedRecords] = get(m.info,:trainedRecords,0) + size(x,1)
+    m.info[:fittedRecords] = get(m.info,:fittedRecords,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
-    m.trained=true
+    m.fitted=true
     return true
 end  
 
@@ -385,26 +385,26 @@ function predict(m::Union{KMeansModel,KMedoidsModel},X)
 end
 
 function show(io::IO, ::MIME"text/plain", m::KMeansModel)
-    if m.trained == false
-        print(io,"KMeansModel - A K-Means Model (untrained)")
+    if m.fitted == false
+        print(io,"KMeansModel - A K-Means Model (unfitted)")
     else
-        print(io,"KMeansModel - A K-Means Model (trained on $(m.info[:trainedRecords]) records)")
+        print(io,"KMeansModel - A K-Means Model (fitted on $(m.info[:fittedRecords]) records)")
     end
 end
 
 function show(io::IO, ::MIME"text/plain", m::KMedoidsModel)
-    if m.trained == false
-        print(io,"KMedoidsModel - A K-Medoids Model (untrained)")
+    if m.fitted == false
+        print(io,"KMedoidsModel - A K-Medoids Model (unfitted)")
     else
-        print(io,"KMedoidsModel - A K-Medoids Model (trained on $(m.info[:trainedRecords]) records)")
+        print(io,"KMedoidsModel - A K-Medoids Model (fitted on $(m.info[:fittedRecords]) records)")
     end
 end
 
 function show(io::IO, m::KMeansModel)
-    if m.trained == false
-        print(io,"KMeansModel - A $(m.hpar.nClasses)-classes K-Means Model (untrained)")
+    if m.fitted == false
+        print(io,"KMeansModel - A $(m.hpar.nClasses)-classes K-Means Model (unfitted)")
     else
-        print(io,"KMeansModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Means Model (trained on $(m.info[:trainedRecords]) records)")
+        print(io,"KMeansModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Means Model (fitted on $(m.info[:fittedRecords]) records)")
         println(io,m.info)
         println(io,"Representatives:")
         println(io,m.par.representatives)
@@ -413,10 +413,10 @@ end
 
 
 function show(io::IO, m::KMedoidsModel)
-    if m.trained == false
-        print(io,"KMedoidsModel - A $(m.hpar.nClasses)-classes K-Medoids Model (untrained)")
+    if m.fitted == false
+        print(io,"KMedoidsModel - A $(m.hpar.nClasses)-classes K-Medoids Model (unfitted)")
     else
-        print(io,"KMedoidsModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Medoids Model (trained on $(m.info[:trainedRecords]) records)")
+        print(io,"KMedoidsModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Medoids Model (fitted on $(m.info[:fittedRecords]) records)")
         println(io,m.info)
         println(io,"Distance function used:")
         println(io,m.hpar.dist)

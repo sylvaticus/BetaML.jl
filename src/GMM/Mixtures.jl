@@ -157,8 +157,17 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
             end
         else # missings are present
             # First pass of predictMissing using initStrategy=grid
-            emOut1 = predictMissing(X,K;mixtures=mixtures,verbosity=NONE,minVariance=minVariance,minCovariance=minCovariance,initStrategy="grid",rng=rng,maxIter=10) # TODO check how to use the new GMMIputer() but this is defined AFTER the Cluster module, problem !
-            kmμ = kmeans(emOut1.X̂,K,rng=rng)[2]
+            #emOut1 = predictMissing(X,K;mixtures=mixtures,verbosity=NONE,minVariance=minVariance,minCovariance=minCovariance,initStrategy="grid",rng=rng,maxIter=10) 
+            #kmμ = kmeans(emOut1.X̂,K,rng=rng)[2]
+            # replicate here code of predictMissing as this has been modev to a subsequent module Imputation, so not available here
+            emOutInner = gmm(X,K;mixtures=mixtures,verbosity=NONE,minVariance=minVariance,minCovariance=minCovariance,initStrategy="grid",rng=rng,maxIter=10) 
+            (N,D) = size(X)
+            XMask = .! ismissing.(X)
+            X̂ = [XMask[n,d] ? X[n,d] : sum([emOutInner.mixtures[k].μ[d] * emOutInner.pₙₖ[n,k] for k in 1:K]) for n in 1:N, d in 1:D ]
+            X̂ = identity.(X̂)
+            kmμ = kmeans(X̂,K,rng=rng)[2]
+            # TODO check how to use the new GMMIputer() but this is defined AFTER the Cluster module, problem !
+            
             for (k,m) in enumerate(mixtures)
                if isnothing(m.μ)
                    m.μ = kmμ[k,:]

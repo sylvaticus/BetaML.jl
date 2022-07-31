@@ -72,7 +72,7 @@ fit!(::BetaMLModel)  = nothing
 """
    predict(m::BetaMLModel,[X])
 
-Predict new information (including transformation) based on a trained BetaMLModel, eventually applied to new features when the algorithms generalise to new data.
+Predict new information (including transformation) based on a fitted BetaMLModel, eventually applied to new features when the algorithms generalise to new data.
 """ 
 predict(::BetaMLModel) = nothing
 
@@ -91,7 +91,7 @@ end
 function reset!(m::BetaMLModel)
    m.par     = nothing
    m.info    = Dict{Symbol,Any}()
-   m.trained = false 
+   m.fitted = false 
    return true
 end
 

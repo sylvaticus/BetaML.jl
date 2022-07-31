@@ -96,6 +96,8 @@ abstract type ImputerResult end
 """
 predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)
 
+OLD API. Use [`GMMClusterer`](@ref) instead.
+
 Fill missing entries in a sparse matrix (i.e. perform a "matrix completion") assuming an underlying Gaussian Mixture probabilistic Model (GMM) and implementing
 an Expectation-Maximisation algorithm.
 
@@ -166,27 +168,48 @@ end
 # ------------------------------------------------------------------------------
 # MeanImputer
 
-struct MeanImputerResult <: ImputerResult
-    imputedValues
-    nImputedValues::Int64
+Base.@kwdef mutable struct MeanImputerHyperParametersSet <: BetaMLHyperParametersSet
+    norm::Union{Nothing,Int64}       = nothing
+end
+Base.@kwdef mutable struct MeanImputerLearnableParameters <: BetaMLLearnableParametersSet
+    cMeans::Vector{Float64} = []
+    norms::Vector{Float64}  = []
+    imputedValues::Union{Nothing,Matrix{Float64}} = nothing
 end
 
 """
     MeanImputer
 
-Simple imputer using the feature (column) mean, optionally normalised by l-1 norms of the records (rows)
+Simple imputer using the feature (column) mean, optionally normalised by l-norms of the records (rows)
 
 Parameters:
-- `normaliseRecords`: Normalise the feature mean by l-1 norm of the records [default: `false`]. Use `true` if the records are highly heterogeneus (e.g. quantity exports of different countries).  
+- `norm`: Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries).  
 
 Limitations:
 - data must be numerical
 """
-Base.@kwdef mutable struct MeanImputer <: Imputer
-    normaliseRecords::Bool = false
-    fitResults::Union{MeanImputerResult,Nothing} = nothing
-    fitted::Bool = false
+mutable struct MeanImputer <: Imputer
+    hpar::MeanImputerHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{Nothing,MeanImputerLearnableParameters}
+    fitted::Bool
+    info::Dict{Symbol,Any}
 end
+
+function MeanImputer(;kwargs...)
+    m              = MeanImputer(MeanImputerHyperParametersSet(),BetaMLDefaultOptionsSet(),MeanImputerLearnableParameters(),false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+          end
+        end
+    end
+    return m
+end
+
 
 """
     fit!(imputer::MeanImputer,X)
@@ -194,17 +217,21 @@ end
 Fit a matrix with missing data using [`MeanImputer`](@ref)
 """
 function fit!(imputer::MeanImputer,X)
-    X̂ = copy(X)
+    (imputer.fitted == false ) || error("multiple training unsupported on this model")
+    #X̂ = copy(X)
     nR,nC = size(X)
     missingMask = ismissing.(X)
-    cMeans   = [mean(skipmissing(X̂[:,i])) for i in 1:nC]
-    if ! imputer.normaliseRecords
-        X̂ = [missingMask[r,c] ? cMeans[c] : X̂[r,c] for r in 1:nR, c in 1:nC]
+    cMeans   = [mean(skipmissing(X[:,i])) for i in 1:nC]
+
+    if imputer.hpar.norm == nothing
+        adjNorms = []
+        X̂ = [missingMask[r,c] ? cMeans[c] : X[r,c] for r in 1:nR, c in 1:nC]
     else
-        adjNorms = [norm(collect(skipmissing(r)),1) /   (nC - sum(ismissing.(r))) for r in eachrow(X)]
-        X̂        = [missingMask[r,c] ? cMeans[c]*adjNorms[r]/sum(adjNorms) : X̂[r,c] for r in 1:nR, c in 1:nC]
+        adjNorms = [norm(collect(skipmissing(r)),imputer.hpar.norm) /   (nC - sum(ismissing.(r))) for r in eachrow(X)]
+        X̂        = [missingMask[r,c] ? cMeans[c]*adjNorms[r]/sum(adjNorms) : X[r,c] for r in 1:nR, c in 1:nC]
     end
-    imputer.fitResults = MeanImputerResult(X̂,sum(missingMask))
+    imputer.par = MeanImputerLearnableParameters(cMeans,adjNorms,X̂)
+    imputer.info[:nImputedValues] = sum(missingMask)
     imputer.fitted = true
     return true
 end
@@ -213,14 +240,28 @@ end
 
 Return the data with the missing values replaced with the imputed ones using [`MeanImputer`](@ref).
 """
-predict(m::MeanImputer) = m.fitResults.imputedValues
+predict(m::MeanImputer) = m.par.imputedValues
 
 """
-    info(m::MeanImputer)
+    predict(m::MeanImputer)
 
-Return wheter the model has been fitted and the number of imputed values.
+Return the data with the missing values replaced with the imputed ones using [`MeanImputer`](@ref).
 """
-info(m::MeanImputer) = m.fitted ? (fitted = true, nImputedValues = m.fitResults.nImputedValues) : (fitted = false, nImputedValues = nothing)
+function predict(m::MeanImputer,X)
+    nR,nC = size(X)
+    m.fitted || error()
+    nC == length(m.par.cMeans) || error()
+    (m.hpar.norm == nothing || nR == length(m.par.norms)) || error()
+
+    missingMask = ismissing.(X)
+    if m.hpar.norm == nothing
+        X̂ = [missingMask[r,c] ? m.par.cMeans[c] : X[r,c] for r in 1:nR, c in 1:nC]
+    else
+        X̂        = [missingMask[r,c] ? m.par.cMeans[c]*m.par.adjNorms[r]/sum(m.par.adjNorms) : X[r,c] for r in 1:nR, c in 1:nC]
+    end
+    return X̂
+end
+
 
 # ------------------------------------------------------------------------------
 # GMMImputer

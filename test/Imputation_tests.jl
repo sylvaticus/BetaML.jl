@@ -39,11 +39,16 @@ mod = MeanImputer()
 fit!(mod,X)
 x̂ = predict(mod)
 @test x̂[1,2] == 40
-@test typeof(x̂) == Matrix{Real}
-@test info(mod) == (fitted=1,nImputedValues =1,)
+@test typeof(x̂) == Matrix{Float64}
+@test info(mod) == Dict{Symbol,Any}(:nImputedValues => 1)
+
+X2 = [2 4 missing; 20 40 100]
+x̂2 = predict(mod,X2)
+reset!(mod)
+@test x̂2[1,3] == 55.0
 
 X = [2.0 missing 10; 20 40 100]
-mod = MeanImputer(normaliseRecords=true)
+mod = MeanImputer(norm=1)
 fit!(mod,X)
 x̂ = predict(mod)
 @test isapprox(x̂[1,2],4.044943820224719)

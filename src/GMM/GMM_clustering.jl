@@ -207,7 +207,7 @@ mutable struct GMMClusterModel <: BetaMLUnsupervisedModel
     hpar::GMMClusterHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,GMMClusterLearnableParameters}
-    trained::Bool
+    fitted::Bool
     info::Dict{Symbol,Any}
 end
 
@@ -252,8 +252,8 @@ function fit!(m::GMMClusterModel,x)
     verbosity     = m.opt.verbosity
     rng           = m.opt.rng
 
-    if m.trained
-        verbosity >= STD && @warn "Continuing training of a pre-trained model"
+    if m.fitted
+        verbosity >= STD && @warn "Continuing training of a pre-fitted model"
         gmmOut = gmm(x,K;p₀=m.par.probMixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy="given",maxIter=maxIter,rng = rng)
     else
         gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,maxIter=maxIter,rng = rng)
@@ -264,9 +264,9 @@ function fit!(m::GMMClusterModel,x)
     m.info[:lL]             = gmmOut.lL
     m.info[:BIC]            = gmmOut.BIC
     m.info[:AIC]            = gmmOut.AIC
-    m.info[:trainedRecords] = get(m.info,:trainedRecords,0) + size(x,1)
+    m.info[:fittedRecords] = get(m.info,:fittedRecords,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
-    m.trained=true
+    m.fitted=true
     return true
 end    
 
@@ -283,18 +283,18 @@ function predict(m::GMMClusterModel,X)
 end
 
 function show(io::IO, ::MIME"text/plain", m::GMMClusterModel)
-    if m.trained == false
-        print(io,"GMMClusterModel - A Generative Mixture Model (untrained)")
+    if m.fitted == false
+        print(io,"GMMClusterModel - A Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMClusterModel - A Generative Mixture Model (trained on $(m.info[:trainedRecords]) records)")
+        print(io,"GMMClusterModel - A Generative Mixture Model (fitted on $(m.info[:fittedRecords]) records)")
     end
 end
 
 function show(io::IO, m::GMMClusterModel)
-    if m.trained == false
-        print(io,"GMMClusterModel - A $(m.hpar.nClasses)-classes Generative Mixture Model (untrained)")
+    if m.fitted == false
+        print(io,"GMMClusterModel - A $(m.hpar.nClasses)-classes Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMClusterModel - A $(m.hpar.nClasses)-classes Generative Mixture Model(trained on $(m.info[:trainedRecords]) records)")
+        print(io,"GMMClusterModel - A $(m.hpar.nClasses)-classes Generative Mixture Model(fitted on $(m.info[:fittedRecords]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)

@@ -57,7 +57,7 @@ MMI.fitted_params(model::Union{KMeans,KMedoids}, fitresult) = (centers=fitesult[
 # ------------------------------------------------------------------------------
 # Transform functions...
 
-""" fit(m::KMeans, fitResults, X) - Given a trained clustering model and some observations, return the distances to each centroids """
+""" fit(m::KMeans, fitResults, X) - Given a fitted clustering model and some observations, return the distances to each centroids """
 function MMI.transform(m::Union{KMeans,KMedoids}, fitResults, X)
     x     = MMI.matrix(X) # convert table to matrix
     (N,D) = size(x)
@@ -74,7 +74,7 @@ end
 # ------------------------------------------------------------------------------
 # Predict functions...
 
-""" predict(m::KMeans, fitResults, X) - Given a trained clustering model and some observations, predict the class of the observation"""
+""" predict(m::KMeans, fitResults, X) - Given a fitted clustering model and some observations, predict the class of the observation"""
 function MMI.predict(m::Union{KMeans,KMedoids}, fitResults, X)
     x               = MMI.matrix(X) # convert table to matrix
     (N,D)           = size(x)

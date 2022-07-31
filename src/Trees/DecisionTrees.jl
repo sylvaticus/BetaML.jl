@@ -115,7 +115,7 @@ mutable struct DTModel <: BetaMLSupervisedModel
     hpar::DTHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,DTLearnableParameters}
-    trained::Bool
+    fitted::Bool
     info::Dict{Symbol,Any}
 end
 
@@ -389,8 +389,8 @@ end
 # API V2
 function fit!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
 
-    if m.trained
-        @warn "This model has already been trained and it doesn't support multiple training. This training will override the previous one(s)"
+    if m.fitted
+        @warn "This model has already been fitted (trained) and it doesn't support multiple fitting. This fitting will override the previous one(s)"
     end
 
     # Setting default parameters that depends from the data...
@@ -406,11 +406,11 @@ function fit!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
 
     m.par = DTLearnableParameters(tree = buildTree(x, y; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, mCols=nothing, rng = rng))
 
-    m.trained = true
+    m.fitted = true
 
     jobIsRegression = (forceClassification || ! (Ty <: Number) ) ? false : true
     
-    m.info[:trainedRecords]             = size(x,1)
+    m.info[:fittedRecords]             = size(x,1)
     m.info[:dimensions]                 = size(x,2)
     m.info[:jobIsRegression]            = jobIsRegression ? 1 : 0
     (m.info[:avgDepth],m.info[:maxDepth]) = computeDepths(m.par.tree)
@@ -454,7 +454,7 @@ end
 Predict the labels of a feature dataset.
 
 For each record of the dataset, recursivelly traverse the tree to find the prediction most opportune for the given record.
-If the labels the tree has been trained with are numeric, the prediction is also numeric.
+If the labels the tree has been fitted with are numeric, the prediction is also numeric.
 If the labels were categorical, the prediction is a dictionary with the probabilities of each item.
 
 In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
@@ -535,20 +535,20 @@ end
 
 
 function show(io::IO, ::MIME"text/plain", m::DTModel)
-    if m.trained == false
-        print(io,"DTModel - A Decision Tree model (untrained)")
+    if m.fitted == false
+        print(io,"DTModel - A Decision Tree model (unfitted)")
     else
         job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        print(io,"DTModel - A Decision Tree $job (trained on $(m.info[:trainedRecords]) records)")
+        print(io,"DTModel - A Decision Tree $job (fitted on $(m.info[:fittedRecords]) records)")
     end
 end
 
 function show(io::IO, m::DTModel)
-    if m.trained == false
-        print(io,"DTModel - A Decision Tree model (untrained)")
+    if m.fitted == false
+        print(io,"DTModel - A Decision Tree model (unfitted)")
     else
         job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        println(io,"DTModel - A Decision Tree $job (trained on $(m.info[:trainedRecords]) records)")
+        println(io,"DTModel - A Decision Tree $job (fitted on $(m.info[:fittedRecords]) records)")
         println(io,m.info)
         _printNode(m.par.tree)
     end

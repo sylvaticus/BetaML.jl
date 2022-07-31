@@ -50,7 +50,7 @@ mutable struct RFModel <: BetaMLSupervisedModel
     hpar::RFHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,Forest} #TODO: Forest contain info that is actualy in report. Currently we duplicate, we should just remofe them from par by making a dedicated struct instead of Forest
-    trained::Bool
+    fitted::Bool
     info::Dict{Symbol,Any}
 end
 
@@ -140,8 +140,8 @@ end
 # API V2
 function fit!(m::RFModel,x,y::AbstractArray{Ty,1}) where {Ty}
 
-    if m.trained
-        @warn "This model has already been trained and it doesn't support multiple training. This training will override the previous one(s)"
+    if m.fitted
+        @warn "This model has already been fitted and it doesn't support multiple training. This training will override the previous one(s)"
     end
 
     # Setting default parameters that depends from the data...
@@ -164,9 +164,9 @@ function fit!(m::RFModel,x,y::AbstractArray{Ty,1}) where {Ty}
         m.par.oobError = oobError(m.par,x,y;rng = rng) 
     end
 
-    m.trained = true
+    m.fitted = true
     
-    m.info[:trainedRecords]             = size(x,1)
+    m.info[:fittedRecords]             = size(x,1)
     m.info[:dimensions]                 = maxFeatures
     m.info[:jobIsRegression]            = m.par.isRegression ? 1 : 0
     m.info[:oobE]                       = m.par.oobError
@@ -296,20 +296,20 @@ function oobError(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
 end
 
 function show(io::IO, ::MIME"text/plain", m::RFModel)
-    if m.trained == false
-        print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest model (untrained)")
+    if m.fitted == false
+        print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest model (unfitted)")
     else
         job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (trained on $(m.info[:trainedRecords]) records)")
+        print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (fitted on $(m.info[:fittedRecords]) records)")
     end
 end
 
 function show(io::IO, m::RFModel)
-    if m.trained == false
-        print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest model (untrained)")
+    if m.fitted == false
+        print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest model (unfitted)")
     else
         job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        println(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (trained on $(m.info[:trainedRecords]) records)")
+        println(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (fitted on $(m.info[:fittedRecords]) records)")
         println(io,m.info)
     end
 end
