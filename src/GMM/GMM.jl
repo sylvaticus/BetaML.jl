@@ -35,8 +35,10 @@ using  ForceImport
 import Base.print
 import Base.show
 
-export gmm, predictMissing, AbstractMixture,
-       GMMClusterModel
+export gmm, AbstractMixture,
+       GMMClusterModel,
+       GMMRegressor1, GMMRegressor2,
+       BetaMLGMMRegressor
 
 abstract type AbstractMixture end
 

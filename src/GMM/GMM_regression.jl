@@ -1,4 +1,3 @@
-export GMMRegressor1, GMMRegressor2
 import BetaML.Utils.allowmissing!
 
 # ------------------------------------------------------------------------------

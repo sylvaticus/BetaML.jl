@@ -48,22 +48,6 @@ X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing
 clusters = gmm(X,3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
 @test isapprox(clusters.BIC,114.1492467835965)
 
-# ==================================
-# New test
-# ==================================
-println("Testing predictMissing...")
-X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out = predictMissing(X,3,mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
-@test isapprox(out.X̂[2,2],14.155186593170251)
-
-X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out2 = predictMissing(X,3,mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
-@test out2.X̂[2,2] ≈ 14.588514438886131
-
-X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out3 = predictMissing(X,3,mixtures=[FullGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
-@test out3.X̂[2,2] ≈ 11.166652292936876
-
 
 println("Testing GMMClusterModel...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
@@ -156,17 +140,12 @@ yhat_prob                   =  Mlj.predict(model, fitResults, X)  # Mlj.transfor
 # how to get this ??? Mlj.predict_mode(yhat_prob)
 @test Distributions.pdf(yhat_prob[end],2) ≈ 0.5937443601647852
 
-X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-X = Mlj.table(X)
-model                       = MissingImputator(rng=copy(TESTRNG))
-modelMachine                = Mlj.machine(model,X)
-(fitResults, cache, report) = Mlj.fit(model, 0, X)
-XD                          = Mlj.transform(model,fitResults,X)
-XDM                         = Mlj.matrix(XD)
-@test isapprox(XDM[2,2],11.166666666667362)
-# Use the previously learned structure to imput missings..
-Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
-XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
-XDMNew                      = Mlj.matrix(XDNew)
-@test isapprox(XDMNew[1,2],XDM[2,2])
 
+println("Testing MLJ interface for BetaMLGMMRegressor models....")
+X, y                           = Mlj.@load_boston
+
+model_gmmr                      = BetaMLGMMRegressor(nClasses=20,rng=copy(TESTRNG))
+regressor_gmmr                  = Mlj.machine(model_gmmr, X, y)
+(fitresult_gmmr, cache, report) = Mlj.fit(model_gmmr, 0, X, y)
+yhat_gmmr                       = Mlj.predict(model_gmmr, fitresult_gmmr, X)
+@test meanRelError(yhat_gmmr[:,1],y) < 0.3

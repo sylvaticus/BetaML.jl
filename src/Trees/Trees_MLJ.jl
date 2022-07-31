@@ -146,6 +146,7 @@ end
 # Predict functions....
 
 MMI.predict(model::Union{DecisionTreeRegressor,RandomForestRegressor}, fitresult, Xnew) = Trees.predict(fitresult, MMI.matrix(Xnew))
+
 function MMI.predict(model::Union{DecisionTreeClassifier,RandomForestClassifier}, fitresult, Xnew)
     fittedModel      = fitresult[1]
     a_target_element = fitresult[2]

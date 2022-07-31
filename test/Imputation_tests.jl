@@ -12,6 +12,25 @@ TESTRNG = FIXEDRNG # This could change...
 println("*** Testing Imputations...")
 
 # ------------------------------------------------------------------------------
+# Old API predictMissing
+
+# ==================================
+# New test
+# ==================================
+println("Testing predictMissing...")
+X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+out = predictMissing(X,3,mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+@test isapprox(out.X̂[2,2],14.155186593170251)
+
+X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+out2 = predictMissing(X,3,mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+@test out2.X̂[2,2] ≈ 14.588514438886131
+
+X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+out3 = predictMissing(X,3,mixtures=[FullGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+@test out3.X̂[2,2] ≈ 11.166652292936876
+
+# ------------------------------------------------------------------------------
 
 println("Testing MeanImputer...")
 
@@ -54,14 +73,13 @@ fit!(mod,X)
 x̂ = predict(mod)
 @test x̂[2,2] ≈ 11.166652292936876
 
-X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ]
+X = [2 missing 10; 2000 4000 10000; 2000 4000 10000; 3 5 12; 4 8 20; 2000 4000 8000; 1 5 8 ]
 mod = GMMImputer(K=2,multipleImputations=3,rng=copy(TESTRNG),verbosity=NONE, initStrategy="kmeans")
 fit!(mod,X)
 x̂ = predict(mod)
-@test x̂[1][1,2] == x̂[2][1,2] == x̂[3][1,2] ≈ 1554.634059287403 # TODO 6.281803477634331
+@test x̂[1][1,2] == x̂[2][1,2] == x̂[3][1,2] ≈ 6.0
 infos = info(mod)
-#@test infos.fitted == true && infos.nImputedValues == 1 && infos.lL[1] ≈ -58.47338193522323  && infos.BIC[1] ≈ 134.96859056500503 && infos.AIC[1] ≈ 142.94676387044646
-@test infos.fitted == true && infos.nImputedValues == 1 && infos.lL[1] ≈ -102.91424229882216  && infos.BIC[1] ≈ 223.8503112922029 && infos.AIC[1] ≈ 231.82848459764432
+@test infos.fitted == true && infos.nImputedValues == 1 && infos.lL[1] ≈ -163.12896063447343  && infos.BIC[1] ≈ 351.5547532066659 && infos.AIC[1] ≈ 352.25792126894686
 
 
 # ------------------------------------------------------------------------------
@@ -91,6 +109,21 @@ infos = info(mod)
 println("Testing MLJ Interfaces...")
 
 # ------------------------------------------------------------------------------
+
+X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+X = Mlj.table(X)
+model                       = MissingImputator(rng=copy(TESTRNG))
+modelMachine                = Mlj.machine(model,X)
+(fitResults, cache, report) = Mlj.fit(model, 0, X)
+XD                          = Mlj.transform(model,fitResults,X)
+XDM                         = Mlj.matrix(XD)
+@test isapprox(XDM[2,2],11.166666666667362)
+# Use the previously learned structure to imput missings..
+Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
+XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
+XDMNew                      = Mlj.matrix(XDNew)
+@test isapprox(XDMNew[1,2],XDM[2,2])
+
 
 println("Testing MLJ Interface for BetaMLGMMImputer...")
 

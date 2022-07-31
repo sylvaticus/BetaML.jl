@@ -3,7 +3,7 @@
 import MLJModelInterface       # It seems that having done this in the top module is not enought
 const MMI = MLJModelInterface  # We need to repeat it here
 
-export  GMMClusterer, MissingImputator
+export  GMMClusterer, BetaMLGMMRegressor
 
 # ------------------------------------------------------------------------------
 # Model Structure declarations..
@@ -30,26 +30,30 @@ GMMClusterer(;
     rng           = Random.GLOBAL_RNG,
 ) = GMMClusterer(K,p₀,mixtures, tol, minVariance, minCovariance,initStrategy,rng)
 
-mutable struct MissingImputator <: MMI.Unsupervised
-    K::Int64
-    p₀::AbstractArray{Float64,1}
+mutable struct BetaMLGMMRegressor <: MMI.Deterministic
+    nClasses::Int64 
+    probMixtures::Vector{Float64}
     mixtures::Symbol
     tol::Float64
     minVariance::Float64
     minCovariance::Float64
     initStrategy::String
+    maxIter::Int64 
+    verbosity::Verbosity
     rng::AbstractRNG
 end
-MissingImputator(;
-    K             = 3,
-    p₀            = Float64[],
+BetaMLGMMRegressor(;
+    nClasses      = 3,
+    probMixtures  = [],
     mixtures      = :diag_gaussian,
     tol           = 10^(-6),
     minVariance   = 0.05,
     minCovariance = 0.0,
     initStrategy  = "kmeans",
-    rng           = Random.GLOBAL_RNG,
-) = MissingImputator(K,p₀,mixtures, tol, minVariance, minCovariance,initStrategy,rng)
+    maxIter       = typemax(Int64),
+    verbosity     = STD,
+    rng           = Random.GLOBAL_RNG
+   ) = BetaMLGMMRegressor(nClasses,probMixtures,mixtures,tol,minVariance,minCovariance,initStrategy,maxIter,verbosity,rng)
 
 
 # ------------------------------------------------------------------------------
@@ -75,41 +79,37 @@ function MMI.fit(m::GMMClusterer, verbosity, X)
 end
 MMI.fitted_params(model::GMMClusterer, fitresult) = (weights=fitesult.pₖ, mixtures=fitresult.mixtures)
 
-
-function MMI.fit(m::MissingImputator, verbosity, X)
-    x          = MMI.matrix(X) # convert table to matrix
+function MMI.fit(m::BetaMLGMMRegressor, verbosity, X, y)
+    x  = MMI.matrix(X) # convert table to matrix
+    
+    if typeof(y) <: AbstractMatrix
+        y  = MMI.matrix(y)
+    end
+    
     if m.mixtures == :diag_gaussian
-        mixtures = [DiagonalGaussian() for i in 1:m.K]
+        mixtures = [DiagonalGaussian() for i in 1:m.nClasses]
     elseif m.mixtures == :full_gaussian
-        mixtures = [FullGaussian() for i in 1:m.K]
+        mixtures = [FullGaussian() for i in 1:m.nClasses]
     elseif m.mixtures == :spherical_gaussian
-        mixtures = [SphericalGaussian() for i in 1:m.K]
+        mixtures = [SphericalGaussian() for i in 1:m.nClasses]
     else
         error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
-    res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
-    fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # pₙₖ=res.pₙₖ
+    betamod = GMMRegressor2(
+        nClasses     = m.nClasses,
+        probMixtures = m.probMixtures,
+        mixtures     = mixtures,
+        tol          = m.tol,
+        minVariance  = m.minVariance,
+        initStrategy = m.initStrategy,
+        maxIter      = m.maxIter,
+        verbosity    = m.verbosity,
+        rng          = m.rng
+    )
+    fit!(betamod,x,y)
     cache      = nothing
-    report     = (res.ϵ,res.lL,res.BIC,res.AIC)
-    return (fitResults, cache, report)
+    return (betamod, cache, info(betamod))
 end
-
-
-
-# ------------------------------------------------------------------------------
-# Transform functions...
-
-""" transform(m::MissingImputator, fitResults, X) - Given a trained imputator model fill the missing data of some new observations"""
-function MMI.transform(m::MissingImputator, fitResults, X)
-    x             = MMI.matrix(X) # convert table to matrix
-    (N,D)         = size(x)
-    (pₖ,mixtures) = fitResults.pₖ, fitResults.mixtures   #
-    nCl           = length(pₖ)
-    # Fill the missing data of this "new X" using the mixtures computed in the fit stage
-    xout          = predictMissing(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1,rng=m.rng)
-    return MMI.table(xout.X̂)
-end
-
 
 
 
@@ -128,6 +128,13 @@ function MMI.predict(m::GMMClusterer, fitResults, X)
     return predictions
 end
 
+function MMI.predict(m::BetaMLGMMRegressor, fitResults, X)
+    x               = MMI.matrix(X) # convert table to matrix
+    betamod         = fitResults
+    return predict(betamod,x)
+end
+
+
 
 # ------------------------------------------------------------------------------
 # Model metadata for registration in MLJ...
@@ -139,14 +146,15 @@ MMI.metadata_model(GMMClusterer,
     #prediction_type  = :probabilistic,  # option not added to metadata_model function, need to do it separately
     supports_weights = false,                                 # does the model support sample weights?
     descr            = "A Expectation-Maximisation clustering algorithm with customisable mixtures, from the Beta Machine Learning Toolkit (BetaML).",
-	load_path        = "BetaML.Clustering.GMMClusterer"
+	load_path        = "BetaML.GMM.GMMClusterer"
 )
 MMI.prediction_type(::Type{<:GMMClusterer}) = :probabilistic
 
-MMI.metadata_model(MissingImputator,
-    input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
-    output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
-    supports_weights = false,                         # does the model support sample weights?
-    descr            = "Impute missing values using an Expectation-Maximisation clustering algorithm, from the Beta Machine Learning Toolkit (BetaML).",
-	load_path        = "BetaML.Clustering.MissingImputator"
-)
+MMI.metadata_model(BetaMLGMMRegressor,
+    input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Infinite}),
+    target_scitype   = AbstractVector{<: MMI.Continuous},           # for a supervised model, what target?
+    supports_weights = false,                                       # does the model support sample weights?
+    descr            = "A non-linear regressor derived from fitting the data on a probabilistic model (Gaussian Mixture Model). Relatively fast.",
+	load_path        = "BetaML.GMM.BetaMLGMMRegressor"
+    )
+
