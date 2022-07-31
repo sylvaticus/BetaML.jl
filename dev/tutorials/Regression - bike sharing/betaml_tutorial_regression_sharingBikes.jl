@@ -545,6 +545,37 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfullf[stc:endc] ŷtestfu
 
 # Still, for small and medium datasets, BetaML provides simpler yet customisable solutions that are accurate and fast.
 
+# ## Using GMM-based regressors
+# These are newly addded regression algorithms based on Gaussian Mixture Model.
+# There are two variants available, `GMMRegressor1` and `GMMRegressor2`
+# This example uses the V2 API 
+
+# First we define the model with its hyperparameters and the options (random seed, verbosity level..)
+m = GMMRegressor1(rng=copy(FIXEDRNG), verbosity=NONE)
+# @btime begin fit!(m,xtrainScaled,ytrainScaled); reset!(m) end
+# 13.584 ms (103690 allocations: 25.08 MiB)
+
+# Here we fit the model to the training data..
+fit!(m,xtrainScaled,ytrainScaled)
+# And here we predict...
+ŷtrainGMM = @pipe predict(m,xtrainScaled) |> scale(_, yScaleFactors,rev=true);
+ŷvalGMM   = @pipe predict(m,xvalScaled)   |> scale(_, yScaleFactors,rev=true);
+ŷtestGMM  = @pipe predict(m,xtestScaled)  |> scale(_ ,yScaleFactors,rev=true);
+
+(mreTrainGMM, mreValGMM, mreTestGMM) = meanRelError.([ŷtrainGMM,ŷvalGMM,ŷtestGMM],[ytrain,yval,ytest],normRec=false)
+
+# Better (test MRE ≈ 0.25) can be obtained by using more mixtures, but at a much larger computational costs 
+
+m = GMMRegressor2(rng=copy(FIXEDRNG), verbosity=NONE)
+@btime begin fit!(m,xtrainScaled,ytrainScaled); reset!(m) end
+#  10.704 ms (84754 allocations: 19.54 MiB)
+fit!(m,xtrainScaled,ytrainScaled)
+ŷtrainGMM = @pipe predict(m,xtrainScaled) |> scale(_, yScaleFactors,rev=true);
+ŷvalGMM   = @pipe predict(m,xvalScaled)   |> scale(_, yScaleFactors,rev=true);
+ŷtestGMM  = @pipe predict(m,xtestScaled)  |> scale(_ ,yScaleFactors,rev=true);
+
+(mreTrainGMM, mreValGMM, mreTestGMM) = meanRelError.([ŷtrainGMM,ŷvalGMM,ŷtestGMM],[ytrain,yval,ytest],normRec=false)
+
 
 # ## Summary
 
@@ -557,7 +588,9 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfullf[stc:endc] ŷtestfu
 # | RF (DecisionTree.jl) | 0.0312        | 0.3142   | 36                  | 11                  |
 # | NN                   | 0.0884        | 0.1761   | 1768                | 758                 |
 # | NN (Flux.jl)         | 0.0981        | 0.1618   | 1708                | 282                 |
-
+# | GMMRegressor1        | 0.2388        | 0.4394   | 13.5                | 25.1                 |
+# | GMMRegressor2        | 0.2588        | 0.2763   | 10.7                | 19.5                 |
 # * on a Intel Core i5-8350U laptop
 
 # Neural networks can be more precise than random forests models, but are more computationally expensive (and tricky to set up). When we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less versatile).
+# GMM regressors are very computationally cheap and a good choice if accuracy can be traded off for performances.
