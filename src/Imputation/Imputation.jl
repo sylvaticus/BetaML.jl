@@ -84,14 +84,15 @@ using ForceImport
 @force using ..Trees
 
 import ..GMM.estep
+import Base.print
+import Base.show
 
 export predictMissing,
+       MeanImputerHyperParametersSet, RFHyperParametersSet,
        Imputer, MeanImputer, GMMImputer, RFImputer,
-       ImputerResult, RFImputerResult, 
        fit!, predict, info
 
 abstract type Imputer <: BetaMLModel end   
-abstract type ImputerResult end
 
 # ------------------------------------------------------------------------------
 
@@ -428,10 +429,20 @@ end
 
 # ------------------------------------------------------------------------------
 # RFImputer
-struct RFImputerResult <: ImputerResult
-    imputedValues
-    nImputedValues::Int64
-    oob::Vector{Vector{Float64}}
+
+
+Base.@kwdef mutable struct RFImputerHyperParametersSet <: BetaMLHyperParametersSet
+    rfhpar                                      = RFHyperParametersSet()
+    forcedCatCols::Vector{Int64}                = Int64[] # like in RF, normally integers are considered ordinal
+    recursivePassages::Int64                    = 1
+    multipleImputations::Int64                  = 1
+end
+
+Base.@kwdef struct RFImputerLearnableParameters <: BetaMLLearnableParametersSet
+    forests        = nothing
+    imputedValues  = nothing
+    #nImputedValues::Int64
+    #oob::Vector{Vector{Float64}}
 end
 
 """
@@ -450,22 +461,36 @@ For the underlying random forest algorithm parameters (`nTrees`,`maxDepth`,`minG
 - Given a certain RNG and its status (e.g. `RFImputer(...,rng=StableRNG(FIXEDSEED))`), the algorithm is completely deterministic, i.e. replicable. 
 - The algorithm accepts virtually any kind of data, sortable or not
 """
-Base.@kwdef mutable struct RFImputer <: Imputer
-    nTrees::Int64                               = 30
-    maxDepth::Int64                             = typemax(Int64)
-    minGain::Float64                            = 0.0
-    minRecords::Int64                           = 2
-    maxFeatures::Int64                          = typemax(Int64)
-    forcedCategoricalCols::Vector{Int64}        = Int64[] # like in RF, normally integers are considered ordinal
-    splittingCriterion::Union{Function,Nothing} = nothing
-    β::Float64                                  = 0.0
-    oob::Bool                                   = false
-    recursivePassages::Int64                    = 1
-    multipleImputations::Int64                  = 1
-    rng::AbstractRNG                            = Random.GLOBAL_RNG
-    verbosity::Verbosity                        = STD
-    fitResults::Union{RFImputerResult,Nothing}  = nothing
-    fitted::Bool = false
+mutable struct RFImputer <: Imputer
+    hpar::RFImputerHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{RFImputerLearnableParameters,Nothing}
+    fitted::Bool
+    info::Dict{Symbol,Any}    
+end
+
+function RFImputer(;kwargs...)
+    
+    hps = RFImputerHyperParametersSet()
+    m   = RFImputer(hps,BetaMLDefaultOptionsSet(),RFImputerLearnableParameters(),false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+          end
+          # Looking for the fields of the fields...
+          thissubobjfields = fieldnames(nonmissingtype(typeof(fobj)))
+          for f2 in thissubobjfields
+            fobj2 = getproperty(fobj,f2)
+            if kw in fieldnames(typeof(fobj2))
+                setproperty!(fobj2,kw,kwv)
+            end
+          end
+        end
+    end
+    return m
 end
 
 """
@@ -473,39 +498,65 @@ end
 
 Fit a matrix with missing data using [`RFImputer`](@ref)
 """
-function fit!(imputer::RFImputer,X)
+function fit!(m::RFImputer,X)
     nR,nC   = size(X)
+
+    if m.fitted
+        @warn "This model has already been fitted and it doesn't support multiple training. This training will override the previous one(s)"
+    end
+
+    # Setting default parameters that depends from the data...
+    maxDepth    = m.hpar.rfhpar.maxDepth    == nothing ?  size(X,1) : m.hpar.rfhpar.maxDepth
+    maxFeatures = m.hpar.rfhpar.maxFeatures == nothing ?  Int(round(sqrt(size(X,2)-1))) : m.hpar.rfhpar.maxFeatures
+    # Here only the hpar setting, later for each column
+    #splittingCriterion = m.hpar.splittingCriterion == nothing ? ( (Ty <: Number && !m.hpar.forceClassification) ? variance : gini) : m.hpar.splittingCriterion
+    #splittingCriterion = m.hpar.rfhpar.splittingCriterion
     
-    imputed = fill(similar(X),imputer.multipleImputations)
-    if imputer.maxFeatures == typemax(Int64) && imputer.nTrees >1
+    # Setting schortcuts to other hyperparameters/options....
+    minGain             = m.hpar.rfhpar.minGain
+    minRecords          = m.hpar.rfhpar.minRecords
+    #forceClassification = m.hpar.rfhpar.forceClassification
+    nTrees              = m.hpar.rfhpar.nTrees
+    β                   = m.hpar.rfhpar.beta
+    oob                 = m.hpar.rfhpar.oob
+    rng                 = m.opt.rng
+    verbosity           = m.opt.verbosity
+     
+    forcedCatCols        = m.hpar.forcedCatCols
+    recursivePassages    = m.hpar.recursivePassages
+    multipleImputations  = m.hpar.multipleImputations
+
+    imputed = fill(similar(X),multipleImputations)
+    if maxFeatures == typemax(Int64) && nTrees >1
       maxFeatures = Int(round(sqrt(size(X,2))))
     end
-    maxFeatures   = min(nC,imputer.maxFeatures) 
-    maxDepth      = min(nR,imputer.maxDepth)
+    maxFeatures   = min(nC,maxFeatures) 
+    maxDepth      = min(nR,maxDepth)
 
-    catCols = [! (nonmissingtype(eltype(identity.(X[:,c]))) <: Number ) || c in imputer.forcedCategoricalCols for c in 1:nC]
+    catCols = [! (nonmissingtype(eltype(identity.(X[:,c]))) <: Number ) || c in forcedCatCols for c in 1:nC]
 
     missingMask    = ismissing.(X)
     nonMissingMask = .! missingMask 
     nImputedValues = sum(missingMask)
-    oobErrors      = fill(fill(Inf,nC),imputer.multipleImputations) # by imputations and dimensions
-    
-    for imputation in 1:imputer.multipleImputations
-        imputer.verbosity >= STD && println("** Processing imputation $imputation")
+    oobErrors      = fill(fill(Inf,nC),multipleImputations) # by imputations and dimensions
+    forests   = Array{Forest}(undef,multipleImputations,nC)
+
+    for imputation in 1:multipleImputations
+        verbosity >= STD && println("** Processing imputation $imputation")
         Xout    = copy(X)
         sortedDims     = reverse(sortperm(makeColVector(sum(missingMask,dims=1)))) # sorted from the dim with more missing values
         oobErrorsImputation = fill(Inf,nC)
-        for pass in 1:imputer.recursivePassages 
-            imputer.verbosity >= HIGH && println("- processing passage $pass")
+        for pass in 1:recursivePassages 
+            m.opt.verbosity >= HIGH && println("- processing passage $pass")
             if pass > 1
-                shuffle!(imputer.rng, sortedDims) # randomise the order we go trough the various dimensions at this passage
+                shuffle!(rng, sortedDims) # randomise the order we go trough the various dimensions at this passage
             end 
             for d in sortedDims
-                imputer.verbosity >= FULL && println("  - processing dimension $d")
-                if imputer.splittingCriterion == nothing
+                verbosity >= FULL && println("  - processing dimension $d")
+                if m.hpar.rfhpar.splittingCriterion == nothing
                     splittingCriterion = catCols[d] ?  gini : variance
                 else
-                    splittingCriterion = imputer.splittingCriterion
+                    splittingCriterion = splittingCriterion
                 end
                 nmy  = nonMissingMask[:,d]
                 y    = X[nmy,d]
@@ -513,15 +564,15 @@ function fit!(imputer::RFImputer,X)
                 y    = convert(Vector{ty},y)
                 Xd   = Matrix(Xout[nmy,[1:(d-1);(d+1):end]])
                 dfor = buildForest(Xd,y, # forest model specific for this dimension
-                            imputer.nTrees,
+                            nTrees,
                             maxDepth            = maxDepth,
-                            minGain             = imputer.minGain,
-                            minRecords          = imputer.minRecords,
+                            minGain             = minGain,
+                            minRecords          = minRecords,
                             maxFeatures         = maxFeatures,
                             splittingCriterion  = splittingCriterion,
-                            β                   = imputer.β,
+                            β                   = β,
                             oob                 = false,
-                            rng                 = imputer.rng,
+                            rng                 = rng,
                             forceClassification = catCols[d])
                 # imputing missing values in d...
                 for i in 1:nR
@@ -529,7 +580,7 @@ function fit!(imputer::RFImputer,X)
                         continue
                     end
                     xrow = permutedims(Vector(Xout[i,[1:(d-1);(d+1):end]]))
-                    yest = predict(dfor,xrow,rng=imputer.rng)[1]
+                    yest = predict(dfor,xrow,rng=rng)[1]
                     
                     if ty <: Int 
                         if catCols[d]
@@ -544,17 +595,24 @@ function fit!(imputer::RFImputer,X)
                     Xout[i,d] = yest
                     #return Xout
                 end
-                # Compute oob errors on last passages if requested
-                if pass == imputer.recursivePassages && imputer.oob
-                    oobErrorsImputation[d] = Trees.oobError(dfor,Xd,y,rng=imputer.rng) # BetaML.Trees.oobError(dfor,Xd,y)
+                # This is last passage: save the model and compute oob errors if requested
+                if pass == recursivePassages 
+                    forests[imputation,d] = dfor 
+                    if oob
+                        oobErrorsImputation[d] = Trees.oobError(dfor,Xd,y,rng=rng) # BetaML.Trees.oobError(dfor,Xd,y)
+                    end
                 end
             end # end dimension
         end # end recursive passage pass
         imputed[imputation]   = Xout
+
         oobErrors[imputation] = oobErrorsImputation
     end # end individual imputation
-    imputer.fitResults = RFImputerResult(imputed,nImputedValues,oobErrors)
-    imputer.fitted = true
+    m.par = RFImputerLearnableParameters(forests,imputed)
+    m.info[:nImputedValues] = nImputedValues
+    m.info[:oobErrors] = oobErrors
+
+    m.fitted = true
     return true
 end
 
@@ -563,14 +621,74 @@ end
 
 Return the data with the missing values replaced with the imputed ones using [`RFImputer`](@ref). If `multipleImputations` was set >1 this is a vector of matrices (the individual imputations) instead of a single matrix.
 """
-predict(m::RFImputer) =  (! m.fitted) ? nothing : (m.multipleImputations == 1 ? m.fitResults.imputedValues[1] : m.fitResults.imputedValues)
+predict(m::RFImputer) =  (! m.fitted) ? nothing : (m.hpar.multipleImputations == 1 ? m.par.imputedValues[1] : m.par.imputedValues)
 
-"""
-    info(m::RFImputer)
+function predict(m::RFImputer,X)
+    nR,nC = size(X)
+    missingMask    = ismissing.(X)
+    nonMissingMask = .! missingMask 
+    multipleImputations  = m.hpar.multipleImputations
+    rng = m.opt.rng
+    forests = m.par.forests
+    verbosity = m.opt.verbosity
 
-Return wheter the model has been fitted, the number of imputed values and, if the option `oob` was set, the estimated _out-of-bag_ errors for each dimension (and individual imputation). The oob error reported is the mismatching error for classification and the relative mean error for regression.
-"""
-info(m::RFImputer) = m.fitted ? (fitted = true, nImputedValues = m.fitResults.nImputedValues, oob = m.fitResults.oob) : (fitted= false, nImputedValues = nothing, oob = nothing)
+    imputed = fill(similar(X),multipleImputations)
+    for imputation in 1:multipleImputations
+        verbosity >= STD && println("** Processing imputation $imputation")
+        Xout    = copy(X)
+        for d in 1:nC
+            verbosity >= FULL && println("  - processing dimension $d")
+            nmy  = nonMissingMask[:,d]
+            y    = X[nmy,d]
+            ty   = nonmissingtype(eltype(y))
+            y    = convert(Vector{ty},y)
+            Xd   = Matrix(Xout[nmy,[1:(d-1);(d+1):end]])
+            dfor = forests[imputation,d]
+            # imputing missing values in d...
+            for i in 1:nR
+                if ! missingMask[i,d]
+                    continue
+                end
+                xrow = permutedims(Vector(Xout[i,[1:(d-1);(d+1):end]]))
+                yest = predict(dfor,xrow,rng=rng)[1]
+                
+                if ty <: Int 
+                    if catCols[d]
+                        yest = parse(ty,mode(yest))
+                    else
+                        yest = Int(round(yest))
+                    end
+                elseif !(ty <: Number)
+                    yest = mode(yest)
+                end
+                
+                Xout[i,d] = yest
+                #return Xout
+            end
+
+        end # end dimension
+        imputed[imputation]   = Xout
+    end # end individual imputation
+    multipleImputations == 1 ? (return imputed[1]) : return imputed
+end
+
+function show(io::IO, ::MIME"text/plain", m::RFImputer)
+    if m.fitted == false
+        print(io,"RFImputer - A Random-Forests based imputer (unfitted)")
+    else
+        print(io,"RFImputer - A Random-Forests based imputer (fitted)")
+    end
+end
+
+function show(io::IO, m::RFImputer)
+    if m.fitted == false
+        print(io,"RFImputer - A Random-Forests based imputer (unfitted)")
+    else
+        print(io,"RFImputer - A Random-Forests based imputer (fitted)")
+        println(io,m.info)
+    end
+end
+
 
 
 # MLJ interface

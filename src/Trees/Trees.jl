@@ -53,6 +53,12 @@ using  ForceImport
 import Base.print
 import Base.show
 
+export DTModel, DTHyperParametersSet,
+       AbstractDecisionNode,Leaf, DecisionNode, buildTree, predictSingle # TODO: to remove
+
+export RFModel, RFHyperParametersSet,
+       Forest, buildForest, updateTreesWeights! # TODO:to remove
+
 include("DecisionTrees.jl") # Decision Trees algorithm and API
 include("RandomForests.jl") # Random Forests algorithm and API
 include("Trees_MLJ.jl")     # MLJ interface

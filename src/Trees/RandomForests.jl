@@ -1,5 +1,3 @@
-export RFModel,
-       Forest, buildForest, updateTreesWeights! # TODO:to remove
       
 # ------------------------------------------------------------------------------
 # TYPE HIERARCHY AND DEFINITIONS

@@ -105,8 +105,9 @@ reset!(mod)
 println("Testing RFFImputer...")
 
 X = [2 missing 10 "aaa" missing; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
-mod = RFImputer(forcedCategoricalCols=[5],recursivePassages=3,multipleImputations=10, rng=copy(TESTRNG))
+mod = RFImputer(nTrees=30,forcedCategoricalCols=[5],recursivePassages=3,multipleImputations=10, rng=copy(TESTRNG),verbosity=NONE)
 fit!(mod,X)
+
 @test predict(mod)[1][1,2] == predict(mod)[3][1,2] == 400
 @test predict(mod)[2][1,2] == 40
 
@@ -118,9 +119,18 @@ nR,nC = size(vals[1])
 medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 @test medianValues[1,2] == 4.0
 infos = info(mod)
-@test infos.nImputedValues == 1
-@test infos.oob[1] ≈ [0.6482801664254283, 0.5447602979262367, 1.4813804498107928]
+@test infos[:nImputedValues] == 1
+@test infos[:oobErrors][1] ≈ [0.4219142630021683, 0.1888918370047503, 1.4813804498107928]
 
+X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
+mod = RFImputer(rng=copy(TESTRNG))
+fit!(mod,X)
+X̂1 = predict(mod)
+X̂1b =  predict(mod,X)
+@test X̂1 == X̂1b
+X2 = [2 4 10 missing 10; 20 40 100 "gggg" 100; 200 400 1000 "zzzz" 1000]
+X̂2 =  predict(mod,X2)
+@test X̂2[1,4] == "aaa"
 
 # ------------------------------------------------------------------------------
 

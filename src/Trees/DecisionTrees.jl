@@ -1,5 +1,3 @@
-export DTModel,
-       AbstractDecisionNode,Leaf, DecisionNode, buildTree, predictSingle # TODO: to remove
 
 # ------------------------------------------------------------------------------
 # TYPE HIERARCHY AND DEFINITIONS
