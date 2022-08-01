@@ -53,6 +53,15 @@ ŷtest2 = predict(m, xtest)
 @test info(m) == Dict(:jobIsRegression => 0,:maxDepth => 3, :dimensions => 2, :fittedRecords => 5, :avgDepth => 2.6666666666666665)
 #print(myTree)
 
+# --------------------------------------------------------------
+X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
+xtrain = [2 4 10 "aaa"; 200 400 1000 "zzzz"]
+ytrain = [10,1000]
+xtest = [20 40 100 "gggg"] 
+m = DTModel(rng=copy(TESTRNG))
+fit!(m,xtrain,ytrain)
+@test predict(m,xtest)[1] == 505 
+
 # ==================================
 # NEW TEST
 println("Testing classification of the sepal database using decision trees...")

@@ -75,7 +75,7 @@ julia> infos.nImputedValues
 """
 module Imputation
 
-using Statistics, Random, LinearAlgebra
+using Statistics, Random, LinearAlgebra, StableRNGs
 using ForceImport
 @force using ..Api
 @force using ..Utils
@@ -88,8 +88,8 @@ import Base.print
 import Base.show
 
 export predictMissing,
-       MeanImputerHyperParametersSet, RFHyperParametersSet,
-       Imputer, MeanImputer, GMMImputer, RFImputer,
+       MeanImputerHyperParametersSet, RFImputerHyperParametersSet,GeneralImputerHyperParametersSet,
+       Imputer, MeanImputer, GMMImputer, RFImputer, GeneralImputer,
        fit!, predict, info
 
 abstract type Imputer <: BetaMLModel end   
@@ -580,7 +580,7 @@ function fit!(m::RFImputer,X)
                         continue
                     end
                     xrow = permutedims(Vector(Xout[i,[1:(d-1);(d+1):end]]))
-                    yest = predict(dfor,xrow,rng=rng)[1]
+                    yest = predict(dfor,xrow)[1]
                     
                     if ty <: Int 
                         if catCols[d]
@@ -650,7 +650,7 @@ function predict(m::RFImputer,X)
                     continue
                 end
                 xrow = permutedims(Vector(Xout[i,[1:(d-1);(d+1):end]]))
-                yest = predict(dfor,xrow,rng=rng)[1]
+                yest = predict(dfor,xrow)[1]
                 
                 if ty <: Int 
                     if catCols[d]
@@ -689,7 +689,244 @@ function show(io::IO, m::RFImputer)
     end
 end
 
+# ------------------------------------------------------------------------------
+# GeneralImputer
 
+
+Base.@kwdef mutable struct GeneralImputerHyperParametersSet <: BetaMLHyperParametersSet
+    models                        = nothing
+    recursivePassages::Int64      = 1
+    multipleImputations::Int64    = 1
+end
+
+Base.@kwdef struct GeneralImputerLearnableParameters <: BetaMLLearnableParametersSet
+    fittedModels  = nothing
+    imputedValues  = nothing
+end
+
+"""
+    GeneralImputer
+
+Impute missing data using any regressor/classifier (not necessarily from BetaML) that implements `fit!(X,Y)` and `predict(X)`
+
+### Specific parameters:
+- `multipleImputations`: Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG).
+
+"""
+mutable struct GeneralImputer <: Imputer
+    hpar::GeneralImputerHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{GeneralImputerLearnableParameters,Nothing}
+    fitted::Bool
+    info::Dict{Symbol,Any}    
+end
+
+function GeneralImputer(;kwargs...)
+    
+    hps = GeneralImputerHyperParametersSet()
+    m   = GeneralImputer(hps,BetaMLDefaultOptionsSet(),GeneralImputerLearnableParameters(),false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+          end
+          ## Looking for the fields of the fields...
+          #thissubobjfields = fieldnames(nonmissingtype(typeof(fobj)))
+          #for f2 in thissubobjfields
+          #  fobj2 = getproperty(fobj,f2)
+          #  if kw in fieldnames(typeof(fobj2))
+          #      setproperty!(fobj2,kw,kwv)
+          #  end
+          #end
+        end
+    end
+    return m
+end
+
+"""
+    fit!(imputer::GenralImputer,X)
+
+Fit a matrix with missing data using [`GeneralImputer`](@ref)
+"""
+function fit!(m::GeneralImputer,X)
+    nR,nC   = size(X)
+    multipleImputations  = m.hpar.multipleImputations
+    recursivePassages    = m.hpar.recursivePassages
+    verbosity            = m.opt.verbosity 
+    rng                  = m.opt.rng
+    # Setting `models`, a matrix of multipleImputations x nC individual models...
+    if ! m.fitted
+        if m.hpar.models == nothing
+            models = [RFModel(rng = m.opt.rng) for i in 1:multipleImputations, d in 1:nC]
+        else
+            models = vcat([permutedims(deepcopy(m.hpar.models)) for i in 1:multipleImputations]...)
+        end
+    else
+        m.opt.verbosity >= STD && @warn "This imputer has already been fitted. Not all learners support multiple training."
+        models = m.par.fittedModels
+    end
+
+    
+    imputed = fill(similar(X),multipleImputations)
+
+    missingMask    = ismissing.(X)
+    nonMissingMask = .! missingMask 
+    nImputedValues = sum(missingMask)
+
+    for imputation in 1:multipleImputations
+        verbosity >= STD && println("** Processing imputation $imputation")
+        Xout    = copy(X)
+        sortedDims     = reverse(sortperm(makeColVector(sum(missingMask,dims=1)))) # sorted from the dim with more missing values
+        for pass in 1:recursivePassages 
+            m.opt.verbosity >= HIGH && println("- processing passage $pass")
+            if pass > 1
+                shuffle!(rng, sortedDims) # randomise the order we go trough the various dimensions at this passage
+            end 
+            for d in sortedDims
+                verbosity >= FULL && println("  - processing dimension $d")
+                nmy  = nonMissingMask[:,d]
+                y    = X[nmy,d]
+                ty   = nonmissingtype(eltype(y))
+                y    = convert(Vector{ty},y)
+                Xd   = Matrix(Xout[nmy,[1:(d-1);(d+1):end]])
+                dmodel = deepcopy(models[imputation,d])
+                #println(dmodel)
+                #println(Xd)
+                #println(y)
+                #println(dmodel.hpar)
+                #println(dmodel.par)
+                fit!(dmodel,Xd,y)
+                # imputing missing values in d...
+                for i in 1:nR
+                    if ! missingMask[i,d]
+                        continue
+                    end
+                    xrow = permutedims(Vector(Xout[i,[1:(d-1);(d+1):end]]))
+                    yest = predict(dmodel,xrow)
+                    # handling some particualr cases... 
+                    if typeof(yest) <: AbstractMatrix
+                        yest = yest[1,1]
+                    elseif typeof(yest) <: AbstractVector
+                        yest = yest[1]
+                    end
+                    if typeof(yest) <: AbstractVector{<:AbstractDict}
+                        yest = mode(yest[1],rng=rng)
+                    elseif typeof(yest) <: AbstractDict
+                        yest = mode(yest,rng=rng)
+                    end
+                    
+                    if ty <: Int 
+                        if typeof(yest) <: AbstractString
+                            yest = parse(ty,yest)
+                        elseif typeof(yest) <: Number
+                            yest = Int(round(yest))
+                        else
+                            error("I don't know how to convert this type $(typeof(yest)) to an integer!")
+                        end
+                    end
+
+                    Xout[i,d] = yest
+                    #return Xout
+                end
+                # This is last passage: save the model and compute oob errors if requested
+                if pass == recursivePassages 
+                    models[imputation,d] = dmodel 
+                end
+            end # end dimension
+        end # end recursive passage pass
+        imputed[imputation]   = Xout
+    end # end individual imputation
+    m.par = GeneralImputerLearnableParameters(models,imputed)
+    m.info[:nImputedValues] = nImputedValues
+    m.fitted = true
+    return true
+end
+
+"""
+    predict(m::GeneralImputer)
+
+Return the data with the missing values replaced with the imputed ones using [`RFImputer`](@ref). If `multipleImputations` was set >1 this is a vector of matrices (the individual imputations) instead of a single matrix.
+"""
+predict(m::GeneralImputer) =  (! m.fitted) ? nothing : (m.hpar.multipleImputations == 1 ? m.par.imputedValues[1] : m.par.imputedValues)
+
+function predict(m::GeneralImputer,X)
+    nR,nC = size(X)
+    missingMask    = ismissing.(X)
+    nonMissingMask = .! missingMask 
+    multipleImputations  = m.hpar.multipleImputations
+    rng = m.opt.rng
+    models = m.par.fittedModels
+    verbosity = m.opt.verbosity
+
+    imputed = fill(similar(X),multipleImputations)
+    for imputation in 1:multipleImputations
+        verbosity >= STD && println("** Processing imputation $imputation")
+        Xout    = copy(X)
+        for d in 1:nC
+            verbosity >= FULL && println("  - processing dimension $d")
+            nmy  = nonMissingMask[:,d]
+            y    = X[nmy,d]
+            ty   = nonmissingtype(eltype(y))
+            y    = convert(Vector{ty},y)
+            Xd   = Matrix(Xout[nmy,[1:(d-1);(d+1):end]])
+            dmod = models[imputation,d]
+            # imputing missing values in d...
+            for i in 1:nR
+                if ! missingMask[i,d]
+                    continue
+                end
+                xrow = permutedims(Vector(Xout[i,[1:(d-1);(d+1):end]]))
+                yest = predict(dmod,xrow)
+                # handling some particualr cases... 
+                if typeof(yest) <: AbstractMatrix
+                    yest = yest[1,1]
+                elseif typeof(yest) <: AbstractVector
+                    yest = yest[1]
+                end
+                if typeof(yest) <: AbstractVector{<:AbstractDict}
+                    yest = mode(yest[1],rng=rng)
+                elseif typeof(yest) <: AbstractDict
+                    yest = mode(yest,rng=rng)
+                end
+                
+                if ty <: Int 
+                    if typeof(yest) <: AbstractString
+                        yest = parse(ty,yest)
+                    elseif typeof(yest) <: Number
+                        yest = Int(round(yest))
+                    else
+                        error("I don't know how to convert this type $(typeof(yest)) to an integer!")
+                    end
+                end
+                
+                Xout[i,d] = yest
+                #return Xout
+            end
+
+        end # end dimension
+        imputed[imputation]   = Xout
+    end # end individual imputation
+    multipleImputations == 1 ? (return imputed[1]) : return imputed
+end
+
+function show(io::IO, ::MIME"text/plain", m::GeneralImputer)
+    if m.fitted == false
+        print(io,"GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted)")
+    else
+        print(io,"GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted) (fitted)")
+    end
+end
+
+function show(io::IO, m::GeneralImputer)
+    if m.fitted == false
+        print(io,"GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted) (unfitted)")
+    else
+        print(io,"GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted) (fitted)")
+        println(io,m.info)
+    end
+end
 
 # MLJ interface
 include("Imputation_MLJ.jl")

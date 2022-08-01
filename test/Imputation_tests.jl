@@ -1,7 +1,8 @@
 using Test
 #using Pipe
-using Statistics
+using Statistics, Random
 using BetaML
+
 
 import MLJBase
 const Mlj = MLJBase
@@ -127,6 +128,44 @@ mod = RFImputer(rng=copy(TESTRNG))
 fit!(mod,X)
 X̂1 = predict(mod)
 X̂1b =  predict(mod,X)
+@test X̂1 == X̂1b
+X2 = [2 4 10 missing 10; 20 40 100 "gggg" 100; 200 400 1000 "zzzz" 1000]
+X̂2 =  predict(mod,X2)
+@test X̂2[1,4] == "aaa"
+
+println("Testing GeneralImputer...")
+
+X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
+trng = copy(TESTRNG)
+mod = GeneralImputer(models=[GMMRegressor1(rng=trng),RFModel(rng=trng),RFModel(rng=trng)], multipleImputations=10, recursivePassages=3, rng=copy(TESTRNG),verbosity=NONE)
+fit!(mod,X)
+vals = predict(mod)
+nR,nC = size(vals[1])
+meanValues = [mean([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
+@test meanValues[1,2] == 3.0
+
+
+X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
+mod = GeneralImputer(multipleImputations=10, recursivePassages=3, rng=copy(TESTRNG), verbosity=NONE)
+fit!(mod,X)
+vals = predict(mod)
+nR,nC = size(vals[1])
+meanValues = [mean([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
+@test meanValues[1,2] == 70.3
+
+X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
+trng = copy(TESTRNG)
+#Random.seed!(trng,123)
+mod = GeneralImputer(models=[DTModel( rng=trng),RFModel(nTrees=1,rng=trng),RFModel(nTrees=1,rng=trng),RFModel(nTrees=1,rng=trng),DTModel(rng=trng)],rng=trng,verbosity=NONE)
+
+fit!(mod,X)
+Random.seed!(trng,123)
+X̂1  = predict(mod)
+@test X̂1 == Any[2 4 10 "aaa" 10; 20 40 100 "gggg" 1000; 200 400 1000 "zzzz" 1000] # problem
+
+Random.seed!(trng,123)
+X̂1b =  predict(mod,X)
+@test X̂1b == Any[2 4 10 "aaa" 10; 20 40 100 "gggg" 10; 200 400 1000 "zzzz" 1000]
 @test X̂1 == X̂1b
 X2 = [2 4 10 missing 10; 20 40 100 "gggg" 100; 200 400 1000 "zzzz" 1000]
 X̂2 =  predict(mod,X2)
