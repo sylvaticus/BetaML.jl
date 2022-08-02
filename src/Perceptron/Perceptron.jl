@@ -33,7 +33,7 @@ The multi-class versions are available in the MLJ framework as `PerceptronClassi
 """
 module Perceptron
 
-using LinearAlgebra, Random, ProgressMeter, Reexport, CategoricalArrays
+using LinearAlgebra, Random, ProgressMeter, Reexport, CategoricalArrays, DocStringExtensions
 
 using ForceImport
 @force using ..Api

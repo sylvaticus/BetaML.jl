@@ -39,6 +39,9 @@ The package can be easily used in R or Python employing [JuliaCall](https://gith
 
 ### Examples
 
+!!! Note
+    We are currently implementing a new "V2" api that further simplify the library usage using a "standard" `mod = Model([Options])`, `train!(mod,X,[Y])`, `predict(mod,[X])` workflow. In BetaML v0.7 this new API is still experimantal, as documentation and implementation is not completed. We plan to make it the default API in BetaML 0.8, when the current API will be dimmed deprecated.
+
 We see how to use three different algorithms to learn the relation between floral sepals and petal measures (first 4 columns) and the specie's name (5th column) in the famous [iris flower dataset](https://en.wikipedia.org/wiki/Iris_flower_data_set).
 
 The first two algorithms are example of _supervised_ learning, the third one of _unsupervised_ learning.

@@ -173,7 +173,7 @@ Base.@kwdef mutable struct GMMClusterHyperParametersSet <: BetaMLHyperParameters
     "Number of mixtures (latent classes) to consider [def: 3]"
     nClasses::Int64                   = 3
     "Initial probabilities of the categorical distribution (nClasses x 1) [default: `[]`]"
-    probMixtures::Vector{Float64}     = []
+    probMixtures::Vector{Float64}     = Float64[]
     "An array (of length K) of the mixture to employ (see notes) [def: `[DiagonalGaussian() for i in 1:K]`]"
     mixtures::Vector{AbstractMixture} = [DiagonalGaussian() for i in 1:nClasses]
     "Tolerance to stop the algorithm [default: 10^(-6)]"

@@ -43,7 +43,7 @@ Acknowlegdments: originally based on the [Josh Gordon's code](https://www.youtub
 """
 module Trees
 
-using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays
+using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays, DocStringExtensions
 
 using  ForceImport
 @force using ..Api

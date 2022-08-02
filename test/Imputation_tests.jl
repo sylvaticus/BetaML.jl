@@ -165,7 +165,7 @@ X̂1  = predict(mod)
 
 Random.seed!(trng,123)
 X̂1b =  predict(mod,X)
-@test X̂1b == Any[2 4 10 "aaa" 10; 20 40 100 "gggg" 10; 200 400 1000 "zzzz" 1000]
+@test X̂1b == Any[2 4 10 "aaa" 10; 20 40 100 "gggg" 1000; 200 400 1000 "zzzz" 1000]
 @test X̂1 == X̂1b
 X2 = [2 4 10 missing 10; 20 40 100 "gggg" 100; 200 400 1000 "zzzz" 1000]
 X̂2 =  predict(mod,X2)
@@ -179,7 +179,7 @@ println("Testing MLJ Interfaces...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 X = Mlj.table(X)
-model                       = MissingImputator(rng=copy(TESTRNG))
+model                       = MissingImputator(initStrategy="kmeans",rng=copy(TESTRNG))
 modelMachine                = Mlj.machine(model,X)
 (fitResults, cache, report) = Mlj.fit(model, 0, X)
 XD                          = Mlj.transform(model,fitResults,X)
@@ -191,13 +191,67 @@ XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
 XDMNew                      = Mlj.matrix(XDNew)
 @test isapprox(XDMNew[1,2],XDM[2,2])
 
+println("Testing MLJ Interface for BetaMLMeanImputer...")
+
+X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+Xt = Mlj.table(X)
+model                       =  BetaMLMeanImputer(norm=1)
+modelMachine                =  Mlj.machine(model,Xt)
+(fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
+XM                          =  Mlj.transform(model,fitResults,Xt)
+x̂                           =  Mlj.matrix(XM)
+@test isapprox(x̂[2,2],0.29546633468202105)
+# Use the previously learned structure to imput missings..
+Xnew_withMissing            = Mlj.table([1.5 missing; missing missing; missing -2.3; 5.1 -2.3; 1 2; 1 2; 1 2; 1 2; 1 2])
+XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
+XDMNew                      = Mlj.matrix(XDNew)
+@test isapprox(XDMNew[2,2],x̂[2,2]) # position only matters
 
 println("Testing MLJ Interface for BetaMLGMMImputer...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-X = Mlj.table(X)
+Xt = Mlj.table(X)
 model                       =  BetaMLGMMImputer(initStrategy="grid",rng=copy(TESTRNG))
-modelMachine                =  Mlj.machine(model,X)
-(fitResults, cache, report) =  Mlj.fit(model, 0, X)
-x̂                           =  Mlj.matrix(fitResults)
-@test isapprox(x̂[2,2],14.588514438886131)
+modelMachine                =  Mlj.machine(model,Xt)
+(fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
+XM                          =  Mlj.transform(model,fitResults,Xt)
+x̂                           =  Mlj.matrix(XM)
+@test isapprox(x̂[2,2],14.736620020139028)
+# Use the previously learned structure to imput missings..
+Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
+XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
+XDMNew                      = Mlj.matrix(XDNew)
+@test isapprox(XDMNew[1,2],x̂[2,2])
+
+println("Testing MLJ Interface for BetaMLRFImputer...")
+
+X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+Xt = Mlj.table(X)
+model                       =  BetaMLRFImputer(nTrees=40,rng=copy(TESTRNG))
+modelMachine                =  Mlj.machine(model,Xt)
+(fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
+XM                          =  Mlj.transform(model,fitResults,Xt)
+x̂                           =  Mlj.matrix(XM)
+@test isapprox(x̂[2,2],10.288416666666667)
+# Use the previously learned structure to imput missings..
+Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
+XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
+XDMNew                      = Mlj.matrix(XDNew)
+@test isapprox(XDMNew[1,2],x̂[2,2])
+
+println("Testing MLJ Interface for BetaMLGenericImputer...")
+
+X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+Xt = Mlj.table(X)
+trng = copy(TESTRNG)
+model                       =  BetaMLGenericImputer(models=[GMMRegressor1(rng=trng),RFModel(nTrees=40,rng=copy(TESTRNG)),DTModel(rng=trng)],rng=copy(TESTRNG),recursivePassages=2)
+modelMachine                =  Mlj.machine(model,Xt)
+(fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
+XM                          =  Mlj.transform(model,fitResults,Xt)
+x̂                           =  Mlj.matrix(XM)
+@test isapprox(x̂[2,2],11.583333333333334) # not the same as RF because the oth columns are imputed too
+# Use the previously learned structure to imput missings..
+Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
+XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
+XDMNew                      = Mlj.matrix(XDNew)
+@test isapprox(XDMNew[1,2],x̂[2,2])

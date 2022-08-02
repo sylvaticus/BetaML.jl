@@ -15,12 +15,19 @@ Implement the BetaML.Imputation module
 Provide various imputation methods for missing data. Note that the interpretation of "missing" can be very wide.
 For example, reccomendation systems / collaborative filtering (e.g. suggestion of the film to watch) can well be representated as a missing data to impute problem.
 
+Using the original "V1" API:
+- [`predictMissing`](@ref): Impute data using a Generative (Gaussian) Mixture Model (good trade off)
+
+Using the v2 API (experimental):
+
 - [`MeanImputer`](@ref): Simple imputator using the features or the records means, with optional record normalisation (fastest)
 - [`GMMImputer`](@ref): Impute data using a Generative (Gaussian) Mixture Model (good trade off)
 - [`RFImputer`](@ref): Impute missing data using Random Forests, with optional replicable multiple imputations (most accurate).
+- [`GenericImputer`](@ref): Impute missing data using a vector (one per column) of arbitrary learning models (classifiers/regressors) that implement `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)`.
 
 
-Imputations for all these models can be optained by running `fit!([Imputator model],X)`. The data with the missing values imputed can then be obtained with `predict(m::Imputer)`. Use`info(m::Imputer)` to retrieve further information concerning the imputation.
+Imputations for all these models can be optained by running `mod = ImputatorModel([options])`, `fit!(mod,X)`. The data with the missing values imputed can then be obtained with `predict(mod)`. Use`info(m::Imputer)` to retrieve further information concerning the imputation.
+Trained models can be also used to impute missing values in new data with `predict(mox,xNew)`.
 Note that if multiple imputations are run (for the supporting imputators) `predict()` will return a vector of predictions rather than a single one`.
 
 ## Example   
@@ -69,13 +76,13 @@ julia> medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 
 julia> infos        = info(mod);
 
-julia> infos.nImputedValues
+julia> infos[:nImputedValues]
 1
 ```
 """
 module Imputation
 
-using Statistics, Random, LinearAlgebra, StableRNGs
+using Statistics, Random, LinearAlgebra, StableRNGs, DocStringExtensions
 using ForceImport
 @force using ..Api
 @force using ..Utils
@@ -99,7 +106,7 @@ abstract type Imputer <: BetaMLModel end
 """
 predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)
 
-OLD API. Use [`GMMClusterer`](@ref) instead.
+Note: This is the OLD API. See [`GMMClusterer`](@ref) for the V2 API.
 
 Fill missing entries in a sparse matrix (i.e. perform a "matrix completion") assuming an underlying Gaussian Mixture probabilistic Model (GMM) and implementing
 an Expectation-Maximisation algorithm.
@@ -224,13 +231,16 @@ function fit!(imputer::MeanImputer,X)
     #X̂ = copy(X)
     nR,nC = size(X)
     missingMask = ismissing.(X)
-    cMeans   = [mean(skipmissing(X[:,i])) for i in 1:nC]
+    overallMean = mean(skipmissing(X))
+    cMeans   = [sum(ismissing.(X[:,i])) == nR ? overallMean : mean(skipmissing(X[:,i])) for i in 1:nC]
 
     if imputer.hpar.norm == nothing
         adjNorms = []
         X̂ = [missingMask[r,c] ? cMeans[c] : X[r,c] for r in 1:nR, c in 1:nC]
     else
-        adjNorms = [norm(collect(skipmissing(r)),imputer.hpar.norm) /   (nC - sum(ismissing.(r))) for r in eachrow(X)]
+        adjNorms = [sum(ismissing.(r)) == nC ? missing : norm(collect(skipmissing(r)),imputer.hpar.norm) /   (nC - sum(ismissing.(r))) for r in eachrow(X)]
+        adjNormsMean = mean(skipmissing(adjNorms))
+        adjNorms[ismissing.(adjNorms)] .= adjNormsMean
         X̂        = [missingMask[r,c] ? cMeans[c]*adjNorms[r]/sum(adjNorms) : X[r,c] for r in 1:nR, c in 1:nC]
     end
     imputer.par = MeanImputerLearnableParameters(cMeans,adjNorms,X̂)
@@ -238,6 +248,7 @@ function fit!(imputer::MeanImputer,X)
     imputer.fitted = true
     return true
 end
+
 """
     predict(m::MeanImputer)
 
@@ -246,21 +257,21 @@ Return the data with the missing values replaced with the imputed ones using [`M
 predict(m::MeanImputer) = m.par.imputedValues
 
 """
-    predict(m::MeanImputer)
+    predict(m::MeanImputer, X)
 
 Return the data with the missing values replaced with the imputed ones using [`MeanImputer`](@ref).
 """
 function predict(m::MeanImputer,X)
     nR,nC = size(X)
     m.fitted || error()
-    nC == length(m.par.cMeans) || error()
-    (m.hpar.norm == nothing || nR == length(m.par.norms)) || error()
+    nC == length(m.par.cMeans) || error("`MeanImputer` can only predict missing values in matrices with the same number of columns as the matrice it has been trained with.")
+    (m.hpar.norm == nothing || nR == length(m.par.norms)) || error("If norms are used, `MeanImputer` can predict only matrices with the same number of rows as the matrix it has been trained with.")
 
     missingMask = ismissing.(X)
     if m.hpar.norm == nothing
         X̂ = [missingMask[r,c] ? m.par.cMeans[c] : X[r,c] for r in 1:nR, c in 1:nC]
     else
-        X̂        = [missingMask[r,c] ? m.par.cMeans[c]*m.par.adjNorms[r]/sum(m.par.adjNorms) : X[r,c] for r in 1:nR, c in 1:nC]
+        X̂        = [missingMask[r,c] ? m.par.cMeans[c]*m.par.norms[r]/sum(m.par.norms) : X[r,c] for r in 1:nR, c in 1:nC]
     end
     return X̂
 end
@@ -430,7 +441,17 @@ end
 # ------------------------------------------------------------------------------
 # RFImputer
 
+"""
+**`RFImputerHyperParametersSet`**
 
+Hyperparameters for RFImputer
+
+#Parameters
+- For the underlying random forest algorithm parameters (`nTrees`,`maxDepth`,`minGain`,`minRecords`,`maxFeatures:`,`splittingCriterion`,`β`,`initStrategy`, `oob` and `rng`) see [`RFHyperParametersSet`](@ref) for the specific RF algorithm parameters
+- `forcedCategoricalCols`: specify the positions of the integer columns to treat as categorical instead of cardinal. [Default: empty vector (all numerical cols are treated as cardinal by default and the others as categorical)]
+- `recursivePassages `: Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`].
+- `multipleImputations`: Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG).
+"""
 Base.@kwdef mutable struct RFImputerHyperParametersSet <: BetaMLHyperParametersSet
     rfhpar                                      = RFHyperParametersSet()
     forcedCatCols::Vector{Int64}                = Int64[] # like in RF, normally integers are considered ordinal
@@ -450,12 +471,7 @@ end
 
 Impute missing data using Random Forests, with optional replicable multiple imputations. 
 
-For the underlying random forest algorithm parameters (`nTrees`,`maxDepth`,`minGain`,`minRecords`,`maxFeatures:`,`splittingCriterion`,`β`,`initStrategy`, `oob` and `rng`) see [`buildTree`](@ref) and [`buildForest`](@ref).
-
-### Specific parameters:
-- `forcedCategoricalCols`: specify the positions of the integer columns to treat as categorical instead of cardinal. [Default: empty vector (all numerical cols are treated as cardinal by default and the others as categorical)]
-- `recursivePassages `: Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`].
-- `multipleImputations`: Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG).
+See [`RFImputerHyperParametersSet`](@ref) and [`RFHyperParametersSet`](@ref)
 
 ### Notes:
 - Given a certain RNG and its status (e.g. `RFImputer(...,rng=StableRNG(FIXEDSEED))`), the algorithm is completely deterministic, i.e. replicable. 
@@ -692,10 +708,20 @@ end
 # ------------------------------------------------------------------------------
 # GeneralImputer
 
+"""
+$(TYPEDEF)
 
+Hyperparameters for GeneralImputer
+
+## Parameters:
+$(FIELDS)
+"""
 Base.@kwdef mutable struct GeneralImputerHyperParametersSet <: BetaMLHyperParametersSet
+    "Specify a regressor or classier model per column. Default to random forests."
     models                        = nothing
+    "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
     recursivePassages::Int64      = 1
+    "Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG)."
     multipleImputations::Int64    = 1
 end
 
@@ -707,10 +733,9 @@ end
 """
     GeneralImputer
 
-Impute missing data using any regressor/classifier (not necessarily from BetaML) that implements `fit!(X,Y)` and `predict(X)`
+Impute missing data using any regressor/classifier (not necessarily from BetaML) that implements `m=Model([options])`, `fit!(m,X,Y)` and `predict(m,X)`
 
-### Specific parameters:
-- `multipleImputations`: Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG).
+See [`GeneralImputerHyperParametersSet`](@ref) for the hyper-parameters.
 
 """
 mutable struct GeneralImputer <: Imputer
