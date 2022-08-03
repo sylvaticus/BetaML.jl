@@ -10,6 +10,8 @@ export BetaMLModel, BetaMLSupervisedModel, BetaMLUnsupervisedModel,
        BetaMLOptionsSet, BetaMLHyperParametersSet, BetaMLLearnableParametersSet,
        predict, fit, fit!, train!, partition, info
 
+export InfoNode, InfoLeaf, wrap
+
 abstract type BetaMLModel end
 abstract type BetaMLSupervisedModel <: BetaMLModel end
 abstract type BetaMLUnsupervisedModel <: BetaMLModel end

@@ -44,6 +44,7 @@ Acknowlegdments: originally based on the [Josh Gordon's code](https://www.youtub
 module Trees
 
 using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays
+using AbstractTrees
 
 using  ForceImport
 @force using ..Api
@@ -56,5 +57,6 @@ import Base.show
 include("DecisionTrees.jl") # Decision Trees algorithm and API
 include("RandomForests.jl") # Random Forests algorithm and API
 include("Trees_MLJ.jl")     # MLJ interface
+include("abstract_trees.jl")
 
 end # end module
