@@ -35,6 +35,13 @@ ŷtrain2 = predict(m,xtrain)
 @test accuracy(ŷtrain,ytrain,rng=copy(TESTRNG)) >= 0.8
 @test ŷtrain == ŷtrain2
 
+
+using AbstractTrees
+import AbstractTrees: printnode
+wrappedNode = wrap(myTree)
+printnode(stdout,wrappedNode)
+
+
 xtest = [
     "Green"  3;
     "Yellow" 4;

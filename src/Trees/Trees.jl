@@ -48,7 +48,6 @@ using AbstractTrees
 
 using  ForceImport
 @force using ..Api
-#using ..Api
 @force using ..Utils
 
 import Base.print
@@ -57,6 +56,6 @@ import Base.show
 include("DecisionTrees.jl") # Decision Trees algorithm and API
 include("RandomForests.jl") # Random Forests algorithm and API
 include("Trees_MLJ.jl")     # MLJ interface
-include("abstract_trees.jl")
+
 
 end # end module

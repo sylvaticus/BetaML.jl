@@ -1,3 +1,5 @@
+export InfoNode, InfoLeaf, wrap
+
 abstract type AbstractNode end      # will be placed elsewhere in the future
 
 struct InfoNode{T} <: AbstractNode
