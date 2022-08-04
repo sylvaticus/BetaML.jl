@@ -13,6 +13,8 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        BetaMLOptionsSet, BetaMLDefaultOptionsSet, BetaMLHyperParametersSet, BetaMLLearnableParametersSet,
        predict, fit!, partition, info, reset!, learned
 
+
+
 abstract type BetaMLModel end
 abstract type BetaMLSupervisedModel <: BetaMLModel end
 abstract type BetaMLUnsupervisedModel <: BetaMLModel end
