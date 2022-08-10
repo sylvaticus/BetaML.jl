@@ -256,7 +256,7 @@ MMI.metadata_model(BetaMLMeanImputer,
     output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
     descr            = "Impute missing values using feature (column) mean, with optional record normalisation (using l-`norm` norms), from the Beta Machine Learning Toolkit (BetaML). Experimental.",
-	load_path        = "BetaMLMeanImputer"
+	load_path        = "BetaML.Imputation.BetaMLMeanImputer"
 )
 
 MMI.metadata_model(BetaMLGMMImputer,
@@ -264,7 +264,7 @@ MMI.metadata_model(BetaMLGMMImputer,
     output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
     descr            = "Impute missing values using a probabilistic approach (Gaussian Mixture Models) fitted using the Expectation-Maximisation algorithm, from the Beta Machine Learning Toolkit (BetaML). Experimental.",
-	load_path        = "BetaMLGMMImputer"
+	load_path        = "BetaML.Imputation.BetaMLGMMImputer"
 )
 
 MMI.metadata_model(BetaMLRFImputer,
@@ -272,12 +272,12 @@ MMI.metadata_model(BetaMLRFImputer,
     output_scitype   = MMI.Table(MMI.Known),          # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
     descr            = "Impute missing values using Random Forests, from the Beta Machine Learning Toolkit (BetaML). Experimental.",
-	load_path        = "BetaMLRFImputer"
+	load_path        = "BetaML.Imputation.BetaMLRFImputer"
 )
 MMI.metadata_model(BetaMLGenericImputer,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     output_scitype   = MMI.Table(MMI.Known),          # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
     descr            = "Impute missing values using a vector (one per column) of arbitrary learning models (classifiers/regressors) that implement `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)` (default to Random Forests), from the Beta Machine Learning Toolkit (BetaML). Experimental.",
-	load_path        = "BetaMLGenericImputer"
+	load_path        = "BetaML.Imputation.BetaMLGenericImputer"
 )
