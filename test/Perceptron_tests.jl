@@ -55,6 +55,7 @@ ŷtest  = predict(xtest,out.θ,out.θ₀,out.classes)
 @test ϵtrain  < 0.4
 @test ϵavg    < 0.4
 
+m = PerceptronClassic()
 
 
 # ==================================
