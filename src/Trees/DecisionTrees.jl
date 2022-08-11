@@ -491,7 +491,7 @@ function show(io::IO,question::Question)
     if isa(question.value, Number)
         condition = ">="
     end
-    print("Is col $(question.column) $condition $(question.value) ?")
+    print(io, "Is col $(question.column) $condition $(question.value) ?")
 end
 
 """
