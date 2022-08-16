@@ -257,7 +257,7 @@ end
 
 Base.@kwdef mutable struct KMeansMedoidsLearnableParameters <: BetaMLLearnableParametersSet
     representatives::Union{Nothing,Matrix{Float64}}  = nothing
-    assignments::Vector{Int64}                       = Int64[]
+    #assignments::Vector{Int64}                       = Int64[]
 end
 #=
 Base.@kwdef mutable struct KMedoidsLearnableParameters <: BetaMLLearnableParametersSet
@@ -270,6 +270,7 @@ mutable struct KMeansModel <: BetaMLUnsupervisedModel
     hpar::KMeansMedoidsHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,KMeansMedoidsLearnableParameters}
+    cres::Union{Nothing,Vector{Int64}}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
@@ -278,13 +279,14 @@ mutable struct KMedoidsModel <: BetaMLUnsupervisedModel
     hpar::KMeansMedoidsHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,KMeansMedoidsLearnableParameters}
+    cres::Union{Nothing,Vector{Int64}}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
 
 
 function KMeansModel(;kwargs...)
-    m = KMeansModel(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),false,Dict{Symbol,Any}())
+    m = KMeansModel(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -298,7 +300,7 @@ function KMeansModel(;kwargs...)
 end
 
 function KMedoidsModel(;kwargs...)
-    m = KMedoidsModel(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),false,Dict{Symbol,Any}())
+    m = KMedoidsModel(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -323,6 +325,7 @@ function fit!(m::KMeansModel,x)
     dist                   = m.hpar.dist
     initStrategy           = m.hpar.initStrategy
     initialRepresentatives = m.hpar.initialRepresentatives
+    cache                  = m.opt.cache
     verbosity              = m.opt.verbosity
     rng                    = m.opt.rng
 
@@ -335,8 +338,8 @@ function fit!(m::KMeansModel,x)
     else
         (clIdx,Z) = kmeans(x,K,dist=dist,initStrategy=initStrategy,Z₀=initialRepresentatives,verbosity=verbosity,rng=rng)
     end
-    m.par  = KMeansMedoidsLearnableParameters(representatives=Z,assignments=clIdx)
-
+    m.par  = KMeansMedoidsLearnableParameters(representatives=Z)
+    m.cres = cache ? clIdx : nothing
     m.info[:fittedRecords] = get(m.info,:fittedRecords,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
     m.fitted=true
@@ -353,6 +356,7 @@ function fit!(m::KMedoidsModel,x)
     dist                   = m.hpar.dist
     initStrategy           = m.hpar.initStrategy
     initialRepresentatives = m.hpar.initialRepresentatives
+    cache                  = m.opt.cache
     verbosity              = m.opt.verbosity
     rng                    = m.opt.rng
 
@@ -365,17 +369,17 @@ function fit!(m::KMedoidsModel,x)
     else
         (clIdx,Z) = kmedoids(x,K,dist=dist,initStrategy=initStrategy,Z₀=initialRepresentatives,verbosity=verbosity,rng=rng)
     end
-    m.par  = KMeansMedoidsLearnableParameters(representatives=Z,assignments=clIdx)
-
+    m.par  = KMeansMedoidsLearnableParameters(representatives=Z)
+    m.cres = cache ? clIdx : nothing
     m.info[:fittedRecords] = get(m.info,:fittedRecords,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
     m.fitted=true
     return true
 end  
 
-function predict(m::Union{KMeansModel,KMedoidsModel})
-    return m.par.assignments
-end
+#function predict(m::Union{KMeansModel,KMedoidsModel})
+#    return m.par.assignments
+#end
 
 function predict(m::Union{KMeansModel,KMedoidsModel},X)
     X               = makeMatrix(X)

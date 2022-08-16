@@ -19,6 +19,7 @@ mutable struct DTModel <: BetaMLSupervisedModel
     hpar::DTHyperParametersSet
     opt::DTOptionsSet
     par::DTLearnableParameters
+    cres::T # cached results
     trained::Bool
     info
 end

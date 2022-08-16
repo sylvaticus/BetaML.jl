@@ -57,6 +57,8 @@ A struct defining the options used by default by the algorithms that do not over
 $(FIELDS)
 """
 Base.@kwdef mutable struct BetaMLDefaultOptionsSet
+   "Cache the results of the fitting stage, as to allow predict(mod) [default: `true`]. Set it to `false` to save memory for large data."
+   cache = true
    "The verbosity level to be used in training or prediction (see [`Verbosity`](@ref)) [deafult: `STD`]
    "
    verbosity::Verbosity = STD
@@ -76,7 +78,7 @@ fit!(::BetaMLModel)  = nothing
 
 Predict new information (including transformation) based on a fitted BetaMLModel, eventually applied to new features when the algorithms generalise to new data.
 """ 
-predict(::BetaMLModel) = nothing
+predict(m::BetaMLModel) = m.cres
 
 function info(m::BetaMLModel)
    return m.info
@@ -92,8 +94,9 @@ end
 
 function reset!(m::BetaMLModel)
    m.par     = nothing
+   m.cres    = nothing 
    m.info    = Dict{Symbol,Any}()
-   m.fitted = false 
+   m.fitted  = false 
    return true
 end
 

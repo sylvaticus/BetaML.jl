@@ -113,12 +113,13 @@ mutable struct DTModel <: BetaMLSupervisedModel
     hpar::DTHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,DTLearnableParameters}
+    cres
     fitted::Bool
     info::Dict{Symbol,Any}
 end
 
 function DTModel(;kwargs...)
-    m              = DTModel(DTHyperParametersSet(),BetaMLDefaultOptionsSet(),DTLearnableParameters(),false,Dict{Symbol,Any}())
+    m              = DTModel(DTHyperParametersSet(),BetaMLDefaultOptionsSet(),DTLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -399,10 +400,14 @@ function fit!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
     minGain             = m.hpar.minGain
     minRecords          = m.hpar.minRecords
     forceClassification = m.hpar.forceClassification
+    cache               = m.opt.cache
     rng                 = m.opt.rng
     verbosity           = m.opt.verbosity
 
-    m.par = DTLearnableParameters(tree = buildTree(x, y; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, mCols=nothing, rng = rng))
+    tree = buildTree(x, y; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, mCols=nothing, rng = rng)
+
+    m.par = DTLearnableParameters(tree)
+    m.cres = cache ? predictSingle.(Ref(tree),eachrow(x),rng=rng) : nothing
 
     m.fitted = true
 

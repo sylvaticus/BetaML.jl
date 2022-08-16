@@ -198,7 +198,7 @@ end
 Base.@kwdef mutable struct GMMClusterLearnableParameters <: BetaMLLearnableParametersSet
     mixtures::Vector{AbstractMixture}           = []
     probMixtures::Vector{Float64}               = []
-    probRecords::Union{Nothing,Matrix{Float64}} = nothing
+    #probRecords::Union{Nothing,Matrix{Float64}} = nothing
 end
 
 
@@ -207,6 +207,7 @@ mutable struct GMMClusterModel <: BetaMLUnsupervisedModel
     hpar::GMMClusterHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,GMMClusterLearnableParameters}
+    cres::Union{Nothing,Matrix{Float64}}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
@@ -219,7 +220,7 @@ function GMMClusterModel(;kwargs...)
     else 
         hps = GMMClusterHyperParametersSet()
     end
-    m = GMMClusterModel(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),false,Dict{Symbol,Any}())
+    m = GMMClusterModel(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -249,6 +250,7 @@ function fit!(m::GMMClusterModel,x)
     minCovariance = m.hpar.minCovariance
     initStrategy  = m.hpar.initStrategy
     maxIter       = m.hpar.maxIter
+    cache         = m.opt.cache
     verbosity     = m.opt.verbosity
     rng           = m.opt.rng
 
@@ -258,8 +260,10 @@ function fit!(m::GMMClusterModel,x)
     else
         gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,maxIter=maxIter,rng = rng)
     end
-    m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, probMixtures=makeColVector(gmmOut.pₖ), probRecords = gmmOut.pₙₖ)
+    probRecords = gmmOut.pₙₖ
+    m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, probMixtures=makeColVector(gmmOut.pₖ))
 
+    m.cres = cache ? probRecords : nothing
     m.info[:error]          = gmmOut.ϵ
     m.info[:lL]             = gmmOut.lL
     m.info[:BIC]            = gmmOut.BIC
@@ -270,9 +274,9 @@ function fit!(m::GMMClusterModel,x)
     return true
 end    
 
-function predict(m::GMMClusterModel)
-    return m.par.probRecords
-end
+#function predict(m::GMMClusterModel)
+#    return m.par.probRecords
+#end
 
 function predict(m::GMMClusterModel,X)
     X = makeMatrix(X)

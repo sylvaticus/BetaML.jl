@@ -48,12 +48,13 @@ mutable struct RFModel <: BetaMLSupervisedModel
     hpar::RFHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,Forest} #TODO: Forest contain info that is actualy in report. Currently we duplicate, we should just remofe them from par by making a dedicated struct instead of Forest
+    cres
     fitted::Bool
     info::Dict{Symbol,Any}
 end
 
 function RFModel(;kwargs...)
-m              = RFModel(RFHyperParametersSet(),BetaMLDefaultOptionsSet(),nothing,false,Dict{Symbol,Any}())
+m              = RFModel(RFHyperParametersSet(),BetaMLDefaultOptionsSet(),nothing,nothing,false,Dict{Symbol,Any}())
 thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
 for (kw,kwv) in kwargs
     for f in thisobjfields
@@ -153,10 +154,14 @@ function fit!(m::RFModel,x,y::AbstractArray{Ty,1}) where {Ty}
     nTrees              = m.hpar.nTrees
     β                   = m.hpar.beta
     oob                 = m.hpar.oob
+    cache               = m.opt.cache
     rng                 = m.opt.rng
     verbosity           = m.opt.verbosity
-      
-    m.par = buildForest(x, y, nTrees; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, β=β, oob=false,  rng = rng)
+    
+    forest = buildForest(x, y, nTrees; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, β=β, oob=false,  rng = rng)
+    m.par = forest
+
+    m.cres = cache ? predictSingle.(Ref(forest),eachrow(x),rng=rng) : nothing
     
     if oob
         m.par.oobError = oobError(m.par,x,y;rng = rng) 

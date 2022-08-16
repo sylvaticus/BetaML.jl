@@ -45,8 +45,8 @@ x̂ = predict(mod)
 
 X2 = [2 4 missing; 20 40 100]
 x̂2 = predict(mod,X2)
-reset!(mod)
 @test x̂2[1,3] == 55.0
+reset!(mod)
 
 X = [2.0 missing 10; 20 40 100]
 mod = MeanImputer(norm=1)

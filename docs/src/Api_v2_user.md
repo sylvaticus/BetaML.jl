@@ -12,7 +12,7 @@ This refer to models designed to _learn_ a relation between some features (often
 
 ### Model constructor
 
-The first step is to build the model constructor by passing (using keyword arguments) the agorithm hyperparameters and various options (debug levels, random number generators, ...)
+The first step is to build the model constructor by passing (using keyword arguments) the agorithm hyperparameters and various options (cache results flag, debug levels, random number generators, ...)
 
 
 ```

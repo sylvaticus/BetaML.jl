@@ -31,9 +31,10 @@ fit!(m,xtrain,ytrain)
 
 ŷtrain  = predict(myTree, xtrain,rng=copy(TESTRNG))
 ŷtrain2 = predict(m,xtrain)
+ŷtrain3 = predict(m) # using cached elements
 
 @test accuracy(ŷtrain,ytrain,rng=copy(TESTRNG)) >= 0.8
-@test ŷtrain == ŷtrain2
+@test ŷtrain == ŷtrain2 ==  ŷtrain3
 
 
 using AbstractTrees
@@ -145,7 +146,8 @@ m = RFModel(maxDepth=20,oob=true,beta=0,rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 m.opt.rng=copy(TESTRNG) 
 ŷtrainNew = predict(m,xtrain)
-@test ŷtrainNew == ŷtrain 
+ŷtrainCached = predict(m)
+@test ŷtrainNew == ŷtrain == ŷtrainCached 
 m.opt.rng=copy(TESTRNG) 
 ŷtestNew = predict(m,xtest)
 @test ŷtestNew == ŷtest 

@@ -90,7 +90,9 @@ ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest
 
 m = GMMRegressor1(nClasses=2,rng=copy(TESTRNG), verbosity=NONE)
 fit!(m,xtrain,ytrain)
-ŷtrain = predict(m, xtrain)
+ŷtrain  = predict(m, xtrain)
+ŷtrain2 = predict(m)
+@test isapprox(ŷtrain,ŷtrain2,atol=0.00001) # not the same as the predict(m,xtrain) goes trough a further estep
 ŷtest = predict(m, xtest)
 mreTrain = meanRelError(ŷtrain,ytrain)
 @test mreTrain <= 0.08
@@ -101,6 +103,8 @@ mreTest  = meanRelError(ŷtest,ytest)
 reset!(m)
 fit!(m,xtrain,ytrain2d)
 ŷtrain2d = predict(m, xtrain)
+ŷtrain2db = predict(m)
+@test isapprox(ŷtrain2d,ŷtrain2db,atol=0.00001) # not the same as the predict(m,xtrain) goes trough a further estep
 mreTrain2d = meanRelError(ŷtrain2d,ytrain2d)
 @test mreTrain2d <= 0.08
 
@@ -109,6 +113,8 @@ mreTrain2d = meanRelError(ŷtrain2d,ytrain2d)
 m = GMMRegressor2(nClasses=2,rng=copy(TESTRNG), verbosity=NONE)
 fit!(m,xtrain,ytrain)
 ŷtrain = predict(m, xtrain)
+ŷtrain2 = predict(m)
+@test isapprox(ŷtrain,ŷtrain2,atol=0.01) # not the same as the predict(m,xtrain) goes trough a further estep
 ŷtest = predict(m, xtest)
 mreTrain = meanRelError(ŷtrain,ytrain)
 @test mreTrain <= 0.08
@@ -119,6 +125,8 @@ mreTest  = meanRelError(ŷtest,ytest)
 reset!(m)
 fit!(m,xtrain,ytrain2d)
 ŷtrain2d = predict(m, xtrain)
+ŷtrain2db = predict(m)
+@test isapprox(ŷtrain2d,ŷtrain2db,atol=0.01) # not the same as the predict(m,xtrain) goes trough a further estep
 mreTrain2d = meanRelError(ŷtrain2d,ytrain2d)
 @test mreTrain2d <= 0.08
 fit!(m,xtrain,ytrain2d) # re-fit

@@ -184,7 +184,7 @@ end
 Base.@kwdef mutable struct MeanImputerLearnableParameters <: BetaMLLearnableParametersSet
     cMeans::Vector{Float64} = []
     norms::Vector{Float64}  = []
-    imputedValues::Union{Nothing,Matrix{Float64}} = nothing
+    #imputedValues::Union{Nothing,Matrix{Float64}} = nothing
 end
 
 """
@@ -202,12 +202,13 @@ mutable struct MeanImputer <: Imputer
     hpar::MeanImputerHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,MeanImputerLearnableParameters}
+    cres::Union{Nothing,Matrix{Float64}}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
 
 function MeanImputer(;kwargs...)
-    m              = MeanImputer(MeanImputerHyperParametersSet(),BetaMLDefaultOptionsSet(),MeanImputerLearnableParameters(),false,Dict{Symbol,Any}())
+    m              = MeanImputer(MeanImputerHyperParametersSet(),BetaMLDefaultOptionsSet(),MeanImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -230,6 +231,7 @@ function fit!(imputer::MeanImputer,X)
     (imputer.fitted == false ) || error("multiple training unsupported on this model")
     #X̂ = copy(X)
     nR,nC = size(X)
+    cache       = imputer.opt.cache
     missingMask = ismissing.(X)
     overallMean = mean(skipmissing(X))
     cMeans   = [sum(ismissing.(X[:,i])) == nR ? overallMean : mean(skipmissing(X[:,i])) for i in 1:nC]
@@ -243,18 +245,19 @@ function fit!(imputer::MeanImputer,X)
         adjNorms[ismissing.(adjNorms)] .= adjNormsMean
         X̂        = [missingMask[r,c] ? cMeans[c]*adjNorms[r]/sum(adjNorms) : X[r,c] for r in 1:nR, c in 1:nC]
     end
-    imputer.par = MeanImputerLearnableParameters(cMeans,adjNorms,X̂)
+    imputer.par = MeanImputerLearnableParameters(cMeans,adjNorms)
+    imputer.cres = cache ? X̂ : nothing
     imputer.info[:nImputedValues] = sum(missingMask)
     imputer.fitted = true
     return true
 end
 
-"""
-    predict(m::MeanImputer)
-
-Return the data with the missing values replaced with the imputed ones using [`MeanImputer`](@ref).
-"""
-predict(m::MeanImputer) = m.par.imputedValues
+#"""
+#    predict(m::MeanImputer)
+#
+#Return the data with the missing values replaced with the imputed ones using [`MeanImputer`](@ref).
+#"""
+#predict(m::MeanImputer) = m.par.imputedValues
 
 """
     predict(m::MeanImputer, X)
@@ -300,7 +303,7 @@ Base.@kwdef mutable struct GMMImputerLearnableParameters <: BetaMLLearnableParam
     mixtures::Vector{AbstractMixture}           = []
     probMixtures::Vector{Float64}               = []
     probRecords::Union{Nothing,Matrix{Float64}} = nothing
-    imputedValues                               = nothing
+    #imputedValues                               = nothing
 end
 
 
@@ -320,6 +323,7 @@ mutable struct GMMImputer <: Imputer
     hpar::GMMClusterHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{GMMImputerLearnableParameters,Nothing}
+    cres::Union{Nothing,Matrix{Float64}}
     fitted::Bool
     info::Dict{Symbol,Any}    
 end
@@ -332,7 +336,7 @@ function GMMImputer(;kwargs...)
     else 
         hps = GMMClusterHyperParametersSet()
     end
-    m              = GMMImputer(hps,BetaMLDefaultOptionsSet(),GMMImputerLearnableParameters(),false,Dict{Symbol,Any}())
+    m              = GMMImputer(hps,BetaMLDefaultOptionsSet(),GMMImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -363,6 +367,7 @@ function fit!(m::GMMImputer,X)
     minCovariance = m.hpar.minCovariance
     initStrategy  = m.hpar.initStrategy
     maxIter       = m.hpar.maxIter
+    cache         = m.opt.cache
     verbosity     = m.opt.verbosity
     rng           = m.opt.rng
 
@@ -385,9 +390,12 @@ function fit!(m::GMMImputer,X)
 
     nImputedValues = nFill
 
-    X̂ = [XMask[n,d] ? X[n,d] : sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:K]) for n in 1:N, d in 1:D ]
-    
-    m.par  = GMMImputerLearnableParameters(mixtures = emOut.mixtures, probMixtures=makeColVector(emOut.pₖ), probRecords = emOut.pₙₖ, imputedValues=X̂)
+    m.par  = GMMImputerLearnableParameters(mixtures = emOut.mixtures, probMixtures=makeColVector(emOut.pₖ), probRecords = emOut.pₙₖ)
+
+    if cache
+        X̂ = [XMask[n,d] ? X[n,d] : sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:K]) for n in 1:N, d in 1:D ]
+        m.cres = X̂
+    end
 
     m.info[:error]          = emOut.ϵ
     m.info[:lL]             = emOut.lL
@@ -400,12 +408,12 @@ function fit!(m::GMMImputer,X)
     return true
 end
 
-"""
-    predict(m::GMMImputer)
-
-Return the data with the missing values replaced with the imputed ones using [`GMMImputer`](@ref).
-"""
-predict(m::GMMImputer) = (! m.fitted) ? nothing : m.par.imputedValues 
+#"""
+#    predict(m::GMMImputer)
+#
+#Return the data with the missing values replaced with the imputed ones using [`GMMImputer`](@ref).
+#"""
+#predict(m::GMMImputer) = (! m.fitted) ? nothing : m.par.imputedValues 
 
 function predict(m::GMMImputer,X)
     m.fitted || error("Trying to predict from an untrained model")
@@ -461,7 +469,7 @@ end
 
 Base.@kwdef struct RFImputerLearnableParameters <: BetaMLLearnableParametersSet
     forests        = nothing
-    imputedValues  = nothing
+    #imputedValues  = nothing
     #nImputedValues::Int64
     #oob::Vector{Vector{Float64}}
 end
@@ -481,6 +489,7 @@ mutable struct RFImputer <: Imputer
     hpar::RFImputerHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{RFImputerLearnableParameters,Nothing}
+    cres
     fitted::Bool
     info::Dict{Symbol,Any}    
 end
@@ -488,7 +497,7 @@ end
 function RFImputer(;kwargs...)
     
     hps = RFImputerHyperParametersSet()
-    m   = RFImputer(hps,BetaMLDefaultOptionsSet(),RFImputerLearnableParameters(),false,Dict{Symbol,Any}())
+    m   = RFImputer(hps,BetaMLDefaultOptionsSet(),RFImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -535,6 +544,7 @@ function fit!(m::RFImputer,X)
     nTrees              = m.hpar.rfhpar.nTrees
     β                   = m.hpar.rfhpar.beta
     oob                 = m.hpar.rfhpar.oob
+    cache               = m.opt.cache
     rng                 = m.opt.rng
     verbosity           = m.opt.verbosity
      
@@ -624,7 +634,14 @@ function fit!(m::RFImputer,X)
 
         oobErrors[imputation] = oobErrorsImputation
     end # end individual imputation
-    m.par = RFImputerLearnableParameters(forests,imputed)
+    m.par = RFImputerLearnableParameters(forests)
+    if cache
+        if multipleImputations == 1
+            m.cres = imputed[1]
+        else
+            m.cres = imputed
+        end
+    end 
     m.info[:nImputedValues] = nImputedValues
     m.info[:oobErrors] = oobErrors
 
@@ -632,13 +649,17 @@ function fit!(m::RFImputer,X)
     return true
 end
 
+#"""
+#    predict(m::RFImputer)
+#
+#Return the data with the missing values replaced with the imputed ones using [`RFImputer`](@ref). If `multipleImputations` was set >1 this is a vector of matrices (the individual imputations) instead of a single matrix.
+#"""
+#predict(m::RFImputer) =  (! m.fitted) ? nothing : (m.hpar.multipleImputations == 1 ? m.cres[1] : m.cres)
 """
-    predict(m::RFImputer)
+    predict(m::RFImputer, X)
 
 Return the data with the missing values replaced with the imputed ones using [`RFImputer`](@ref). If `multipleImputations` was set >1 this is a vector of matrices (the individual imputations) instead of a single matrix.
 """
-predict(m::RFImputer) =  (! m.fitted) ? nothing : (m.hpar.multipleImputations == 1 ? m.par.imputedValues[1] : m.par.imputedValues)
-
 function predict(m::RFImputer,X)
     nR,nC = size(X)
     missingMask    = ismissing.(X)
@@ -727,7 +748,7 @@ end
 
 Base.@kwdef struct GeneralImputerLearnableParameters <: BetaMLLearnableParametersSet
     fittedModels  = nothing
-    imputedValues  = nothing
+    #imputedValues  = nothing
 end
 
 """
@@ -742,6 +763,7 @@ mutable struct GeneralImputer <: Imputer
     hpar::GeneralImputerHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{GeneralImputerLearnableParameters,Nothing}
+    cres
     fitted::Bool
     info::Dict{Symbol,Any}    
 end
@@ -749,7 +771,7 @@ end
 function GeneralImputer(;kwargs...)
     
     hps = GeneralImputerHyperParametersSet()
-    m   = GeneralImputer(hps,BetaMLDefaultOptionsSet(),GeneralImputerLearnableParameters(),false,Dict{Symbol,Any}())
+    m   = GeneralImputer(hps,BetaMLDefaultOptionsSet(),GeneralImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -779,6 +801,7 @@ function fit!(m::GeneralImputer,X)
     nR,nC   = size(X)
     multipleImputations  = m.hpar.multipleImputations
     recursivePassages    = m.hpar.recursivePassages
+    cache                = m.opt.cache
     verbosity            = m.opt.verbosity 
     rng                  = m.opt.rng
     # Setting `models`, a matrix of multipleImputations x nC individual models...
@@ -863,19 +886,31 @@ function fit!(m::GeneralImputer,X)
         end # end recursive passage pass
         imputed[imputation]   = Xout
     end # end individual imputation
-    m.par = GeneralImputerLearnableParameters(models,imputed)
+    m.par = GeneralImputerLearnableParameters(models)
+    if cache
+        if multipleImputations == 1
+            m.cres = imputed[1]
+        else
+            m.cres = imputed
+        end
+    end 
     m.info[:nImputedValues] = nImputedValues
     m.fitted = true
     return true
 end
 
+#"""
+#    predict(m::GeneralImputer)
+#
+#Return the data with the missing values replaced with the imputed ones using [`RFImputer`](@ref). If `multipleImputations` was set >1 this is a vector of matrices (the individual imputations) instead of a single matrix.
+#"""
+#predict(m::GeneralImputer) =  (! m.fitted) ? nothing : (m.hpar.multipleImputations == 1 ? m.par.imputedValues[1] : m.par.imputedValues)
+
 """
-    predict(m::GeneralImputer)
+    predict(m::GeneralImputer, [X])
 
 Return the data with the missing values replaced with the imputed ones using [`RFImputer`](@ref). If `multipleImputations` was set >1 this is a vector of matrices (the individual imputations) instead of a single matrix.
 """
-predict(m::GeneralImputer) =  (! m.fitted) ? nothing : (m.hpar.multipleImputations == 1 ? m.par.imputedValues[1] : m.par.imputedValues)
-
 function predict(m::GeneralImputer,X)
     nR,nC = size(X)
     missingMask    = ismissing.(X)

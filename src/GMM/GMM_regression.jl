@@ -6,7 +6,7 @@ import BetaML.Utils.allowmissing!
 Base.@kwdef mutable struct GMMRegressor1LearnableParameters <: BetaMLLearnableParametersSet
     mixtures::Vector{AbstractMixture}              = []
     probMixtures::Vector{Float64}                  = []
-    probRecords::Union{Nothing,Matrix{Float64}}    = nothing
+    #probRecords::Union{Nothing,Matrix{Float64}}    = nothing
     meanYByMixture::Union{Nothing,Matrix{Float64}} = nothing
 end
 
@@ -17,7 +17,7 @@ A multi-dimensional, missing data friendly non-linear regressor based on Generat
 
 The training data is used to fit a probabilistic model with latent mixtures (Gaussian distributions with different covariances are already implemented) and then predictions of new data is obtained by fitting the new data to the mixtures.
 
-For hyperparameters see [`GMMClusterHyperParametersSet`](@ref) and [`GMMClusterOptionsSet`](@ref).
+For hyperparameters see [`GMMClusterHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).
 
 this strategy (GMMRegressor1) works by training the EM algorithm on the feature matrix X.
 Once the data has been probabilistically assigned to the various classes, a mean value of Y is computed for each cluster (using the probabilities as weigths).
@@ -28,6 +28,7 @@ mutable struct GMMRegressor1 <: BetaMLUnsupervisedModel
     hpar::GMMClusterHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,GMMRegressor1LearnableParameters}
+    cres::Union{Nothing,Matrix{Float64}} 
     fitted::Bool
     info::Dict{Symbol,Any}
 end
@@ -40,7 +41,7 @@ function GMMRegressor1(;kwargs...)
     else 
         hps = GMMClusterHyperParametersSet()
     end
-    m = GMMRegressor1(hps,BetaMLDefaultOptionsSet(),GMMRegressor1LearnableParameters(),false,Dict{Symbol,Any}())
+    m = GMMRegressor1(hps,BetaMLDefaultOptionsSet(),GMMRegressor1LearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -73,6 +74,7 @@ function fit!(m::GMMRegressor1,x,y)
     minCovariance = m.hpar.minCovariance
     initStrategy  = m.hpar.initStrategy
     maxIter       = m.hpar.maxIter
+    cache         = m.opt.cache
     verbosity     = m.opt.verbosity
     rng           = m.opt.rng
 
@@ -88,7 +90,9 @@ function fit!(m::GMMRegressor1,x,y)
     ysum           = probRecords' * y
     ymean          = vcat(transpose([ysum[r,:] / sumProbrecords[1,r] for r in 1:size(ysum,1)])...)
 
-    m.par  = GMMRegressor1LearnableParameters(mixtures = gmmOut.mixtures, probMixtures=makeColVector(gmmOut.pₖ), probRecords = gmmOut.pₙₖ,meanYByMixture = ymean)
+    m.par  = GMMRegressor1LearnableParameters(mixtures = gmmOut.mixtures, probMixtures=makeColVector(gmmOut.pₖ), meanYByMixture = ymean)
+    m.cres = cache ? probRecords  * ymean : nothing
+
 
     m.info[:error]          = gmmOut.ϵ
     m.info[:lL]             = gmmOut.lL
@@ -150,6 +154,7 @@ mutable struct GMMRegressor2 <: BetaMLUnsupervisedModel
     hpar::GMMClusterHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,GMMClusterLearnableParameters}
+    cres::Union{Nothing,Matrix{Float64}}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
@@ -162,7 +167,7 @@ function GMMRegressor2(;kwargs...)
     else 
         hps = GMMClusterHyperParametersSet()
     end
-    m = GMMRegressor2(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),false,Dict{Symbol,Any}())
+    m = GMMRegressor2(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -184,9 +189,10 @@ end
 function fit!(m::GMMRegressor2,x,y)
 
     x = makeMatrix(x)
+    N,DX = size(x)
     y = makeMatrix(y)
     x = hcat(x,y)
-
+    DFull = size(x,2)
     # Parameter alias..
     K             = m.hpar.nClasses
     p₀            = m.hpar.probMixtures
@@ -196,6 +202,7 @@ function fit!(m::GMMRegressor2,x,y)
     minCovariance = m.hpar.minCovariance
     initStrategy  = m.hpar.initStrategy
     maxIter       = m.hpar.maxIter
+    cache         = m.opt.cache
     verbosity     = m.opt.verbosity
     rng           = m.opt.rng
 
@@ -205,7 +212,9 @@ function fit!(m::GMMRegressor2,x,y)
     else
         gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,maxIter=maxIter,rng = rng)
     end
-    m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, probMixtures=makeColVector(gmmOut.pₖ), probRecords = gmmOut.pₙₖ)
+    probRecords = gmmOut.pₙₖ
+    m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, probMixtures=makeColVector(gmmOut.pₖ))
+    m.cres = cache ?  probRecords  * [gmmOut.mixtures[k].μ[d] for k in 1:K, d in DX+1:DFull]  : nothing
 
     m.info[:error]          = gmmOut.ϵ
     m.info[:lL]             = gmmOut.lL
