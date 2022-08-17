@@ -231,6 +231,14 @@ end
 # ----------------------------------------------
 # API V2...
 
+"""
+**`$(TYPEDEF)`**
+
+Hyperparameters for the `PerceptronClassic` model
+
+## Parameters:
+$(FIELDS)
+"""
 Base.@kwdef mutable struct PerceptronClassicHyperParametersSet <: BetaMLHyperParametersSet
     "Initial parameters. If given, should be a matrix of n-classes by feature dimension + 1 (to include the constant term as the first element) [def: `nothing`, i.e. zeros]"
     initPars::Union{Nothing,Matrix{Float64}} = nothing
@@ -249,6 +257,19 @@ Base.@kwdef mutable struct PerceptronClassicLearnableParameters <: BetaMLLearnab
     classes::Vector  = []
 end
 
+"""
+
+**`PerceptronClassic`**
+
+The classical "perceptron" linear classifier (supervised).
+
+For the parameters see  [`PerceptronClassicLearnableParameters`](@ref).
+
+## Limitations:
+- data must be numerical
+- online training (retraining) not supported
+
+"""
 mutable struct PerceptronClassic <: BetaMLSupervisedModel
     hpar::PerceptronClassicHyperParametersSet
     opt::BetaMLDefaultOptionsSet

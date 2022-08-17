@@ -248,6 +248,14 @@ end
 # ----------------------------------------------
 # API V2...
 
+"""
+**`$(TYPEDEF)`**
+
+Hyperparameters for the `Pegasos` model
+
+## Parameters:
+$(FIELDS)
+"""
 Base.@kwdef mutable struct KernelPerceptronHyperParametersSet <: BetaMLHyperParametersSet
     "Kernel function to employ. See `?radialKernel` or `?polynomialKernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]"
     kernel::Function = radialKernel       

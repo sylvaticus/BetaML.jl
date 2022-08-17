@@ -188,14 +188,14 @@ Base.@kwdef mutable struct MeanImputerLearnableParameters <: BetaMLLearnablePara
 end
 
 """
-    MeanImputer
+**`MeanImputer`**
 
 Simple imputer using the feature (column) mean, optionally normalised by l-norms of the records (rows)
 
-Parameters:
+## Parameters:
 - `norm`: Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries).  
 
-Limitations:
+## Limitations:
 - data must be numerical
 """
 mutable struct MeanImputer <: Imputer
@@ -308,13 +308,14 @@ end
 
 
 """
-    GMMImputer
+
+**`GMMImputer`**
 
 Missing data imputer that uses a Generated (Gaussian) Mixture Model.
 
 For the parameters (`nClasses`,`mixtures`,..) see  [`GMMImputerLearnableParameters`](@ref).
 
-Limitations:
+## Limitations:
 - data must be numerical
 - the resulted matrix is a Matrix{Float64}
 - currently the Mixtures available do not support random initialisation for missing imputation, and the rest of the algorithm (we use the Expectation-Maximisation) is deterministic, so there is no random component involved (i.e. no multiple imputations)    

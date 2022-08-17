@@ -160,6 +160,14 @@ end
 # ----------------------------------------------
 # API V2...
 
+"""
+**`$(TYPEDEF)`**
+
+Hyperparameters for the `Pegasos` model
+
+## Parameters:
+$(FIELDS)
+"""
 Base.@kwdef mutable struct PegasosHyperParametersSet <: BetaMLHyperParametersSet
     "Learning rate [def: (epoch -> 1/sqrt(epoch))]"
     learningRate::Function =  (epoch -> 1/sqrt(epoch)) 
