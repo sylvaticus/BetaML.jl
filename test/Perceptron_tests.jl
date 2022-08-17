@@ -34,6 +34,17 @@ ŷavgtest = predict(xtest,outTest.θ,outTest.θ₀,outTest.classes)
 ϵavg     = error(ytest, mode(ŷavgtest))
 @test ϵ    < 0.03
 @test ϵavg < 0.2
+m      =  PerceptronClassic(shuffle=false, verbosity=NONE, rng=copy(TESTRNG))
+fit!(m,xtrain,ytrain)
+ŷtrain2 = predict(m) 
+#ŷtrain3 = predict(m,xtrain)
+
+@test ŷtrain == ŷtrain2
+
+softmax([-1,0,2])
+
+a = [3.0]
+b = [[-3.5430000000000126, -2.3429999999999174]]
 
 println("Testing multiple classes...")
 
@@ -45,8 +56,9 @@ ytrain = [i > median(ytt)*1.1 ? "big" :  i > median(ytt)*0.9 ? "avg" : "small" f
 xtest = rand(TESTRNG,20,3)
 ytt2   = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest))]
 ytest  = [i > median(ytt2)*1.1 ? "big" :  i > median(ytt2)*0.9 ? "avg" : "small" for i in ytt2]
-
 out    = perceptron(xtrain,  ytrain, shuffle=false,nMsgs=0)
+out2   = perceptron(xtrain,ytrain,θ₀=[0.0, 0.0, 0.0],θ=[[0.0, 0.0, 0.0], [0.0,0.0,0.0], [0.0,0.0,0.0]])
+@test out == out2
 ŷtrain = predict(xtrain,out.θ,out.θ₀,out.classes)
 ŷtest  = predict(xtest,out.θ,out.θ₀,out.classes)
 ϵtrain = error(ytrain, mode(ŷtrain))
@@ -55,7 +67,9 @@ ŷtest  = predict(xtest,out.θ,out.θ₀,out.classes)
 @test ϵtrain  < 0.4
 @test ϵavg    < 0.4
 
-#m = PerceptronClassic() TODO....
+m      =  PerceptronClassic(rng=copy(TESTRNG))
+fit!(m,xtrain,ytrain)
+ŷtrain3 = predict(m) 
 
 
 # ==================================

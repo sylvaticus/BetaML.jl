@@ -35,19 +35,29 @@ julia> model = perceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 julia> ŷ     = predict([2.1 3.1; 7.3 5.2], model.θ, model.θ₀, model.classes)
 ```
 """
-function perceptron(x::AbstractMatrix, y::AbstractVector; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=0, shuffle=false, forceOrigin=false, returnMeanHyperplane=false, rng = Random.GLOBAL_RNG)
+function perceptron(x::AbstractMatrix, y::AbstractVector; θ=nothing,θ₀=nothing, T=1000, nMsgs=0, shuffle=false, forceOrigin=false, returnMeanHyperplane=false, rng = Random.GLOBAL_RNG)
 yclasses = unique(y)
 nCl      = length(yclasses)
-if nCl == 2
-    outθ        = Array{Vector{Float64},1}(undef,1)
-    outθ₀       = Array{Float64,1}(undef,1)
-else
+nD       = size(x,2)
+#if nCl == 2
+#    outθ        = Array{Vector{Float64},1}(undef,1)
+#    outθ₀       = Array{Float64,1}(undef,1)
+#else
     outθ        = Array{Vector{Float64},1}(undef,nCl)
     outθ₀       = Array{Float64,1}(undef,nCl)
+#end
+
+if θ₀ == nothing
+    θ₀ = zeros(nCl)
 end
+
+if θ == nothing
+    θ = [zeros(nD) for _ in 1:nCl]
+end
+
 for (i,c) in enumerate(yclasses)
     ybin = ((y .== c) .*2 .-1)  # conversion to -1/+1
-    outBinary = perceptronBinary(x, ybin; θ=θ,θ₀=θ₀, T=T, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, rng=rng)
+    outBinary = perceptronBinary(x, ybin; θ=θ[i],θ₀=θ₀[i], T=T, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, rng=rng)
     if returnMeanHyperplane
         outθ[i]  = outBinary.avgθ
         outθ₀[i] = outBinary.avgθ₀
@@ -55,7 +65,9 @@ for (i,c) in enumerate(yclasses)
         outθ[i]  = outBinary.θ
         outθ₀[i] = outBinary.θ₀
     end
-    if nCl == 2
+    if i == 1 && nCl == 2
+        outθ[2] = - outθ[1]
+        outθ₀[2] = .- outθ₀[1]
         break    # if there are only two classes we do compute only one passage, as A vs B would be the same as B vs A
     end
 end
@@ -232,21 +244,22 @@ Base.@kwdef mutable struct PerceptronClassicHyperParametersSet <: BetaMLHyperPar
     returnMeanHyperplane::Bool=false
 end
 
-Base.@kwdef mutable struct PerceptronClassicLearnableParameters{Tcl} <: BetaMLLearnableParametersSet where {Tcl}
+Base.@kwdef mutable struct PerceptronClassicLearnableParameters <: BetaMLLearnableParametersSet
     weigths::Union{Nothing,Matrix{Float64}} = nothing
-    classes::Vector{Tcl}  = Tcl[]
+    classes::Vector  = []
 end
 
 mutable struct PerceptronClassic <: BetaMLSupervisedModel
     hpar::PerceptronClassicHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,PerceptronClassicLearnableParameters}
+    cres::Union{Nothing,Vector}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
 
 function PerceptronClassic(;kwargs...)
-    m              = PerceptronClassic(PerceptronClassicHyperParametersSet(),BetaMLDefaultOptionsSet(),PerceptronClassicLearnableParameters(),false,Dict{Symbol,Any}())
+    m              = PerceptronClassic(PerceptronClassicHyperParametersSet(),BetaMLDefaultOptionsSet(),PerceptronClassicLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -268,11 +281,12 @@ function fit!(m::PerceptronClassic,X,Y)
     shuffle              = m.hpar.shuffle
     forceOrigin          = m.hpar.forceOrigin
     returnMeanHyperplane = m.hpar.returnMeanHyperplane
+    cache                = m.opt.cache
     verbosity            = m.opt.verbosity
     rng                  = m.opt.rng
 
     nr,nD = size(X)
-    yclasses = unique(y)
+    yclasses = unique(Y)
     nCl      = length(yclasses)
     initPars =  (initPars == nothing) ? zeros(nCl, nD+1) : initPars 
     
@@ -288,9 +302,14 @@ function fit!(m::PerceptronClassic,X,Y)
         nMsgs = 100000
     end
 
-    out = perceptron(X,Y,; θ₀=initPars[:,1], θ=[c for c in initPars(a[:,2:end])], T=epochs, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, returnMeanHyperplane=returnMeanHyperplane, rng = Random.GLOBAL_RNG)
+    out = perceptron(X,Y; θ₀=initPars[:,1], θ=[initPars[:,c] for c in 2:nD+1], T=epochs, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, returnMeanHyperplane=returnMeanHyperplane, rng = rng)
 
     weights = hcat(out.θ₀,hcat(out.θ...))
-    m.par = PerceptronClassic(weigths,out.classes)
+    m.par = PerceptronClassicLearnableParameters(weights,out.classes)
+    if cache
+       out = predict(X,out.θ,out.θ₀,out.classes)
+       m.cres = cache ? out : nothing
+    end
+    return true
 end
 
