@@ -11,7 +11,7 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
 * `y`:        Associated labels of the training data
 * `K`:        Kernel function to employ. See `?radialKernel` or `?polynomialKernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]
 * `T`:        Maximum number of iterations (aka "epochs") across the whole set (if the set is not fully classified earlier) [def: 100]
-* `α`:        Initial distribution of the errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords boolean values (`true`/`false` or `0`/`1`) vectors , where nModels is computed as `(nClasses  * (nClasses - 1)) / 2`
+* `α`:        Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(nClasses  * (nClasses - 1)) / 2`
 * `nMsg`:     Maximum number of messages to show if all iterations are done [def: `0`]
 * `shuffle`:  Whether to randomly shuffle the data at each iteration [def: `false`]
 * `rng`:      Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
@@ -100,6 +100,7 @@ function kernelPerceptronBinary(x, y; K=radialKernel, T=1000, α=zeros(Int64,len
      println("***\n*** Training kernel perceptron for maximum $T iterations. Random shuffle: $shuffle")
  end
  x = makeMatrix(x)
+ α = deepcopy(α) # let's not modify the argument !
  (n,d) = size(x)
  bestϵ = Inf
  lastϵ = Inf
@@ -333,7 +334,9 @@ function fit!(m::KernelPerceptron,X,Y)
     m.info[:dimensions]    = nD
     m.info[:nClasses]      = nCl
     m.info[:nModels]       = nModels
-
+    
+    m.fitted = true
+    
     return true
 end
 
@@ -343,18 +346,18 @@ end
 
 function show(io::IO, ::MIME"text/plain", m::KernelPerceptron)
     if m.fitted == false
-        print(io,"KernelPerceptron - The classic linear perceptron classifier (unfitted)")
+        print(io,"KernelPerceptron - A \"kernelised\" version of the perceptron classifier (unfitted)")
     else
-        print(io,"PerceptronClassic - The classic linear perceptron classifier (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"KernelPerceptron - A \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fittedRecords]) records)")
     end
 end
 
 function show(io::IO, m::KernelPerceptron)
     if m.fitted == false
-        println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes linear perceptron classifier (unfitted)")
+        println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes \"kernelised\" version of the perceptron classifier (unfitted)")
     else
-        println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes linear perceptron classifier (fitted on $(m.info[:fittedRecords]) records)")
-        println(io,"Weights:")
-        println(io,m.par.weights)
+        println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"Kernel: ")
+        print(io,m.hpar.kernel)
     end
 end

@@ -35,19 +35,29 @@ julia> model = pegasos([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 julia> ŷ     = predict([2.1 3.1; 7.3 5.2], model.θ, model.θ₀, model.classes)
 ```
 """
-function pegasos(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=0, shuffle=false, forceOrigin=false,returnMeanHyperplane=false, rng = Random.GLOBAL_RNG)
+function pegasos(x, y; θ=nothing,θ₀=nothing, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=0, shuffle=false, forceOrigin=false,returnMeanHyperplane=false, rng = Random.GLOBAL_RNG)
 yclasses = unique(y)
 nCl      = length(yclasses)
-if nCl == 2
-    outθ        = Array{Vector{Float64},1}(undef,1)
-    outθ₀       = Array{Float64,1}(undef,1)
-else
+nD       = size(x,2)
+#if nCl == 2
+#    outθ        = Array{Vector{Float64},1}(undef,1)
+#    outθ₀       = Array{Float64,1}(undef,1)
+#else
     outθ        = Array{Vector{Float64},1}(undef,nCl)
     outθ₀       = Array{Float64,1}(undef,nCl)
+#end
+
+if θ₀ == nothing
+    θ₀ = zeros(nCl)
 end
+
+if θ == nothing
+    θ = [zeros(nD) for _ in 1:nCl]
+end
+
 for (i,c) in enumerate(yclasses)
     ybin = ((y .== c) .*2 .-1)  # conversion to -1/+1
-    outBinary = pegasosBinary(x, ybin; θ=θ,θ₀=θ₀, λ=λ,η=η, T=T, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, rng=rng)
+    outBinary = pegasosBinary(x, ybin; θ=θ[i],θ₀=θ₀[i], λ=λ,η=η, T=T, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, rng=rng)
     if returnMeanHyperplane
         outθ[i]  = outBinary.avgθ
         outθ₀[i] = outBinary.avgθ₀
@@ -56,6 +66,8 @@ for (i,c) in enumerate(yclasses)
         outθ₀[i] = outBinary.θ₀
     end
     if nCl == 2
+        outθ[2] = - outθ[1]
+        outθ₀[2] = .- outθ₀[1]
         break    # if there are only two classes we do compute only one passage, as A vs B would be the same as B vs A
     end
 end
@@ -145,3 +157,124 @@ end
 return  (θ=θ,θ₀=θ₀,avgθ=sumθ/(n*T),avgθ₀=sumθ₀/(n*T),errors=lastϵ,besterrors=bestϵ,iterations=T,separated=false)
 end
 
+# ----------------------------------------------
+# API V2...
+
+Base.@kwdef mutable struct PegasosHyperParametersSet <: BetaMLHyperParametersSet
+    "Learning rate [def: (epoch -> 1/sqrt(epoch))]"
+    learningRate::Function =  (epoch -> 1/sqrt(epoch)) 
+    "Multiplicative term of the learning rate [def: `0.5`]"         
+    learningRateMultiplicative::Float64 = 0.5           
+    "Initial parameters. If given, should be a matrix of n-classes by feature dimension + 1 (to include the constant term as the first element) [def: `nothing`, i.e. zeros]"
+    initPars::Union{Nothing,Matrix{Float64}} = nothing
+    "Maximum number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
+    epochs::Int64 = 1000
+    "Whether to randomly shuffle the data at each iteration (epoch) [def: `false`]"
+    shuffle::Bool = false  
+    "Whether to force the parameter associated with the constant term to remain zero [def: `false`]"
+    forceOrigin::Bool = false
+    " Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]"
+    returnMeanHyperplane::Bool=false
+end
+
+Base.@kwdef mutable struct PegasosLearnableParameters <: BetaMLLearnableParametersSet
+    weigths::Union{Nothing,Matrix{Float64}} = nothing
+    classes::Vector  = []
+end
+
+mutable struct Pegasos <: BetaMLSupervisedModel
+    hpar::PegasosHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{Nothing,PegasosLearnableParameters}
+    cres::Union{Nothing,Vector}
+    fitted::Bool
+    info::Dict{Symbol,Any}
+end
+
+function Pegasos(;kwargs...)
+    m              = Pegasos(PegasosHyperParametersSet(),BetaMLDefaultOptionsSet(),PegasosLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+          end
+        end
+    end
+    return m
+end
+
+function fit!(m::Pegasos,X,Y)
+    
+
+    # Parameter alias..
+    learningRate               = m.hpar.learningRate
+    learningRateMultiplicative = m.hpar.learningRateMultiplicative
+    initPars                   = m.hpar.initPars
+    epochs                     = m.hpar.epochs
+    shuffle                    = m.hpar.shuffle
+    forceOrigin                = m.hpar.forceOrigin
+    returnMeanHyperplane       = m.hpar.returnMeanHyperplane
+    cache                      = m.opt.cache
+    verbosity                  = m.opt.verbosity
+    rng                        = m.opt.rng
+
+    nR,nD    = size(X)
+    yclasses = unique(Y)
+    nCl      = length(yclasses)
+    initPars =  (initPars == nothing) ? zeros(nCl, nD+1) : initPars 
+    
+    if verbosity == NONE
+        nMsgs = 0
+    elseif verbosity <= LOW
+        nMsgs = 5
+    elseif verbosity <= STD
+        nMsgs = 10
+    elseif verbosity <= HIGH
+        nMsgs = 100
+    else
+        nMsgs = 100000
+    end
+
+    out = pegasos(X,Y; θ₀=initPars[:,1], θ=[initPars[:,c] for c in 2:nD+1], λ=learningRateMultiplicative, η=learningRate, T=epochs, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, returnMeanHyperplane=returnMeanHyperplane, rng = rng)
+
+    weights = hcat(out.θ₀,vcat(out.θ' ...))
+    m.par = PegasosLearnableParameters(weights,out.classes)
+    if cache
+       out    = predict(X,out.θ,out.θ₀,out.classes)
+       m.cres = cache ? out : nothing
+    end
+
+    m.info[:fittedRecords] = nR
+    m.info[:dimensions]    = nD
+    m.info[:nClasses]      = size(weights,1)
+
+    m.fitted = true
+
+    return true
+end
+
+function predict(m::Pegasos,X)
+    θ₀ = [ i for i in m.par.weigths[:,1]]
+    θ  = [r for r in eachrow(m.par.weigths[:,2:end])]
+    return predict(X,θ,θ₀,m.par.classes)
+end
+
+function show(io::IO, ::MIME"text/plain", m::Pegasos)
+    if m.fitted == false
+        print(io,"Pegasos - a loss-based linear classifier without regularisation term (unfitted)")
+    else
+        print(io,"Pegasos - a loss-based linear classifier without regularisation term (fitted on $(m.info[:fittedRecords]) records)")
+    end
+end
+
+function show(io::IO, m::Pegasos)
+    if m.fitted == false
+        println(io,"Pegasos - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes a loss-based linear classifier without regularisation term (unfitted)")
+    else
+        println(io,"Pegasos - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes a loss-based linear classifier without regularisation term (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"Weights:")
+        println(io,m.par.weights)
+    end
+end

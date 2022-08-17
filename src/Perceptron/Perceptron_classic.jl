@@ -315,6 +315,7 @@ function fit!(m::PerceptronClassic,X,Y)
     m.info[:dimensions]    = nD
     m.info[:nClasses]      = size(weights,1)
 
+    m.fitted = true
 
     return true
 end
