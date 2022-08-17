@@ -39,6 +39,7 @@ using ForceImport
 @force using ..Api
 @force using ..Utils
 
+import Base.show
 
 export perceptron, perceptronBinary, kernelPerceptron, kernelPerceptronBinary, pegasos, pegasosBinary, predict
 export PerceptronClassic, KernelPerceptron, Pegasos

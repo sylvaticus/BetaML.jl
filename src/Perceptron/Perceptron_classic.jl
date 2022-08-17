@@ -285,7 +285,7 @@ function fit!(m::PerceptronClassic,X,Y)
     verbosity            = m.opt.verbosity
     rng                  = m.opt.rng
 
-    nr,nD = size(X)
+    nR,nD    = size(X)
     yclasses = unique(Y)
     nCl      = length(yclasses)
     initPars =  (initPars == nothing) ? zeros(nCl, nD+1) : initPars 
@@ -304,12 +304,41 @@ function fit!(m::PerceptronClassic,X,Y)
 
     out = perceptron(X,Y; θ₀=initPars[:,1], θ=[initPars[:,c] for c in 2:nD+1], T=epochs, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, returnMeanHyperplane=returnMeanHyperplane, rng = rng)
 
-    weights = hcat(out.θ₀,hcat(out.θ...))
+    weights = hcat(out.θ₀,vcat(out.θ' ...))
     m.par = PerceptronClassicLearnableParameters(weights,out.classes)
     if cache
-       out = predict(X,out.θ,out.θ₀,out.classes)
+       out    = predict(X,out.θ,out.θ₀,out.classes)
        m.cres = cache ? out : nothing
     end
+
+    m.info[:fittedRecords] = nR
+    m.info[:dimensions]    = nD
+    m.info[:nClasses]      = size(weights,1)
+
+
     return true
 end
 
+function predict(m::PerceptronClassic,X)
+    θ₀ = [ i for i in m.par.weigths[:,1]]
+    θ  = [r for r in eachrow(m.par.weigths[:,2:end])]
+    return predict(X,θ,θ₀,m.par.classes)
+end
+
+function show(io::IO, ::MIME"text/plain", m::PerceptronClassic)
+    if m.fitted == false
+        print(io,"PerceptronClassic - The classic linear perceptron classifier (unfitted)")
+    else
+        print(io,"PerceptronClassic - The classic linear perceptron classifier (fitted on $(m.info[:fittedRecords]) records)")
+    end
+end
+
+function show(io::IO, m::PerceptronClassic)
+    if m.fitted == false
+        println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes linear perceptron classifier (unfitted)")
+    else
+        println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes linear perceptron classifier (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"Weights:")
+        println(io,m.par.weights)
+    end
+end

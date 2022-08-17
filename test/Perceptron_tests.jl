@@ -37,14 +37,10 @@ ŷavgtest = predict(xtest,outTest.θ,outTest.θ₀,outTest.classes)
 m      =  PerceptronClassic(shuffle=false, verbosity=NONE, rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 ŷtrain2 = predict(m) 
-#ŷtrain3 = predict(m,xtrain)
+ŷtrain3 = predict(m,xtrain)
+ϵtrain    = error(ytrain, mode(ŷtrain3))
+@test ŷtrain == ŷtrain2 == ŷtrain3
 
-@test ŷtrain == ŷtrain2
-
-softmax([-1,0,2])
-
-a = [3.0]
-b = [[-3.5430000000000126, -2.3429999999999174]]
 
 println("Testing multiple classes...")
 
@@ -67,10 +63,11 @@ ŷtest  = predict(xtest,out.θ,out.θ₀,out.classes)
 @test ϵtrain  < 0.4
 @test ϵavg    < 0.4
 
-m      =  PerceptronClassic(rng=copy(TESTRNG))
+m      =  PerceptronClassic(shuffle=false, verbosity=NONE, rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
-ŷtrain3 = predict(m) 
-
+ŷtrain2 = predict(m) 
+ŷtrain3 = predict(m,xtrain)
+@test ŷtrain == ŷtrain2 == ŷtrain3
 
 # ==================================
 # Test 2: Kernel Perceptron
