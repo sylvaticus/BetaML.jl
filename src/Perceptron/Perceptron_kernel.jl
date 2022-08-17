@@ -11,7 +11,7 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
 * `y`:        Associated labels of the training data
 * `K`:        Kernel function to employ. See `?radialKernel` or `?polynomialKernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]
 * `T`:        Maximum number of iterations (aka "epochs") across the whole set (if the set is not fully classified earlier) [def: 100]
-* `α`:        Initial distribution of the errors [def: `zeros(length(y))`]
+* `α`:        Initial distribution of the errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords boolean values (`true`/`false` or `0`/`1`) vectors , where nModels is computed as `(nClasses  * (nClasses - 1)) / 2`
 * `nMsg`:     Maximum number of messages to show if all iterations are done [def: `0`]
 * `shuffle`:  Whether to randomly shuffle the data at each iteration [def: `false`]
 * `rng`:      Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
@@ -32,7 +32,7 @@ julia> model = kernelPerceptron([1.1 1.1; 5.3 4.2; 1.8 1.7; 7.5 5.2;], ["a","c",
 julia> ŷtest = Perceptron.predict([10 10; 2.2 2.5; 1 1],model.x,model.y,model.α, model.classes,K=model.K)
 ```
 """
-function kernelPerceptron(x, y; K=radialKernel, T=100, α=zeros(Int64,length(y)), nMsgs=0, shuffle=false, rng = Random.GLOBAL_RNG)
+function kernelPerceptron(x, y; K=radialKernel, T=100, α=nothing, nMsgs=0, shuffle=false, rng = Random.GLOBAL_RNG)
  x         = makeMatrix(x)
  yclasses  = unique(y)
  nCl       = length(yclasses)
@@ -41,6 +41,8 @@ function kernelPerceptron(x, y; K=radialKernel, T=100, α=zeros(Int64,length(y))
  outX = Array{typeof(x),1}(undef,nModels)
  outY = Array{Array{Int64,1},1}(undef,nModels)
  outα = Array{Array{Int64,1},1}(undef,nModels)
+ α = (α == nothing) ? [zeros(Int64,length(y)) for i in 1:nModels] : α
+
  modelCounter = 1
  for (i,c) in enumerate(yclasses)
      for (i2,c2) in enumerate(yclasses)
@@ -48,7 +50,7 @@ function kernelPerceptron(x, y; K=radialKernel, T=100, α=zeros(Int64,length(y))
          ids = ( (y .== c) .| (y .== c2) )
          thisx = x[ids,:]
          thisy = y[ids]
-         thisα = α[ids]
+         thisα = α[modelCounter][ids]
          ybin = ((thisy .== c) .*2 .-1)  # conversion to +1 (if c) or -1 (if c2)
          outBinary = kernelPerceptronBinary(thisx, ybin; K=K, T=T, α=thisα, nMsgs=nMsgs, shuffle=shuffle, rng = rng)
          outX[modelCounter] = outBinary.x
@@ -85,7 +87,7 @@ Train a binary kernel classifier "perceptron" algorithm based on x and y
 * `separated`: a flag if the data has been successfully separated
 
 # Notes:
-* The trained data can then be used to make predictions using the function `predict()`. **If the option `shuffle` has been used, it is important to use there the returned (x,y,α) as these would have been shuffle compared with the original (x,y)**.
+* The trained data can then be used to make predictions using the function `predict()`. **If the option `shuffle` has been used, it is important to use there the returned (x,y,α) as these would have been shuffled compared with the original (x,y)**.
 * Please see @kernelPerceptron for a multi-class version
 # Example:
 ```jldoctest
@@ -138,7 +140,7 @@ end
 Predict a binary label {-1,1} given the feature vector and the training data together with their errors (as trained by a kernel perceptron algorithm)
 
 # Parameters:
-* `x`:      Feature matrix of the training data (n × d)
+* `x`:      Feature matrix of the data to predict (n × d)
 * `xtrain`: The feature vectors used for the training
 * `ytrain`: The labels of the training set
 * `α`:      The errors associated to each record
@@ -177,7 +179,7 @@ function predict(x,xtrain,ytrain,α;K=radialKernel)
  Predict a multiclass label given the new feature vector and a trained kernel perceptron model.
 
  # Parameters:
- * `x`:      Feature matrix of the training data (n × d)
+ * `x`:      Feature matrix of the data to predict (n × d)
  * `xtrain`: A vector of the feature matrix used for training each of the one-vs-one class matches (i.e. `model.x`)
  * `ytrain`: A vector of the label vector used for training each of the one-vs-one class matches (i.e. `model.y`)
  * `α`:      A vector of the errors associated to each record (i.e. `model.α`)
@@ -245,3 +247,114 @@ end
 # ----------------------------------------------
 # API V2...
 
+Base.@kwdef mutable struct KernelPerceptronHyperParametersSet <: BetaMLHyperParametersSet
+    "Kernel function to employ. See `?radialKernel` or `?polynomialKernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]"
+    kernel::Function = radialKernel       
+    "Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(nClasses  * (nClasses - 1)) / 2`"
+    initErrors::Union{Nothing,Vector{Vector{Int64}}} = nothing
+    "Maximum number of epochs, i.e. passages trough the whole training sample [def: `100`]"
+    epochs::Int64 = 100
+    "Whether to randomly shuffle the data at each iteration (epoch) [def: `false`]"
+    shuffle::Bool = false
+end
+
+Base.@kwdef mutable struct KernelPerceptronLearnableParameters <: BetaMLLearnableParametersSet
+    xtrain::Union{Nothing,Vector{Matrix{Float64}}} = nothing
+    ytrain::Union{Nothing,Vector{Vector{Int64}}} = nothing
+    errors::Union{Nothing,Vector{Vector{Int64}}} = nothing
+    classes::Vector  = []
+end
+
+mutable struct KernelPerceptron <: BetaMLSupervisedModel
+    hpar::KernelPerceptronHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{Nothing,KernelPerceptronLearnableParameters}
+    cres::Union{Nothing,Vector}
+    fitted::Bool
+    info::Dict{Symbol,Any}
+end
+
+function KernelPerceptron(;kwargs...)
+    m              = KernelPerceptron(KernelPerceptronHyperParametersSet(),BetaMLDefaultOptionsSet(),KernelPerceptronLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+          end
+        end
+    end
+    return m
+end
+
+function fit!(m::KernelPerceptron,X,Y)
+    
+
+    # Parameter alias..
+    kernel          = m.hpar.kernel
+    initErrors      = m.hpar.initErrors
+    epochs          = m.hpar.epochs
+    shuffle         = m.hpar.shuffle
+
+    cache           = m.opt.cache
+    verbosity       = m.opt.verbosity
+    rng             = m.opt.rng
+
+    nR,nD    = size(X)
+    yclasses = unique(Y)
+    nCl      = length(yclasses)
+    nModels   = Int((nCl  * (nCl - 1)) / 2)
+    initErrors =  (initErrors == nothing) ? [zeros(nR) for i in 1:nCl] : initErrors 
+    
+    if verbosity == NONE
+        nMsgs = 0
+    elseif verbosity <= LOW
+        nMsgs = 5
+    elseif verbosity <= STD
+        nMsgs = 10
+    elseif verbosity <= HIGH
+        nMsgs = 100
+    else
+        nMsgs = 100000
+    end
+
+    out = kernelPerceptron(X, Y; K=kernel, T=epochs, α=initErrors, nMsgs=nMsgs, shuffle=shuffle, rng = rng)
+
+    m.par = KernelPerceptronLearnableParameters(out.x,out.y,out.α,out.classes)
+
+  
+    if cache
+       out    = predict(X,m.par.xtrain,m.par.ytrain,m.par.errors,m.par.classes;K=kernel)
+       m.cres = cache ? out : nothing
+    end
+
+    m.info[:fittedRecords] = nR
+    m.info[:dimensions]    = nD
+    m.info[:nClasses]      = nCl
+    m.info[:nModels]       = nModels
+
+    return true
+end
+
+function predict(m::KernelPerceptron,X)
+    return predict(X,m.par.xtrain,m.par.ytrain,m.par.errors,m.par.classes;K=m.hpar.kernel)
+end
+
+function show(io::IO, ::MIME"text/plain", m::KernelPerceptron)
+    if m.fitted == false
+        print(io,"KernelPerceptron - The classic linear perceptron classifier (unfitted)")
+    else
+        print(io,"PerceptronClassic - The classic linear perceptron classifier (fitted on $(m.info[:fittedRecords]) records)")
+    end
+end
+
+function show(io::IO, m::KernelPerceptron)
+    if m.fitted == false
+        println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes linear perceptron classifier (unfitted)")
+    else
+        println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes linear perceptron classifier (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"Weights:")
+        println(io,m.par.weights)
+    end
+end

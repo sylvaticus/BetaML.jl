@@ -120,6 +120,15 @@ ŷtest  = predict(xtest,out.x,out.y,out.α, out.classes,K=out.K)
 @test ϵtrain  < 0.1
 @test ϵtest   < 0.8
 
+m = KernelPerceptron(shuffle=false,verbosity=NONE, rng=copy(TESTRNG))
+fit!(m,xtrain,ytrain)
+ŷtrain2 = predict(m)
+ŷtrain3 = predict(m,xtrain)
+@test ŷtrain == ŷtrain2 == ŷtrain3
+ŷtest2 = predict(m,xtest)
+@test ŷtest == ŷtest2
+
+
 # ==================================
 # Test 3: Pegasos
 # ==================================

@@ -234,7 +234,7 @@ end
 Base.@kwdef mutable struct PerceptronClassicHyperParametersSet <: BetaMLHyperParametersSet
     "Initial parameters. If given, should be a matrix of n-classes by feature dimension + 1 (to include the constant term as the first element) [def: `nothing`, i.e. zeros]"
     initPars::Union{Nothing,Matrix{Float64}} = nothing
-    "Maximum number of epochs, i.e. passages trough the whole training sample"
+    "Maximum number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
     epochs::Int64 = 1000
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `false`]"
     shuffle::Bool = false  
