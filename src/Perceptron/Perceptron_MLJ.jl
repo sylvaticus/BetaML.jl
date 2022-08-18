@@ -8,7 +8,7 @@ export PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier
 
 # ------------------------------------------------------------------------------
 # Model Structure declarations..
-
+"The classical perceptron algorithm using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML)."
 mutable struct PerceptronClassifier <: MMI.Probabilistic
    initialθ::Union{Matrix{Float64},Nothing} 
    initialθ₀::Union{Vector{Float64},Nothing} 
@@ -28,15 +28,15 @@ PerceptronClassifier(;
   rng = Random.GLOBAL_RNG,
   ) = PerceptronClassifier(initialθ,initialθ₀,maxEpochs,shuffle,forceOrigin,returnMeanHyperplane,rng)
 
-#kernelPerceptron(x, y; K=radialKernel, T=100, α=zeros(Int64,length(y)), nMsgs=0, shuffle=false)
- mutable struct KernelPerceptronClassifier <: MMI.Probabilistic
+"The kernel perceptron algorithm using one-vs-one for multiclass, from the Beta Machine Learning Toolkit (BetaML)."
+mutable struct KernelPerceptronClassifier <: MMI.Probabilistic
      K::Function
      maxEpochs::Int64
      initialα::Union{Nothing,Vector{Vector{Int64}}}
      shuffle::Bool
      rng::AbstractRNG
- end
- KernelPerceptronClassifier(;
+end
+KernelPerceptronClassifier(;
     K=radialKernel,
     maxEpochs=100,
     initialα = nothing,
@@ -44,7 +44,7 @@ PerceptronClassifier(;
     rng = Random.GLOBAL_RNG,
     ) = KernelPerceptronClassifier(K,maxEpochs,initialα,shuffle,rng)
 
-# pegasos(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, shuffle=false,forceOrigin=false,returnMeanHyperplane=false
+"The gradient-based linear \"pegasos\" classifier using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML)."
 mutable struct PegasosClassifier <: MMI.Probabilistic
    initialθ::Union{Matrix{Float64},Nothing} 
    initialθ₀::Union{Vector{Float64},Nothing} 
