@@ -123,6 +123,7 @@ function show(io::IO, ::MIME"text/plain", m::GMMRegressor1)
 end
 
 function show(io::IO, m::GMMRegressor1)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model ($(m.hpar.nClasses) classes, unfitted)")
     else
@@ -249,6 +250,7 @@ function show(io::IO, ::MIME"text/plain", m::GMMRegressor2)
 end
 
 function show(io::IO, m::GMMRegressor2)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.nClasses) classes, unfitted)")
     else

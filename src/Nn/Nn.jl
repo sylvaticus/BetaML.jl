@@ -77,12 +77,17 @@ using ForceImport
 import Base.size
 import Base: +, -, *, /, sum, sqrt
 
+import Base.show
+
 # module own functions
 export AbstractLayer, forward, backward, getParams, getNParams, getGradient, setParams!, size, NN,
        buildNetwork, predict, loss, train!, getindex, initOptAlg!, singleUpdate!,
        DenseLayer, DenseNoBiasLayer, VectorFunctionLayer, ScalarFunctionLayer,
        Learnable,
        show
+
+export FFNN
+export FFNNHyperParametersSet
 
 # for working on gradient as e.g [([1.0 2.0; 3.0 4.0], [1.0,2.0,3.0]),([1.0,2.0,3.0],1.0)]
 """

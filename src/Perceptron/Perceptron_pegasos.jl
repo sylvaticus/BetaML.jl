@@ -278,6 +278,7 @@ function show(io::IO, ::MIME"text/plain", m::Pegasos)
 end
 
 function show(io::IO, m::Pegasos)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         println(io,"Pegasos - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes a loss-based linear classifier without regularisation term (unfitted)")
     else

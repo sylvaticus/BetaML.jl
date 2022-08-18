@@ -547,6 +547,7 @@ function show(io::IO, ::MIME"text/plain", m::DTModel)
 end
 
 function show(io::IO, m::DTModel)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         print(io,"DTModel - A Decision Tree model (unfitted)")
     else

@@ -405,6 +405,7 @@ function show(io::IO, ::MIME"text/plain", m::KMedoidsModel)
 end
 
 function show(io::IO, m::KMeansModel)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         print(io,"KMeansModel - A $(m.hpar.nClasses)-classes K-Means Model (unfitted)")
     else
@@ -417,6 +418,7 @@ end
 
 
 function show(io::IO, m::KMedoidsModel)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         print(io,"KMedoidsModel - A $(m.hpar.nClasses)-classes K-Medoids Model (unfitted)")
     else

@@ -295,6 +295,7 @@ function show(io::IO, ::MIME"text/plain", m::GMMClusterModel)
 end
 
 function show(io::IO, m::GMMClusterModel)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         print(io,"GMMClusterModel - A $(m.hpar.nClasses)-classes Generative Mixture Model (unfitted)")
     else

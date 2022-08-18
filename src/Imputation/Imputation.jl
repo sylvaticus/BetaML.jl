@@ -288,6 +288,7 @@ function show(io::IO, ::MIME"text/plain", m::MeanImputer)
 end
 
 function show(io::IO, m::MeanImputer)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         print(io,"MeanImputer - A simple feature-mean imputer (unfitted)")
     else
@@ -439,6 +440,7 @@ function show(io::IO, ::MIME"text/plain", m::GMMImputer)
 end
 
 function show(io::IO, m::GMMImputer)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         print(io,"GMMImputer - A Gaussian Mixture Model based imputer (unfitted)")
     else
@@ -719,6 +721,7 @@ function show(io::IO, ::MIME"text/plain", m::RFImputer)
 end
 
 function show(io::IO, m::RFImputer)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         print(io,"RFImputer - A Random-Forests based imputer (unfitted)")
     else
@@ -981,6 +984,7 @@ function show(io::IO, ::MIME"text/plain", m::GeneralImputer)
 end
 
 function show(io::IO, m::GeneralImputer)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         print(io,"GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted) (unfitted)")
     else

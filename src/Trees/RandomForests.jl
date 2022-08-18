@@ -308,6 +308,7 @@ function show(io::IO, ::MIME"text/plain", m::RFModel)
 end
 
 function show(io::IO, m::RFModel)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest model (unfitted)")
     else

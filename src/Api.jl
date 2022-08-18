@@ -3,6 +3,8 @@ module Api
 
 using StableRNGs, DocStringExtensions, Random
 
+import Base.show
+
 # Shared api trough the modules, i.e. names used by more than one module
 # Modules are free to use other functions but these are defined here to avoid name conflicts
 # and allows instead Multiple Dispatch to handle them
@@ -58,13 +60,15 @@ $(FIELDS)
 """
 Base.@kwdef mutable struct BetaMLDefaultOptionsSet
    "Cache the results of the fitting stage, as to allow predict(mod) [default: `true`]. Set it to `false` to save memory for large data."
-   cache = true
+   cache::Bool = true
+   "An optional title and/or description for this model"
+   descr::String = "" 
    "The verbosity level to be used in training or prediction (see [`Verbosity`](@ref)) [deafult: `STD`]
    "
    verbosity::Verbosity = STD
    "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
    "
-   rng                  = Random.GLOBAL_RNG
+   rng::AbstractRNG = Random.GLOBAL_RNG
 end
 
 """
@@ -98,6 +102,24 @@ function reset!(m::BetaMLModel)
    m.info    = Dict{Symbol,Any}()
    m.fitted  = false 
    return true
+end
+
+function show(io::IO, ::MIME"text/plain", m::BetaMLModel)
+   if m.fitted == false
+       print(io,"A $(typeof(m)) BetaMLModel (unfitted)")
+   else
+       print(io,"A $(typeof(m)) BetaMLModel (fitted)")
+   end
+end
+
+function show(io::IO, m::BetaMLModel)
+   m.opt.descr != "" && println(io,m.opt.descr)
+   if m.fitted == false
+      print(io,"A $(typeof(m)) BetaMLModel (unfitted)")
+   else
+      println(io,"A $(typeof(m)) BetaMLModel (unfitted)")
+      print(io,m.info)
+   end
 end
 
 partition()            = nothing

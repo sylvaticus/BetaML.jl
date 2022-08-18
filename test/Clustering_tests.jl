@@ -26,7 +26,7 @@ X = [1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4]
 (clIdxKMeans,Z) = kmeans(X,3,initStrategy="grid",rng=copy(TESTRNG))
 @test clIdxKMeans == [2, 2, 2, 2, 3, 3, 3, 1, 1]
 #@test (clIdx,Z) .== ([2, 2, 2, 2, 3, 3, 3, 1, 1], [5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664])
-m = KMeansModel(nClasses=3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+m = KMeansModel(nClasses=3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG), descr="First test k-means model")
 fit!(m,X)
 classes = predict(m)
 @test clIdxKMeans == classes
@@ -41,8 +41,7 @@ fit!(m,X)
 classes = predict(m)
 @test clIdxKMeans == classes
 @test info(m)[:fittedRecords] == 9
-print(m)
-@test sprint(print, m) == "KMeansModel - A 2-dimensions 3-classes K-Means Model (fitted on 9 records)\nDict{Symbol, Any}(:fittedRecords => 9, :dimensions => 2)\nRepresentatives:\n[5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664]\n"
+@test sprint(print, m) == "First test k-means model\nKMeansModel - A 2-dimensions 3-classes K-Means Model (fitted on 9 records)\nDict{Symbol, Any}(:fittedRecords => 9, :dimensions => 2)\nRepresentatives:\n[5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664]\n"
 
 # ==================================
 # New test

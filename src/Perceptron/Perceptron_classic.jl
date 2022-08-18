@@ -356,6 +356,7 @@ function show(io::IO, ::MIME"text/plain", m::PerceptronClassic)
 end
 
 function show(io::IO, m::PerceptronClassic)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes linear perceptron classifier (unfitted)")
     else

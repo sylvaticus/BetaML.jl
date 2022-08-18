@@ -374,6 +374,7 @@ function show(io::IO, ::MIME"text/plain", m::KernelPerceptron)
 end
 
 function show(io::IO, m::KernelPerceptron)
+    m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
         println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes \"kernelised\" version of the perceptron classifier (unfitted)")
     else
