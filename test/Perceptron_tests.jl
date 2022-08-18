@@ -67,7 +67,7 @@ m      =  PerceptronClassic(shuffle=false, verbosity=NONE, rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 ŷtrain2 = predict(m) 
 ŷtrain3 = predict(m,xtrain)
-@test ŷtrain == ŷtrain2 == ŷtrain3
+@test all([ŷtrain[r][k] ≈ ŷtrain2[r][k] ≈ ŷtrain3[r][k] for k in keys(ŷtrain[1]) for r in 1:length(ŷtrain)])
 
 # ==================================
 # Test 2: Kernel Perceptron
@@ -124,9 +124,9 @@ m = KernelPerceptron(shuffle=false,verbosity=NONE, rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 ŷtrain2 = predict(m)
 ŷtrain3 = predict(m,xtrain)
-@test ŷtrain == ŷtrain2 == ŷtrain3
+@test all([ŷtrain[r][k] ≈ ŷtrain2[r][k] ≈ ŷtrain3[r][k] for k in keys(ŷtrain[1]) for r in 1:length(ŷtrain)])
 ŷtest2 = predict(m,xtest)
-@test ŷtest == ŷtest2
+@test all([ŷtest[r][k] ≈ ŷtest2[r][k] for k in keys(ŷtest[1]) for r in 1:length(ŷtest)])
 
 
 # ==================================
@@ -176,9 +176,10 @@ m = Pegasos(shuffle=false,verbosity=NONE, rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 ŷtrain2 = predict(m)
 ŷtrain3 = predict(m,xtrain)
-@test ŷtrain == ŷtrain2 == ŷtrain3
+@test all([ŷtrain[r][k] ≈ ŷtrain2[r][k] ≈ ŷtrain3[r][k] for k in keys(ŷtrain[1]) for r in 1:length(ŷtrain)])
 ŷtest2 = predict(m,xtest)
-@test ŷtest == ŷtest2
+@test all([ŷtest[r][k] ≈ ŷtest2[r][k] for k in keys(ŷtest[1]) for r in 1:length(ŷtest)])
+
 
 # ==================================
 # NEW TEST

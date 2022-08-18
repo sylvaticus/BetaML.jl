@@ -10,8 +10,8 @@ export PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier
 # Model Structure declarations..
 
 mutable struct PerceptronClassifier <: MMI.Probabilistic
-   initialθ::Vector{Float64}
-   initialθ₀::Float64
+   initialθ::Union{Matrix{Float64},Nothing} 
+   initialθ₀::Union{Vector{Float64},Nothing} 
    maxEpochs::Int64
    shuffle::Bool
    forceOrigin::Bool
@@ -19,8 +19,8 @@ mutable struct PerceptronClassifier <: MMI.Probabilistic
    rng::AbstractRNG
 end
 PerceptronClassifier(;
-  initialθ=Float64[],
-  initialθ₀=0.0,
+  initialθ=nothing,
+  initialθ₀=nothing,
   maxEpochs=1000,
   shuffle=false,
   forceOrigin=false,
@@ -32,22 +32,22 @@ PerceptronClassifier(;
  mutable struct KernelPerceptronClassifier <: MMI.Probabilistic
      K::Function
      maxEpochs::Int64
-     initialα::Vector{Int64}
+     initialα::Union{Nothing,Vector{Vector{Int64}}}
      shuffle::Bool
      rng::AbstractRNG
  end
  KernelPerceptronClassifier(;
     K=radialKernel,
     maxEpochs=100,
-    initialα = Int64[],
+    initialα = nothing,
     shuffle=false,
     rng = Random.GLOBAL_RNG,
     ) = KernelPerceptronClassifier(K,maxEpochs,initialα,shuffle,rng)
 
 # pegasos(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, shuffle=false,forceOrigin=false,returnMeanHyperplane=false
 mutable struct PegasosClassifier <: MMI.Probabilistic
-   initialθ::Vector{Float64}
-   initialθ₀::Float64
+   initialθ::Union{Matrix{Float64},Nothing} 
+   initialθ₀::Union{Vector{Float64},Nothing} 
    λ::Float64
    η::Function
    maxEpochs::Int64
@@ -57,8 +57,8 @@ mutable struct PegasosClassifier <: MMI.Probabilistic
    rng::AbstractRNG
 end
 PegasosClassifier(;
-  initialθ=Float64[],
-  initialθ₀=0.0,
+  initialθ=nothing,
+  initialθ₀=nothing,
   λ = 0.5,
   η = (t -> 1/sqrt(t)),
   maxEpochs=1000,
@@ -74,8 +74,8 @@ PegasosClassifier(;
 function MMI.fit(model::PerceptronClassifier, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
- initialθ  = length(model.initialθ) == 0 ? zeros(size(x,2)) : model.initialθ
- fitresult = perceptron(x, y; θ=initialθ, θ₀=model.initialθ₀, T=model.maxEpochs, nMsgs=0, shuffle=model.shuffle, forceOrigin=model.forceOrigin, returnMeanHyperplane=model.returnMeanHyperplane,rng=model.rng)
+ #initialθ  = length(model.initialθ) == 0 ? zeros(size(x,2)) : model.initialθ
+ fitresult = perceptron(x, y; θ=model.initialθ, θ₀=model.initialθ₀, T=model.maxEpochs, nMsgs=0, shuffle=model.shuffle, forceOrigin=model.forceOrigin, returnMeanHyperplane=model.returnMeanHyperplane,rng=model.rng)
  cache=nothing
  report=nothing
  return (fitresult,allClasses), cache, report
@@ -84,8 +84,8 @@ end
 function MMI.fit(model::KernelPerceptronClassifier, verbosity, X, y)
  x          = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
- initialα   = length(model.initialα) == 0 ? zeros(Int64,length(y)) : model.initialα
- fitresult  = kernelPerceptron(x, y; K=model.K, T=model.maxEpochs, α=initialα, nMsgs=0, shuffle=model.shuffle,rng=model.rng)
+ #initialα   = length(model.initialα) == 0 ? zeros(Int64,length(y)) : model.initialα
+ fitresult  = kernelPerceptron(x, y; K=model.K, T=model.maxEpochs, α=model.initialα, nMsgs=0, shuffle=model.shuffle,rng=model.rng)
  cache      = nothing
  report     = nothing
  return (fitresult,allClasses), cache, report
@@ -94,8 +94,8 @@ end
 function MMI.fit(model::PegasosClassifier, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
- initialθ  = length(model.initialθ) == 0 ? zeros(size(x,2)) : model.initialθ
- fitresult = pegasos(x, y; θ=initialθ,θ₀=model.initialθ₀, λ=model.λ,η=model.η, T=model.maxEpochs, nMsgs=0, shuffle=model.shuffle, forceOrigin=model.forceOrigin, returnMeanHyperplane=model.returnMeanHyperplane,rng=model.rng)
+ #initialθ  = length(model.initialθ) == 0 ? zeros(size(x,2)) : model.initialθ
+ fitresult = pegasos(x, y; θ=model.initialθ,θ₀=model.initialθ₀, λ=model.λ,η=model.η, T=model.maxEpochs, nMsgs=0, shuffle=model.shuffle, forceOrigin=model.forceOrigin, returnMeanHyperplane=model.returnMeanHyperplane,rng=model.rng)
  cache=nothing
  report=nothing
  return (fitresult,allClasses), cache, report

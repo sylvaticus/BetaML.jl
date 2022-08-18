@@ -104,7 +104,20 @@ function kernelPerceptronBinary(x, y; K=radialKernel, T=1000, α=zeros(Int64,len
  (n,d) = size(x)
  bestϵ = Inf
  lastϵ = Inf
- @showprogress 1 "Training Kernel Perceptron..." for t in 1:T
+ 
+  if nMsgs == 0
+    showTime = typemax(Float64)
+  elseif nMsgs < 5
+    showTime = 50
+  elseif nMsgs < 10
+    showTime = 1
+  elseif nMsgs < 100
+    showTime = 0.5
+  else
+    showTime = 0.2
+  end
+
+ @showprogress showTime "Training Kernel Perceptron..." for t in 1:T
      ϵ = 0
      if shuffle
         # random shuffle x, y and alpha
