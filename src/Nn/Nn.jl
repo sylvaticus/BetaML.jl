@@ -86,8 +86,8 @@ export AbstractLayer, forward, backward, getParams, getNParams, getGradient, set
        Learnable,
        show
 
-export FFNN
-export FFNNHyperParametersSet
+export Feedforward
+export FeedforwardHyperParametersSet
 
 # for working on gradient as e.g [([1.0 2.0; 3.0 4.0], [1.0,2.0,3.0]),([1.0,2.0,3.0],1.0)]
 """
@@ -633,9 +633,19 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
     θ_epochs  = []
 
     initOptAlg!(optAlg::OptimisationAlgorithm;θ=getParams(nn),batchSize=batchSize,x=x,y=y)
-
-    timetoShowProgress = verbosity > NONE ? 1 : typemax(Int64)
-    @showprogress timetoShowProgress "Training the Neural Network..."    for t in 1:epochs
+    if verbosity == NONE
+        showTime = typemax(Float64)
+    elseif verbosity <= LOW
+        showTime = 50
+    elseif verbosity <= STD
+        showTime = 1
+    elseif verbosity <= HIGH
+        showTime = 0.5
+    else
+        showTime = 0.2
+    end
+    
+    @showprogress showTime "Training the Neural Network..."    for t in 1:epochs
        batches = batch(n,batchSize,sequential=sequential,rng=rng)
        nBatches = length(batches)
        if t == 1
@@ -675,7 +685,7 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
     end
 
     if (verbosity > NONE)
-        if verbosity == LOW
+        if verbosity > LOW
             ϵ_epoch = loss(nn,x,y)
         end
         println("Training of $epochs epoch completed. Final epoch error: $(ϵ_epoch).");
@@ -773,5 +783,194 @@ initOptAlg!(optAlg::OptimisationAlgorithm;θ,batchSize,x,y,rng = Random.GLOBAL_R
 end
 
  =#
+
+# ------------------------------------------------------------------------------
+# V2 Api
+
+"""
+**`$(TYPEDEF)`**
+
+Hyperparameters for the `Feedforward` neural network model
+
+## Parameters:
+$(FIELDS)
+"""
+Base.@kwdef mutable struct FeedforwardHyperParametersSet <: BetaMLHyperParametersSet
+    "Array of layer objects [def: `nothing`, i.e. zeros]"
+    layers::Union{Array{AbstractLayer,1},Nothing} = nothing
+    "Cost function"
+    cf::Union{Nothing,Function} = nothing
+    "Derivative of the cost function [def: `nothing`, i.e. use autodiff]"
+    dcf::Union{Function,Nothing}  = nothing
+    "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
+    epochs::Int64 = 100
+    "Size of each individual batch [def: `32`]"
+    bachSize::Int64 = 32
+    "The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]"
+    optAlg::OptimisationAlgorithm = ADAM()
+    "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
+    shuffle::Bool = true  
+end
+"""
+FeedforwardOptionsSet
+
+A struct defining the options used by the Feedforward neural network model
+
+## Parameters:
+$(FIELDS)
+"""
+Base.@kwdef mutable struct FeedforwardOptionsSet
+   "Cache the results of the fitting stage, as to allow predict(mod) [default: `true`]. Set it to `false` to save memory for large data."
+   cache::Bool = true
+   "An optional title and/or description for this model"
+   descr::String = "" 
+   "The verbosity level to be used in training or prediction (see [`Verbosity`](@ref)) [deafult: `STD`]
+   "
+   verbosity::Verbosity = STD
+   "A call back function to provide information during training [def: `trainingInfo`"
+   cb::Function=trainingInfo
+   "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+   "
+   rng::AbstractRNG = Random.GLOBAL_RNG
+end
+
+Base.@kwdef mutable struct FeedforwardLearnableParameters <: BetaMLLearnableParametersSet
+    nnstruct::Union{Nothing,NN} = nothing    
+end
+
+"""
+
+**`Feedforward`**
+
+A "feedforward" neural network (supervised).
+
+For the parameters see  [`FeedforwardLearnableParameters`](@ref).
+
+## Limitations:
+- data must be numerical
+
+
+"""
+mutable struct Feedforward <: BetaMLSupervisedModel
+    hpar::FeedforwardHyperParametersSet
+    opt::FeedforwardOptionsSet
+    par::Union{Nothing,FeedforwardLearnableParameters}
+    cres::Union{Nothing,Vector}
+    fitted::Bool
+    info::Dict{Symbol,Any}
+end
+
+function Feedforward(;kwargs...)
+    m              = Feedforward(FeedforwardHyperParametersSet(),FeedforwardOptionsSet(),FeedforwardLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+          end
+        end
+    end
+    return m
+end
+
+function fit!(m::Feedforward,X,Y)
+    
+
+    # Parameter alias..
+    layers      = m.hpar.layers
+    cf          = m.hpar.cf
+    dcf         = m.hpar.dcf
+    epochs      = m.hpar.epochs
+    bachSize    = m.hpar.bachSize
+    optAlg      = m.hpar.optAlg
+    shuffle     = m.hpar.shuffle
+    cache       = m.opt.cache
+    descr       = m.opt.descr
+    verbosity   = m.opt.verbosity
+    cb          = m.opt.cb
+    rng         = m.opt.rng
+    fitted      = m.fitted
+    
+    nR,nD       = size(X)
+
+    if !fitted
+        m.par = FeedforwardLearnableParameters(NN(deepcopy(layers),cf,dcf,descr))
+        m.info[:epochsRan] = 0
+        m.info[:lossPerEpoch] = Float64[]
+        m.info[:parPerEpoch] = []
+        m.info[:dimensions]   = nD
+        #m.info[:fittedRecords] = O
+    end
+
+
+    nnstruct = m.par.nnstruct
+
+
+    out = train!(nnstruct,X,Y; epochs=epochs, batchSize=batchSize, sequential=!shuffle, verbosity=verbosity, cb=cb, optAlg=optAlg,rng = rng)
+
+    m.info[:epochsRan]     += out.epochs
+    append!(m.info[:lossPerEpoch],out.ϵ_epochs) 
+    append!(m.info[:parPerEpoch],out.θ_epochs) 
+    m.info[:dimensions]    = nD
+    m.info[:fittedRecords] = nR
+    m.info[:nLayers] = length(nnstruct.layers)
+    m.info[:nPar] = getNParams(m)
+   
+    if cache
+       out    = predict(nnstruct,X)
+       m.cres = out
+    end
+
+    m.fitted = true
+
+    return true
+end
+
+function predict(m::Feedforward,X)
+    return predict(m.par.nnstruct,X)
+end
+
+function show(io::IO, ::MIME"text/plain", m::Feedforward)
+    if m.fitted == false
+        print(io,"Feedforward - A Feed-forward neural network (unfitted)")
+    else
+        print(io,"Feedforward - A Feed-forward neural network (fitted on $(m.info[:fittedRecords]) records)")
+    end
+end
+
+function show(io::IO, m::Feedforward)
+    m.opt.descr != "" && println(io,m.opt.descr)
+    if m.fitted == false
+        println(io,"Feedforward - A $(length(m.hpar.layers))-layers feedfordward neural network (unfitted)")
+        println(io,"Cost function:")
+        println(io,m.hpar.cf)
+        println(io,"Optimisation algorithm:")
+        println(io,m.hpar.optAlg)
+        println("Layers:")
+        println("#\t # In \t\t # Out \t\t Type")
+        for (i,l) in enumerate(m.hpar.layers)
+          shapes = size(l)
+          println("$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
+        end
+    else
+        println(io,"Feedforward - A $(m.info[:dimensions])-dimensions $(m.info[:nLayers])-layers feedfordward neural network (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"Cost function:")
+        println(io,m.hpar.cf)
+        println(io,"Optimisation algorithm:")
+        println(io,m.hpar.optAlg)
+        println("Layers:")
+        println("#\t # In \t\t  # Out \t\t  Type")
+        for (i,l) in enumerate(m.hpar.layers)
+          shapes = size(l)
+          println("$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
+        end
+        println(io,"Info:")
+        println(io,m.info)
+    end
+end
+
+
+
 
 end # end module

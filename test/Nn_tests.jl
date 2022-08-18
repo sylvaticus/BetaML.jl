@@ -130,7 +130,7 @@ ytest = [1.1; 0.36; 1.0; 6.0]
 l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], f=tanh, df=dtanh,rng=copy(TESTRNG))
 l2 = DenseNoBiasLayer(3,2, w=[1 1 1; 1 1 1], f=relu, df=drelu,rng=copy(TESTRNG))
 l3 = DenseLayer(2,1, w=[1 1], wb=[0], f=identity,df=didentity,rng=copy(TESTRNG))
-mynn = buildNetwork([l1,l2,l3],squaredCost,name="Feed-forward Neural Network Model 1",dcf=dSquaredCost)
+mynn = buildNetwork(deepcopy([l1,l2,l3]),squaredCost,name="Feed-forward Neural Network Model 1",dcf=dSquaredCost)
 train!(mynn,xtrain,ytrain,batchSize=1,sequential=true,epochs=100,verbosity=NONE,optAlg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG))
 #@benchmark train!(mynn,xtrain,ytrain,batchSize=1,sequential=true,epochs=100,verbosity=NONE,optAlg=SGD(η=t -> 1/(1+t),λ=1))
 avgLoss = loss(mynn,xtest,ytest)
@@ -138,6 +138,9 @@ avgLoss = loss(mynn,xtest,ytest)
 expectedOutput = [0.7360644412052633, 0.7360644412052633, 0.7360644412052633, 2.47093434438514]
 predicted = dropdims(predict(mynn,xtest),dims=2)
 @test any(isapprox(expectedOutput,predicted))
+
+m = Feedforward(layers=[l1,l2,l3],dcf=dSquaredCost,batchSize=1,shuffle=false,epochs=100,verbosity=NONE,optAlg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG))
+fit!(m,xtrain,ytrain)
 
 # With the ADAM optimizer...
 l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], f=tanh, df=dtanh,rng=copy(TESTRNG))
