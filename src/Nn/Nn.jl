@@ -86,8 +86,8 @@ export AbstractLayer, forward, backward, getParams, getNParams, getGradient, set
        Learnable,
        show
 
-export Feedforward
-export FeedforwardHyperParametersSet
+export FeedforwardNN
+export FeedforwardNNHyperParametersSet, FeedforwardNNOptionsSet
 
 # for working on gradient as e.g [([1.0 2.0; 3.0 4.0], [1.0,2.0,3.0]),([1.0,2.0,3.0],1.0)]
 """
@@ -789,6 +789,7 @@ end
 
 #$([println(\"- $(i)\" for i in subtypes(AbstractLayer)])
 # $(subtypes(AbstractLayer))
+#
 """
 **`$(TYPEDEF)`**
 
@@ -797,19 +798,16 @@ Hyperparameters for the `Feedforward` neural network model
 ## Parameters:
 $(FIELDS)
 
-Available layers (i.e. `subtypes(AbstractLayer)`):
-
-
-Type `?LayerName` for information on how to use each layer.
+To know the available layers type `subtypes(AbstractLayer)`) and then type `?LayerName` for information on how to use each layer.
 
 """
-Base.@kwdef mutable struct FeedforwardHyperParametersSet <: BetaMLHyperParametersSet
-    "Array of layer objects [def: `nothing`, i.e. zeros]"
+Base.@kwdef mutable struct FeedforwardNNHyperParametersSet <: BetaMLHyperParametersSet
+    "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
-    "Cost function"
-    cf::Union{Nothing,Function} = nothing
+    "Loss (cost) function [def: `squaredCost`]"
+    loss::Union{Nothing,Function} = squaredCost
     "Derivative of the cost function [def: `nothing`, i.e. use autodiff]"
-    dcf::Union{Function,Nothing}  = nothing
+    dloss::Union{Function,Nothing}  = nothing
     "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
     epochs::Int64 = 100
     "Size of each individual batch [def: `32`]"
@@ -820,14 +818,14 @@ Base.@kwdef mutable struct FeedforwardHyperParametersSet <: BetaMLHyperParameter
     shuffle::Bool = true  
 end
 """
-FeedforwardOptionsSet
+FeedforwardNNOptionsSet
 
 A struct defining the options used by the Feedforward neural network model
 
 ## Parameters:
 $(FIELDS)
 """
-Base.@kwdef mutable struct FeedforwardOptionsSet
+Base.@kwdef mutable struct FeedforwardNNOptionsSet
    "Cache the results of the fitting stage, as to allow predict(mod) [default: `true`]. Set it to `false` to save memory for large data."
    cache::Bool = true
    "An optional title and/or description for this model"
@@ -842,17 +840,17 @@ Base.@kwdef mutable struct FeedforwardOptionsSet
    rng::AbstractRNG = Random.GLOBAL_RNG
 end
 
-Base.@kwdef mutable struct FeedforwardLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct FeedforwardNNLearnableParameters <: BetaMLLearnableParametersSet
     nnstruct::Union{Nothing,NN} = nothing    
 end
 
 """
 
-**`Feedforward`**
+**`FeedforwardNN`**
 
 A "feedforward" neural network (supervised).
 
-For the parameters see  [`FeedforwardLearnableParameters`](@ref).
+For the parameters see [`FeedforwardNNLearnableParameters`](@ref).
 
 ## Notes:
 - data must be numerical
@@ -860,17 +858,17 @@ For the parameters see  [`FeedforwardLearnableParameters`](@ref).
   - For one-dimension regressions drop the unnecessary dimension with `dropdims(ŷ,dims=2)`
   - For classification tasks the columns should be interpreted as the probabilities for each categories
 """
-mutable struct Feedforward <: BetaMLSupervisedModel
-    hpar::FeedforwardHyperParametersSet
-    opt::FeedforwardOptionsSet
-    par::Union{Nothing,FeedforwardLearnableParameters}
+mutable struct FeedforwardNN <: BetaMLSupervisedModel
+    hpar::FeedforwardNNHyperParametersSet
+    opt::FeedforwardNNOptionsSet
+    par::Union{Nothing,FeedforwardNNLearnableParameters}
     cres::Union{Nothing,AbstractArray}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
 
-function Feedforward(;kwargs...)
-    m              = Feedforward(FeedforwardHyperParametersSet(),FeedforwardOptionsSet(),FeedforwardLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function FeedforwardNN(;kwargs...)
+    m              = FeedforwardNN(FeedforwardNNHyperParametersSet(),FeedforwardNNOptionsSet(),FeedforwardNNLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        for f in thisobjfields
@@ -883,13 +881,13 @@ function Feedforward(;kwargs...)
     return m
 end
 
-function fit!(m::Feedforward,X,Y)
+function fit!(m::FeedforwardNN,X,Y)
     
 
     # Parameter alias..
     layers      = m.hpar.layers
-    cf          = m.hpar.cf
-    dcf         = m.hpar.dcf
+    loss        = m.hpar.loss
+    dloss       = m.hpar.dloss
     epochs      = m.hpar.epochs
     batchSize   = m.hpar.batchSize
     optAlg      = m.hpar.optAlg
@@ -902,8 +900,32 @@ function fit!(m::Feedforward,X,Y)
     fitted      = m.fitted
 
     nR,nD       = size(X)
+    nRy, nDy    = size(Y,1), size(Y,2)         
+    
+    nR == nRy || error("X and Y have different number of records (rows)")
+
     if !fitted
-        m.par = FeedforwardLearnableParameters(NN(deepcopy(layers),cf,dcf,false,descr))
+        if layers == nothing
+            innerSize = nDy < 10 ? Int(round(nD*2)) : Int(round(nD*1.3))
+            l1 = DenseLayer(nD,innerSize, f=relu, df=drelu, rng=rng)
+            l2 = DenseLayer(innerSize,innerSize, f=relu, df=drelu, rng=rng)
+            # now let's see if y is continuous, all positives or all in [0,1] and choose the last layer according
+            allPos   = all(Y .>= 0.0)
+            allSum1  = all(sum(Y,dims=2) .≈ 1.0)
+            allProbs = allPos && allSum1  && nDy >1
+            if !allPos
+                l3 = DenseLayer(innerSize,nDy, f=identity, df=didentity, rng=rng)
+                layers = [l1,l2,l3]
+            elseif allPos && ! allProbs
+                l3 = DenseLayer(innerSize,nDy, f=relu, df=drelu, rng=rng)
+                layers = [l1,l2,l3]
+            else
+                l3 = DenseLayer(innerSize,nDy, f=relu, df=drelu, rng=rng)
+                l4 = VectorFunctionLayer(nDy,f=softmax)
+                layers = [l1,l2,l3,l4]
+            end
+        end
+        m.par = FeedforwardNNLearnableParameters(NN(deepcopy(layers),loss,dloss,false,descr))
         m.info[:epochsRan] = 0
         m.info[:lossPerEpoch] = Float64[]
         m.info[:parPerEpoch] = []
@@ -936,24 +958,24 @@ function fit!(m::Feedforward,X,Y)
     return true
 end
 
-function predict(m::Feedforward,X)
+function predict(m::FeedforwardNN,X)
     return predict(m.par.nnstruct,X)
 end
 
-function show(io::IO, ::MIME"text/plain", m::Feedforward)
+function show(io::IO, ::MIME"text/plain", m::FeedforwardNN)
     if m.fitted == false
-        print(io,"Feedforward - A Feed-forward neural network (unfitted)")
+        print(io,"FeedforwardNN - A Feed-forward neural network (unfitted)")
     else
-        print(io,"Feedforward - A Feed-forward neural network (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"FeedforwardNN - A Feed-forward neural network (fitted on $(m.info[:fittedRecords]) records)")
     end
 end
 
-function show(io::IO, m::Feedforward)
+function show(io::IO, m::FeedforwardNN)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"Feedforward - A $(length(m.hpar.layers))-layers feedfordward neural network (unfitted)")
-        println(io,"Cost function:")
-        println(io,m.hpar.cf)
+        println(io,"FeedforwardNN - A $(length(m.hpar.layers))-layers feedfordward neural network (unfitted)")
+        println(io,"Loss function:")
+        println(io,m.hpar.loss)
         println(io,"Optimisation algorithm:")
         println(io,m.hpar.optAlg)
         println("Layers:")
@@ -963,16 +985,16 @@ function show(io::IO, m::Feedforward)
           println("$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
         end
     else
-        println(io,"Feedforward - A $(m.info[:dimensions])-dimensions $(m.info[:nLayers])-layers feedfordward neural network (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"FeedforwardNN - A $(m.info[:dimensions])-dimensions $(m.info[:nLayers])-layers feedfordward neural network (fitted on $(m.info[:fittedRecords]) records)")
         println(io,"Cost function:")
-        println(io,m.hpar.cf)
+        println(io,m.hpar.loss)
         println(io,"Optimisation algorithm:")
         println(io,m.hpar.optAlg)
-        println("Layers:")
-        println("#\t # In \t\t  # Out \t\t  Type")
-        for (i,l) in enumerate(m.hpar.layers)
+        println(io, "Layers:")
+        println(io, "#\t # In \t\t  # Out \t\t  Type")
+        for (i,l) in enumerate(m.par.nnstruct.layers)
           shapes = size(l)
-          println("$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
+          println(io, "$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
         end
         println(io,"Info:")
         println(io,m.info)
@@ -980,6 +1002,7 @@ function show(io::IO, m::Feedforward)
 end
 
 
-
+# MLJ interface
+include("Nn_MLJ.jl")
 
 end # end module

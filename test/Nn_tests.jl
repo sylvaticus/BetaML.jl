@@ -140,13 +140,14 @@ ŷtrain = dropdims(predict(mynn,xtrain),dims=2)
 ŷtest = dropdims(predict(mynn,xtest),dims=2)
 @test any(isapprox(expectedŷtest,ŷtest))
 
-m = Feedforward(layers=[l1,l2,l3],cf=squaredCost,dcf=dSquaredCost,batchSize=1,shuffle=false,epochs=100,verbosity=STD,optAlg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test")
+m = FeedforwardNN(layers=[l1,l2,l3],loss=squaredCost,dloss=dSquaredCost,batchSize=1,shuffle=false,epochs=100,verbosity=NONE,optAlg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test")
 fit!(m,xtrain,ytrain)
 ŷtrain2 =  dropdims(predict(m),dims=2)
 ŷtrain3 =  dropdims(predict(m,xtrain),dims=2)
 @test ŷtrain ≈ ŷtrain2 ≈ ŷtrain3
 ŷtest2 =  dropdims(predict(m,xtest),dims=2)
 @test ŷtest ≈ ŷtest2 
+
 
 # With the ADAM optimizer...
 l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], f=tanh, df=dtanh,rng=copy(TESTRNG))
@@ -186,6 +187,14 @@ mreTrain = meanRelError(ŷtrain,ytrain)
 @test mreTrain <= 0.06
 mreTest  = meanRelError(ŷtest,ytest)
 @test mreTest <= 0.05
+
+m = FeedforwardNN(rng=copy(TESTRNG),verbosity=NONE)
+fit!(m,xtrain,ytrain)
+ŷtrain2 =  dropdims(predict(m),dims=2)
+mreTrain = meanRelError(ŷtrain,ytrain)
+@test mreTrain <= 0.06
+
+
 
 #predicted = dropdims(Nn.predict(mynn,xtrain),dims=2)
 #ytrain
@@ -238,13 +247,35 @@ testAccuracy  = accuracy(ŷtest,ytest,tol=1)
 l1   = DenseLayer(4,10, w=ones(10,4), wb=zeros(10),f=celu,rng=copy(TESTRNG))
 l2   = DenseLayer(10,3, w=ones(3,10), wb=zeros(3),rng=copy(TESTRNG))
 l3   = VectorFunctionLayer(3,f=softmax)
-mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal")
+mynn = buildNetwork(deepcopy([l1,l2,l3]),squaredCost,name="Multinomial logistic regression Model Sepal")
 train!(mynn,xtrain,ytrain_oh,epochs=10,batchSize=8,sequential=true,verbosity=NONE,optAlg=ADAM(η=t -> 1/(1+t), λ=0.5),rng=copy(TESTRNG))
 ŷtrain = predict(mynn,xtrain)
 ŷtest  = predict(mynn,xtest)
 trainAccuracy = accuracy(ŷtrain,ytrain,tol=1)
 testAccuracy  = accuracy(ŷtest,ytest,tol=1)
 @test testAccuracy >= 1
+
+m = FeedforwardNN(layers=[l1,l2,l3],loss=squaredCost,batchSize=8,shuffle=false,epochs=10,verbosity=NONE,optAlg=ADAM(η=t -> 1/(1+t), λ=0.5),rng=copy(TESTRNG),descr="Iris classification")
+fit!(m,xtrain,ytrain_oh)
+ŷtrain2 =  predict(m)
+@test ŷtrain ≈ ŷtrain2
+reset!(m)
+fit!(m,xtrain,ytrain_oh)
+ŷtrain3 =  predict(m)
+@test ŷtrain ≈ ŷtrain2 ≈ ŷtrain3
+reset!(m)
+m.hpar.epochs = 5
+fit!(m,xtrain,ytrain_oh)
+#fit!(m,xtrain,ytrain_oh)
+ŷtrain4 =  predict(m)
+acc = accuracy(ŷtrain4,ytrain,tol=1)
+@test acc >= 0.95
+
+m = FeedforwardNN(rng=copy(TESTRNG),verbosity=NONE)
+fit!(m,xtrain,ytrain_oh)
+ŷtrain5 = predict(m)
+acc = accuracy(ŷtrain5,ytrain,tol=1, rng=copy(TESTRNG))
+@test acc >= 0.9
 
 #=
 if "all" in ARGS
@@ -277,8 +308,30 @@ if VERSION >= v"1.6"
     l2       = VectorFunctionLayer(size(l1)[2],f=(x->pool1d(x,2,f=mean)))
     l3       = DenseLayer(size(l2)[2],1,f=relu, rng=copy(TESTRNG))
     mynn     = buildNetwork([l1,l2,l3],squaredCost,name="Regression with a pooled layer")
-    train!(mynn,x,y,epochs=50,verbosity=STD,rng=copy(TESTRNG))
+    train!(mynn,x,y,epochs=50,verbosity=NONE,rng=copy(TESTRNG))
     ŷ        = predict(mynn,x)
     mreTrain = meanRelError(ŷ,y,normRec=false)
     @test mreTrain  < 0.14
 end
+
+
+# ==================================
+# NEW TEST
+println("Testing MLJ interface for FeedfordwarNN....")
+import MLJBase
+const Mlj = MLJBase
+X, y                           = Mlj.@load_boston
+model                          = FeedforwardNeuralNetwork(rng=copy(TESTRNG))
+regressor                      = Mlj.machine(model, X, y)
+(fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
+yhat                           = dropdims(Mlj.predict(model, fitresult, X),dims=2)
+@test meanRelError(yhat,y) < 0.2
+
+X, y                           = Mlj.@load_iris
+y_oh                           = oneHotEncoder(y)
+model                          = FeedforwardNeuralNetwork(rng=copy(TESTRNG))
+regressor                      = Mlj.machine(model, X, y_oh)
+(fitresult, cache, report)     = Mlj.fit(model, 0, X, y_oh)
+yhat                           = Mlj.predict(model, fitresult, X)
+@test accuracy(mode(yhat),mode(y_oh)) >= 0.98
+
