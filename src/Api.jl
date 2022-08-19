@@ -82,7 +82,7 @@ fit!(::BetaMLModel)  = nothing
 
 Predict new information (including transformation) based on a fitted BetaMLModel, eventually applied to new features when the algorithms generalise to new data.
 """ 
-predict(m::BetaMLModel) = m.cres
+predict(m::BetaMLModel) = m.fitted ? m.cres : error("Trying to predict an unfitted model. Run `fit!(model,X,[Y])` before!")
 
 function info(m::BetaMLModel)
    return m.info

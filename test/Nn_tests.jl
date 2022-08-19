@@ -54,7 +54,7 @@ lossOrig = loss(mynn,x',y')
 dϵ_do2 = dSquaredCost(o2,y)
 @test dϵ_do2 == [-0.4750208125210601,0.47502081252106]
 #@code_warntype dSquaredCost(o2,y)
-dϵ_do1 = backward(l2,o1,dϵ_do2)
+dϵ_do1 = backward(l2,o1,dϵ_do2) # here takes long as needs Zygote
 @test dϵ_do1 ≈ [-0.23691761847142412, 0.23691761847142412]
 #@code_warntype backward(l2,o1,dϵ_do2)
 dϵ_dX = backward(l1,x,dϵ_do1)
@@ -135,12 +135,18 @@ train!(mynn,xtrain,ytrain,batchSize=1,sequential=true,epochs=100,verbosity=NONE,
 #@benchmark train!(mynn,xtrain,ytrain,batchSize=1,sequential=true,epochs=100,verbosity=NONE,optAlg=SGD(η=t -> 1/(1+t),λ=1))
 avgLoss = loss(mynn,xtest,ytest)
 @test  avgLoss ≈ 1.599729991966362
-expectedOutput = [0.7360644412052633, 0.7360644412052633, 0.7360644412052633, 2.47093434438514]
-predicted = dropdims(predict(mynn,xtest),dims=2)
-@test any(isapprox(expectedOutput,predicted))
+expectedŷtest= [0.7360644412052633, 0.7360644412052633, 0.7360644412052633, 2.47093434438514]
+ŷtrain = dropdims(predict(mynn,xtrain),dims=2)
+ŷtest = dropdims(predict(mynn,xtest),dims=2)
+@test any(isapprox(expectedŷtest,ŷtest))
 
-m = Feedforward(layers=[l1,l2,l3],dcf=dSquaredCost,batchSize=1,shuffle=false,epochs=100,verbosity=NONE,optAlg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG))
+m = Feedforward(layers=[l1,l2,l3],cf=squaredCost,dcf=dSquaredCost,batchSize=1,shuffle=false,epochs=100,verbosity=STD,optAlg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test")
 fit!(m,xtrain,ytrain)
+ŷtrain2 =  dropdims(predict(m),dims=2)
+ŷtrain3 =  dropdims(predict(m,xtrain),dims=2)
+@test ŷtrain ≈ ŷtrain2 ≈ ŷtrain3
+ŷtest2 =  dropdims(predict(m,xtest),dims=2)
+@test ŷtest ≈ ŷtest2 
 
 # With the ADAM optimizer...
 l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], f=tanh, df=dtanh,rng=copy(TESTRNG))

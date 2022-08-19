@@ -787,6 +787,8 @@ end
 # ------------------------------------------------------------------------------
 # V2 Api
 
+#$([println(\"- $(i)\" for i in subtypes(AbstractLayer)])
+# $(subtypes(AbstractLayer))
 """
 **`$(TYPEDEF)`**
 
@@ -794,6 +796,12 @@ Hyperparameters for the `Feedforward` neural network model
 
 ## Parameters:
 $(FIELDS)
+
+Available layers (i.e. `subtypes(AbstractLayer)`):
+
+
+Type `?LayerName` for information on how to use each layer.
+
 """
 Base.@kwdef mutable struct FeedforwardHyperParametersSet <: BetaMLHyperParametersSet
     "Array of layer objects [def: `nothing`, i.e. zeros]"
@@ -805,7 +813,7 @@ Base.@kwdef mutable struct FeedforwardHyperParametersSet <: BetaMLHyperParameter
     "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
     epochs::Int64 = 100
     "Size of each individual batch [def: `32`]"
-    bachSize::Int64 = 32
+    batchSize::Int64 = 32
     "The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]"
     optAlg::OptimisationAlgorithm = ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
@@ -846,16 +854,17 @@ A "feedforward" neural network (supervised).
 
 For the parameters see  [`FeedforwardLearnableParameters`](@ref).
 
-## Limitations:
+## Notes:
 - data must be numerical
-
-
+- the label can be a _n-records_ vector or a _n-records_ by _n-dimensions_ matrix, but the result is always a matrix.
+  - For one-dimension regressions drop the unnecessary dimension with `dropdims(ŷ,dims=2)`
+  - For classification tasks the columns should be interpreted as the probabilities for each categories
 """
 mutable struct Feedforward <: BetaMLSupervisedModel
     hpar::FeedforwardHyperParametersSet
     opt::FeedforwardOptionsSet
     par::Union{Nothing,FeedforwardLearnableParameters}
-    cres::Union{Nothing,Vector}
+    cres::Union{Nothing,AbstractArray}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
@@ -882,7 +891,7 @@ function fit!(m::Feedforward,X,Y)
     cf          = m.hpar.cf
     dcf         = m.hpar.dcf
     epochs      = m.hpar.epochs
-    bachSize    = m.hpar.bachSize
+    batchSize   = m.hpar.batchSize
     optAlg      = m.hpar.optAlg
     shuffle     = m.hpar.shuffle
     cache       = m.opt.cache
@@ -891,11 +900,10 @@ function fit!(m::Feedforward,X,Y)
     cb          = m.opt.cb
     rng         = m.opt.rng
     fitted      = m.fitted
-    
-    nR,nD       = size(X)
 
+    nR,nD       = size(X)
     if !fitted
-        m.par = FeedforwardLearnableParameters(NN(deepcopy(layers),cf,dcf,descr))
+        m.par = FeedforwardLearnableParameters(NN(deepcopy(layers),cf,dcf,false,descr))
         m.info[:epochsRan] = 0
         m.info[:lossPerEpoch] = Float64[]
         m.info[:parPerEpoch] = []
@@ -915,7 +923,7 @@ function fit!(m::Feedforward,X,Y)
     m.info[:dimensions]    = nD
     m.info[:fittedRecords] = nR
     m.info[:nLayers] = length(nnstruct.layers)
-    m.info[:nPar] = getNParams(m)
+    m.info[:nPar] = getNParams(m.par.nnstruct)
    
     if cache
        out    = predict(nnstruct,X)
@@ -923,6 +931,7 @@ function fit!(m::Feedforward,X,Y)
     end
 
     m.fitted = true
+    m.par.nnstruct.trained = true
 
     return true
 end
