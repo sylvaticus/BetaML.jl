@@ -58,7 +58,7 @@ ŷtest2 = predict(m, xtest)
 @test accuracy(ŷtest,ytest,rng=copy(TESTRNG)) >= 0.8
 @test ŷtest == ŷtest2
 
-@test info(m) == Dict(:jobIsRegression => 0,:maxDepth => 3, :dimensions => 2, :fittedRecords => 5, :avgDepth => 2.6666666666666665)
+@test info(m) == Dict(:jobIsRegression => 0,:maxDepth => 3, :dimensions => 2, :fitted_records => 5, :avgDepth => 2.6666666666666665)
 #print(myTree)
 
 # --------------------------------------------------------------

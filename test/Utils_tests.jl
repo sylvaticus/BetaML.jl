@@ -178,6 +178,35 @@ scale!(x2)
 x3 = scale(y,scaleFactors,rev=true)
 @test x3 == x
 
+x = [1.1 4.1 8.1 missing 8; 2 4 9 7 2; 7 2 9 3 1]
+m = Scaler(method=MinMaxScaler(),skip=[1,5])
+fit!(m,x)
+ŷ  = predict(m)
+@test all(isequal.(ŷ, [ 1.1  1.0       0.0   missing  8.0
+            2.0  0.9523809523809526  1.0  1.0       2.0
+            7.0  0.0       1.0  0.0       1.0]))
+ŷ1 = predict(m,x)
+@test collect(skipmissing(ŷ)) == collect(skipmissing(ŷ1))
+x1 = predict(m,ŷ,inverse=true)
+@test collect(skipmissing(x)) == collect(skipmissing(x1))
+m2 = Scaler(MinMaxScaler(),skip=[1,5])
+fit!(m2,x)
+ŷ2  = predict(m2)
+@test all(isequal.(ŷ, ŷ2))
+m3 = Scaler(skip=[1,5])
+fit!(m3,x)
+ŷ3 = predict(m3)
+@test ŷ3[2,2] == 0.6547832409557988
+means = [mean(skipmissing(v)) for v in eachcol(ŷ3)]
+vars = [var(skipmissing(v),corrected=false) for v in eachcol(ŷ3)]
+@test all(isapprox.(means[2:4],0.0, atol=0.00000000001))
+@test all(isapprox.(vars[2:4],1.0, atol=0.00000000001))
+m4 = Scaler(StandardScaler(center=false,scale=false))
+fit!(m4,x)
+ŷ4  =predict(m4,x)
+@test all(isequal.(ŷ4,x))
+
+
 # ==================================
 # New test
 println("** Testing batch()...")
@@ -222,13 +251,21 @@ out = pca(X,error=0.05)
 @test sum(out.X) ≈ 662.3492034128955
 #X2 = out.X*out.P'
 @test out.explVarByDim ≈ [0.873992272007021,0.9999894437302522,1.0]
-X = [1 8; 4.5 5.5; 9.5 0.5]
-out = pca(X;K=2)
+X2 = [1 8; 4.5 5.5; 9.5 0.5]
+out2 = pca(X2;K=2)
 expectedX = [-4.58465   6.63182;-0.308999  7.09961; 6.75092   6.70262]
 expectedP = [0.745691  0.666292;-0.666292  0.745691]
-@test isapprox(out.X,expectedX,atol=0.00001) || isapprox(out.X, (.- expectedX),atol=0.00001) 
-@test isapprox(out.P,expectedP,atol=0.00001) || isapprox(out.P, (.- expectedP),atol=0.00001)
+@test isapprox(out2.X,expectedX,atol=0.00001) || isapprox(out2.X, (.- expectedX),atol=0.00001) 
+@test isapprox(out2.P,expectedP,atol=0.00001) || isapprox(out2.P, (.- expectedP),atol=0.00001)
 
+m = PCA(max_prop_unexplained_var=0.05)
+fit!(m,X)
+ŷ = predict(m)
+@test ŷ == out.X
+@test 1-m.info[:prop_explained_var] ≈ 1.0556269747774571e-5
+@test sum(out.X) ≈ 662.3492034128955
+ŷ2 = predict(m,X)
+@test ŷ ≈ ŷ2
 
 # ==================================
 # New test

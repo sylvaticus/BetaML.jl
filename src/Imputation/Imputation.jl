@@ -211,12 +211,15 @@ function MeanImputer(;kwargs...)
     m              = MeanImputer(MeanImputerHyperParametersSet(),BetaMLDefaultOptionsSet(),MeanImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -341,12 +344,15 @@ function GMMImputer(;kwargs...)
     m              = GMMImputer(hps,BetaMLDefaultOptionsSet(),GMMImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -403,7 +409,7 @@ function fit!(m::GMMImputer,X)
     m.info[:lL]             = emOut.lL
     m.info[:BIC]            = emOut.BIC
     m.info[:AIC]            = emOut.AIC
-    m.info[:fittedRecords] = get(m.info,:fittedRecords,0) + size(X,1)
+    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(X,1)
     m.info[:dimensions]     = size(X,2)
     m.info[:nImputedValues]     = nImputedValues
     m.fitted=true
@@ -465,7 +471,7 @@ Hyperparameters for RFImputer
 """
 Base.@kwdef mutable struct RFImputerHyperParametersSet <: BetaMLHyperParametersSet
     rfhpar                                      = RFHyperParametersSet()
-    forcedCatCols::Vector{Int64}                = Int64[] # like in RF, normally integers are considered ordinal
+    forced_categorical_cols::Vector{Int64}                = Int64[] # like in RF, normally integers are considered ordinal
     recursivePassages::Int64                    = 1
     multipleImputations::Int64                  = 1
 end
@@ -503,10 +509,12 @@ function RFImputer(;kwargs...)
     m   = RFImputer(hps,BetaMLDefaultOptionsSet(),RFImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
           # Looking for the fields of the fields...
           thissubobjfields = fieldnames(nonmissingtype(typeof(fobj)))
@@ -514,9 +522,11 @@ function RFImputer(;kwargs...)
             fobj2 = getproperty(fobj,f2)
             if kw in fieldnames(typeof(fobj2))
                 setproperty!(fobj2,kw,kwv)
+                found = true
             end
           end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -551,7 +561,7 @@ function fit!(m::RFImputer,X)
     rng                 = m.opt.rng
     verbosity           = m.opt.verbosity
      
-    forcedCatCols        = m.hpar.forcedCatCols
+    forced_categorical_cols        = m.hpar.forced_categorical_cols
     recursivePassages    = m.hpar.recursivePassages
     multipleImputations  = m.hpar.multipleImputations
 
@@ -562,7 +572,7 @@ function fit!(m::RFImputer,X)
     maxFeatures   = min(nC,maxFeatures) 
     maxDepth      = min(nR,maxDepth)
 
-    catCols = [! (nonmissingtype(eltype(identity.(X[:,c]))) <: Number ) || c in forcedCatCols for c in 1:nC]
+    catCols = [! (nonmissingtype(eltype(identity.(X[:,c]))) <: Number ) || c in forced_categorical_cols for c in 1:nC]
 
     missingMask    = ismissing.(X)
     nonMissingMask = .! missingMask 
@@ -778,10 +788,12 @@ function GeneralImputer(;kwargs...)
     m   = GeneralImputer(hps,BetaMLDefaultOptionsSet(),GeneralImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
           ## Looking for the fields of the fields...
           #thissubobjfields = fieldnames(nonmissingtype(typeof(fobj)))
@@ -792,6 +804,7 @@ function GeneralImputer(;kwargs...)
           #  end
           #end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -811,7 +824,7 @@ function fit!(m::GeneralImputer,X)
     # Setting `models`, a matrix of multipleImputations x nC individual models...
     if ! m.fitted
         if m.hpar.models == nothing
-            models = [RFModel(rng = m.opt.rng) for i in 1:multipleImputations, d in 1:nC]
+            models = [RFModel(rng = m.opt.rng, verbosity=verbosity) for i in 1:multipleImputations, d in 1:nC]
         else
             models = vcat([permutedims(deepcopy(m.hpar.models)) for i in 1:multipleImputations]...)
         end

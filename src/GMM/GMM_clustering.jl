@@ -223,12 +223,15 @@ function GMMClusterModel(;kwargs...)
     m = GMMClusterModel(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -268,7 +271,7 @@ function fit!(m::GMMClusterModel,x)
     m.info[:lL]             = gmmOut.lL
     m.info[:BIC]            = gmmOut.BIC
     m.info[:AIC]            = gmmOut.AIC
-    m.info[:fittedRecords] = get(m.info,:fittedRecords,0) + size(x,1)
+    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
     m.fitted=true
     return true
@@ -290,7 +293,7 @@ function show(io::IO, ::MIME"text/plain", m::GMMClusterModel)
     if m.fitted == false
         print(io,"GMMClusterModel - A Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMClusterModel - A Generative Mixture Model (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"GMMClusterModel - A Generative Mixture Model (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
@@ -299,7 +302,7 @@ function show(io::IO, m::GMMClusterModel)
     if m.fitted == false
         print(io,"GMMClusterModel - A $(m.hpar.nClasses)-classes Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMClusterModel - A $(m.hpar.nClasses)-classes Generative Mixture Model(fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"GMMClusterModel - A $(m.hpar.nClasses)-classes Generative Mixture Model(fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)

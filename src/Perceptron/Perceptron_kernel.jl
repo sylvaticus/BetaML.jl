@@ -300,12 +300,15 @@ function KernelPerceptron(;kwargs...)
     m              = KernelPerceptron(KernelPerceptronHyperParametersSet(),BetaMLDefaultOptionsSet(),KernelPerceptronLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -351,7 +354,7 @@ function fit!(m::KernelPerceptron,X,Y)
        m.cres = cache ? out : nothing
     end
 
-    m.info[:fittedRecords] = nR
+    m.info[:fitted_records] = nR
     m.info[:dimensions]    = nD
     m.info[:nClasses]      = nCl
     m.info[:nModels]       = nModels
@@ -369,7 +372,7 @@ function show(io::IO, ::MIME"text/plain", m::KernelPerceptron)
     if m.fitted == false
         print(io,"KernelPerceptron - A \"kernelised\" version of the perceptron classifier (unfitted)")
     else
-        print(io,"KernelPerceptron - A \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"KernelPerceptron - A \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
@@ -378,7 +381,7 @@ function show(io::IO, m::KernelPerceptron)
     if m.fitted == false
         println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes \"kernelised\" version of the perceptron classifier (unfitted)")
     else
-        println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
         print(io,"Kernel: ")
         print(io,m.hpar.kernel)
     end

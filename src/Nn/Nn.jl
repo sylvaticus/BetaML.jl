@@ -871,12 +871,15 @@ function FeedforwardNN(;kwargs...)
     m              = FeedforwardNN(FeedforwardNNHyperParametersSet(),FeedforwardNNOptionsSet(),FeedforwardNNLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -930,7 +933,7 @@ function fit!(m::FeedforwardNN,X,Y)
         m.info[:lossPerEpoch] = Float64[]
         m.info[:parPerEpoch] = []
         m.info[:dimensions]   = nD
-        #m.info[:fittedRecords] = O
+        #m.info[:fitted_records] = O
     end
 
 
@@ -943,7 +946,7 @@ function fit!(m::FeedforwardNN,X,Y)
     append!(m.info[:lossPerEpoch],out.ϵ_epochs) 
     append!(m.info[:parPerEpoch],out.θ_epochs) 
     m.info[:dimensions]    = nD
-    m.info[:fittedRecords] = nR
+    m.info[:fitted_records] = nR
     m.info[:nLayers] = length(nnstruct.layers)
     m.info[:nPar] = getNParams(m.par.nnstruct)
    
@@ -966,7 +969,7 @@ function show(io::IO, ::MIME"text/plain", m::FeedforwardNN)
     if m.fitted == false
         print(io,"FeedforwardNN - A Feed-forward neural network (unfitted)")
     else
-        print(io,"FeedforwardNN - A Feed-forward neural network (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"FeedforwardNN - A Feed-forward neural network (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
@@ -985,7 +988,7 @@ function show(io::IO, m::FeedforwardNN)
           println("$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
         end
     else
-        println(io,"FeedforwardNN - A $(m.info[:dimensions])-dimensions $(m.info[:nLayers])-layers feedfordward neural network (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"FeedforwardNN - A $(m.info[:dimensions])-dimensions $(m.info[:nLayers])-layers feedfordward neural network (fitted on $(m.info[:fitted_records]) records)")
         println(io,"Cost function:")
         println(io,m.hpar.loss)
         println(io,"Optimisation algorithm:")

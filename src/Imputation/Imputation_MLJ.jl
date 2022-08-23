@@ -67,7 +67,7 @@ mutable struct BetaMLRFImputer <: MMI.Unsupervised
     minGain::Float64
     minRecords::Int64
     maxFeatures::Union{Nothing,Int64}
-    forcedCategoricalCols::Vector{Int64}
+    forced_categorical_cols::Vector{Int64}
     splittingCriterion::Union{Nothing,Function}
     recursivePassages::Int64                  
     #multipleImputations::Int64 
@@ -80,13 +80,13 @@ BetaMLRFImputer(;
     minGain                = 0.0,
     minRecords             = 2,
     maxFeatures            = nothing,
-    forcedCategoricalCols  = Int64[],
+    forced_categorical_cols  = Int64[],
     splittingCriterion     = nothing,
     recursivePassages      = 1,
     #multipleImputations    = 1,
     verbosity              = STD,
     rng                    = Random.GLOBAL_RNG,
-) = BetaMLRFImputer(nTrees, maxDepth, minGain, minRecords, maxFeatures, forcedCategoricalCols, splittingCriterion, recursivePassages, verbosity, rng)
+) = BetaMLRFImputer(nTrees, maxDepth, minGain, minRecords, maxFeatures, forced_categorical_cols, splittingCriterion, recursivePassages, verbosity, rng)
 
 mutable struct BetaMLGenericImputer <: MMI.Unsupervised
     models::Union{Vector,Nothing}
@@ -179,7 +179,7 @@ function MMI.fit(m::BetaMLRFImputer, verbosity, X)
         minGain                = m.minGain,
         minRecords             = m.minRecords,
         maxFeatures            = m.maxFeatures,
-        forcedCategoricalCols  = m.forcedCategoricalCols,
+        forced_categorical_cols  = m.forced_categorical_cols,
         splittingCriterion     = m.splittingCriterion,
         verbosity              = m.verbosity,
         recursivePassages      = m.recursivePassages,
@@ -201,7 +201,7 @@ end
 function MMI.fit(m::BetaMLGenericImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
 
-    mod = RFImputer(
+    mod =  GeneralImputer(
         models                 = m.models,
         verbosity              = m.verbosity,
         recursivePassages      = m.recursivePassages,

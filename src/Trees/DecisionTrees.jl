@@ -122,12 +122,15 @@ function DTModel(;kwargs...)
     m              = DTModel(DTHyperParametersSet(),BetaMLDefaultOptionsSet(),DTLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -413,7 +416,7 @@ function fit!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
 
     jobIsRegression = (forceClassification || ! (Ty <: Number) ) ? false : true
     
-    m.info[:fittedRecords]             = size(x,1)
+    m.info[:fitted_records]             = size(x,1)
     m.info[:dimensions]                 = size(x,2)
     m.info[:jobIsRegression]            = jobIsRegression ? 1 : 0
     (m.info[:avgDepth],m.info[:maxDepth]) = computeDepths(m.par.tree)
@@ -542,7 +545,7 @@ function show(io::IO, ::MIME"text/plain", m::DTModel)
         print(io,"DTModel - A Decision Tree model (unfitted)")
     else
         job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        print(io,"DTModel - A Decision Tree $job (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"DTModel - A Decision Tree $job (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
@@ -552,7 +555,7 @@ function show(io::IO, m::DTModel)
         print(io,"DTModel - A Decision Tree model (unfitted)")
     else
         job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        println(io,"DTModel - A Decision Tree $job (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"DTModel - A Decision Tree $job (fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         _printNode(m.par.tree)
     end

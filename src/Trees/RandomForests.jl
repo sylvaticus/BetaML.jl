@@ -57,12 +57,15 @@ function RFModel(;kwargs...)
 m              = RFModel(RFHyperParametersSet(),BetaMLDefaultOptionsSet(),nothing,nothing,false,Dict{Symbol,Any}())
 thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
 for (kw,kwv) in kwargs
+    found = false
     for f in thisobjfields
         fobj = getproperty(m,f)
         if kw in fieldnames(typeof(fobj))
             setproperty!(fobj,kw,kwv)
+            found = true
         end
     end
+    found || error("Keyword \"$kw\" is not part of this model.")
 end
 return m
 end
@@ -169,7 +172,7 @@ function fit!(m::RFModel,x,y::AbstractArray{Ty,1}) where {Ty}
 
     m.fitted = true
     
-    m.info[:fittedRecords]             = size(x,1)
+    m.info[:fitted_records]             = size(x,1)
     m.info[:dimensions]                 = maxFeatures
     m.info[:jobIsRegression]            = m.par.isRegression ? 1 : 0
     m.info[:oobE]                       = m.par.oobError
@@ -303,7 +306,7 @@ function show(io::IO, ::MIME"text/plain", m::RFModel)
         print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest model (unfitted)")
     else
         job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
@@ -313,7 +316,7 @@ function show(io::IO, m::RFModel)
         print(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest model (unfitted)")
     else
         job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        println(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"RFModel - A $(m.hpar.nTrees) trees Random Forest $job (fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
     end
 end

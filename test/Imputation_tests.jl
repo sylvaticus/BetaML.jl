@@ -106,14 +106,14 @@ reset!(mod)
 println("Testing RFFImputer...")
 
 X = [2 missing 10 "aaa" missing; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
-mod = RFImputer(nTrees=30,forcedCategoricalCols=[5],recursivePassages=3,multipleImputations=10, rng=copy(TESTRNG),verbosity=NONE)
+mod = RFImputer(nTrees=30,forced_categorical_cols=[5],recursivePassages=3,multipleImputations=10, rng=copy(TESTRNG),verbosity=NONE)
 fit!(mod,X)
 
 @test predict(mod)[1][1,2] == predict(mod)[3][1,2] == 400
 @test predict(mod)[2][1,2] == 40
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
-mod = RFImputer(multipleImputations=10, rng=copy(TESTRNG),oob=true)
+mod = RFImputer(multipleImputations=10, rng=copy(TESTRNG),oob=true, verbosity=NONE)
 fit!(mod,X)
 vals = predict(mod)
 nR,nC = size(vals[1])
@@ -124,7 +124,7 @@ infos = info(mod)
 @test infos[:oobErrors][1] ≈ [0.4219142630021683, 0.1888918370047503, 1.4813804498107928]
 
 X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
-mod = RFImputer(rng=copy(TESTRNG))
+mod = RFImputer(rng=copy(TESTRNG),verbosity=NONE)
 fit!(mod,X)
 X̂1 = predict(mod)
 X̂1b =  predict(mod,X)
@@ -137,7 +137,7 @@ println("Testing GeneralImputer...")
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
 trng = copy(TESTRNG)
-mod = GeneralImputer(models=[GMMRegressor1(rng=trng),RFModel(rng=trng),RFModel(rng=trng)], multipleImputations=10, recursivePassages=3, rng=copy(TESTRNG),verbosity=NONE)
+mod = GeneralImputer(models=[GMMRegressor1(rng=trng,verbosity=NONE),RFModel(rng=trng,verbosity=NONE),RFModel(rng=trng,verbosity=NONE)], multipleImputations=10, recursivePassages=3, rng=copy(TESTRNG),verbosity=NONE)
 fit!(mod,X)
 vals = predict(mod)
 nR,nC = size(vals[1])
@@ -156,7 +156,7 @@ meanValues = [mean([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
 trng = copy(TESTRNG)
 #Random.seed!(trng,123)
-mod = GeneralImputer(models=[DTModel( rng=trng),RFModel(nTrees=1,rng=trng),RFModel(nTrees=1,rng=trng),RFModel(nTrees=1,rng=trng),DTModel(rng=trng)],rng=trng,verbosity=NONE)
+mod = GeneralImputer(models=[DTModel(rng=trng,verbosity=NONE),RFModel(nTrees=1,rng=trng,verbosity=NONE),RFModel(nTrees=1,rng=trng,verbosity=NONE),RFModel(nTrees=1,rng=trng,verbosity=NONE),DTModel(rng=trng,verbosity=NONE)],rng=trng,verbosity=NONE)
 
 fit!(mod,X)
 Random.seed!(trng,123)
@@ -244,12 +244,12 @@ println("Testing MLJ Interface for BetaMLGenericImputer...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
 trng = copy(TESTRNG)
-model                       =  BetaMLGenericImputer(models=[GMMRegressor1(rng=trng),RFModel(nTrees=40,rng=copy(TESTRNG)),DTModel(rng=trng)],rng=copy(TESTRNG),recursivePassages=2)
+model                       =  BetaMLGenericImputer(models=[GMMRegressor1(rng=trng,verbosity=NONE),RFModel(nTrees=40,rng=copy(TESTRNG),verbosity=NONE)],rng=copy(TESTRNG),recursivePassages=2,verbosity=NONE)
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
 x̂                           =  Mlj.matrix(XM)
-@test isapprox(x̂[2,2],11.583333333333334) # not the same as RF because the oth columns are imputed too
+@test isapprox(x̂[2,2],11.8) # not the same as RF because the oth columns are imputed too
 # Use the previously learned structure to imput missings..
 Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
 XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
