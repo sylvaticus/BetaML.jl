@@ -40,8 +40,8 @@ reset!(m)
 fit!(m,X)
 classes = predict(m)
 @test clIdxKMeans == classes
-@test info(m)[:fittedRecords] == 9
-@test sprint(print, m) == "First test k-means model\nKMeansModel - A 2-dimensions 3-classes K-Means Model (fitted on 9 records)\nDict{Symbol, Any}(:fittedRecords => 9, :dimensions => 2)\nRepresentatives:\n[5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664]\n"
+@test info(m)[:fitted_records] == 9
+@test sprint(print, m) == "First test k-means model\nKMeansModel - A 2-dimensions 3-classes K-Means Model (fitted on 9 records)\nDict{Symbol, Any}(:fitted_records => 9, :dimensions => 2)\nRepresentatives:\n[5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664]\n"
 
 # ==================================
 # New test
@@ -59,7 +59,7 @@ classes2 = predict(m,X2)
 fit!(m,X2)
 classes3 = predict(m)
 @test classes3 == [1,2,2,3]
-@test info(m)[:fittedRecords] == 13
+@test info(m)[:fitted_records] == 13
 reset!(m)
 @test sprint(print, m) == "KMedoidsModel - A 3-classes K-Medoids Model (unfitted)"
 # ==================================

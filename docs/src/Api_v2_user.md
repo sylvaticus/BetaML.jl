@@ -36,13 +36,15 @@ Trained models can be used to predict `y` given new `X`:
 ŷ = predict(m,X)
 ```
 
+As for convenience, if the model has been trained while having the `cache` option set on `true` (by default) the `ŷ` of the last training is retained in the  model object and it can be retrieved simply with `predict(m)`. This is particularly useful for unsupervised and transformer models (next section)
+
 ### Other functions
 
-Models can be resetted to lost the learned information with `reset!(m)` and training information (other than the algorithm learned parameters) can be retrieved with `info(m)`.
+Models can be resetted to lose the learned information with `reset!(m)` and training information (other than the algorithm learned parameters) can be retrieved with `info(m)`.
 
 ## Unupervised and transformed models
 
-This relate to models that learn a "structure" from the data itself (without any label attached from which to learn) and report either some new information using this learned structure (e.g. a cluster class) or direclty process a transformation of the data itself, like `PCA` or missing imputers.
+This relate to models that learn a "structure" from the data itself (without any label attached from which to learn) and report either some new information using this learned structure (e.g. a cluster class) or directly process a transformation of the data itself, like `PCA` or missing imputers.
 
 The main differences with supervised models is that the `fit!` function takes only the features and that the `predict` one take only the (trained) model as argument - models that do generalise to new data can accept also a `predict(m,newX)` version that uses what has been learn in `fit!`:
 
@@ -51,3 +53,7 @@ m = Model()
 fit!(m,X)
 result = predict(m) # or result = predict(m, newX)
 ```
+
+As for supervised models, the `predict(m)` version relies on the `cache` option of the model being `true` at training time.
+Some model allow an inverse transformation, that using the parameters learned ar trainign time (e.g. the scale factors) performs an inverse tranformation of new data to the space of the training data (e.g. the unscaled space).
+Use the `inv=true` keyword for that, e.g. `predict(mod,xnew,inv=true)`.

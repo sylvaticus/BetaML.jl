@@ -49,7 +49,7 @@ For the complete list of functions provided see below. The main ones are:
 """
 module Utils
 
-using LinearAlgebra, Printf, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, Random
+using LinearAlgebra, Printf, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, Random, DocStringExtensions
 
 using ForceImport
 @force using ..Api
@@ -67,7 +67,10 @@ export @codeLocation, generateParallelRngs,
        crossValidation, AbstractDataSampler, SamplerWithData, KFold,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
-       radialKernel, polynomialKernel
+       radialKernel, polynomialKernel,
+       Scaler, MinMaxScaler, StandardScaler,
+       ScalerHyperParametersSet, MinMaxScaler,StandardScaler,
+       PCA, PCAHyperParametersSet
 
 # Various functions that we add a method to
 import Base.print, Base.println, Base.findfirst, Base.findall, Base.error, Random.shuffle, Base.show

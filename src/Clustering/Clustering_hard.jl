@@ -289,12 +289,15 @@ function KMeansModel(;kwargs...)
     m = KMeansModel(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -303,12 +306,15 @@ function KMedoidsModel(;kwargs...)
     m = KMedoidsModel(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -340,7 +346,7 @@ function fit!(m::KMeansModel,x)
     end
     m.par  = KMeansMedoidsLearnableParameters(representatives=Z)
     m.cres = cache ? clIdx : nothing
-    m.info[:fittedRecords] = get(m.info,:fittedRecords,0) + size(x,1)
+    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
     m.fitted=true
     return true
@@ -371,7 +377,7 @@ function fit!(m::KMedoidsModel,x)
     end
     m.par  = KMeansMedoidsLearnableParameters(representatives=Z)
     m.cres = cache ? clIdx : nothing
-    m.info[:fittedRecords] = get(m.info,:fittedRecords,0) + size(x,1)
+    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
     m.fitted=true
     return true
@@ -392,7 +398,7 @@ function show(io::IO, ::MIME"text/plain", m::KMeansModel)
     if m.fitted == false
         print(io,"KMeansModel - A K-Means Model (unfitted)")
     else
-        print(io,"KMeansModel - A K-Means Model (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"KMeansModel - A K-Means Model (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
@@ -400,7 +406,7 @@ function show(io::IO, ::MIME"text/plain", m::KMedoidsModel)
     if m.fitted == false
         print(io,"KMedoidsModel - A K-Medoids Model (unfitted)")
     else
-        print(io,"KMedoidsModel - A K-Medoids Model (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"KMedoidsModel - A K-Medoids Model (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
@@ -409,7 +415,7 @@ function show(io::IO, m::KMeansModel)
     if m.fitted == false
         print(io,"KMeansModel - A $(m.hpar.nClasses)-classes K-Means Model (unfitted)")
     else
-        println(io,"KMeansModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Means Model (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"KMeansModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Means Model (fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         println(io,"Representatives:")
         println(io,m.par.representatives)
@@ -422,7 +428,7 @@ function show(io::IO, m::KMedoidsModel)
     if m.fitted == false
         print(io,"KMedoidsModel - A $(m.hpar.nClasses)-classes K-Medoids Model (unfitted)")
     else
-        println(io,"KMedoidsModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Medoids Model (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"KMedoidsModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Medoids Model (fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         println(io,"Distance function used:")
         println(io,m.hpar.dist)

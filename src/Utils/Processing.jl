@@ -333,6 +333,224 @@ function scale!(x,scaleFactors=(
     end
     return nothing
 end
+# API V2 for Scale
+
+abstract type AbstractScaler end
+abstract type AbstractScalerLearnableParameter end 
+
+"""
+$(TYPEDEF)
+
+Scale the data to a given (def: unit) hypercube
+
+## Parameters
+$(FIELDS)
+
+"""
+Base.@kwdef mutable struct MinMaxScaler <: AbstractScaler
+  "The range of the input. [def: (minimum,maximum)]. Both ranges are functions of the data. You can consider other relative of absolute ranges using e.g. `inputRange=(x->minimum(x)*0.8,x->100)`"  
+  inputRange::Tuple{Function,Function} = (minimum,maximum)
+  "The range of the scaled output [def: (0,1)]"
+  outputRange::Tuple{Real,Real} = (0,1)
+end
+Base.@kwdef mutable struct MinMaxScalerLearnableParameters <: AbstractScalerLearnableParameter
+  inputRangeApplied::Vector{Tuple{Float64,Float64}} = [(-Inf,+Inf)]
+end
+
+"
+$(TYPEDEF)
+
+Standardise the input to zero mean (unless `center=false` is used) and unit standard deviation (unless `scale=false` is used), aka \"Z-score\".
+Note that missing values are skipped.
+
+"
+Base.@kwdef mutable struct StandardScaler <: AbstractScaler
+    scale::Bool=true
+    center::Bool=true
+end
+
+Base.@kwdef mutable struct StandardScalerLearnableParameters <: AbstractScalerLearnableParameter
+  sfμ::Vector{Float64} = Float64[] # scale factor of mean
+  sfσ::Vector{Float64} = Float64[]  # scale vactor of st.dev.
+end
+
+function fit(m::MinMaxScaler,skip,X,cache)
+    actualRanges = Tuple{Float64,Float64}[]
+    X_scaled = cache ? deepcopy(X) : nothing 
+    for (ic,c) in enumerate(eachcol(X))
+        if !(ic in skip)
+          imin,imax =   (m.inputRange[1](skipmissing(c)),  m.inputRange[2](skipmissing(c)) )
+          if cache
+            omin, omax = m.outputRange[1], m.outputRange[2]
+            X_scaled[:,ic] = (c .- imin) .* ((omax-omin)/(imax-imin)) .+ omin
+          end
+          push!(actualRanges,(imin,imax))
+        else
+          push!(actualRanges,(-Inf,+Inf))
+        end
+    end
+    return X_scaled, MinMaxScalerLearnableParameters(actualRanges)
+end
+function fit(m::StandardScaler,skip,X,cache)
+    nR,nD = size(X)
+    sfμ   = zeros(nD)
+    sfσ   = ones(nD)
+    X_scaled = cache ? deepcopy(X) : nothing 
+    for (ic,c) in enumerate(eachcol(X))
+        if !(ic in skip)
+            μ  = m.center ? mean(skipmissing(c)) : 0.0
+            σ² = m.scale  ? var(skipmissing(c),corrected=false) : 1.0 
+            sfμ[ic] = - μ
+            sfσ[ic] = 1 ./ sqrt.(σ²)
+            if cache
+                X_scaled[:,ic] = (c .+ sfμ[ic]) .* sfσ[ic] 
+            end
+        end
+    end
+ 
+    return X_scaled, StandardScalerLearnableParameters(sfμ,sfσ)
+end
+function predict(m::MinMaxScaler,pars::MinMaxScalerLearnableParameters,skip,X;inverse=false)
+    if !inverse
+        xnew = deepcopy(X)
+        for (ic,c) in enumerate(eachcol(X))
+            if !(ic in skip)
+                imin,imax = pars.inputRangeApplied[ic]
+                omin,omax = m.outputRange
+                xnew[:,ic] = (c .- imin) .* ((omax-omin)/(imax-imin)) .+ omin
+            end
+        end
+        return xnew
+    else
+        xorig = deepcopy(X)
+        for (ic,c) in enumerate(eachcol(X))
+            if !(ic in skip)
+                imin,imax = pars.inputRangeApplied[ic]
+                omin,omax = m.outputRange
+                xorig[:,ic] = (c .- omin) .* ((imax-imin)/(omax-omin)) .+ imin
+            end
+        end
+        return xorig
+    end
+end
+function predict(m::StandardScaler,pars::StandardScalerLearnableParameters,skip,X;inverse=false)
+    if !inverse
+        xnew = deepcopy(X)
+        for (ic,c) in enumerate(eachcol(X))
+            if !(ic in skip)
+                xnew[:,ic] = (c .+ pars.sfμ[ic]) .* pars.sfσ[ic] 
+            end
+        end
+        return xnew
+    else
+        xorig = deepcopy(X)
+        for (ic,c) in enumerate(eachcol(X))
+            if !(ic in skip)
+                xorig[:,ic] = (c ./ pars.sfσ[ic] .- pars.sfμ[ic])  
+            end
+        end
+        return xorig
+    end
+end
+
+"""
+$(TYPEDEF)
+
+Hyperparameters for the Scaler transformer
+
+## Parameters
+$(FIELDS)
+"""
+Base.@kwdef mutable struct ScalerHyperParametersSet <: BetaMLHyperParametersSet
+    "The specific scaler method to employ with its own parameters. See [`StandardScaler`](@ref) [def] or [`MinMaxScaler`](@ref)."
+    method::AbstractScaler = StandardScaler()
+    "The ids of the columns to skip scaling (eg. categorical columns, dummies,...) [def: `[]`]"
+    skip::Vector{Int64}    = Int64[]
+end
+
+Base.@kwdef mutable struct ScalerLearnableParameters <: BetaMLLearnableParametersSet
+   scalerpars::AbstractScalerLearnableParameter = StandardScalerLearnableParameters()
+end
+
+"""
+$(TYPEDEF)
+
+Scale the data according to the specific chosen method (def: `StandardScaler`) 
+
+For the parameters see [`ScalerHyperParametersSet`](@ref) and [`BetaMLDefaultOptionSet`](@ref) 
+
+```
+julia>m = Scaler(MinMaxScaler(inputRange=(x->minimum(x)*0.8,maximum),outputRange=(0,256)),skip=[3,7,8])
+```
+
+"""
+mutable struct Scaler <: BetaMLUnsupervisedModel
+    hpar::ScalerHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{Nothing,ScalerLearnableParameters}
+    cres::Union{Nothing,Matrix}
+    fitted::Bool
+    info::Dict{Symbol,Any}
+end
+
+function Scaler(;kwargs...)
+    m = Scaler(ScalerHyperParametersSet(),BetaMLDefaultOptionsSet(),ScalerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+        found = false
+        for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+              found = true
+          end
+        end
+        found || error("Keyword \"$kw\" is not part of this model.")
+    end
+    return m
+end
+
+function Scaler(method;kwargs...)
+    m = Scaler(ScalerHyperParametersSet(method=method),BetaMLDefaultOptionsSet(),ScalerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+        found = false
+        for f in thisobjfields
+            fobj = getproperty(m,f)
+            if kw in fieldnames(typeof(fobj))
+                setproperty!(fobj,kw,kwv)
+                found = true
+            end
+        end
+        found || error("Keyword \"$kw\" is not part of this model.")
+    end
+    return m
+end
+
+function fit!(m::Scaler,x)
+
+    # Parameter alias..
+    scaler                 = m.hpar.method
+    skip                   = m.hpar.skip
+    cache                  = m.opt.cache
+    verbosity              = m.opt.verbosity
+    rng                    = m.opt.rng
+
+    if m.fitted
+        verbosity >= STD && @warn "This model doesn't support online training. Training will be performed based on new data only."
+    end
+
+    m.cres,m.par.scalerpars = fit(scaler,skip,x,cache)
+    m.info[:fitted_records]  = get(m.info,:fitted_records,0) + size(x,1)
+    m.info[:dimensions]     = size(x,2)
+    m.fitted=true
+    return true
+end   
+
+function predict(m::Scaler,x;inverse=false)
+    return predict(m.hpar.method,m.par.scalerpars,m.hpar.skip,x;inverse=inverse)
+end  
+
 
 """
 pca(X;K,error)
@@ -390,7 +608,7 @@ function pca(X;K=nothing,error=0.05)
     Σ = (1/N) * X'*(I-(1/N)*ones(N)*ones(N)')*X
     E = eigen(Σ) # eigenvalues are ordered from the smallest to the largest
     totVar  = sum(E.values)
-    explVarByDim = [sum(E.values[D-k+1:end])/totVar for k in 1:D]
+    explVarByDim = [sum(E.values[D-k+1:end])/totVar for k in 1:D] # or: cumsum(reverse(E.values)) ./ totVar
     propVarExplained = 0.0
     if K == nothing
         for k in 1:D
@@ -408,6 +626,113 @@ function pca(X;K=nothing,error=0.05)
 
     return (X=X*P,K=K,error=1-propVarExplained,P=P,explVarByDim=explVarByDim)
 end
+
+"""
+$(TYPEDEF)
+
+Hyperparameters for the PCA transformer
+
+## Parameters
+$(FIELDS)
+"""
+Base.@kwdef mutable struct PCAHyperParametersSet <: BetaMLHyperParametersSet
+   outdims::Union{Nothing,Int64} = nothing
+   max_prop_unexplained_var::Float64  = 0.05
+end
+
+Base.@kwdef mutable struct PCALearnableParameters <: BetaMLLearnableParametersSet
+   eigen_out::Union{Eigen,Nothing}     =nothing
+   outdims_actual::Union{Int64,Nothing}=nothing
+end
+
+"""
+$(TYPEDEF)
+
+Perform a Principal Component Analysis, a dimensionality reduction tecnique employing a linear trasformation of the original matrix by the eigenvectors of the covariance matrix.
+
+PCA returns the matrix reprojected among the dimensions of maximum variance.
+
+For the parameters see [`PCAHyperParametersSet`](@ref) and [`BetaMLDefaultOptionSet`](@ref) 
+
+## Notes:
+- PCA doesn't automatically scale the data. It is suggested to apply the `Scaler` model before running it. 
+- missing data are not supported. Impute them first, see the [`Imputation`](@ref) module.
+"""
+mutable struct PCA <: BetaMLUnsupervisedModel
+    hpar::PCAHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{Nothing,PCALearnableParameters}
+    cres::Union{Nothing,Matrix}
+    fitted::Bool
+    info::Dict{Symbol,Any}
+end
+
+function PCA(;kwargs...)
+    m = PCA(PCAHyperParametersSet(),BetaMLDefaultOptionsSet(),PCALearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       found = false
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+              found = true
+          end
+        end
+        found || error("Keyword \"$kw\" is not part of this model.")
+    end
+    return m
+end
+
+
+
+function fit!(m::PCA,X)
+
+    # Parameter alias..
+    outdims                  = m.hpar.outdims
+    max_prop_unexplained_var = m.hpar.max_prop_unexplained_var
+    cache                    = m.opt.cache
+    verbosity                = m.opt.verbosity
+    rng                      = m.opt.rng
+
+    if m.fitted
+        verbosity >= STD && @warn "This model doesn't support online training. Training will be performed based on new data only."
+    end
+
+    (N,D) = size(X)
+    if !isnothing(outdims) && outdims > D
+        @error("The parameter `outdims` must be ≤ of the number of dimensions of the input data matrix")
+    end
+    Σ = (1/N) * X'*(I-(1/N)*ones(N)*ones(N)')*X
+    E = eigen(Σ) # eigenvalues are ordered from the smallest to the largest
+    # Finding oudims_actual
+    totvar  = sum(E.values)
+    explained_var_by_dim = cumsum(reverse(E.values)) ./ totvar
+    outdims_actual = isnothing(outdims) ? findfirst(x -> x >= (1-max_prop_unexplained_var), explained_var_by_dim)  : outdims
+    m.par.eigen_out = E
+    m.par.outdims_actual = outdims_actual
+
+    if cache
+        P = E.vectors[:,end:-1:D-outdims_actual+1]
+        m.cres = X*P
+    end
+
+    m.info[:fitted_records]  = get(m.info,:fitted_records,0) + N
+    m.info[:dimensions]     = D
+    m.info[:explained_var_by_dim] = explained_var_by_dim
+    m.info[:prop_explained_var]   = explained_var_by_dim[outdims_actual]
+    m.info[:retained_dims]        = outdims_actual
+    m.fitted=true
+    return true
+end   
+
+function predict(m::PCA,X)
+    D = size(m.par.eigen_out.vectors,2)
+    P = m.par.eigen_out.vectors[:,end:-1:D-m.par.outdims_actual+1]
+    return X*P
+end  
+
+
 
 
 """

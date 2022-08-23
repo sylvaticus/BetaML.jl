@@ -283,12 +283,15 @@ function PerceptronClassic(;kwargs...)
     m              = PerceptronClassic(PerceptronClassicHyperParametersSet(),BetaMLDefaultOptionsSet(),PerceptronClassicLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -332,7 +335,7 @@ function fit!(m::PerceptronClassic,X,Y)
        m.cres = cache ? out : nothing
     end
 
-    m.info[:fittedRecords] = nR
+    m.info[:fitted_records] = nR
     m.info[:dimensions]    = nD
     m.info[:nClasses]      = size(weights,1)
 
@@ -351,7 +354,7 @@ function show(io::IO, ::MIME"text/plain", m::PerceptronClassic)
     if m.fitted == false
         print(io,"PerceptronClassic - The classic linear perceptron classifier (unfitted)")
     else
-        print(io,"PerceptronClassic - The classic linear perceptron classifier (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"PerceptronClassic - The classic linear perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
@@ -360,7 +363,7 @@ function show(io::IO, m::PerceptronClassic)
     if m.fitted == false
         println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes linear perceptron classifier (unfitted)")
     else
-        println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes linear perceptron classifier (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes linear perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
         println(io,"Weights:")
         println(io,m.par.weights)
     end

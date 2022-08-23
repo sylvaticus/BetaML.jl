@@ -203,12 +203,15 @@ function Pegasos(;kwargs...)
     m              = Pegasos(PegasosHyperParametersSet(),BetaMLDefaultOptionsSet(),PegasosLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -254,7 +257,7 @@ function fit!(m::Pegasos,X,Y)
        m.cres = cache ? out : nothing
     end
 
-    m.info[:fittedRecords] = nR
+    m.info[:fitted_records] = nR
     m.info[:dimensions]    = nD
     m.info[:nClasses]      = size(weights,1)
 
@@ -273,7 +276,7 @@ function show(io::IO, ::MIME"text/plain", m::Pegasos)
     if m.fitted == false
         print(io,"Pegasos - a loss-based linear classifier without regularisation term (unfitted)")
     else
-        print(io,"Pegasos - a loss-based linear classifier without regularisation term (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"Pegasos - a loss-based linear classifier without regularisation term (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
@@ -282,7 +285,7 @@ function show(io::IO, m::Pegasos)
     if m.fitted == false
         println(io,"Pegasos - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes a loss-based linear classifier without regularisation term (unfitted)")
     else
-        println(io,"Pegasos - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes a loss-based linear classifier without regularisation term (fitted on $(m.info[:fittedRecords]) records)")
+        println(io,"Pegasos - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes a loss-based linear classifier without regularisation term (fitted on $(m.info[:fitted_records]) records)")
         println(io,"Weights:")
         println(io,m.par.weights)
     end

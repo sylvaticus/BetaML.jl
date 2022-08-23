@@ -44,12 +44,15 @@ function GMMRegressor1(;kwargs...)
     m = GMMRegressor1(hps,BetaMLDefaultOptionsSet(),GMMRegressor1LearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -98,7 +101,7 @@ function fit!(m::GMMRegressor1,x,y)
     m.info[:lL]             = gmmOut.lL
     m.info[:BIC]            = gmmOut.BIC
     m.info[:AIC]            = gmmOut.AIC
-    m.info[:fittedRecords] = get(m.info,:fittedRecords,0) + size(x,1)
+    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
     m.fitted=true
     return true
@@ -118,7 +121,7 @@ function show(io::IO, ::MIME"text/plain", m::GMMRegressor1)
     if m.fitted == false
         print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
@@ -127,7 +130,7 @@ function show(io::IO, m::GMMRegressor1)
     if m.fitted == false
         print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model ($(m.hpar.nClasses) classes, unfitted)")
     else
-        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model ($(m.hpar.nClasses) classes, fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model ($(m.hpar.nClasses) classes, fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)
@@ -171,12 +174,15 @@ function GMMRegressor2(;kwargs...)
     m = GMMRegressor2(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
+       found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
               setproperty!(fobj,kw,kwv)
+              found = true
           end
         end
+        found || error("Keyword \"$kw\" is not part of this model.")
     end
     return m
 end
@@ -221,7 +227,7 @@ function fit!(m::GMMRegressor2,x,y)
     m.info[:lL]             = gmmOut.lL
     m.info[:BIC]            = gmmOut.BIC
     m.info[:AIC]            = gmmOut.AIC
-    m.info[:fittedRecords] = get(m.info,:fittedRecords,0) + size(x,1)
+    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
     m.fitted=true
     return true
@@ -245,7 +251,7 @@ function show(io::IO, ::MIME"text/plain", m::GMMRegressor2)
     if m.fitted == false
         print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model (fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
@@ -254,7 +260,7 @@ function show(io::IO, m::GMMRegressor2)
     if m.fitted == false
         print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.nClasses) classes, unfitted)")
     else
-        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.nClasses) classes, fitted on $(m.info[:fittedRecords]) records)")
+        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.nClasses) classes, fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)
