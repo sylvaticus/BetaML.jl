@@ -178,7 +178,7 @@ function fit!(m::RFModel,x,y::AbstractArray{Ty,1}) where {Ty}
     m.info[:oobE]                       = m.par.oobError
     depths = vcat([transpose([computeDepths(tree)[1],computeDepths(tree)[2]]) for tree in m.par.trees]...)
     (m.info[:avgAvgDepth],m.info[:avgMmaxDepth]) = mean(depths,dims=1)[1], mean(depths,dims=1)[2]
-    return true
+    return cache ? m.cres : nothing
 end
 
 # ------------------------------------------------------------------------------

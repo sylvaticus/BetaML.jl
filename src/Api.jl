@@ -110,7 +110,7 @@ function reset!(m::BetaMLModel)
    m.cres    = nothing 
    m.info    = Dict{Symbol,Any}()
    m.fitted  = false 
-   return true
+   return nothing
 end
 
 function show(io::IO, ::MIME"text/plain", m::BetaMLModel)

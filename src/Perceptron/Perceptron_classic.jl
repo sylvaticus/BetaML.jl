@@ -341,7 +341,7 @@ function fit!(m::PerceptronClassic,X,Y)
 
     m.fitted = true
 
-    return true
+    return cache ? m.cres : nothing
 end
 
 function predict(m::PerceptronClassic,X)

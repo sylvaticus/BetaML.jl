@@ -252,7 +252,7 @@ function fit!(imputer::MeanImputer,X)
     imputer.cres = cache ? X̂ : nothing
     imputer.info[:nImputedValues] = sum(missingMask)
     imputer.fitted = true
-    return true
+    return cache ? imputer.cres : nothing
 end
 
 #"""
@@ -413,7 +413,7 @@ function fit!(m::GMMImputer,X)
     m.info[:dimensions]     = size(X,2)
     m.info[:nImputedValues]     = nImputedValues
     m.fitted=true
-    return true
+    return cache ? m.cres : nothing
 end
 
 #"""
@@ -659,7 +659,7 @@ function fit!(m::RFImputer,X)
     m.info[:oobErrors] = oobErrors
 
     m.fitted = true
-    return true
+    return cache ? m.cres : nothing
 end
 
 #"""
@@ -913,7 +913,7 @@ function fit!(m::GeneralImputer,X)
     end 
     m.info[:nImputedValues] = nImputedValues
     m.fitted = true
-    return true
+    return cache ? m.cres : nothing
 end
 
 #"""

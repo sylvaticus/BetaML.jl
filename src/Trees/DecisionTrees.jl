@@ -420,7 +420,7 @@ function fit!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
     m.info[:dimensions]                 = size(x,2)
     m.info[:jobIsRegression]            = jobIsRegression ? 1 : 0
     (m.info[:avgDepth],m.info[:maxDepth]) = computeDepths(m.par.tree)
-    return true
+    return cache ? m.cres : nothing
 end
 
 # ------------------------------------------------------------------------------

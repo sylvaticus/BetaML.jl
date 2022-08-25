@@ -180,13 +180,13 @@ x3 = scale(y,scaleFactors,rev=true)
 
 x = [1.1 4.1 8.1 missing 8; 2 4 9 7 2; 7 2 9 3 1]
 m = Scaler(method=MinMaxScaler(),skip=[1,5])
-fit!(m,x)
+ŷfit = fit!(m,x)
 ŷ  = predict(m)
 @test all(isequal.(ŷ, [ 1.1  1.0       0.0   missing  8.0
             2.0  0.9523809523809526  1.0  1.0       2.0
             7.0  0.0       1.0  0.0       1.0]))
 ŷ1 = predict(m,x)
-@test collect(skipmissing(ŷ)) == collect(skipmissing(ŷ1))
+@test collect(skipmissing(ŷfit)) == collect(skipmissing(ŷ)) == collect(skipmissing(ŷ1))
 x1 = predict(m,ŷ,inverse=true)
 @test collect(skipmissing(x)) == collect(skipmissing(x1))
 m2 = Scaler(MinMaxScaler(),skip=[1,5])

@@ -205,7 +205,246 @@ function integerDecoder(x,factors::AbstractVector{T};unique=true) where{T}
 end
 
 
+# API V2 for Encoder
 
+abstract type AbstractEncoder end
+abstract type AbstractEncoderLearnableParameter end 
+
+"""
+$(TYPEDEF)
+
+Encode a vector of categorical values as one-hot columns
+
+## Parameters
+$(FIELDS)
+
+"""
+Base.@kwdef mutable struct OneHotEncoder <: AbstractEncoder
+  "The categories to represent as columns. [def: `nothing`, i.e. unique training values]"  
+  categories::Union{Vector,Nothing} = nothing
+  "How to handle categories not seens in training or not present in the provided `categories` array? \"error\" (default) rises an error, \"missing\" labels the whole output with missing values, \"infrequent\" add a specific column for these categories"
+  handle_unknown::String = "error"
+  "Which value during inverse transformation to assign to the infrequent category (i.e. categories not seen on training or not present in the provided `categories` array? [def: ` nothing`, i.e. maxtypeval(Int64) for integer vectors and \"other\" for other types]"
+  infrequent_category_value = nothing
+
+end
+Base.@kwdef mutable struct OneHotEncoderLearnableParameters <: AbstractEncoderLearnableParameter
+  categories_applied::Vector = []
+  original_vector_type::Union{Type,Nothing} = nothing 
+end
+
+"""
+$(TYPEDEF)
+
+Encode a vector of categorical values as integer values
+## Parameters
+$(FIELDS)
+
+"""
+Base.@kwdef mutable struct OrdinalEncoder <: AbstractEncoder
+  "The categories to encode as integers. [def: `nothing`, i.e. unique training values]"  
+  categories::Union{Vector,Nothing} = nothing
+end
+Base.@kwdef mutable struct OrdinalEncoderLearnableParameters <: AbstractEncoderLearnableParameter
+  categories_applied::Vector = []
+  original_vector_type::Union{Type,Nothing} = nothing 
+end
+
+function fit(m::OneHotEncoder,x,cache)
+    x     = makeColVector(x)
+    N = size(x,1)
+    vtype = nonmissingtype(eltype(x))
+
+    if vtype <: Number && !(vtype <: Integer)
+        # continuous column: we apply just identity
+        xout = cache ? nothing : x
+        return xout, OneHotEncoderLearnableParameters([],vtype)
+    end
+
+    categories_applied = isnothing(m.categories) ? unique(x) : deepcopy(m.categories)
+
+    if cache
+        K = length(categories_applied)
+    end
+
+    X_scaled = cache ? deepcopy(X) : nothing 
+    for (ic,c) in enumerate(eachcol(X))
+        if !(ic in skip)
+          imin,imax =   (m.inputRange[1](skipmissing(c)),  m.inputRange[2](skipmissing(c)) )
+          if cache
+            omin, omax = m.outputRange[1], m.outputRange[2]
+            X_scaled[:,ic] = (c .- imin) .* ((omax-omin)/(imax-imin)) .+ omin
+          end
+          push!(actualRanges,(imin,imax))
+        else
+          push!(actualRanges,(-Inf,+Inf))
+        end
+    end
+    return X_scaled, MinMaxScalerLearnableParameters(actualRanges)
+end
+#=
+function fit(m::StandardScaler,skip,X,cache)
+    nR,nD = size(X)
+    sfμ   = zeros(nD)
+    sfσ   = ones(nD)
+    X_scaled = cache ? deepcopy(X) : nothing 
+    for (ic,c) in enumerate(eachcol(X))
+        if !(ic in skip)
+            μ  = m.center ? mean(skipmissing(c)) : 0.0
+            σ² = m.scale  ? var(skipmissing(c),corrected=false) : 1.0 
+            sfμ[ic] = - μ
+            sfσ[ic] = 1 ./ sqrt.(σ²)
+            if cache
+                X_scaled[:,ic] = (c .+ sfμ[ic]) .* sfσ[ic] 
+            end
+        end
+    end
+ 
+    return X_scaled, StandardScalerLearnableParameters(sfμ,sfσ)
+end
+function predict(m::MinMaxScaler,pars::MinMaxScalerLearnableParameters,skip,X;inverse=false)
+    if !inverse
+        xnew = deepcopy(X)
+        for (ic,c) in enumerate(eachcol(X))
+            if !(ic in skip)
+                imin,imax = pars.inputRangeApplied[ic]
+                omin,omax = m.outputRange
+                xnew[:,ic] = (c .- imin) .* ((omax-omin)/(imax-imin)) .+ omin
+            end
+        end
+        return xnew
+    else
+        xorig = deepcopy(X)
+        for (ic,c) in enumerate(eachcol(X))
+            if !(ic in skip)
+                imin,imax = pars.inputRangeApplied[ic]
+                omin,omax = m.outputRange
+                xorig[:,ic] = (c .- omin) .* ((imax-imin)/(omax-omin)) .+ imin
+            end
+        end
+        return xorig
+    end
+end
+function predict(m::OneHotEncoder,pars::StandardScalerLearnableParameters,skip,X;inverse=false)
+    if !inverse
+        xnew = deepcopy(X)
+        for (ic,c) in enumerate(eachcol(X))
+            if !(ic in skip)
+                xnew[:,ic] = (c .+ pars.sfμ[ic]) .* pars.sfσ[ic] 
+            end
+        end
+        return xnew
+    else
+        xorig = deepcopy(X)
+        for (ic,c) in enumerate(eachcol(X))
+            if !(ic in skip)
+                xorig[:,ic] = (c ./ pars.sfσ[ic] .- pars.sfμ[ic])  
+            end
+        end
+        return xorig
+    end
+end
+
+"""
+$(TYPEDEF)
+
+Hyperparameters for the Scaler transformer
+
+## Parameters
+$(FIELDS)
+"""
+Base.@kwdef mutable struct EncoderHyperParametersSet <: BetaMLHyperParametersSet
+    "The specific scaler method to employ with its own parameters. See [`StandardScaler`](@ref) [def] or [`MinMaxScaler`](@ref)."
+    method::AbstractScaler = StandardScaler()
+    "The ids of the columns to skip scaling (eg. categorical columns, dummies,...) [def: `[]`]"
+    skip::Vector{Int64}    = Int64[]
+end
+
+Base.@kwdef mutable struct EncoderLearnableParameters <: BetaMLLearnableParametersSet
+   scalerpars::AbstractScalerLearnableParameter = StandardScalerLearnableParameters()
+end
+
+"""
+$(TYPEDEF)
+
+Scale the data according to the specific chosen method (def: `StandardScaler`) 
+
+For the parameters see [`ScalerHyperParametersSet`](@ref) and [`BetaMLDefaultOptionSet`](@ref) 
+
+```
+julia>m = Scaler(MinMaxScaler(inputRange=(x->minimum(x)*0.8,maximum),outputRange=(0,256)),skip=[3,7,8])
+```
+
+"""
+mutable struct Encoder <: BetaMLUnsupervisedModel
+    hpar::ScalerHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{Nothing,ScalerLearnableParameters}
+    cres::Union{Nothing,Matrix}
+    fitted::Bool
+    info::Dict{Symbol,Any}
+end
+
+function Encoder(;kwargs...)
+    m = Scaler(ScalerHyperParametersSet(),BetaMLDefaultOptionsSet(),ScalerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+        found = false
+        for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+              found = true
+          end
+        end
+        found || error("Keyword \"$kw\" is not part of this model.")
+    end
+    return m
+end
+
+function Encoder(method;kwargs...)
+    m = Scaler(ScalerHyperParametersSet(method=method),BetaMLDefaultOptionsSet(),ScalerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+        found = false
+        for f in thisobjfields
+            fobj = getproperty(m,f)
+            if kw in fieldnames(typeof(fobj))
+                setproperty!(fobj,kw,kwv)
+                found = true
+            end
+        end
+        found || error("Keyword \"$kw\" is not part of this model.")
+    end
+    return m
+end
+
+function fit!(m::Encoder,x)
+
+    # Parameter alias..
+    scaler                 = m.hpar.method
+    skip                   = m.hpar.skip
+    cache                  = m.opt.cache
+    verbosity              = m.opt.verbosity
+    rng                    = m.opt.rng
+
+    if m.fitted
+        verbosity >= STD && @warn "This model doesn't support online training. Training will be performed based on new data only."
+    end
+
+    m.cres,m.par.scalerpars = fit(scaler,skip,x,cache)
+    m.info[:fitted_records]  = get(m.info,:fitted_records,0) + size(x,1)
+    m.info[:dimensions]     = size(x,2)
+    m.fitted = true
+    cache ? (return m.cres) : (return nothing) 
+end   
+
+function predict(m::Encoder,x;inverse=false)
+    return predict(m.hpar.method,m.par.scalerpars,m.hpar.skip,x;inverse=inverse)
+end  
+# ----
+
+=#
 """
     partition(data,parts;shuffle,dims,rng)
 
@@ -543,8 +782,8 @@ function fit!(m::Scaler,x)
     m.cres,m.par.scalerpars = fit(scaler,skip,x,cache)
     m.info[:fitted_records]  = get(m.info,:fitted_records,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
-    m.fitted=true
-    return true
+    m.fitted = true
+    return cache ? m.cres : nothing 
 end   
 
 function predict(m::Scaler,x;inverse=false)
@@ -723,7 +962,7 @@ function fit!(m::PCA,X)
     m.info[:prop_explained_var]   = explained_var_by_dim[outdims_actual]
     m.info[:retained_dims]        = outdims_actual
     m.fitted=true
-    return true
+    return cache ? m.cres : nothing
 end   
 
 function predict(m::PCA,X)

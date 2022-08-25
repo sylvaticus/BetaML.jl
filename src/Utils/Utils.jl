@@ -70,7 +70,8 @@ export @codeLocation, generateParallelRngs,
        radialKernel, polynomialKernel,
        Scaler, MinMaxScaler, StandardScaler,
        ScalerHyperParametersSet, MinMaxScaler,StandardScaler,
-       PCA, PCAHyperParametersSet
+       PCA, PCAHyperParametersSet,
+       OrdinalEncoder, OneHotEncoder, Encoder, EncoderHyperParametersSet
 
 # Various functions that we add a method to
 import Base.print, Base.println, Base.findfirst, Base.findall, Base.error, Random.shuffle, Base.show

@@ -958,7 +958,7 @@ function fit!(m::FeedforwardNN,X,Y)
     m.fitted = true
     m.par.nnstruct.trained = true
 
-    return true
+    return cache ? m.cres : nothing
 end
 
 function predict(m::FeedforwardNN,X)

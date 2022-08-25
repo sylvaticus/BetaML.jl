@@ -361,7 +361,7 @@ function fit!(m::KernelPerceptron,X,Y)
     
     m.fitted = true
     
-    return true
+    return cache ? m.cres : nothing
 end
 
 function predict(m::KernelPerceptron,X)

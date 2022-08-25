@@ -104,7 +104,7 @@ function fit!(m::GMMRegressor1,x,y)
     m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
     m.fitted=true
-    return true
+    return cache ? m.cres : nothing
 end    
 
 function predict(m::GMMRegressor1,X)
@@ -230,7 +230,7 @@ function fit!(m::GMMRegressor2,x,y)
     m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
     m.fitted=true
-    return true
+    return cache ? m.cres : nothing
 end    
 
 function predict(m::GMMRegressor2,X)

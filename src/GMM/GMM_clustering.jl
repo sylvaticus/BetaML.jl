@@ -274,7 +274,7 @@ function fit!(m::GMMClusterModel,x)
     m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
     m.fitted=true
-    return true
+    return cache ? m.cres : nothing
 end    
 
 #function predict(m::GMMClusterModel)
