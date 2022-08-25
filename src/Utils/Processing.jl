@@ -205,82 +205,149 @@ function integerDecoder(x,factors::AbstractVector{T};unique=true) where{T}
 end
 
 
-# API V2 for Encoder
+# API V2 for encoders
 
-abstract type AbstractEncoder end
-abstract type AbstractEncoderLearnableParameter end 
 
 """
 $(TYPEDEF)
 
-Encode a vector of categorical values as one-hot columns
+Encode a vector of categorical values as one-hot columns.
+
+The algorithm distinguishes between _missing_ values, for which it returns a one-hot encoded row of missing values, and _other_ categories not in the provided list or not seen during training that are handled according to the `handle_unknown` parameter. 
 
 ## Parameters
 $(FIELDS)
 
 """
-Base.@kwdef mutable struct OneHotEncoder <: AbstractEncoder
-  "The categories to represent as columns. [def: `nothing`, i.e. unique training values]"  
+Base.@kwdef mutable struct OneHotEncoderHyperParametersSet <: BetaMLHyperParametersSet
+  "The categories to represent as columns. [def: `nothing`, i.e. unique training values]. Do not include `missing` in this list."  
   categories::Union{Vector,Nothing} = nothing
   "How to handle categories not seens in training or not present in the provided `categories` array? \"error\" (default) rises an error, \"missing\" labels the whole output with missing values, \"infrequent\" add a specific column for these categories"
   handle_unknown::String = "error"
-  "Which value during inverse transformation to assign to the infrequent category (i.e. categories not seen on training or not present in the provided `categories` array? [def: ` nothing`, i.e. maxtypeval(Int64) for integer vectors and \"other\" for other types]"
-  infrequent_category_value = nothing
+  "Which value during inverse transformation to assign to the \"other\" category (i.e. categories not seen on training or not present in the provided `categories` array? [def: ` nothing`, i.e. typemax(Int64) for integer vectors and \"other\" for other types]. This setting is active only if `handle_unknown=\"infrequent\"` and in that case MUST be specified if the vector to one-hot encode is neither integer or strings"
+  other_categories_name = nothing
 
 end
-Base.@kwdef mutable struct OneHotEncoderLearnableParameters <: AbstractEncoderLearnableParameter
+Base.@kwdef mutable struct OneHotEncoderLearnableParameters <: BetaMLLearnableParametersSet
   categories_applied::Vector = []
-  original_vector_type::Union{Type,Nothing} = nothing 
+  original_vector_eltype::Union{Type,Nothing} = nothing 
 end
 
-"""
-$(TYPEDEF)
-
-Encode a vector of categorical values as integer values
-## Parameters
-$(FIELDS)
-
-"""
-Base.@kwdef mutable struct OrdinalEncoder <: AbstractEncoder
-  "The categories to encode as integers. [def: `nothing`, i.e. unique training values]"  
-  categories::Union{Vector,Nothing} = nothing
-end
-Base.@kwdef mutable struct OrdinalEncoderLearnableParameters <: AbstractEncoderLearnableParameter
-  categories_applied::Vector = []
-  original_vector_type::Union{Type,Nothing} = nothing 
+mutable struct OneHotEncoder <: BetaMLUnsupervisedModel
+    hpar::OneHotEncoderHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{Nothing,OneHotEncoderLearnableParameters}
+    cres::Union{Nothing,Matrix{Bool},Matrix{Union{Bool,Missing}}}
+    fitted::Bool
+    info::Dict{Symbol,Any}
 end
 
-function fit(m::OneHotEncoder,x,cache)
-    x     = makeColVector(x)
-    N = size(x,1)
-    vtype = nonmissingtype(eltype(x))
+mutable struct OrdinalEncoder <: BetaMLUnsupervisedModel
+    hpar::OneHotEncoderHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{Nothing,OneHotEncoderLearnableParameters}
+    cres::Union{Nothing,Vector{Int64}}
+    fitted::Bool
+    info::Dict{Symbol,Any}
+end
 
-    if vtype <: Number && !(vtype <: Integer)
-        # continuous column: we apply just identity
-        xout = cache ? nothing : x
-        return xout, OneHotEncoderLearnableParameters([],vtype)
-    end
-
-    categories_applied = isnothing(m.categories) ? unique(x) : deepcopy(m.categories)
-
-    if cache
-        K = length(categories_applied)
-    end
-
-    X_scaled = cache ? deepcopy(X) : nothing 
-    for (ic,c) in enumerate(eachcol(X))
-        if !(ic in skip)
-          imin,imax =   (m.inputRange[1](skipmissing(c)),  m.inputRange[2](skipmissing(c)) )
-          if cache
-            omin, omax = m.outputRange[1], m.outputRange[2]
-            X_scaled[:,ic] = (c .- imin) .* ((omax-omin)/(imax-imin)) .+ omin
+function OneHotEncoder(;kwargs...)
+    m = OneHotEncoder(OneHotEncoderHyperParametersSet(),BetaMLDefaultOptionsSet(),OneHotEncoderLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       found = false
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+              found = true
           end
-          push!(actualRanges,(imin,imax))
+        end
+        found || error("Keyword \"$kw\" is not part of this model.")
+    end
+    return m
+end
+
+function OrdinalEncoder(;kwargs...)
+    m = OrdinalEncoder(OneHotEncoderHyperParametersSet(),BetaMLDefaultOptionsSet(),OneHotEncoderLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       found = false
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+              found = true
+          end
+        end
+        found || error("Keyword \"$kw\" is not part of this model.")
+    end
+    return m
+end
+
+function fit!(m::OneHotEncoder,x)
+    x     = makeColVector(x)
+    N     = size(x,1)
+    vtype = eltype(x) #    nonmissingtype(eltype(x))
+
+    # Parameter aliases
+    categories             = m.hpar.categories
+    handle_unknown         = m.hpar.handle_unknown
+    other_categories_name  = m.hpar.other_categories_name
+    if isnothing(other_categories_name)
+        if nonmissingtype(vtype) <: Integer
+            other_categories_name = typemax(Int64)
         else
-          push!(actualRanges,(-Inf,+Inf))
+            other_categories_name = "other"
         end
     end
-    return X_scaled, MinMaxScalerLearnableParameters(actualRanges)
+    cache                  = m.opt.cache
+    verbosity              = m.opt.verbosity
+    rng                    = m.opt.rng
+
+    if nonmissingtype(vtype) <: Number && !(nonmissingtype(vtype) <: Integer)
+        # continuous column: we just apply identity
+        m.par = OneHotEncoderLearnableParameters([],vtype)
+        return cache ? nothing : x
+    end
+
+    categories_applied = isnothing(categories) ? collect(skipmissing(unique(x))) : deepcopy(categories)
+    handle_unknown == "infrequent" && push!(categories_applied,other_categories_name)
+    m.par = OneHotEncoderLearnableParameters(categories_applied,vtype)
+
+    if cache
+        K    = length(categories_applied)
+        outx = fill(false,N,K)
+        for n in 1:N
+            if ismissing(x[n]) 
+                outx = convert(Matrix{Union{Missing,Bool}},outx)
+                outx[n,:] = fill(missing,K)
+                continue
+            end
+            kidx = findfirst(y -> isequal(y,x[n]),categories_applied)
+            if isnothing(kidx)
+                if handle_unknown == "error"
+                    error("Found a category ($(x[n])) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to swith it to either `missing` or `infrequent`.")
+                    continue
+                elseif handle_unknown == "missing"
+                    outx[n,:] = fill(missing,K);
+                    continue
+                elseif handle_unknown == "infrequent"
+                    outx[n,K] = true
+                    continue
+                else
+                    error("I don't know how to process `handle_unknown == $(handle_unknown)`")
+                end
+            end
+            outx[n,kidx] = true
+        end
+        m.cres = outx
+    end
+
+    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
+    m.info[:n_categories]   = K
+    m.fitted = true
+    return cache ? m.cres : nothing
 end
 #=
 function fit(m::StandardScaler,skip,X,cache)

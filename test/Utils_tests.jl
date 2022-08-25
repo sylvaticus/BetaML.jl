@@ -42,6 +42,15 @@ ce = oneHotEncoder(c,count=true)
 @test BetaML.Utils.oneHotEncoderRow("b",factors=["a","b","c"]) == [0,1,0]
 @test BetaML.Utils.oneHotEncoderRow(["b","c","c"],factors=["a","b","c"],count=true) == [0,1,2]
 
+
+m  = OneHotEncoder()
+x  = [3,6,3,4]
+ŷ  = fit!(m,x)
+x  = [3,6,missing,3,4]
+m  = OneHotEncoder(categories=[3,4,7],handle_unknown="infrequent",other_categories_name=99)
+ŷ  = fit!(m,x)
+
+
 # ==================================
 # NEW TEST
 println("Testing findFirst/ findall / integerEncoder / integerDecoder...")
