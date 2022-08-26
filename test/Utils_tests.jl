@@ -46,6 +46,8 @@ ce = oneHotEncoder(c,count=true)
 m  = OneHotEncoder()
 x  = [3,6,3,4]
 ŷ  = fit!(m,x)
+x2 = inverse_predict(m,ŷ)
+@test x2 == x
 x  = [3,6,missing,3,4]
 m  = OneHotEncoder(categories=[3,4,7],handle_unknown="infrequent",other_categories_name=99)
 ŷ  = fit!(m,x)
@@ -58,16 +60,20 @@ ŷ2  = predict(m)
 ŷ3  = predict(m,x)
 @test isequal(ŷ,ŷ2)
 @test isequal(ŷ,ŷ3)
+x2 = inverse_predict(m,ŷ)
+@test isequal(x2,[3,99,missing,3,4])
 
-x  = ["1","6",missing,"3","4"]
-m  = OrdinalEncoder(categories=["3","4","7"],handle_unknown="infrequent",other_categories_name="99")
+x  = ["3","6",missing,"3","4"]
+m  = OrdinalEncoder(categories=["3","7","4"],handle_unknown="infrequent",other_categories_name="99")
 ŷ  = fit!(m,x)
-
-
+@test isequal(ŷ, [1,4,missing,1,3])
 ŷ2  = predict(m)
 ŷ3  = predict(m,x)
 @test isequal(ŷ,ŷ2)
 @test isequal(ŷ,ŷ3)
+x2 = inverse_predict(m,ŷ)
+@test isequal(x2,["3","99",missing,"3","4"]) 
+
 # ==================================
 # NEW TEST
 println("Testing findFirst/ findall / integerEncoder / integerDecoder...")
@@ -213,7 +219,7 @@ ŷ  = predict(m)
             7.0  0.0       1.0  0.0       1.0]))
 ŷ1 = predict(m,x)
 @test collect(skipmissing(ŷfit)) == collect(skipmissing(ŷ)) == collect(skipmissing(ŷ1))
-x1 = predict(m,ŷ,inverse=true)
+x1 = inverse_predict(m,ŷ)
 @test collect(skipmissing(x)) == collect(skipmissing(x1))
 m2 = Scaler(MinMaxScaler(),skip=[1,5])
 fit!(m2,x)

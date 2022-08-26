@@ -211,9 +211,7 @@ end
 """
 $(TYPEDEF)
 
-Encode a vector of categorical values as one-hot columns.
-
-The algorithm distinguishes between _missing_ values, for which it returns a one-hot encoded row of missing values, and _other_ categories not in the provided list or not seen during training that are handled according to the `handle_unknown` parameter. 
+Hyperparameters for both OnHotEncoder and OrdinalEncoder
 
 ## Parameters
 $(FIELDS)
@@ -233,6 +231,16 @@ Base.@kwdef mutable struct OneHotEncoderLearnableParameters <: BetaMLLearnablePa
   original_vector_eltype::Union{Type,Nothing} = nothing 
 end
 
+"""
+$(TYPEDEF)
+
+Encode a vector of categorical values as one-hot columns.
+
+The algorithm distinguishes between _missing_ values, for which it returns a one-hot encoded row of missing values, and _other_ categories not in the provided list or not seen during training that are handled according to the `handle_unknown` parameter. 
+
+For the parameters see [`OneHotEncoderHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).
+
+"""
 mutable struct OneHotEncoder <: BetaMLUnsupervisedModel
     hpar::OneHotEncoderHyperParametersSet
     opt::BetaMLDefaultOptionsSet
@@ -242,6 +250,16 @@ mutable struct OneHotEncoder <: BetaMLUnsupervisedModel
     info::Dict{Symbol,Any}
 end
 
+"""
+$(TYPEDEF)
+
+Encode a vector of categorical values as integers.
+
+The algorithm distinguishes between _missing_ values, for which it propagate the missing, and _other_ categories not in the provided list or not seen during training that are handled according to the `handle_unknown` parameter. 
+
+For the parameters see [`OneHotEncoderHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).
+
+"""
 mutable struct OrdinalEncoder <: BetaMLUnsupervisedModel
     hpar::OneHotEncoderHyperParametersSet
     opt::BetaMLDefaultOptionsSet
@@ -401,170 +419,49 @@ end
 
 predict(m::OneHotEncoder,x)  = _predict(m,x,:onehot)
 predict(m::OrdinalEncoder,x) = _predict(m,x,:ordinal)
-
-#=
-function fit(m::StandardScaler,skip,X,cache)
-    nR,nD = size(X)
-    sfμ   = zeros(nD)
-    sfσ   = ones(nD)
-    X_scaled = cache ? deepcopy(X) : nothing 
-    for (ic,c) in enumerate(eachcol(X))
-        if !(ic in skip)
-            μ  = m.center ? mean(skipmissing(c)) : 0.0
-            σ² = m.scale  ? var(skipmissing(c),corrected=false) : 1.0 
-            sfμ[ic] = - μ
-            sfσ[ic] = 1 ./ sqrt.(σ²)
-            if cache
-                X_scaled[:,ic] = (c .+ sfμ[ic]) .* sfσ[ic] 
-            end
+function _inverse_predict(m,x,enctype::Symbol)
+    # Parameter aliases
+    handle_unknown         = m.hpar.handle_unknown
+    categories_applied     = m.par.categories_applied
+    original_vector_eltype = m.par.original_vector_eltype
+    other_categories_name  = m.hpar.other_categories_name
+    if isnothing(other_categories_name)
+        if nonmissingtype(original_vector_eltype ) <: Integer
+            other_categories_name = typemax(Int64)
+        else
+            other_categories_name = "other"
         end
     end
- 
-    return X_scaled, StandardScalerLearnableParameters(sfμ,sfσ)
-end
-function predict(m::MinMaxScaler,pars::MinMaxScalerLearnableParameters,skip,X;inverse=false)
-    if !inverse
-        xnew = deepcopy(X)
-        for (ic,c) in enumerate(eachcol(X))
-            if !(ic in skip)
-                imin,imax = pars.inputRangeApplied[ic]
-                omin,omax = m.outputRange
-                xnew[:,ic] = (c .- imin) .* ((omax-omin)/(imax-imin)) .+ omin
+
+    N,D     = size(x,1),size(x,2)
+    outx    = Array{original_vector_eltype,1}(undef,N)
+
+    for n in 1:N
+        if enctype == :onehot
+            if any(ismissing.(x[n,:]))
+                outx[n] = missing
+                continue
+            elseif handle_unknown == "infrequent" && findfirst(c->c==true,x[n,:]) == D
+                outx[n] = other_categories_name
+                continue
             end
-        end
-        return xnew
-    else
-        xorig = deepcopy(X)
-        for (ic,c) in enumerate(eachcol(X))
-            if !(ic in skip)
-                imin,imax = pars.inputRangeApplied[ic]
-                omin,omax = m.outputRange
-                xorig[:,ic] = (c .- omin) .* ((imax-imin)/(omax-omin)) .+ imin
+            outx[n] = categories_applied[findfirst(c->c==true,x[n,:])]
+        else
+            if ismissing(x[n])
+                outx[n] = missing
+                continue
+            elseif handle_unknown == "infrequent" && x[n] == length(categories_applied)
+                outx[n] = other_categories_name
+                continue
             end
+            outx[n] = categories_applied[x[n]]
         end
-        return xorig
     end
+    return outx
 end
-function predict(m::OneHotEncoder,pars::StandardScalerLearnableParameters,skip,X;inverse=false)
-    if !inverse
-        xnew = deepcopy(X)
-        for (ic,c) in enumerate(eachcol(X))
-            if !(ic in skip)
-                xnew[:,ic] = (c .+ pars.sfμ[ic]) .* pars.sfσ[ic] 
-            end
-        end
-        return xnew
-    else
-        xorig = deepcopy(X)
-        for (ic,c) in enumerate(eachcol(X))
-            if !(ic in skip)
-                xorig[:,ic] = (c ./ pars.sfσ[ic] .- pars.sfμ[ic])  
-            end
-        end
-        return xorig
-    end
-end
+inverse_predict(m::OneHotEncoder,x)  = _inverse_predict(m,x,:onehot)
+inverse_predict(m::OrdinalEncoder,x) = _inverse_predict(m,x,:ordinal)
 
-"""
-$(TYPEDEF)
-
-Hyperparameters for the Scaler transformer
-
-## Parameters
-$(FIELDS)
-"""
-Base.@kwdef mutable struct EncoderHyperParametersSet <: BetaMLHyperParametersSet
-    "The specific scaler method to employ with its own parameters. See [`StandardScaler`](@ref) [def] or [`MinMaxScaler`](@ref)."
-    method::AbstractScaler = StandardScaler()
-    "The ids of the columns to skip scaling (eg. categorical columns, dummies,...) [def: `[]`]"
-    skip::Vector{Int64}    = Int64[]
-end
-
-Base.@kwdef mutable struct EncoderLearnableParameters <: BetaMLLearnableParametersSet
-   scalerpars::AbstractScalerLearnableParameter = StandardScalerLearnableParameters()
-end
-
-"""
-$(TYPEDEF)
-
-Scale the data according to the specific chosen method (def: `StandardScaler`) 
-
-For the parameters see [`ScalerHyperParametersSet`](@ref) and [`BetaMLDefaultOptionSet`](@ref) 
-
-```
-julia>m = Scaler(MinMaxScaler(inputRange=(x->minimum(x)*0.8,maximum),outputRange=(0,256)),skip=[3,7,8])
-```
-
-"""
-mutable struct Encoder <: BetaMLUnsupervisedModel
-    hpar::ScalerHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,ScalerLearnableParameters}
-    cres::Union{Nothing,Matrix}
-    fitted::Bool
-    info::Dict{Symbol,Any}
-end
-
-function Encoder(;kwargs...)
-    m = Scaler(ScalerHyperParametersSet(),BetaMLDefaultOptionsSet(),ScalerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
-    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
-    for (kw,kwv) in kwargs
-        found = false
-        for f in thisobjfields
-          fobj = getproperty(m,f)
-          if kw in fieldnames(typeof(fobj))
-              setproperty!(fobj,kw,kwv)
-              found = true
-          end
-        end
-        found || error("Keyword \"$kw\" is not part of this model.")
-    end
-    return m
-end
-
-function Encoder(method;kwargs...)
-    m = Scaler(ScalerHyperParametersSet(method=method),BetaMLDefaultOptionsSet(),ScalerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
-    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
-    for (kw,kwv) in kwargs
-        found = false
-        for f in thisobjfields
-            fobj = getproperty(m,f)
-            if kw in fieldnames(typeof(fobj))
-                setproperty!(fobj,kw,kwv)
-                found = true
-            end
-        end
-        found || error("Keyword \"$kw\" is not part of this model.")
-    end
-    return m
-end
-
-function fit!(m::Encoder,x)
-
-    # Parameter alias..
-    scaler                 = m.hpar.method
-    skip                   = m.hpar.skip
-    cache                  = m.opt.cache
-    verbosity              = m.opt.verbosity
-    rng                    = m.opt.rng
-
-    if m.fitted
-        verbosity >= STD && @warn "This model doesn't support online training. Training will be performed based on new data only."
-    end
-
-    m.cres,m.par.scalerpars = fit(scaler,skip,x,cache)
-    m.info[:fitted_records]  = get(m.info,:fitted_records,0) + size(x,1)
-    m.info[:dimensions]     = size(x,2)
-    m.fitted = true
-    cache ? (return m.cres) : (return nothing) 
-end   
-
-function predict(m::Encoder,x;inverse=false)
-    return predict(m.hpar.method,m.par.scalerpars,m.hpar.skip,x;inverse=inverse)
-end  
-# ----
-
-=#
 """
     partition(data,parts;shuffle,dims,rng)
 
@@ -621,8 +518,6 @@ function partition(data::AbstractArray{T,Ndims}, parts::AbstractArray{Float64,1}
     end
     return toReturn
 end
-
-
 
 
 """
@@ -733,7 +628,7 @@ Base.@kwdef mutable struct StandardScalerLearnableParameters <: AbstractScalerLe
   sfσ::Vector{Float64} = Float64[]  # scale vactor of st.dev.
 end
 
-function fit(m::MinMaxScaler,skip,X,cache)
+function _fit(m::MinMaxScaler,skip,X,cache)
     actualRanges = Tuple{Float64,Float64}[]
     X_scaled = cache ? deepcopy(X) : nothing 
     for (ic,c) in enumerate(eachcol(X))
@@ -750,7 +645,7 @@ function fit(m::MinMaxScaler,skip,X,cache)
     end
     return X_scaled, MinMaxScalerLearnableParameters(actualRanges)
 end
-function fit(m::StandardScaler,skip,X,cache)
+function _fit(m::StandardScaler,skip,X,cache)
     nR,nD = size(X)
     sfμ   = zeros(nD)
     sfσ   = ones(nD)
@@ -769,7 +664,8 @@ function fit(m::StandardScaler,skip,X,cache)
  
     return X_scaled, StandardScalerLearnableParameters(sfμ,sfσ)
 end
-function predict(m::MinMaxScaler,pars::MinMaxScalerLearnableParameters,skip,X;inverse=false)
+
+function _predict(m::MinMaxScaler,pars::MinMaxScalerLearnableParameters,skip,X;inverse=false)
     if !inverse
         xnew = deepcopy(X)
         for (ic,c) in enumerate(eachcol(X))
@@ -792,7 +688,7 @@ function predict(m::MinMaxScaler,pars::MinMaxScalerLearnableParameters,skip,X;in
         return xorig
     end
 end
-function predict(m::StandardScaler,pars::StandardScalerLearnableParameters,skip,X;inverse=false)
+function _predict(m::StandardScaler,pars::StandardScalerLearnableParameters,skip,X;inverse=false)
     if !inverse
         xnew = deepcopy(X)
         for (ic,c) in enumerate(eachcol(X))
@@ -899,15 +795,19 @@ function fit!(m::Scaler,x)
         verbosity >= STD && @warn "This model doesn't support online training. Training will be performed based on new data only."
     end
 
-    m.cres,m.par.scalerpars = fit(scaler,skip,x,cache)
-    m.info[:fitted_records]  = get(m.info,:fitted_records,0) + size(x,1)
+    m.cres,m.par.scalerpars = _fit(scaler,skip,x,cache)
+    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
     m.info[:dimensions]     = size(x,2)
     m.fitted = true
     return cache ? m.cres : nothing 
 end   
 
-function predict(m::Scaler,x;inverse=false)
-    return predict(m.hpar.method,m.par.scalerpars,m.hpar.skip,x;inverse=inverse)
+function predict(m::Scaler,x)
+    return _predict(m.hpar.method,m.par.scalerpars,m.hpar.skip,x;inverse=false)
+end  
+
+function inverse_predict(m::Scaler,x)
+    return _predict(m.hpar.method,m.par.scalerpars,m.hpar.skip,x;inverse=true)
 end  
 
 

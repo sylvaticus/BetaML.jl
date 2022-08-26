@@ -13,7 +13,7 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        FIXEDSEED, FIXEDRNG,
        BetaMLModel, BetaMLSupervisedModel, BetaMLUnsupervisedModel,
        BetaMLOptionsSet, BetaMLDefaultOptionsSet, BetaMLHyperParametersSet, BetaMLLearnableParametersSet,
-       predict, fit!, partition, info, reset!, learned
+       predict, inverse_predict, fit!, partition, info, reset!, learned
 
 
 
@@ -92,6 +92,16 @@ function predict(m::BetaMLModel)
       return nothing
    end
 end
+
+"""
+   inverse_predict(m::BetaMLModel,X)
+
+Given a model `m` that fitted on `x` produces `xnew`, it takes `xnew` to return (possibly an approximation of ) `x`.
+For example, when `OneHotEncoder` is fitted with a subset of the possible categories and the ` handle_unknown` option is set on `infrequent`, `inverse_transform` will aggregate all the _other_ categories as specified in `other_categories_name`.
+
+Inplemented only in a few models.
+""" 
+inverse_predict(m::BetaMLModel,X) = nothing
 
 function info(m::BetaMLModel)
    return m.info
