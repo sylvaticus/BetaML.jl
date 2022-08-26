@@ -222,7 +222,7 @@ $(FIELDS)
 Base.@kwdef mutable struct OneHotEncoderHyperParametersSet <: BetaMLHyperParametersSet
   "The categories to represent as columns. [def: `nothing`, i.e. unique training values]. Do not include `missing` in this list."  
   categories::Union{Vector,Nothing} = nothing
-  "How to handle categories not seens in training or not present in the provided `categories` array? \"error\" (default) rises an error, \"missing\" labels the whole output with missing values, \"infrequent\" add a specific column for these categories"
+  "How to handle categories not seens in training or not present in the provided `categories` array? \"error\" (default) rises an error, \"missing\" labels the whole output with missing values, \"infrequent\" adds a specific column for these categories in one-hot encoding or a single new category for ordinal one."
   handle_unknown::String = "error"
   "Which value during inverse transformation to assign to the \"other\" category (i.e. categories not seen on training or not present in the provided `categories` array? [def: ` nothing`, i.e. typemax(Int64) for integer vectors and \"other\" for other types]. This setting is active only if `handle_unknown=\"infrequent\"` and in that case MUST be specified if the vector to one-hot encode is neither integer or strings"
   other_categories_name = nothing
@@ -246,7 +246,7 @@ mutable struct OrdinalEncoder <: BetaMLUnsupervisedModel
     hpar::OneHotEncoderHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,OneHotEncoderLearnableParameters}
-    cres::Union{Nothing,Vector{Int64}}
+    cres::Union{Nothing,Vector{Union{Int64,Missing}}}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
@@ -285,7 +285,7 @@ function OrdinalEncoder(;kwargs...)
     return m
 end
 
-function fit!(m::OneHotEncoder,x)
+function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
     x     = makeColVector(x)
     N     = size(x,1)
     vtype = eltype(x) #    nonmissingtype(eltype(x))
@@ -316,11 +316,16 @@ function fit!(m::OneHotEncoder,x)
     m.par = OneHotEncoderLearnableParameters(categories_applied,vtype)
 
     if cache
-        K    = length(categories_applied)
-        outx = fill(false,N,K)
+        if enctype == :onehot
+            K    = length(categories_applied)
+            outx = fill(false,N,K)
+        else 
+            K    = 1
+            outx = zeros(Int64,N,K)
+        end
         for n in 1:N
             if ismissing(x[n]) 
-                outx = convert(Matrix{Union{Missing,Bool}},outx)
+                outx = (enctype == :onehot) ? convert(Matrix{Union{Missing,Bool}},outx) : convert(Matrix{Union{Missing,Int64}},outx)
                 outx[n,:] = fill(missing,K)
                 continue
             end
@@ -333,22 +338,70 @@ function fit!(m::OneHotEncoder,x)
                     outx[n,:] = fill(missing,K);
                     continue
                 elseif handle_unknown == "infrequent"
-                    outx[n,K] = true
+                    outx[n,K] = (enctype == :onehot) ? true : length(categories_applied)
                     continue
                 else
                     error("I don't know how to process `handle_unknown == $(handle_unknown)`")
                 end
             end
-            outx[n,kidx] = true
+            enctype == :onehot ? (outx[n,kidx] = true) : outx[n,1] = kidx
         end
-        m.cres = outx
+        m.cres = (enctype == :onehot) ? outx : dropdims(outx,dims=2)
     end
 
     m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
-    m.info[:n_categories]   = K
+    m.info[:n_categories]   = length(categories_applied)
     m.fitted = true
     return cache ? m.cres : nothing
 end
+fit!(m::OneHotEncoder,x)  = _fit!(m,x,:onehot)
+fit!(m::OrdinalEncoder,x) = _fit!(m,x,:ordinal)
+
+function _predict(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
+    x     = makeColVector(x)
+    N     = size(x,1)
+    vtype = eltype(x) #    nonmissingtype(eltype(x))
+
+    # Parameter aliases
+    handle_unknown         = m.hpar.handle_unknown
+    categories_applied     = m.par.categories_applied
+
+    if enctype == :onehot
+        K    = length(categories_applied)
+        outx = fill(false,N,K)
+    else 
+        K    = 1
+        outx = zeros(Int64,N,K)
+    end
+    for n in 1:N
+        if ismissing(x[n]) 
+            outx = (enctype == :onehot) ? convert(Matrix{Union{Missing,Bool}},outx) : convert(Matrix{Union{Missing,Int64}},outx)
+            outx[n,:] = fill(missing,K)
+            continue
+        end
+        kidx = findfirst(y -> isequal(y,x[n]),categories_applied)
+        if isnothing(kidx)
+            if handle_unknown == "error"
+                error("Found a category ($(x[n])) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to swith it to either `missing` or `infrequent`.")
+                continue
+            elseif handle_unknown == "missing"
+                outx[n,:] = fill(missing,K);
+                continue
+            elseif handle_unknown == "infrequent"
+                outx[n,K] = (enctype == :onehot) ? true : length(categories_applied)
+                continue
+            else
+                error("I don't know how to process `handle_unknown == $(handle_unknown)`")
+            end
+        end
+        enctype == :onehot ? (outx[n,kidx] = true) : outx[n,1] = kidx
+    end
+    return (enctype == :onehot) ? outx : dropdims(outx,dims=2)
+end
+
+predict(m::OneHotEncoder,x)  = _predict(m,x,:onehot)
+predict(m::OrdinalEncoder,x) = _predict(m,x,:ordinal)
+
 #=
 function fit(m::StandardScaler,skip,X,cache)
     nR,nD = size(X)

@@ -49,8 +49,25 @@ ŷ  = fit!(m,x)
 x  = [3,6,missing,3,4]
 m  = OneHotEncoder(categories=[3,4,7],handle_unknown="infrequent",other_categories_name=99)
 ŷ  = fit!(m,x)
+@test isequal(ŷ, [  true         false         false         false
+                   false         false         false          true
+                 missing       missing       missing       missing
+                    true         false         false         false
+                   false          true         false         false])
+ŷ2  = predict(m)
+ŷ3  = predict(m,x)
+@test isequal(ŷ,ŷ2)
+@test isequal(ŷ,ŷ3)
+
+x  = ["1","6",missing,"3","4"]
+m  = OrdinalEncoder(categories=["3","4","7"],handle_unknown="infrequent",other_categories_name="99")
+ŷ  = fit!(m,x)
 
 
+ŷ2  = predict(m)
+ŷ3  = predict(m,x)
+@test isequal(ŷ,ŷ2)
+@test isequal(ŷ,ŷ3)
 # ==================================
 # NEW TEST
 println("Testing findFirst/ findall / integerEncoder / integerDecoder...")
