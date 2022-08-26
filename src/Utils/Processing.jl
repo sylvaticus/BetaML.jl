@@ -238,7 +238,7 @@ Encode a vector of categorical values as one-hot columns.
 
 The algorithm distinguishes between _missing_ values, for which it returns a one-hot encoded row of missing values, and _other_ categories not in the provided list or not seen during training that are handled according to the `handle_unknown` parameter. 
 
-For the parameters see [`OneHotEncoderHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).
+For the parameters see [`OneHotEncoderHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).  This model supports `inverse_predict`.
 
 """
 mutable struct OneHotEncoder <: BetaMLUnsupervisedModel
@@ -257,7 +257,7 @@ Encode a vector of categorical values as integers.
 
 The algorithm distinguishes between _missing_ values, for which it propagate the missing, and _other_ categories not in the provided list or not seen during training that are handled according to the `handle_unknown` parameter. 
 
-For the parameters see [`OneHotEncoderHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).
+For the parameters see [`OneHotEncoderHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref). This model supports `inverse_predict`.
 
 """
 mutable struct OrdinalEncoder <: BetaMLUnsupervisedModel

@@ -232,12 +232,29 @@ end
 # API V2...
 
 """
-**`$(TYPEDEF)`**
+
+SIGNATURES: 
+
+$(SIGNATURES)
+
+FunctionName
+$(FUNCTIONNAME)
+
+TYPEDEF
+$(TYPEDEF)
+
+TYPEDSIGNATURES
+$(TYPEDSIGNATURES)
+
+METHODLIST
+$(METHODLIST)
+
+PerceptronClassicHyperParametersSet
 
 Hyperparameters for the `PerceptronClassic` model
 
 ## Parameters:
-$(FIELDS)
+$(TYPEDFIELDS)
 """
 Base.@kwdef mutable struct PerceptronClassicHyperParametersSet <: BetaMLHyperParametersSet
     "Initial parameters. If given, should be a matrix of n-classes by feature dimension + 1 (to include the constant term as the first element) [def: `nothing`, i.e. zeros]"
@@ -258,8 +275,21 @@ Base.@kwdef mutable struct PerceptronClassicLearnableParameters <: BetaMLLearnab
 end
 
 """
+SIGNATURES: 
 
-**`PerceptronClassic`**
+$(SIGNATURES)
+
+FunctionName
+$(FUNCTIONNAME)
+
+TYPEDEF
+$(TYPEDEF)
+
+TYPEDSIGNATURES
+$(TYPEDSIGNATURES)
+
+METHODLIST
+$(METHODLIST)
 
 The classical "perceptron" linear classifier (supervised).
 
@@ -296,6 +326,25 @@ function PerceptronClassic(;kwargs...)
     return m
 end
 
+"""
+
+SIGNATURES: 
+
+$(SIGNATURES)
+
+FunctionName
+$(FUNCTIONNAME)
+
+TYPEDEF
+$(TYPEDEF)
+
+TYPEDSIGNATURES
+$(TYPEDSIGNATURES)
+
+METHODLIST
+$(METHODLIST)
+
+"""
 function fit!(m::PerceptronClassic,X,Y)
     
 

@@ -1,6 +1,6 @@
-# BetaML Api v2
+# [BetaML Api v2](@id api_usage)
 
-!!! info Compatibility
+!!! note Compatibility
     The API described below is _experimental_ in BetaML 0.7 and will be default in BetaML 0.8, when at the same time the old API will be deprecated. In 0.7 not all BetaML models may have this new API implemented.
 
 
@@ -47,7 +47,7 @@ Trained models can be used to predict `y` (wheter the label, some desired new in
 ŷ = predict(mod,X)
 ```
 
-As a convenience, if the model has been trained while having the `cache` option set on `true` (by default) the `ŷ` of the last training is retained in the  model object and it can be retrieved simply with `predict(mod)`. Also in such case the `fit!` function return `ŷ` instead of `nothing` effectively making it behave like a _fit-and-transfor_ function. 
+As a convenience, if the model has been trained while having the `cache` option set on `true` (by default) the `ŷ` of the last training is retained in the  model object and it can be retrieved simply with `predict(mod)`. Also in such case the `fit!` function return `ŷ` instead of `nothing` effectively making it behave like a _fit-and-transform_ function. 
 The 3 expressions below are hence equivalent :
 
 ```

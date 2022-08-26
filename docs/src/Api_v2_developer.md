@@ -1,4 +1,4 @@
-# Api v2 - developer documentation (API implementation)
+# [Api v2 - developer documentation (API implementation)](@id api_implementation)
 
 ```
 BetaMLOptionsSet

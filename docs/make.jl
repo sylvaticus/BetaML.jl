@@ -15,9 +15,9 @@
 ## A comment within the code chunk
 
 #src: line exclusive to the source code and thus filtered out unconditionally
+using Test
 
-
-using Documenter, Literate, BetaML, Test
+using Documenter, Literate, BetaML
 
 if "preview" in ARGS
     println("*** Attention: code in the tutorial will not be run/tested")
@@ -108,7 +108,7 @@ end
 println("Starting literating tutorials (.jl --> .md)...")
 literate_directory.(joinpath.(_TUTORIAL_DIR, _TUTORIAL_SUBDIR))
 
-println("Starting making the doculentation...")
+println("Starting making the documentation...")
 makedocs(sitename="BetaML.jl Documentation",
          authors = "Antonello Lobianco",
          pages = [
@@ -127,7 +127,10 @@ makedocs(sitename="BetaML.jl Documentation",
             "API (Reference manual)"     => [
               "API V2 (current testing)" => [
                 "Introduction for user"  => "Api_v2_user.md",
-                "For developers"         => "Api_v2_developer.md"
+                "For developers"         => [
+                    "API implementation" => "Api_v2_developer.md",
+                    "Style guide"        => "StyleGuide_templates.md"],
+                "The Api module"         => "Api.md",
                 ],
               "Perceptron"               => "Perceptron.md",
               "Trees"                    => "Trees.md",
