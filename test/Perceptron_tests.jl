@@ -41,6 +41,15 @@ ŷtrain3 = predict(m,xtrain)
 ϵtrain    = error(ytrain, mode(ŷtrain3))
 @test ŷtrain == ŷtrain2 == ŷtrain3
 
+model_save("test.jld2"; m, m2=m)
+models   = model_load("test.jld2")
+ŷtrain4  = predict(models["m2"]) 
+mb       = model_load("test.jld2","m") 
+(mc, md) = model_load("test.jld2","m", "m2") 
+ŷtrain5 = predict(mb) 
+ŷtrain6 = predict(mc) 
+ŷtrain7 = predict(md) 
+@test ŷtrain == ŷtrain4 == ŷtrain5 == ŷtrain6 == ŷtrain7
 
 println("Testing multiple classes...")
 

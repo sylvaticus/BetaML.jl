@@ -4,13 +4,6 @@
 Api
 ```
 
-## Module Index
-
-```@index
-Modules = [Api]
-Order   = [:constant, :type, :function, :macro]
-```
-
 ## Detailed API
 
 

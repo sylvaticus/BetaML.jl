@@ -414,6 +414,6 @@ function show(io::IO, m::PerceptronClassic)
     else
         println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes linear perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
         println(io,"Weights:")
-        println(io,m.par.weights)
+        println(io,m.par.weigths)
     end
 end

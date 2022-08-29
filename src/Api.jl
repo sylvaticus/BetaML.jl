@@ -19,13 +19,15 @@ module Api
 using StableRNGs, DocStringExtensions, Random
 
 import Base.show
+import JLD2
 
 
 export Verbosity, NONE, LOW, STD, HIGH, FULL,     
        FIXEDSEED, FIXEDRNG,
        BetaMLModel, BetaMLSupervisedModel, BetaMLUnsupervisedModel,
        BetaMLOptionsSet, BetaMLDefaultOptionsSet, BetaMLHyperParametersSet, BetaMLLearnableParametersSet,
-       predict, inverse_predict, fit!, partition, info, reset!, learned
+       predict, inverse_predict, fit!, info, reset!, parameters,hyperparameters, options,
+       model_save, model_load
 
 
 
@@ -151,15 +153,6 @@ function info(m::BetaMLModel)
 end
 
 """
-    parameters(m::BetaMLModel)
-
-Returns the learned parameters of a model.
-""" 
-function parameters(m::BetaMLModel)
-   return m.par
-end
-
-"""
     reset!(m::BetaMLModel)
 
 Reset the parameters of a trained model.
@@ -190,7 +183,69 @@ function show(io::IO, m::BetaMLModel)
    end
 end
 
-partition()            = nothing
+#partition()            = nothing
+
+"""
+    parameters(m::BetaMLModel)
+
+Returns the learned parameters of a BetaML model.
+""" 
+parameters(m::BetaMLModel)      = m.pars
+"""
+    hyperparameters(m::BetaMLModel)
+
+Returns the hyperparameters of a BetaML model. See also [`options`](@ref) for the parameters that do not directly affect learning.
+""" 
+hyperparameters(m::BetaMLModel) = m.hpars
+"""
+    options(m::BetaMLModel)
+
+Returns the non-learning related options of a BetaML model. See also [`hyperparameters`](@ref) for the parameters that directly affect learning.
+""" 
+options(m::BetaMLModel)         = m.opt
+
+#function model_save(filename::AbstractString;names...)
+#    JLD2.jldsave(filename;names...)
+#end
+"""
+    model_save(filename::AbstractString,args...)
+    model_save(filename::AbstractString;kwargs...)
+
+Allow to save one or more BetaML models (wheter fitted or not), eventually specifying a name for each of them.
+
+!!! warning
+    If the destination file is already present, it will be overwritten!
+
+# Notes:
+- Use the semicolon `;` to separate the filename from the model(s) to save
+- For further options see the documentation of the function `jldsave` of the [`JLD2`](https://juliaio.github.io/JLD2.jl/stable/) package
+
+# Examples
+```
+julia> model_save("fittedModels.jl"; mod1Name=mod1,mod2)
+```
+"""
+const model_save = JLD2.jldsave
+
+"""
+    model_load(filename::AbstractString)
+    model_load(filename::AbstractString,args::AbstractString...)
+    
+Load from file one or more BetaML models (wheter fitted or not).
+
+# Notes:
+- If no model names to retrieve are specified it returns a dictionary keyed with the model names
+- If multiple models are demanded, a tuple is returned
+- For further options see the documentation of the function `load` of the [`JLD2`](https://juliaio.github.io/JLD2.jl/stable/) package
+
+# Examples:
+```
+julia> models = model_load("fittedModels.jl"; mod1Name=mod1,mod2)
+julia> mod1 = model_load("fittedModels.jl",mod1)
+julia> (mod1,mod2) = model_load("fittedModels.jl","mod1", "mod2")
+```
+"""
+const model_load = JLD2.load
+
 
 end
-

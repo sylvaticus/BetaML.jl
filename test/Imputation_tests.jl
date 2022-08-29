@@ -144,6 +144,10 @@ nR,nC = size(vals[1])
 meanValues = [mean([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 @test meanValues[1,2] == 3.0
 
+model_save("test.jld2"; mod)
+modj  = model_load("test.jld2","mod")
+valsj = predict(modj)
+@test isequal(vals,valsj)
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
 mod = GeneralImputer(multipleImputations=10, recursivePassages=3, rng=copy(TESTRNG), verbosity=NONE)

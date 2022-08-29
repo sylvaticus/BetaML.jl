@@ -125,7 +125,7 @@ makedocs(sitename="BetaML.jl Documentation",
                 ),
             ),
             "API (Reference manual)"     => [
-              "API V2 (current testing)" => [
+              "API V2 (current)" => [
                 "Introduction for user"  => "Api_v2_user.md",
                 "For developers"         => [
                     "API implementation" => "Api_v2_developer.md",
