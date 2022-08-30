@@ -1,3 +1,5 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 # MLJ interface for Decision Trees/Random Forests models
 
 import MLJModelInterface       # It seems that having done this in the top module is not enought

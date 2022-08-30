@@ -1,3 +1,4 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 """
     kernelPerceptron(x,y;K,T,α,nMsgs,shuffle)
@@ -15,7 +16,7 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
 * `y`:        Associated labels of the training data
 * `K`:        Kernel function to employ. See `?radialKernel` or `?polynomialKernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]
 * `T`:        Maximum number of iterations (aka "epochs") across the whole set (if the set is not fully classified earlier) [def: 100]
-* `α`:        Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(nClasses  * (nClasses - 1)) / 2`
+* `α`:        Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`
 * `nMsg`:     Maximum number of messages to show if all iterations are done [def: `0`]
 * `shuffle`:  Whether to randomly shuffle the data at each iteration [def: `false`]
 * `rng`:      Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
@@ -288,7 +289,7 @@ $(FIELDS)
 Base.@kwdef mutable struct KernelPerceptronHyperParametersSet <: BetaMLHyperParametersSet
     "Kernel function to employ. See `?radialKernel` or `?polynomialKernel` for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]"
     kernel::Function = radialKernel       
-    "Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(nClasses  * (nClasses - 1)) / 2`"
+    "Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`"
     inittial_errors::Union{Nothing,Vector{Vector{Int64}}} = nothing
     "Maximum number of epochs, i.e. passages trough the whole training sample [def: `100`]"
     epochs::Int64 = 100
@@ -390,7 +391,7 @@ function fit!(m::KernelPerceptron,X,Y)
 
     m.info[:fitted_records] = nR
     m.info[:dimensions]    = nD
-    m.info[:nClasses]      = nCl
+    m.info[:n_classes]      = nCl
     m.info[:nModels]       = nModels
     
     m.fitted = true
@@ -419,9 +420,9 @@ end
 function show(io::IO, m::KernelPerceptron)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes \"kernelised\" version of the perceptron classifier (unfitted)")
+        println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes \"kernelised\" version of the perceptron classifier (unfitted)")
     else
-        println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
         print(io,"Kernel: ")
         print(io,m.hpar.kernel)
     end

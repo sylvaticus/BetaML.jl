@@ -1,3 +1,5 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 """
 Implementation of the `AbstractTrees.jl`-interface 
 (see: [AbstractTrees.jl](https://github.com/JuliaCollections/AbstractTrees.jl)).

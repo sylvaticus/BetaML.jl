@@ -1,3 +1,5 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 # MLJ interface for Decision Trees/Random Forests models
 
 import MLJModelInterface       # It seems that having done this in the top module is not enought
@@ -9,81 +11,143 @@ export DecisionTreeRegressor, RandomForestRegressor, DecisionTreeClassifier, Ran
 # ------------------------------------------------------------------------------
 # Model Structure declarations..
 
+"""
+$(TYPEDEF)
+
+A simple Decision Tree for regression with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).
+
+# Hyperparameters:
+$(TYPEDFIELDS)
+
+"""
 mutable struct DecisionTreeRegressor <: MMI.Deterministic
-    maxDepth::Int64
-    minGain::Float64
-    minRecords::Int64
-    maxFeatures::Int64
-    splittingCriterion::Function
+    "The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `0`, i.e. no limits]"
+    max_depth::Int64
+    "The minimum information gain to allow for a node's partition [def: `0`]"
+    min_gain::Float64
+    "The minimum number of records a node must holds to consider for a partition of it [def: `2`]"
+    min_records::Int64
+    "The maximum number of (random) features to consider at each partitioning [def: `0`, i.e. look at all features]"
+    max_features::Int64
+    "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `variance`]. Either `variance` or a custom function. It can also be an anonymous function."
+    splitting_criterion::Function
+    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
 DecisionTreeRegressor(;
-   maxDepth=0, #typemax(Int)
-   minGain=0.0,
-   minRecords=2,
-   maxFeatures=0,
-   splittingCriterion=variance,
+   max_depth=0, #typemax(Int)
+   min_gain=0.0,
+   min_records=2,
+   max_features=0,
+   splitting_criterion=variance,
    rng = Random.GLOBAL_RNG,
-   ) = DecisionTreeRegressor(maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,rng)
+   ) = DecisionTreeRegressor(max_depth,min_gain,min_records,max_features,splitting_criterion,rng)
 
+"""
+$(TYPEDEF)
+
+A simple Decision Tree for classification with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).
+
+# Hyperparameters:
+$(TYPEDFIELDS)
+
+"""
 mutable struct DecisionTreeClassifier <: MMI.Probabilistic
-   maxDepth::Int64
-   minGain::Float64
-   minRecords::Int64
-   maxFeatures::Int64
-   splittingCriterion::Function
+   "The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `0`, i.e. no limits]"
+   max_depth::Int64
+   "The minimum information gain to allow for a node's partition [def: `0`]"
+   min_gain::Float64
+   "The minimum number of records a node must holds to consider for a partition of it [def: `2`]"
+   min_records::Int64
+   "The maximum number of (random) features to consider at each partitioning [def: `0`, i.e. look at all features]"
+   max_features::Int64
+   "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `gini`]. Either `gini`, `entropy` or a custom function. It can also be an anonymous function."
+   splitting_criterion::Function
+   "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG
 end
 DecisionTreeClassifier(;
-  maxDepth=0,
-  minGain=0.0,
-  minRecords=2,
-  maxFeatures=0,
-  splittingCriterion=gini,
+  max_depth=0,
+  min_gain=0.0,
+  min_records=2,
+  max_features=0,
+  splitting_criterion=gini,
   rng = Random.GLOBAL_RNG,
-  ) = DecisionTreeClassifier(maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,rng)
+  ) = DecisionTreeClassifier(max_depth,min_gain,min_records,max_features,splitting_criterion,rng)
 
+"""
+$(TYPEDEF)
+
+A simple Random Forest for regression with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).
+
+# Hyperparameters:
+$(TYPEDFIELDS)
+
+"""
 mutable struct RandomForestRegressor <: MMI.Deterministic
-   nTrees::Int64
-   maxDepth::Int64
-   minGain::Float64
-   minRecords::Int64
-   maxFeatures::Int64
-   splittingCriterion::Function
+   n_trees::Int64
+   "The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `0`, i.e. no limits]"
+   max_depth::Int64
+   "The minimum information gain to allow for a node's partition [def: `0`]"
+   min_gain::Float64
+   "The minimum number of records a node must holds to consider for a partition of it [def: `2`]"
+   min_records::Int64
+   "The maximum number of (random) features to consider at each partitioning [def: `0`, i.e. square root of the data dimension]"
+   max_features::Int64
+   "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `variance`]. Either `variance` or a custom function. It can also be an anonymous function."
+   splitting_criterion::Function
+   "Parameter that regulate the weights of the scoring of each tree, to be (optionally) used in prediction based on the error of the individual trees computed on the records on which trees have not been trained. Higher values favour \"better\" trees, but too high values will cause overfitting [def: `0`, i.e. uniform weigths]"
    β::Float64
+   "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG
 end
 RandomForestRegressor(;
-  nTrees=30,
-  maxDepth=0,
-  minGain=0.0,
-  minRecords=2,
-  maxFeatures=0,
-  splittingCriterion=variance,
+  n_trees=30,
+  max_depth=0,
+  min_gain=0.0,
+  min_records=2,
+  max_features=0,
+  splitting_criterion=variance,
   β=0.0,
   rng = Random.GLOBAL_RNG,
-  ) = RandomForestRegressor(nTrees,maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,β,rng)
+  ) = RandomForestRegressor(n_trees,max_depth,min_gain,min_records,max_features,splitting_criterion,β,rng)
 
+"""
+$(TYPEDEF)
+
+A simple Random Forest for classification with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).
+
+# Hyperparameters:
+$(TYPEDFIELDS)
+
+"""
 mutable struct RandomForestClassifier <: MMI.Probabilistic
-    nTrees::Int64
-    maxDepth::Int64
-    minGain::Float64
-    minRecords::Int64
-    maxFeatures::Int64
-    splittingCriterion::Function
+    n_trees::Int64
+    "The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `0`, i.e. no limits]"
+    max_depth::Int64
+    "The minimum information gain to allow for a node's partition [def: `0`]"
+    min_gain::Float64
+    "The minimum number of records a node must holds to consider for a partition of it [def: `2`]"
+    min_records::Int64
+    "The maximum number of (random) features to consider at each partitioning [def: `0`, i.e. square root of the data dimensions]"
+    max_features::Int64
+    "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `gini`]. Either `gini`, `entropy` or a custom function. It can also be an anonymous function."
+    splitting_criterion::Function
+    "Parameter that regulate the weights of the scoring of each tree, to be (optionally) used in prediction based on the error of the individual trees computed on the records on which trees have not been trained. Higher values favour \"better\" trees, but too high values will cause overfitting [def: `0`, i.e. uniform weigths]"
     β::Float64
+    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
 RandomForestClassifier(;
-    nTrees=30,
-    maxDepth=0,
-    minGain=0.0,
-    minRecords=2,
-    maxFeatures=0,
-    splittingCriterion=gini,
+    n_trees=30,
+    max_depth=0,
+    min_gain=0.0,
+    min_records=2,
+    max_features=0,
+    splitting_criterion=gini,
     β=0.0,
     rng = Random.GLOBAL_RNG,
-) = RandomForestClassifier(nTrees,maxDepth,minGain,minRecords,maxFeatures,splittingCriterion,β,rng)
+) = RandomForestClassifier(n_trees,max_depth,min_gain,min_records,max_features,splitting_criterion,β,rng)
 
 #=
 # skipped for now..
@@ -94,10 +158,10 @@ MMI.hyperparameter_ranges(::Type{<:DecisionTreeRegressor}) = (
 #    (range(Float64, :alpha, lower=0, upper=1, scale=:log),
 #     range(Int, :beta, lower=1, upper=Inf, origin=100, unit=50, scale=:log),
 #         nothing)
-    range(Int64,:maxDepth,lower=0,upper=Inf,scale=:log),
-    range(Float64,:minGain,lower=0,upper=Inf,scale=:log),
-    range(Int64,:minRecords,lower=0,upper=Inf,scale=:log),
-    range(Int64,:maxFeatures,lower=0,upper=Inf,scale=:log),
+    range(Int64,:max_depth,lower=0,upper=Inf,scale=:log),
+    range(Float64,:min_gain,lower=0,upper=Inf,scale=:log),
+    range(Int64,:min_records,lower=0,upper=Inf,scale=:log),
+    range(Int64,:max_features,lower=0,upper=Inf,scale=:log),
     nothing
 )
 =#
@@ -107,14 +171,14 @@ MMI.hyperparameter_ranges(::Type{<:DecisionTreeRegressor}) = (
 
 function MMI.fit(model::Union{DecisionTreeRegressor,RandomForestRegressor}, verbosity, X, y)
    x = MMI.matrix(X)                     # convert table to matrix
-   maxDepth         = model.maxDepth == 0 ? size(x,1) : model.maxDepth
+   max_depth         = model.max_depth == 0 ? size(x,1) : model.max_depth
    # Using low level API here. We could switch to APIV2...
    if (typeof(model) == DecisionTreeRegressor)
-       maxFeatures = model.maxFeatures == 0 ? size(x,2) : model.maxFeatures
-       fitresult   = buildTree(x, y, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion,rng=model.rng)
+       max_features = model.max_features == 0 ? size(x,2) : model.max_features
+       fitresult   = buildTree(x, y, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion,rng=model.rng)
    else
-       maxFeatures = model.maxFeatures == 0 ? Int(round(sqrt(size(x,2)))) : model.maxFeatures
-       fitresult   = buildForest(x, y, model.nTrees, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion, β=model.β,rng=model.rng)
+       max_features = model.max_features == 0 ? Int(round(sqrt(size(x,2)))) : model.max_features
+       fitresult   = buildForest(x, y, model.n_trees, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, β=model.β,rng=model.rng)
    end
    cache=nothing
    report=nothing
@@ -126,14 +190,14 @@ function MMI.fit(model::Union{DecisionTreeClassifier,RandomForestClassifier}, ve
    a_target_element = y[1]                                 # a CategoricalValue or CategoricalString
    #y_plain          = MMI.int(y) .- 1                     # integer relabeling should start at 0
    yarray           = convert(Vector{eltype(levels(y))},y) # convert to a simple Array{T}
-   maxDepth         = model.maxDepth == 0 ? size(x,1) : model.maxDepth
+   max_depth         = model.max_depth == 0 ? size(x,1) : model.max_depth
    # Using low level API here. We could switch to APIV2...
    if (typeof(model) == DecisionTreeClassifier)
-       maxFeatures   = model.maxFeatures == 0 ? size(x,2) : model.maxFeatures
-       fittedmodel   = buildTree(x, yarray, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true,rng=model.rng)
+       max_features   = model.max_features == 0 ? size(x,2) : model.max_features
+       fittedmodel   = buildTree(x, yarray, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, force_classification=true,rng=model.rng)
    else
-       maxFeatures   = model.maxFeatures == 0 ? Int(round(sqrt(size(x,2)))) : model.maxFeatures
-       fittedmodel   = buildForest(x, yarray, model.nTrees, maxDepth=maxDepth, minGain=model.minGain, minRecords=model.minRecords, maxFeatures=maxFeatures, splittingCriterion=model.splittingCriterion, forceClassification=true, β=model.β,rng=model.rng)
+       max_features   = model.max_features == 0 ? Int(round(sqrt(size(x,2)))) : model.max_features
+       fittedmodel   = buildForest(x, yarray, model.n_trees, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, force_classification=true, β=model.β,rng=model.rng)
    end
    cache            = nothing
    report           = nothing

@@ -1,3 +1,5 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 import BetaML.Utils.allowmissing!
 
 # ------------------------------------------------------------------------------
@@ -35,9 +37,9 @@ end
 
 function GMMRegressor1(;kwargs...)
     # ugly manual case...
-    if (:nClasses in keys(kwargs) && ! (:mixtures in keys(kwargs)))
-        nClasses = kwargs[:nClasses]
-        hps = GMMClusterHyperParametersSet(nClasses = nClasses, mixtures = [DiagonalGaussian() for i in 1:nClasses])
+    if (:n_classes in keys(kwargs) && ! (:mixtures in keys(kwargs)))
+        n_classes = kwargs[:n_classes]
+        hps = GMMClusterHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
     else 
         hps = GMMClusterHyperParametersSet()
     end
@@ -69,13 +71,13 @@ function fit!(m::GMMRegressor1,x,y)
     y = makeMatrix(y)
 
     # Parameter alias..
-    K             = m.hpar.nClasses
+    K             = m.hpar.n_classes
     p₀            = m.hpar.probMixtures
     mixtures      = m.hpar.mixtures
     tol           = m.hpar.tol
     minVariance   = m.hpar.minVariance
     minCovariance = m.hpar.minCovariance
-    initStrategy  = m.hpar.initStrategy
+    initialisation_strategy  = m.hpar.initialisation_strategy
     maxIter       = m.hpar.maxIter
     cache         = m.opt.cache
     verbosity     = m.opt.verbosity
@@ -83,9 +85,9 @@ function fit!(m::GMMRegressor1,x,y)
 
     if m.fitted
         verbosity >= STD && @warn "Continuing training of a pre-fitted model"
-        gmmOut = gmm(x,K;p₀=m.par.probMixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy="given",maxIter=maxIter,rng = rng)
+        gmmOut = gmm(x,K;p₀=m.par.probMixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy="given",maxIter=maxIter,rng = rng)
     else
-        gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,maxIter=maxIter,rng = rng)
+        gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy=initialisation_strategy,maxIter=maxIter,rng = rng)
     end
 
     probRecords    = gmmOut.pₙₖ
@@ -128,9 +130,9 @@ end
 function show(io::IO, m::GMMRegressor1)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model ($(m.hpar.nClasses) classes, unfitted)")
+        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, unfitted)")
     else
-        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model ($(m.hpar.nClasses) classes, fitted on $(m.info[:fitted_records]) records)")
+        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)
@@ -165,9 +167,9 @@ end
 
 function GMMRegressor2(;kwargs...)
     # ugly manual case...
-    if (:nClasses in keys(kwargs) && ! (:mixtures in keys(kwargs)))
-        nClasses = kwargs[:nClasses]
-        hps = GMMClusterHyperParametersSet(nClasses = nClasses, mixtures = [DiagonalGaussian() for i in 1:nClasses])
+    if (:n_classes in keys(kwargs) && ! (:mixtures in keys(kwargs)))
+        n_classes = kwargs[:n_classes]
+        hps = GMMClusterHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
     else 
         hps = GMMClusterHyperParametersSet()
     end
@@ -201,13 +203,13 @@ function fit!(m::GMMRegressor2,x,y)
     x = hcat(x,y)
     DFull = size(x,2)
     # Parameter alias..
-    K             = m.hpar.nClasses
+    K             = m.hpar.n_classes
     p₀            = m.hpar.probMixtures
     mixtures      = m.hpar.mixtures
     tol           = m.hpar.tol
     minVariance   = m.hpar.minVariance
     minCovariance = m.hpar.minCovariance
-    initStrategy  = m.hpar.initStrategy
+    initialisation_strategy  = m.hpar.initialisation_strategy
     maxIter       = m.hpar.maxIter
     cache         = m.opt.cache
     verbosity     = m.opt.verbosity
@@ -215,9 +217,9 @@ function fit!(m::GMMRegressor2,x,y)
 
     if m.fitted
         verbosity >= STD && @warn "Continuing training of a pre-fitted model"
-        gmmOut = gmm(x,K;p₀=m.par.probMixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy="given",maxIter=maxIter,rng = rng)
+        gmmOut = gmm(x,K;p₀=m.par.probMixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy="given",maxIter=maxIter,rng = rng)
     else
-        gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,maxIter=maxIter,rng = rng)
+        gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy=initialisation_strategy,maxIter=maxIter,rng = rng)
     end
     probRecords = gmmOut.pₙₖ
     m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, probMixtures=makeColVector(gmmOut.pₖ))
@@ -258,9 +260,9 @@ end
 function show(io::IO, m::GMMRegressor2)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.nClasses) classes, unfitted)")
+        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, unfitted)")
     else
-        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.nClasses) classes, fitted on $(m.info[:fitted_records]) records)")
+        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)

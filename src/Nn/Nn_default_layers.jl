@@ -1,3 +1,5 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 """
 # Provide implementation of default layers
 

@@ -45,17 +45,17 @@ initMixtures!(mixtures,X,minVariance=0.25,rng=copy(TESTRNG))
 # ==================================
 println("Testing gmm...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-clusters = gmm(X,3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+clusters = gmm(X,3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
 @test isapprox(clusters.BIC,114.1492467835965)
 
 
 println("Testing GMMClusterModel...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 
-m = GMMClusterModel(nClasses=3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+m = GMMClusterModel(n_classes=3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
 fit!(m,X)
 probs = predict(m)
-gmmOut = gmm(X,3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+gmmOut = gmm(X,3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
 @test gmmOut.pₙₖ == probs
 
 μ_x1alone = hcat([m.par.mixtures[i].μ for i in 1:3]...)
@@ -63,7 +63,7 @@ pk_x1alone = m.par.probMixtures
 
 X2 = [2.0 12; 3 20; 4 15; 1.5 11]
 
-m2 = GMMClusterModel(nClasses=3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+m2 = GMMClusterModel(n_classes=3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
 fit!(m2,X2)
 #μ_x2alone = hcat([m.par.mixtures[i].μ for i in 1:3]...)
 probsx2alone = predict(m2)
@@ -88,7 +88,7 @@ ytrain2d = hcat(ytrain,ytrain .+ 0.1)
 xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
 ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest))]
 
-m = GMMRegressor1(nClasses=2,rng=copy(TESTRNG), verbosity=NONE)
+m = GMMRegressor1(n_classes=2,rng=copy(TESTRNG), verbosity=NONE)
 fit!(m,xtrain,ytrain)
 ŷtrain  = predict(m, xtrain)
 ŷtrain2 = predict(m)
@@ -110,7 +110,7 @@ mreTrain2d = meanRelError(ŷtrain2d,ytrain2d)
 
 # Testing GMM Regressor 2
 
-m = GMMRegressor2(nClasses=2,rng=copy(TESTRNG), verbosity=NONE)
+m = GMMRegressor2(n_classes=2,rng=copy(TESTRNG), verbosity=NONE)
 fit!(m,xtrain,ytrain)
 ŷtrain = predict(m, xtrain)
 ŷtrain2 = predict(m)
@@ -152,7 +152,7 @@ yhat_prob                   =  Mlj.predict(model, fitResults, X)  # Mlj.transfor
 println("Testing MLJ interface for BetaMLGMMRegressor models....")
 X, y                           = Mlj.@load_boston
 
-model_gmmr                      = BetaMLGMMRegressor(nClasses=20,rng=copy(TESTRNG))
+model_gmmr                      = BetaMLGMMRegressor(n_classes=20,rng=copy(TESTRNG))
 regressor_gmmr                  = Mlj.machine(model_gmmr, X, y)
 (fitresult_gmmr, cache, report) = Mlj.fit(model_gmmr, 0, X, y)
 yhat_gmmr                       = Mlj.predict(model_gmmr, fitresult_gmmr, X)

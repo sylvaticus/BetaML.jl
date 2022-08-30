@@ -55,13 +55,13 @@ y    = data[:,16];
 # We will see the various functions inside `tuneHyperParameters()` in a moment. For now let's going just to observe that `tuneHyperParameters` just loops over all the possible hyper-parameters and selects the ones where the error between `xval` and `yval` is minimised. For the meaning of the various hyper-parameter, consult the documentation of the [`buildTree`](@ref) and [`buildForest`](@ref) functions.
 # The function uses multiple threads, so we calls `generateParallelRngs()` (in the `BetaML.Utils` submodule) to generate thread-safe random number generators and locks the comparision step.
 
-function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthRange=15:15,maxFeaturesRange=size(xtrain,2):size(xtrain,2),nTreesRange=20:20,βRange=0:0,minRecordsRange=2:2,repetitions=5,rng=Random.GLOBAL_RNG)
+function tuneHyperParameters(model,xtrain,ytrain,xval,yval;max_depthRange=15:15,max_featuresRange=size(xtrain,2):size(xtrain,2),n_treesRange=20:20,βRange=0:0,min_recordsRange=2:2,repetitions=5,rng=Random.GLOBAL_RNG)
     ## We start with an infinitely high error
     bestRme         = +Inf
-    bestMaxDepth    = 1
-    bestMaxFeatures = 1
-    bestMinRecords  = 2
-    bestNTrees      = 1
+    bestmax_depth    = 1
+    bestmax_features = 1
+    bestmin_records  = 2
+    bestn_trees      = 1
     bestβ           = 0
     compLock        = ReentrantLock()
 
@@ -70,9 +70,9 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthRange=15:15,m
     rngs = generateParallelRngs(rng,Threads.nthreads())
 
     ## We loop over all possible hyperparameter combinations...
-    parLengths = (length(maxDepthRange),length(maxFeaturesRange),length(minRecordsRange),length(nTreesRange),length(βRange))
+    parLengths = (length(max_depthRange),length(max_featuresRange),length(min_recordsRange),length(n_treesRange),length(βRange))
     Threads.@threads for ij in CartesianIndices(parLengths) ## This to avoid many nested for loops
-           (maxDepth,maxFeatures,minRecords,nTrees,β)   = (maxDepthRange[Tuple(ij)[1]], maxFeaturesRange[Tuple(ij)[2]], minRecordsRange[Tuple(ij)[3]], nTreesRange[Tuple(ij)[4]], βRange[Tuple(ij)[5]]) ## The specific hyperparameters of this nested loop
+           (max_depth,max_features,min_records,n_trees,β)   = (max_depthRange[Tuple(ij)[1]], max_featuresRange[Tuple(ij)[2]], min_recordsRange[Tuple(ij)[3]], n_treesRange[Tuple(ij)[4]], βRange[Tuple(ij)[5]]) ## The specific hyperparameters of this nested loop
            tsrng = rngs[Threads.threadid()] ## The random number generator is specific for each thread..
            joinedIndx = LinearIndices(parLengths)[ij]
            ## And here we make the seeding depending on the id of the loop, not the thread: hence we get the same results indipendently of the number of threads
@@ -82,10 +82,10 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthRange=15:15,m
            for r in 1:repetitions
               if model == "DecisionTree"
                  ## Here we train the Decition Tree model
-                 myTrainedModel = buildTree(xtrain,ytrain, maxDepth=maxDepth,maxFeatures=maxFeatures,minRecords=minRecords,rng=tsrng)
+                 myTrainedModel = buildTree(xtrain,ytrain, max_depth=max_depth,max_features=max_features,min_records=min_records,rng=tsrng)
               else
                  ## Here we train the Random Forest model
-                 myTrainedModel = buildForest(xtrain,ytrain,nTrees,maxDepth=maxDepth,maxFeatures=maxFeatures,minRecords=minRecords,β=β,rng=tsrng)
+                 myTrainedModel = buildForest(xtrain,ytrain,n_trees,max_depth=max_depth,max_features=max_features,min_records=min_records,β=β,rng=tsrng)
               end
               ## Here we make prediciton with this trained model and we compute its error
               ŷval   = predict(myTrainedModel, xval,rng=tsrng)
@@ -99,32 +99,32 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;maxDepthRange=15:15,m
                    ## Select this specific combination of hyperparameters if the error is the lowest
                    if avgAttemptedDepthError < bestRme
                      bestRme         = avgAttemptedDepthError
-                     bestMaxDepth    = maxDepth
-                     bestMaxFeatures = maxFeatures
-                     bestNTrees      = nTrees
+                     bestmax_depth    = max_depth
+                     bestmax_features = max_features
+                     bestn_trees      = n_trees
                      bestβ           = β
-                     bestMinRecords  = minRecords
+                     bestmin_records  = min_records
                    end
                finally
                    unlock(compLock)
                end
            end
     end
-    return (bestRme,bestMaxDepth,bestMaxFeatures,bestMinRecords,bestNTrees,bestβ)
+    return (bestRme,bestmax_depth,bestmax_features,bestmin_records,bestn_trees,bestβ)
 end
 
 
 # We can now run the hyperparameter optimisation function with some "reasonable" ranges. To obtain replicable results we call `tuneHyperParameters` with `rng=copy(FIXEDRNG)`, where `FIXEDRNG` is a fixed-seeded random number generator guaranteed to maintain the same stream of random numbers even between different julia versions. That's also what we use for our unit tests (see the [`Getting started`](@ref dealing_with_stochasticity) for more details).
-(bestRme,bestMaxDepth,bestMaxFeatures,bestMinRecords) = tuneHyperParameters("DecisionTree",xtrain,ytrain,xval,yval,
-           maxDepthRange=4:5,maxFeaturesRange=11:12,minRecordsRange=5:5,repetitions=3,rng=copy(FIXEDRNG))
-println("DT: $bestRme - $bestMaxDepth - $bestMaxFeatures - $bestMinRecords") #src
+(bestRme,bestmax_depth,bestmax_features,bestmin_records) = tuneHyperParameters("DecisionTree",xtrain,ytrain,xval,yval,
+           max_depthRange=4:5,max_featuresRange=11:12,min_recordsRange=5:5,repetitions=3,rng=copy(FIXEDRNG))
+println("DT: $bestRme - $bestmax_depth - $bestmax_features - $bestmin_records") #src
 
 # Now that we have found the "optimal" hyperparameters we can build ("train") our model using them:
-myTree = buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,rng=copy(FIXEDRNG));
+myTree = buildTree(xtrain,ytrain, max_depth=bestmax_depth, max_features=bestmax_features,min_records=bestmin_records,rng=copy(FIXEDRNG));
 
 # Let's benchmark the time and memory usage of the training step of a decision tree:
 # ```
-# @btime  buildTree(xtrain,ytrain, maxDepth=bestMaxDepth, maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,rng=copy(FIXEDRNG));
+# @btime  buildTree(xtrain,ytrain, max_depth=bestmax_depth, max_features=bestmax_features,min_records=bestmin_records,rng=copy(FIXEDRNG));
 # 26.538 ms (55753 allocations: 58.57 MiB)
 # ```
 # Individual decision trees are blazing fast, among the fastest algorithms we could use.
@@ -187,22 +187,22 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestful
 
 # ## Random Forests
 # Rather than trying to solve this problem using a single Decision Tree model, let's not try to use a _Random Forest_ model. Random forests average the results of many different decision trees and provide a more "stable" result.
-# Being made of many decision trees, random forests are hovever more computationally expensive to train, but luckily they tend to self-tune (or self-regularise). In particular the parameters `maxDepth` and `maxFeatures` shouldn't need tuning.
+# Being made of many decision trees, random forests are hovever more computationally expensive to train, but luckily they tend to self-tune (or self-regularise). In particular the parameters `max_depth` and `max_features` shouldn't need tuning.
 
 # We still tune however the model for other parameters, and in particular the β parameter, a prerogative of BetaML Random Forests that allows to assign more weigth to the best performing trees in the forest. It may be particularly important if there are many outliers in the data we don't want to "learn" from.
-minRecordsRange=[5]; nTreesRange=[60]; βRange=100:100:300
-(bestRme,bestMaxDepth,bestMaxFeatures,bestMinRecords,bestNTrees,bestβ) = tuneHyperParameters("RandomForest",xtrain,ytrain,xval,yval,
-        maxDepthRange=size(xtrain,1):size(xtrain,1),maxFeaturesRange=Int(round(sqrt(size(xtrain,2)))):Int(round(sqrt(size(xtrain,2)))),
-        minRecordsRange=minRecordsRange,nTreesRange=nTreesRange,βRange=βRange,repetitions=5,rng=copy(FIXEDRNG))
-println("RF: $bestRme $bestMinRecords $bestNTrees $bestβ") #src
+min_recordsRange=[5]; n_treesRange=[60]; βRange=100:100:300
+(bestRme,bestmax_depth,bestmax_features,bestmin_records,bestn_trees,bestβ) = tuneHyperParameters("RandomForest",xtrain,ytrain,xval,yval,
+        max_depthRange=size(xtrain,1):size(xtrain,1),max_featuresRange=Int(round(sqrt(size(xtrain,2)))):Int(round(sqrt(size(xtrain,2)))),
+        min_recordsRange=min_recordsRange,n_treesRange=n_treesRange,βRange=βRange,repetitions=5,rng=copy(FIXEDRNG))
+println("RF: $bestRme $bestmin_records $bestn_trees $bestβ") #src
 
 # As for decision trees, once the hyper-parameters of the model are tuned we wan train again the model using the optimal parameters.
-#src  bestNTrees=80; bestMinRecords=5; bestβ=100
-#src bestNTrees=60; bestMinRecords=5; bestβ=200
-myForest = buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,β=bestβ,oob=true,rng=copy(FIXEDRNG));
+#src  bestn_trees=80; bestmin_records=5; bestβ=100
+#src bestn_trees=60; bestmin_records=5; bestβ=200
+myForest = buildForest(xtrain,ytrain, bestn_trees, max_depth=bestmax_depth,max_features=bestmax_features,min_records=bestmin_records,β=bestβ,oob=true,rng=copy(FIXEDRNG));
 
 # Let's now benchmark the training of the BetaML Random Forest model
-# @btime buildForest(xtrain,ytrain, bestNTrees, maxDepth=bestMaxDepth,maxFeatures=bestMaxFeatures,minRecords=bestMinRecords,β=bestβ,oob=true,rng=copy(FIXEDRNG));
+# @btime buildForest(xtrain,ytrain, bestn_trees, max_depth=bestmax_depth,max_features=bestmax_features,min_records=bestmin_records,β=bestβ,oob=true,rng=copy(FIXEDRNG));
 # 863.842 ms (2451894 allocations: 971.33 MiB)
 # Random forests are evidently slower than individual decision trees but are still relativly fast. We should also consider that they are by default efficiently parallelised, so their speed increases with the number of available cores (in building this documentation page, GitHub CI servers allow for a single core, so all the bechmark you see in this tutorial are run with a single core available).
 
@@ -239,8 +239,8 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestful
 # We now compare our results with those obtained employing the same model in the [DecisionTree package](https://github.com/bensadeghi/DecisionTree.jl), using the default suggested hyperparameters:
 
 # Hyperparameters of the DecisionTree.jl random forest model
-n_subfeatures=-1; n_trees=bestNTrees; partial_sampling=1; max_depth=26
-min_samples_leaf=bestMinRecords; min_samples_split=bestMinRecords; min_purity_increase=0.0; seed=3
+n_subfeatures=-1; n_trees=bestn_trees; partial_sampling=1; max_depth=26
+min_samples_leaf=bestmin_records; min_samples_split=bestmin_records; min_purity_increase=0.0; seed=3
 
 # We train the model..
 model = DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),

@@ -1,3 +1,5 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 # Part of submodule Utils of BetaML - the Beta Machine Learning Toolkit
 # Various helper/ utility functions concerning stochastiticy management
 

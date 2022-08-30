@@ -1,3 +1,4 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 # ------------------------------------------------------------------------------
 # TYPE HIERARCHY AND DEFINITIONS
@@ -99,25 +100,39 @@ Hyperparameters for [`DTModel`](@ref) (Decision Tree).
 $(TYPEDFIELDS)
 """
 Base.@kwdef mutable struct DTHyperParametersSet <: BetaMLHyperParametersSet
-    maxDepth::Union{Nothing,Int64}              = nothing
-    minGain::Float64                            = 0.0
-    minRecords::Int64                           = 2
-    maxFeatures::Union{Nothing,Int64}           = nothing
-    forceClassification::Bool                   = false
-    splittingCriterion::Union{Nothing,Function} = nothing
+    "The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `nothing`, i.e. no limits]"
+    max_depth::Union{Nothing,Int64}              = nothing
+    "The minimum information gain to allow for a node's partition [def: `0`]"
+    min_gain::Float64                            = 0.0
+    "The minimum number of records a node must holds to consider for a partition of it [def: `2`]"
+    min_records::Int64                           = 2
+    "The maximum number of (random) features to consider at each partitioning [def: `nothing`, i.e. look at all features]"
+    max_features::Union{Nothing,Int64}           = nothing
+    "Whether to force a classification task even if the labels are numerical (typically when labels are integers encoding some feature rather than representing a real cardinal measure) [def: `false`]"
+    force_classification::Bool                   = false
+    "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `nothing`, i.e. `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]. Either `gini`, `entropy`, `variance` or a custom function. It can also be an anonymous function."
+    splitting_criterion::Union{Nothing,Function} = nothing
 end
-#=
-Base.@kwdef mutable struct DTOptionsSet <: BetaMLOptionsSet
-    rng                  = Random.GLOBAL_RNG
-    verbosity::Verbosity = STD
-end
-=#
+
 
 Base.@kwdef mutable struct DTLearnableParameters <: BetaMLLearnableParametersSet
     tree::Union{Nothing,AbstractNode} = nothing
 end
 
+"""
+$(TYPEDEF)
 
+A Decision Tree classifier and regressor (supervised).
+
+Decision Tree works by finding the "best" question to split the fitting data (according to the metric specified by the parameter `splitting_criterion` on the associated labels) untill either all the dataset is separated or a terminal condition is reached. 
+
+For the parameters see [`?DTHyperParametersSet`](@ref DTHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
+
+# Notes:
+- Online fitting (re-fitting with new data) is not supported
+- Missing data (in the feature dataset) is supported.
+
+"""
 mutable struct DTModel <: BetaMLSupervisedModel
     hpar::DTHyperParametersSet
     opt::BetaMLDefaultOptionsSet
@@ -223,7 +238,7 @@ end
 
 """
 
-   infoGain(left, right, parentUncertainty; splittingCriterion)
+   infoGain(left, right, parentUncertainty; splitting_criterion)
 
 Compute the information gain of a specific partition.
 
@@ -233,7 +248,7 @@ Compare the "information gain" my measuring the difference betwwen the "impurity
 - `leftY`:  Child #1 labels
 - `rightY`: Child #2 labels
 - `parentUncertainty`: "Impurity" of the labels of the parent node
-- `splittingCriterion`: Metric to adopt to determine the "impurity" (see below)
+- `splitting_criterion`: Metric to adopt to determine the "impurity" (see below)
 
 You can use your own function as the metric. We provide the following built-in metrics:
 - `gini` (categorical)
@@ -241,13 +256,13 @@ You can use your own function as the metric. We provide the following built-in m
 - `variance` (numerical)
 
 """
-function infoGain(leftY, rightY, parentUncertainty; splittingCriterion=gini)
+function infoGain(leftY, rightY, parentUncertainty; splitting_criterion=gini)
     p = size(leftY,1) / (size(leftY,1) + size(rightY,1))
-    return parentUncertainty - p * splittingCriterion(leftY) - (1 - p) * splittingCriterion(rightY)
+    return parentUncertainty - p * splitting_criterion(leftY) - (1 - p) * splitting_criterion(rightY)
 end
 
 """
-   findBestSplit(x,y;maxFeatures,splittingCriterion)
+   findBestSplit(x,y;max_features,splitting_criterion)
 
 Find the best possible split of the database.
 
@@ -256,20 +271,20 @@ Find the best question to ask by iterating over every feature / value and calcul
 # Parameters:
 - `x`: The feature dataset
 - `y`: The labels dataset
-- `maxFeatures`: Maximum number of (random) features to look up for the "best split"
-- `splittingCriterion`: The metric to define the "impurity" of the labels
+- `max_features`: Maximum number of (random) features to look up for the "best split"
+- `splitting_criterion`: The metric to define the "impurity" of the labels
 - `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 """
-function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;maxFeatures,splittingCriterion=gini,rng = Random.GLOBAL_RNG) where {Ty}
+function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_criterion=gini,rng = Random.GLOBAL_RNG) where {Ty}
     bestGain           = 0.0  # keep track of the best information gain
     bestQuestion       = Question(1,1.0) # keep train of the feature / value that produced it
-    currentUncertainty = splittingCriterion(y)
+    currentUncertainty = splitting_criterion(y)
     (N,D)  = size(x)  # number of columns (the last column is the label)
 
-    featuresToConsider = (maxFeatures >= D) ? (1:D) : shuffle(rng, 1:D)[1:maxFeatures]
+    featuresToConsider = (max_features >= D) ? (1:D) : shuffle(rng, 1:D)[1:max_features]
 
-    for d in featuresToConsider      # for each feature (we consider only maxFeatures features randomly)
+    for d in featuresToConsider      # for each feature (we consider only max_features features randomly)
         values = Set(skipmissing(x[:,d]))  # unique values in the column
         sortable = Utils.issortable(x[:,d])
         if(sortable)
@@ -293,7 +308,7 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;maxFeatures,splittingCrit
                 continue
             end
             # Calculate the information gain from this split
-            gain = infoGain(sortedy[trueIdx], sortedy[map(!,trueIdx)], currentUncertainty, splittingCriterion=splittingCriterion)
+            gain = infoGain(sortedy[trueIdx], sortedy[map(!,trueIdx)], currentUncertainty, splitting_criterion=splitting_criterion)
             # You actually can use '>' instead of '>=' here
             # but I wanted the tree to look a certain way for our
             # toy dataset.
@@ -308,9 +323,13 @@ end
 
 """
 
-   buildTree(x, y, depth; maxDepth, minGain, minRecords, maxFeatures, splittingCriterion, forceClassification)
+   buildTree(x, y, depth; max_depth, min_gain, min_records, max_features, splitting_criterion, force_classification)
 
 Builds (define and train) a Decision Tree.
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use [`DTModel`](@ref) instead. 
 
 Given a dataset of features `x` and the corresponding dataset of labels `y`, recursivelly build a decision tree by finding at each node the best question to split the data untill either all the dataset is separated or a terminal condition is reached.
 The given tree is then returned.
@@ -318,24 +337,24 @@ The given tree is then returned.
 # Parameters:
 - `x`: The dataset's features (N × D)
 - `y`: The dataset's labels (N × 1)
-- `maxDepth`: The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `N`, i.e. no limits]
-- `minGain`: The minimum information gain to allow for a node's partition [def: `0`]
-- `minRecords`:  The minimum number of records a node must holds to consider for a partition of it [def: `2`]
-- `maxFeatures`: The maximum number of (random) features to consider at each partitioning [def: `D`, i.e. look at all features]
-- `splittingCriterion`: Either `gini`, `entropy` or `variance` (see [`infoGain`](@ref) ) [def: `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]
-- `forceClassification`: Weather to force a classification task even if the labels are numerical (typically when labels are integers encoding some feature rather than representing a real cardinal measure) [def: `false`]
+- `max_depth`: The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `N`, i.e. no limits]
+- `min_gain`: The minimum information gain to allow for a node's partition [def: `0`]
+- `min_records`:  The minimum number of records a node must holds to consider for a partition of it [def: `2`]
+- `max_features`: The maximum number of (random) features to consider at each partitioning [def: `D`, i.e. look at all features]
+- `splitting_criterion`: Either `gini`, `entropy` or `variance` (see [`infoGain`](@ref) ) [def: `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]
+- `force_classification`: Whether to force a classification task even if the labels are numerical (typically when labels are integers encoding some feature rather than representing a real cardinal measure) [def: `false`]
 - `rng`: Random Number Generator ((see [`FIXEDSEED`](@ref))) [deafult: `Random.GLOBAL_RNG`]
 
 # Notes:
 
 Missing data (in the feature dataset) are supported.
 """
-function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0, minRecords=2, maxFeatures=size(x,2), forceClassification=false, splittingCriterion = (Ty <: Number && !forceClassification) ? variance : gini, mCols=nothing, rng = Random.GLOBAL_RNG) where {Ty}
+function buildTree(x, y::AbstractArray{Ty,1}; max_depth = size(x,1), min_gain=0.0, min_records=2, max_features=size(x,2), force_classification=false, splitting_criterion = (Ty <: Number && !force_classification) ? variance : gini, mCols=nothing, rng = Random.GLOBAL_RNG) where {Ty}
 
 
     #println(depth)
     # Force what would be a regression task into a classification task
-    if forceClassification && Ty <: Number
+    if force_classification && Ty <: Number
         y = string.(y)
     end
 
@@ -347,18 +366,18 @@ function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0,
 
     # Deciding if the root node is a Leaf itself or not
 
-    # Check if this branch has still the minimum number of records required and we are reached the maxDepth allowed. In case, declare it a leaf
-    if size(x,1) <= minRecords || depth >= maxDepth return Leaf(y, depth) end
+    # Check if this branch has still the minimum number of records required and we are reached the max_depth allowed. In case, declare it a leaf
+    if size(x,1) <= min_records || depth >= max_depth return Leaf(y, depth) end
 
     # Try partitioing the dataset on each of the unique attribute,
     # calculate the information gain,
     # and return the question that produces the highest gain.
-    gain, question = findBestSplit(x,y,mCols;maxFeatures=maxFeatures,splittingCriterion=splittingCriterion,rng=rng)
+    gain, question = findBestSplit(x,y,mCols;max_features=max_features,splitting_criterion=splitting_criterion,rng=rng)
 
     # Base case: no further info gain
     # Since we can ask no further questions,
     # we'll return a leaf.
-    if gain <= minGain  return Leaf(y, depth)  end
+    if gain <= min_gain  return Leaf(y, depth)  end
 
     trueIdx  = partition(question,x,mCols,rng=rng)
     rootNode = DecisionNode(question,nothing,nothing,1,sum(trueIdx)/length(trueIdx))
@@ -369,16 +388,16 @@ function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0,
     while length(nodes) > 0
         thisNode = pop!(nodes)
 
-        # Check if this branch has still the minimum number of records required, that we didn't reached the maxDepth allowed and that there is still a gain in splitting. In case, declare it a leaf
+        # Check if this branch has still the minimum number of records required, that we didn't reached the max_depth allowed and that there is still a gain in splitting. In case, declare it a leaf
         isLeaf = false
-        if size(thisNode.x,1) <= minRecords || thisNode.depth >= maxDepth
+        if size(thisNode.x,1) <= min_records || thisNode.depth >= max_depth
             isLeaf = true
         else
             # Try partitioing the dataset on each of the unique attribute,
             # calculate the information gain,
             # and return the question that produces the highest gain.
-            gain, question = findBestSplit(thisNode.x,thisNode.y,mCols;maxFeatures=maxFeatures,splittingCriterion=splittingCriterion,rng=rng)
-            if gain <= minGain
+            gain, question = findBestSplit(thisNode.x,thisNode.y,mCols;max_features=max_features,splitting_criterion=splitting_criterion,rng=rng)
+            if gain <= min_gain
                 isLeaf = true
             end
         end
@@ -398,6 +417,13 @@ function buildTree(x, y::AbstractArray{Ty,1}; maxDepth = size(x,1), minGain=0.0,
 end
 
 # API V2
+
+"""
+$(TYPEDSIGNATURES)
+
+Fit a [`DTModel`](@ref) to the data
+
+"""
 function fit!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
 
     if m.fitted
@@ -405,30 +431,30 @@ function fit!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
     end
 
     # Setting default parameters that depends from the data...
-    maxDepth    = m.hpar.maxDepth    == nothing ?  size(x,1) : m.hpar.maxDepth
-    maxFeatures = m.hpar.maxFeatures == nothing ?  size(x,2) : m.hpar.maxFeatures
-    splittingCriterion = m.hpar.splittingCriterion == nothing ? ( (Ty <: Number && !m.hpar.forceClassification) ? variance : gini) : m.hpar.splittingCriterion
+    max_depth    = m.hpar.max_depth    == nothing ?  size(x,1) : m.hpar.max_depth
+    max_features = m.hpar.max_features == nothing ?  size(x,2) : m.hpar.max_features
+    splitting_criterion = m.hpar.splitting_criterion == nothing ? ( (Ty <: Number && !m.hpar.force_classification) ? variance : gini) : m.hpar.splitting_criterion
     # Setting schortcuts to other hyperparameters/options....
-    minGain             = m.hpar.minGain
-    minRecords          = m.hpar.minRecords
-    forceClassification = m.hpar.forceClassification
+    min_gain             = m.hpar.min_gain
+    min_records          = m.hpar.min_records
+    force_classification = m.hpar.force_classification
     cache               = m.opt.cache
     rng                 = m.opt.rng
     verbosity           = m.opt.verbosity
 
-    tree = buildTree(x, y; maxDepth = maxDepth, minGain=minGain, minRecords=minRecords, maxFeatures=maxFeatures, forceClassification=forceClassification, splittingCriterion = splittingCriterion, mCols=nothing, rng = rng)
+    tree = buildTree(x, y; max_depth = max_depth, min_gain=min_gain, min_records=min_records, max_features=max_features, force_classification=force_classification, splitting_criterion = splitting_criterion, mCols=nothing, rng = rng)
 
     m.par = DTLearnableParameters(tree)
     m.cres = cache ? predictSingle.(Ref(tree),eachrow(x),rng=rng) : nothing
 
     m.fitted = true
 
-    jobIsRegression = (forceClassification || ! (Ty <: Number) ) ? false : true
+    jobIsRegression = (force_classification || ! (Ty <: Number) ) ? false : true
     
     m.info[:fitted_records]             = size(x,1)
     m.info[:dimensions]                 = size(x,2)
     m.info[:jobIsRegression]            = jobIsRegression ? 1 : 0
-    (m.info[:avgDepth],m.info[:maxDepth]) = computeDepths(m.par.tree)
+    (m.info[:avgDepth],m.info[:max_depth]) = computeDepths(m.par.tree)
     return cache ? m.cres : nothing
 end
 
@@ -436,9 +462,10 @@ end
 # MODEL PREDICTIONS 
 
 """
-predictSingle(tree,x)
+    predictSingle(tree,x)
 
 Predict the label of a single feature record. See [`predict`](@ref).
+
 
 """
 function predictSingle(node::Union{DecisionNode{Tx},Leaf{Ty}}, x;rng = Random.GLOBAL_RNG) where {Tx,Ty}
@@ -464,9 +491,13 @@ function predictSingle(node::Union{DecisionNode{Tx},Leaf{Ty}}, x;rng = Random.GL
 end
 
 """
-   predict(tree,x)
+    predict(tree,x)
 
 Predict the labels of a feature dataset.
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use [`DTModel`](@ref) and the associated `predict(m::Model,x)` function instead.
 
 For each record of the dataset, recursivelly traverse the tree to find the prediction most opportune for the given record.
 If the labels the tree has been fitted with are numeric, the prediction is also numeric.
@@ -480,6 +511,12 @@ function predict(tree::Union{DecisionNode{Tx}, Leaf{Ty}}, x; rng = Random.GLOBAL
 end
 
 # API V2...
+"""
+$(TYPEDSIGNATURES)
+
+Predict the labels associated to some feature data using a trained [`DTModel`](@ref)
+
+"""
 function predict(m::DTModel,x)
     return predictSingle.(Ref(m.par.tree),eachrow(x),rng=m.opt.rng)
 end

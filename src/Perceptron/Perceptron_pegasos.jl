@@ -1,3 +1,4 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 """
 pegasos(x,y;θ,θ₀,λ,η,T,nMsgs,shuffle,force_origin,return_mean_hyperplane)
@@ -281,7 +282,7 @@ function fit!(m::Pegasos,X,Y)
 
     m.info[:fitted_records] = nR
     m.info[:dimensions]    = nD
-    m.info[:nClasses]      = size(weights,1)
+    m.info[:n_classes]      = size(weights,1)
 
     m.fitted = true
 
@@ -311,9 +312,9 @@ end
 function show(io::IO, m::Pegasos)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"Pegasos - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes a loss-based linear classifier without regularisation term (unfitted)")
+        println(io,"Pegasos - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes a loss-based linear classifier without regularisation term (unfitted)")
     else
-        println(io,"Pegasos - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes a loss-based linear classifier without regularisation term (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"Pegasos - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes a loss-based linear classifier without regularisation term (fitted on $(m.info[:fitted_records]) records)")
         println(io,"Weights:")
         println(io,m.par.weights)
     end

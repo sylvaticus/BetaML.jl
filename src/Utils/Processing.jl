@@ -1,3 +1,5 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 # Part of submodule Utils of BetaML - The Beta Machine Learning Toolkit
 # Functions typically used for processing (manipulating) data, typically preprocessing data before running a ML model
 

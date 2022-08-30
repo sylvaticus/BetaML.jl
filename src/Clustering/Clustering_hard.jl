@@ -1,18 +1,19 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 """
-initRepresentatives(X,K;initStrategy,Z₀)
+initRepresentatives(X,K;initialisation_strategy,Z₀)
 
 Initialisate the representatives for a K-Mean or K-Medoids algorithm
 
 # Parameters:
 * `X`: a (N x D) data to clusterise
 * `K`: Number of cluster wonted
-* `initStrategy`: Whether to select the initial representative vectors:
+* `initialisation_strategy`: Whether to select the initial representative vectors:
 * `random`: randomly in the X space
 * `grid`: using a grid approach [default]
 * `shuffle`: selecting randomly within the available points
 * `given`: using a provided set of initial representatives provided in the `Z₀` parameter
-* `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initStrategy) [default: `nothing`]
+* `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initialisation_strategy) [default: `nothing`]
 * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
@@ -20,38 +21,38 @@ Initialisate the representatives for a K-Mean or K-Medoids algorithm
 
 # Example:
 ```julia
-julia> Z₀ = initRepresentatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2,initStrategy="given",Z₀=[1.7 15; 3.6 40])
+julia> Z₀ = initRepresentatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2,initialisation_strategy="given",Z₀=[1.7 15; 3.6 40])
 ```
 """
-function initRepresentatives(X,K;initStrategy="grid",Z₀=nothing,rng = Random.GLOBAL_RNG)
+function initRepresentatives(X,K;initialisation_strategy="grid",Z₀=nothing,rng = Random.GLOBAL_RNG)
   X  = makeMatrix(X)
   (N,D) = size(X)
   # Random choice of initial representative vectors (any point, not just in X!)
   minX = minimum(X,dims=1)
   maxX = maximum(X,dims=1)
   Z = zeros(K,D)
-  if initStrategy == "random"
+  if initialisation_strategy == "random"
       for i in 1:K
           for j in 1:D
               Z[i,j] = rand(rng,Distributions.Uniform(minX[j],maxX[j]))
           end
       end
-  elseif initStrategy == "grid"
+  elseif initialisation_strategy == "grid"
       for d in 1:D
               # same "space" for each class on each dimension
               Z[:,d] = collect(range(minX[d] + (maxX[d]-minX[d])/(K*2) , stop=maxX[d] - (maxX[d]-minX[d])/(K*2)  , length=K))
               #ex: collect(range(minX[d], stop=maxX[d], length=K))
               #collect(range(s+(e-s)/(K*2), stop=e-(e-s)/(K*2), length=K))
       end
-  elseif initStrategy == "given"
+  elseif initialisation_strategy == "given"
       if isnothing(Z₀) error("With the `given` strategy you need to provide the initial set of representatives in the Z₀ parameter.") end
       Z₀ = makeMatrix(Z₀)
       Z = Z₀
-  elseif initStrategy == "shuffle"
+  elseif initialisation_strategy == "shuffle"
       zIdx = shuffle(rng,1:size(X)[1])[1:K]
       Z = X[zIdx, :]
   else
-      error("initStrategy \"$initStrategy\" not implemented")
+      error("initialisation_strategy \"$initialisation_strategy\" not implemented")
   end
   return Z
 end
@@ -87,20 +88,24 @@ end
 ## Basic K-Means Algorithm (Lecture/segment 13.7 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
 
 """
-kmeans(X,K;dist,initStrategy,Z₀)
+kmeans(X,K;dist,initialisation_strategy,Z₀)
 
 Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use `KMeansModel` instead. 
 
 # Parameters:
 * `X`: a (N x D) data to clusterise
 * `K`: Number of cluster wonted
 * `dist`: Function to employ as distance (see notes). Default to Euclidean distance.
-* `initStrategy`: Whether to select the initial representative vectors:
+* `initialisation_strategy`: Whether to select the initial representative vectors:
 * `random`: randomly in the X space
 * `grid`: using a grid approach [default]
 * `shuffle`: selecting randomly within the available points
 * `given`: using a provided set of initial representatives provided in the `Z₀` parameter
-* `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initStrategy) [default: `nothing`]
+* `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initialisation_strategy) [default: `nothing`]
 * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
@@ -109,22 +114,22 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 # Notes:
 * Some returned clusters could be empty
 * The `dist` parameter can be:
-* Any user defined function accepting two vectors and returning a scalar
-* An anonymous function with the same characteristics (e.g. `dist = (x,y) -> norm(x-y)^2`)
-* One of the above predefined distances: `l1_distance`, `l2_distance`, `l2²_distance`, `cosine_distance`
+  * Any user defined function accepting two vectors and returning a scalar
+  * An anonymous function with the same characteristics (e.g. `dist = (x,y) -> norm(x-y)^2`)
+  * One of the above predefined distances: `l1_distance`, `l2_distance`, `l2²_distance`, `cosine_distance`
 
 # Example:
 ```julia
 julia> (clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3)
 ```
 """
-function kmeans(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing,verbosity=STD,rng = Random.GLOBAL_RNG)
+function kmeans(X,K;dist=(x,y) -> norm(x-y),initialisation_strategy="grid",Z₀=nothing,verbosity=STD,rng = Random.GLOBAL_RNG)
   X     = makeMatrix(X)
   (N,D) = size(X)
   # Random choice of initial representative vectors (any point, not just in X!)
   minX  = minimum(X,dims=1)
   maxX  = maximum(X,dims=1)
-  Z₀ = initRepresentatives(X,K,initStrategy=initStrategy,Z₀=Z₀,rng=rng)
+  Z₀ = initRepresentatives(X,K,initialisation_strategy=initialisation_strategy,Z₀=Z₀,rng=rng)
   Z  = Z₀
   cIdx_prev = zeros(Int64,N)
 
@@ -170,20 +175,24 @@ end
 
 ## Basic K-Medoids Algorithm (Lecture/segment 14.3 of https://www.edx.org/course/machine-learning-with-python-from-linear-models-to)
 """
-kmedoids(X,K;dist,initStrategy,Z₀)
+kmedoids(X,K;dist,initialisation_strategy,Z₀)
 
 Compute K-Medoids algorithm to identify K clusters of X using distance definition `dist`
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use `KMedoidsModel` instead. 
 
 # Parameters:
 * `X`: a (n x d) data to clusterise
 * `K`: Number of cluster wonted
 * `dist`: Function to employ as distance (see notes). Default to Euclidean distance.
-* `initStrategy`: Whether to select the initial representative vectors:
+* `initialisation_strategy`: Whether to select the initial representative vectors:
 * `random`: randomly in the X space
 * `grid`: using a grid approach
 * `shuffle`: selecting randomly within the available points [default]
 * `given`: using a provided set of initial representatives provided in the `Z₀` parameter
-* `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initStrategy) [default: `nothing`]
+* `Z₀`: Provided (K x D) matrix of initial representatives (used only together with the `given` initialisation_strategy) [default: `nothing`]
 * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
@@ -198,14 +207,14 @@ Compute K-Medoids algorithm to identify K clusters of X using distance definitio
 
 # Example:
 ```julia
-julia> (clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initStrategy="grid")
+julia> (clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initialisation_strategy="grid")
 ```
 """
-function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing, verbosity=STD, rng = Random.GLOBAL_RNG)
+function kmedoids(X,K;dist=(x,y) -> norm(x-y),initialisation_strategy="grid",Z₀=nothing, verbosity=STD, rng = Random.GLOBAL_RNG)
   X  = makeMatrix(X)
   (n,d) = size(X)
   # Random choice of initial representative vectors
-  Z₀ = initRepresentatives(X,K,initStrategy=initStrategy,Z₀=Z₀,rng=rng)
+  Z₀ = initRepresentatives(X,K,initialisation_strategy=initialisation_strategy,Z₀=Z₀,rng=rng)
   Z = Z₀
   cIdx_prev = zeros(Int64,n)
 
@@ -228,44 +237,52 @@ function kmedoids(X,K;dist=(x,y) -> norm(x-y),initStrategy="grid",Z₀=nothing, 
 
 end
 
-
+# ------------------------------------------------------------------------------
 # Avi v2..
 
+"""
+$(TYPEDEF)
+
+Hyperparameters for both the [`KMeansModel`](@ref) and [`KMedoidsModel`](@ref) models
+
+## Parameters:
+$(TYPEDFIELDS)
+"""
 Base.@kwdef mutable struct KMeansMedoidsHyperParametersSet <: BetaMLHyperParametersSet
-    nClasses::Int64                   = 3
+    "Number of classes to discriminate the data [def: 3]"
+    n_classes::Int64                  = 3
+    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2²_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansModel` algorithm is not guaranteed to converge with other distances than the Euclidean one."
     dist::Function                    = (x,y) -> norm(x-y)
-    initStrategy::String              = "Grid"
-    initialRepresentatives::Union{Nothing,Matrix{Float64}} = nothing
+    """
+    The computation method of the vector of the initial representatives.
+    One of the following:
+    - "random": randomly in the X space [default]
+    - "grid": using a grid approach
+    - "shuffle": selecting randomly within the available points
+    - "given": using a provided set of initial representatives provided in the `initial_representatives` parameter
+    """
+    initialisation_strategy::String              = "Grid"
+    "Provided (K x D) matrix of initial representatives (useful only with `initialisation_strategy=\"given\"`) [default: `nothing`]"
+    initial_representatives::Union{Nothing,Matrix{Float64}} = nothing
 end
 
-#=
-Base.@kwdef mutable struct KMedoidsHyperParametersSet <: BetaMLHyperParametersSet
-    nClasses::Int64                   = 3
-    dist::Function                    = (x,y) -> norm(x-y)
-    initStrategy::String              = "Grid"
-    initialRepresentatives::Union{Nothing,Matrix{Float64}} = nothing
-end
-Base.@kwdef mutable struct KMeansOptionsSet <: BetaMLOptionsSet
-    verbosity::Verbosity = STD
-    rng                  = Random.GLOBAL_RNG
-end
-Base.@kwdef mutable struct KMedoidsOptionsSet <: BetaMLOptionsSet
-    verbosity::Verbosity = STD
-    rng                  = Random.GLOBAL_RNG
-end
-=#
 
 Base.@kwdef mutable struct KMeansMedoidsLearnableParameters <: BetaMLLearnableParametersSet
     representatives::Union{Nothing,Matrix{Float64}}  = nothing
-    #assignments::Vector{Int64}                       = Int64[]
 end
-#=
-Base.@kwdef mutable struct KMedoidsLearnableParameters <: BetaMLLearnableParametersSet
-    representatives::Union{Nothing,Matrix{Float64}}  = nothing
-    assignments::Vector{Int64}        = Int64[]
-end
-=#
 
+"""
+$(TYPEDEF)
+
+The classical "K-Means" clustering algorithm (unsupervised).
+
+For the parameters see [`?KMeansMedoidsHyperParametersSet`](@ref KMeansMedoidsHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
+
+# Notes:
+- data must be numerical
+- online fitting (re-fitting with new data) is supported
+
+"""
 mutable struct KMeansModel <: BetaMLUnsupervisedModel
     hpar::KMeansMedoidsHyperParametersSet
     opt::BetaMLDefaultOptionsSet
@@ -275,6 +292,20 @@ mutable struct KMeansModel <: BetaMLUnsupervisedModel
     info::Dict{Symbol,Any}
 end
 
+"""
+$(TYPEDEF)
+
+The classical "K-Medoids" clustering algorithm (unsupervised).
+
+Similar to K-Means, but the "representatives" (the cetroids) are guaranteed to be one of the training point. The algorithm work with any arbitrary distance measure.
+
+For the parameters see [`?KMeansMedoidsHyperParametersSet`](@ref KMeansMedoidsHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
+
+# Notes:
+- data must be numerical
+- online fitting (re-fitting with new data) is supported
+
+"""
 mutable struct KMedoidsModel <: BetaMLUnsupervisedModel
     hpar::KMeansMedoidsHyperParametersSet
     opt::BetaMLDefaultOptionsSet
@@ -319,18 +350,19 @@ function KMedoidsModel(;kwargs...)
     return m
 end
 
-
-
 """
-    fit!(m::KMeansModel,x)
+$(TYPEDSIGNATURES)
+
+Fit the [`KMeansModel`](@ref) model to data
+
 """
 function fit!(m::KMeansModel,x)
 
     # Parameter alias..
-    K                      = m.hpar.nClasses
+    K                      = m.hpar.n_classes
     dist                   = m.hpar.dist
-    initStrategy           = m.hpar.initStrategy
-    initialRepresentatives = m.hpar.initialRepresentatives
+    initialisation_strategy           = m.hpar.initialisation_strategy
+    initial_representatives = m.hpar.initial_representatives
     cache                  = m.opt.cache
     verbosity              = m.opt.verbosity
     rng                    = m.opt.rng
@@ -339,10 +371,10 @@ function fit!(m::KMeansModel,x)
         # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee fitted with milions of records.
         # So, training 1000 records doesn't give the same output as training 990 records and then training again with 10 records
         verbosity >= STD && @warn "Continuing training of a pre-fitted model"
-        (clIdx,Z) = kmeans(x,K,dist=dist,Z₀=m.par.representatives,initStrategy="given",verbosity=verbosity,rng=rng)
+        (clIdx,Z) = kmeans(x,K,dist=dist,Z₀=m.par.representatives,initialisation_strategy="given",verbosity=verbosity,rng=rng)
 
     else
-        (clIdx,Z) = kmeans(x,K,dist=dist,initStrategy=initStrategy,Z₀=initialRepresentatives,verbosity=verbosity,rng=rng)
+        (clIdx,Z) = kmeans(x,K,dist=dist,initialisation_strategy=initialisation_strategy,Z₀=initial_representatives,verbosity=verbosity,rng=rng)
     end
     m.par  = KMeansMedoidsLearnableParameters(representatives=Z)
     m.cres = cache ? clIdx : nothing
@@ -353,15 +385,18 @@ function fit!(m::KMeansModel,x)
 end   
 
 """
-    fit!(m::KMeansModel,x)
+$(TYPEDSIGNATURES)
+
+Fit the [`KMedoidsModel`](@ref) model to data
+
 """
 function fit!(m::KMedoidsModel,x)
 
     # Parameter alias..
-    K                      = m.hpar.nClasses
+    K                      = m.hpar.n_classes
     dist                   = m.hpar.dist
-    initStrategy           = m.hpar.initStrategy
-    initialRepresentatives = m.hpar.initialRepresentatives
+    initialisation_strategy           = m.hpar.initialisation_strategy
+    initial_representatives = m.hpar.initial_representatives
     cache                  = m.opt.cache
     verbosity              = m.opt.verbosity
     rng                    = m.opt.rng
@@ -370,10 +405,10 @@ function fit!(m::KMedoidsModel,x)
         # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee fitted with milions of records.
         # So, training 1000 records doesn't give the same output as training 990 records and then training again with 10 records
         verbosity >= STD && @warn "Continuing training of a pre-fitted model"
-        (clIdx,Z) = kmedoids(x,K,dist=dist,Z₀=m.par.representatives,initStrategy="given",verbosity=verbosity,rng=rng)
+        (clIdx,Z) = kmedoids(x,K,dist=dist,Z₀=m.par.representatives,initialisation_strategy="given",verbosity=verbosity,rng=rng)
 
     else
-        (clIdx,Z) = kmedoids(x,K,dist=dist,initStrategy=initStrategy,Z₀=initialRepresentatives,verbosity=verbosity,rng=rng)
+        (clIdx,Z) = kmedoids(x,K,dist=dist,initialisation_strategy=initialisation_strategy,Z₀=initial_representatives,verbosity=verbosity,rng=rng)
     end
     m.par  = KMeansMedoidsLearnableParameters(representatives=Z)
     m.cres = cache ? clIdx : nothing
@@ -383,10 +418,12 @@ function fit!(m::KMedoidsModel,x)
     return cache ? m.cres : nothing
 end  
 
-#function predict(m::Union{KMeansModel,KMedoidsModel})
-#    return m.par.assignments
-#end
+"""
+$(TYPEDSIGNATURES)
 
+Assign the class of new data using the representatives learned by fitting a [`KMeansModel`](@ref) or [`KMedoidsModel`](@ref) model.
+
+"""
 function predict(m::Union{KMeansModel,KMedoidsModel},X)
     X               = makeMatrix(X)
     representatives = m.par.representatives
@@ -413,9 +450,9 @@ end
 function show(io::IO, m::KMeansModel)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"KMeansModel - A $(m.hpar.nClasses)-classes K-Means Model (unfitted)")
+        print(io,"KMeansModel - A $(m.hpar.n_classes)-classes K-Means Model (unfitted)")
     else
-        println(io,"KMeansModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Means Model (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"KMeansModel - A $(m.info[:dimensions])-dimensions $(m.hpar.n_classes)-classes K-Means Model (fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         println(io,"Representatives:")
         println(io,m.par.representatives)
@@ -426,9 +463,9 @@ end
 function show(io::IO, m::KMedoidsModel)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"KMedoidsModel - A $(m.hpar.nClasses)-classes K-Medoids Model (unfitted)")
+        print(io,"KMedoidsModel - A $(m.hpar.n_classes)-classes K-Medoids Model (unfitted)")
     else
-        println(io,"KMedoidsModel - A $(m.info[:dimensions])-dimensions $(m.hpar.nClasses)-classes K-Medoids Model (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"KMedoidsModel - A $(m.info[:dimensions])-dimensions $(m.hpar.n_classes)-classes K-Medoids Model (fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         println(io,"Distance function used:")
         println(io,m.hpar.dist)

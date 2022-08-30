@@ -1,8 +1,4 @@
-"""
-  GMM.jl file
-
-Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT.
-"""
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 """
     GMM module
@@ -13,11 +9,11 @@ Provides clustering/collaborative filtering (via clustering) / missing values im
 
 The module provides the following functions. Use `?[function]` to access their full signature and detailed documentation:
 
-- [`gmm(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initStrategy)`](@ref gmm): gmm algorithm over GMM
+- [`gmm(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initialisation_strategy)`](@ref gmm): gmm algorithm over GMM
 - [`predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)`](@ref predictMissing): Impute mixing values ("matrix completion") using gmm as backbone. Note that this can be used for collaborative filtering / reccomendation systems often with better results than traditional algorithms as k-nearest neighbors (KNN)
 
 {Spherical|Diagonal|Full} Gaussian mixtures are already provided. User defined mixtures can be used defining a struct as subtype of `AbstractMixture` and implementing for that mixture the following functions:
-- `initMixtures!(mixtures, X; minVariance, minCovariance, initStrategy)`
+- `initMixtures!(mixtures, X; minVariance, minCovariance, initialisation_strategy)`
 - `lpdf(m,x,mask)` (for the e-step)
 - `updateParameters!(mixtures, X, pₙₖ; minVariance, minCovariance)` (the m-step)
 

@@ -1,3 +1,4 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 """
 estep(X,pₖ,mixtures)
@@ -34,7 +35,7 @@ end
 # no longer true with the numerical trick implemented
 # - For mixtures with full covariance matrix (i.e. `FullGaussian(μ,σ²)`) the minCovariance should NOT be set equal to the minVariance, or if the covariance matrix goes too low, it will become singular and not invertible.
 """
-gmm(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initStrategy)
+gmm(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initialisation_strategy)
 
 Compute Expectation-Maximisation algorithm to identify K clusters of X data, i.e. employ a Generative Mixture Model as the underlying probabilistic model.
 
@@ -50,7 +51,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 * `verbosity`:     A verbosity parameter regulating the information messages frequency [def: `STD`]
 * `minVariance`:   Minimum variance for the mixtures [default: 0.05]
 * `minCovariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes).
-* `initStrategy`:  Mixture initialisation algorithm [def: `kmeans`]
+* `initialisation_strategy`:  Mixture initialisation algorithm [def: `kmeans`]
 * `maxIter`:       Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]
 * `rng`:           Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
@@ -67,7 +68,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 # Notes:
 - The mixtures currently implemented are `SphericalGaussian(μ,σ²)`,`DiagonalGaussian(μ,σ²)` and `FullGaussian(μ,σ²)`
 - Reasonable choices for the minVariance/Covariance depends on the mixture. For example 0.25 seems a reasonable value for the SphericalGaussian, 0.05 seems better for the DiagonalGaussian, and FullGaussian seems to prefer either very low values of variance/covariance (e.g. `(0.05,0.05)` ) or very big but similar ones (e.g. `(100,100)` ).
-- For `initStrategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support `grid`, `kmeans` or `given`. `grid` is faster (expecially if X contains missing values), but `kmeans` often provides better results.
+- For `initialisation_strategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support `grid`, `kmeans` or `given`. `grid` is faster (expecially if X contains missing values), but `kmeans` often provides better results.
 
 # Resources:
 - [Paper describing gmm with missing values](https://doi.org/10.1016/j.csda.2006.10.002)
@@ -79,7 +80,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 julia> clusters = gmm([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3; 5.2 -2.4],3,verbosity=HIGH)
 ```
 """
-function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans",maxIter=typemax(Int64),rng = Random.GLOBAL_RNG)
+function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initialisation_strategy="kmeans",maxIter=typemax(Int64),rng = Random.GLOBAL_RNG)
 # TODO: benchmark with this one: https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-022-04740-9 
  if verbosity > STD
      @codeLocation
@@ -87,7 +88,7 @@ function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=1
  # debug:
  #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
  #K = 3
- #p₀=nothing; tol=0.0001; msgStep=1; minVariance=0.25; initStrategy="grid"
+ #p₀=nothing; tol=0.0001; msgStep=1; minVariance=0.25; initialisation_strategy="grid"
  #mixtures = [SphericalGaussian() for i in 1:K]
  # ---------
  X     = makeMatrix(X)
@@ -107,7 +108,7 @@ function gmm(X,K;p₀=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=1
  mixtures = identity.(deepcopy(mixtures)) # to set the container to the minimum common denominator of element types the deepcopy is not to change the function argument
  #mixtures = identity.(mixtures) 
 
- initMixtures!(mixtures,X,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,rng=rng)
+ initMixtures!(mixtures,X,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy=initialisation_strategy,rng=rng)
 
  pₙₖ = zeros(Float64,N,K) # The posteriors, i.e. the prob that item n belong to cluster k
  ϵ = Float64[]
@@ -171,11 +172,11 @@ $(FIELDS)
 """
 Base.@kwdef mutable struct GMMClusterHyperParametersSet <: BetaMLHyperParametersSet
     "Number of mixtures (latent classes) to consider [def: 3]"
-    nClasses::Int64                   = 3
-    "Initial probabilities of the categorical distribution (nClasses x 1) [default: `[]`]"
+    n_classes::Int64                   = 3
+    "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
     probMixtures::Vector{Float64}     = Float64[]
     "An array (of length K) of the mixture to employ (see notes) [def: `[DiagonalGaussian() for i in 1:K]`]"
-    mixtures::Vector{AbstractMixture} = [DiagonalGaussian() for i in 1:nClasses]
+    mixtures::Vector{AbstractMixture} = [DiagonalGaussian() for i in 1:n_classes]
     "Tolerance to stop the algorithm [default: 10^(-6)]"
     tol::Float64                      = 10^(-6)
     "Minimum variance for the mixtures [default: 0.05]"
@@ -183,7 +184,7 @@ Base.@kwdef mutable struct GMMClusterHyperParametersSet <: BetaMLHyperParameters
     "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes)."
     minCovariance::Float64            = 0.0
     "Mixture initialisation algorithm [def: `kmeans`]"
-    initStrategy::String              = "kmeans"
+    initialisation_strategy::String              = "kmeans"
     "Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]"
     maxIter::Int64                    = typemax(Int64)
 end
@@ -214,9 +215,9 @@ end
 
 function GMMClusterModel(;kwargs...)
     # ugly manual case...
-    if (:nClasses in keys(kwargs) && ! (:mixtures in keys(kwargs)))
-        nClasses = kwargs[:nClasses]
-        hps = GMMClusterHyperParametersSet(nClasses = nClasses, mixtures = [DiagonalGaussian() for i in 1:nClasses])
+    if (:n_classes in keys(kwargs) && ! (:mixtures in keys(kwargs)))
+        n_classes = kwargs[:n_classes]
+        hps = GMMClusterHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
     else 
         hps = GMMClusterHyperParametersSet()
     end
@@ -245,13 +246,13 @@ end
 function fit!(m::GMMClusterModel,x)
 
     # Parameter alias..
-    K             = m.hpar.nClasses
+    K             = m.hpar.n_classes
     p₀            = m.hpar.probMixtures
     mixtures      = m.hpar.mixtures
     tol           = m.hpar.tol
     minVariance   = m.hpar.minVariance
     minCovariance = m.hpar.minCovariance
-    initStrategy  = m.hpar.initStrategy
+    initialisation_strategy  = m.hpar.initialisation_strategy
     maxIter       = m.hpar.maxIter
     cache         = m.opt.cache
     verbosity     = m.opt.verbosity
@@ -259,9 +260,9 @@ function fit!(m::GMMClusterModel,x)
 
     if m.fitted
         verbosity >= STD && @warn "Continuing training of a pre-fitted model"
-        gmmOut = gmm(x,K;p₀=m.par.probMixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy="given",maxIter=maxIter,rng = rng)
+        gmmOut = gmm(x,K;p₀=m.par.probMixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy="given",maxIter=maxIter,rng = rng)
     else
-        gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,maxIter=maxIter,rng = rng)
+        gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy=initialisation_strategy,maxIter=maxIter,rng = rng)
     end
     probRecords = gmmOut.pₙₖ
     m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, probMixtures=makeColVector(gmmOut.pₖ))
@@ -300,9 +301,9 @@ end
 function show(io::IO, m::GMMClusterModel)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"GMMClusterModel - A $(m.hpar.nClasses)-classes Generative Mixture Model (unfitted)")
+        print(io,"GMMClusterModel - A $(m.hpar.n_classes)-classes Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMClusterModel - A $(m.hpar.nClasses)-classes Generative Mixture Model(fitted on $(m.info[:fitted_records]) records)")
+        print(io,"GMMClusterModel - A $(m.hpar.n_classes)-classes Generative Mixture Model(fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)

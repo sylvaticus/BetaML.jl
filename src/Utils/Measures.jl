@@ -1,3 +1,5 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 # Part of submodule Utils of BetaML _ the Beta Machine Learning Toolkit
 # Various measures of pairs (x,y) (including vectors or matrix pairs)
 
@@ -70,7 +72,7 @@ Use the parameter tol [def: `1`] to determine the tollerance of the prediction, 
 """
 function accuracy(ŷ::Array{T,1},y_pos::Int64;tol=1,rng=Random.GLOBAL_RNG) where {T <: Number}
     #if  length(Set(ŷ) == 1                         # all classes the same prob
-    #    return rand(rng) < (1 / length(y)) ? 1 : 0 # If all values have the same prob, it returns 1 with prob 1/nClasses
+    #    return rand(rng) < (1 / length(y)) ? 1 : 0 # If all values have the same prob, it returns 1 with prob 1/n_classes
     #end
     tol > 1 || return mode(ŷ;rng=rng) == y_pos ? 1 : 0 # if tol is one we delegate the choice of a single prediction to mode, that handles multimodal pmfs
     sIdx = sortperm(ŷ)[end:-1:1]

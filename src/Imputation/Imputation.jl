@@ -1,3 +1,5 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 """
     Imputation.jl file
 
@@ -124,7 +126,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 * `verbosity`:     A verbosity parameter regulating the information messages frequency [def: `STD`]
 * `minVariance`:   Minimum variance for the mixtures [default: 0.05]
 * `minCovariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes).
-* `initStrategy`:  Mixture initialisation algorithm [def: `grid`]
+* `initialisation_strategy`:  Mixture initialisation algorithm [def: `grid`]
 * `maxIter`:       Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]
 * `rng`:           Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
@@ -138,7 +140,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 
 # Notes:
 - The mixtures currently implemented are `SphericalGaussian(μ,σ²)`,`DiagonalGaussian(μ,σ²)` and `FullGaussian(μ,σ²)`
-- For `initStrategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support `grid`, `kmeans` or `given`. `grid` is faster, but `kmeans` often provides better results.
+- For `initialisation_strategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support `grid`, `kmeans` or `given`. `grid` is faster, but `kmeans` often provides better results.
 - The algorithm requires to specify a number of "latent classes" (mlixtures) to divide the dataset into. If there isn't any prior domain specific knowledge on this point one can test sevaral `k` and verify which one minimise the `BIC` or `AIC` criteria.
 
 
@@ -147,11 +149,11 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 julia>  cFOut = predictMissing([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3)
 ```
 """
-function predictMissing(X,K=3;p₀=[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initStrategy="kmeans",maxIter=typemax(Int64),rng = Random.GLOBAL_RNG)
+function predictMissing(X,K=3;p₀=[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initialisation_strategy="kmeans",maxIter=typemax(Int64),rng = Random.GLOBAL_RNG)
  if verbosity > STD
      @codeLocation
  end
- emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,maxIter=maxIter,rng=rng)
+ emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy=initialisation_strategy,maxIter=maxIter,rng=rng)
 
  (N,D) = size(X)
  nDim  = ndims(X)
@@ -317,7 +319,7 @@ end
 
 Missing data imputer that uses a Generated (Gaussian) Mixture Model.
 
-For the parameters (`nClasses`,`mixtures`,..) see  [`GMMImputerLearnableParameters`](@ref).
+For the parameters (`n_classes`,`mixtures`,..) see  [`GMMImputerLearnableParameters`](@ref).
 
 ## Limitations:
 - data must be numerical
@@ -335,9 +337,9 @@ end
 
 function GMMImputer(;kwargs...)
     # ugly manual case...
-    if (:nClasses in keys(kwargs) && ! (:mixtures in keys(kwargs)))
-        nClasses = kwargs[:nClasses]
-        hps = GMMClusterHyperParametersSet(nClasses = nClasses, mixtures = [DiagonalGaussian() for i in 1:nClasses])
+    if (:n_classes in keys(kwargs) && ! (:mixtures in keys(kwargs)))
+        n_classes = kwargs[:n_classes]
+        hps = GMMClusterHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
     else 
         hps = GMMClusterHyperParametersSet()
     end
@@ -367,13 +369,13 @@ function fit!(m::GMMImputer,X)
     
 
     # Parameter alias..
-    K             = m.hpar.nClasses
+    K             = m.hpar.n_classes
     p₀            = m.hpar.probMixtures
     mixtures      = m.hpar.mixtures
     tol           = m.hpar.tol
     minVariance   = m.hpar.minVariance
     minCovariance = m.hpar.minCovariance
-    initStrategy  = m.hpar.initStrategy
+    initialisation_strategy  = m.hpar.initialisation_strategy
     maxIter       = m.hpar.maxIter
     cache         = m.opt.cache
     verbosity     = m.opt.verbosity
@@ -384,9 +386,9 @@ function fit!(m::GMMImputer,X)
     end
     if m.fitted
         verbosity >= STD && @warn "Continuing training of a pre-fitted model"
-        emOut = gmm(X,K;p₀=m.par.probMixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy="given",maxIter=maxIter,rng = rng)
+        emOut = gmm(X,K;p₀=m.par.probMixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy="given",maxIter=maxIter,rng = rng)
     else
-        emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initStrategy=initStrategy,maxIter=maxIter,rng = rng)
+        emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy=initialisation_strategy,maxIter=maxIter,rng = rng)
     end
 
     (N,D) = size(X)
@@ -432,7 +434,7 @@ function predict(m::GMMImputer,X)
     probMixtures = m.par.probMixtures
     probRecords, lL = estep(X,probMixtures,mixtures)
 
-    X̂ = [XMask[n,d] ? X[n,d] : sum([mixtures[k].μ[d] * probRecords[n,k] for k in 1:m.hpar.nClasses]) for n in 1:N, d in 1:D ]
+    X̂ = [XMask[n,d] ? X[n,d] : sum([mixtures[k].μ[d] * probRecords[n,k] for k in 1:m.hpar.n_classes]) for n in 1:N, d in 1:D ]
     
     return X̂
 end
@@ -464,7 +466,7 @@ end
 Hyperparameters for RFImputer
 
 #Parameters
-- For the underlying random forest algorithm parameters (`nTrees`,`maxDepth`,`minGain`,`minRecords`,`maxFeatures:`,`splittingCriterion`,`β`,`initStrategy`, `oob` and `rng`) see [`RFHyperParametersSet`](@ref) for the specific RF algorithm parameters
+- For the underlying random forest algorithm parameters (`n_trees`,`max_depth`,`min_gain`,`min_records`,`max_features:`,`splitting_criterion`,`β`,`initialisation_strategy`, `oob` and `rng`) see [`RFHyperParametersSet`](@ref) for the specific RF algorithm parameters
 - `forcedCategoricalCols`: specify the positions of the integer columns to treat as categorical instead of cardinal. [Default: empty vector (all numerical cols are treated as cardinal by default and the others as categorical)]
 - `recursivePassages `: Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`].
 - `multipleImputations`: Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG).
@@ -544,17 +546,17 @@ function fit!(m::RFImputer,X)
     end
 
     # Setting default parameters that depends from the data...
-    maxDepth    = m.hpar.rfhpar.maxDepth    == nothing ?  size(X,1) : m.hpar.rfhpar.maxDepth
-    maxFeatures = m.hpar.rfhpar.maxFeatures == nothing ?  Int(round(sqrt(size(X,2)-1))) : m.hpar.rfhpar.maxFeatures
+    max_depth    = m.hpar.rfhpar.max_depth    == nothing ?  size(X,1) : m.hpar.rfhpar.max_depth
+    max_features = m.hpar.rfhpar.max_features == nothing ?  Int(round(sqrt(size(X,2)-1))) : m.hpar.rfhpar.max_features
     # Here only the hpar setting, later for each column
-    #splittingCriterion = m.hpar.splittingCriterion == nothing ? ( (Ty <: Number && !m.hpar.forceClassification) ? variance : gini) : m.hpar.splittingCriterion
-    #splittingCriterion = m.hpar.rfhpar.splittingCriterion
+    #splitting_criterion = m.hpar.splitting_criterion == nothing ? ( (Ty <: Number && !m.hpar.force_classification) ? variance : gini) : m.hpar.splitting_criterion
+    #splitting_criterion = m.hpar.rfhpar.splitting_criterion
     
     # Setting schortcuts to other hyperparameters/options....
-    minGain             = m.hpar.rfhpar.minGain
-    minRecords          = m.hpar.rfhpar.minRecords
-    #forceClassification = m.hpar.rfhpar.forceClassification
-    nTrees              = m.hpar.rfhpar.nTrees
+    min_gain             = m.hpar.rfhpar.min_gain
+    min_records          = m.hpar.rfhpar.min_records
+    #force_classification = m.hpar.rfhpar.force_classification
+    n_trees              = m.hpar.rfhpar.n_trees
     β                   = m.hpar.rfhpar.beta
     oob                 = m.hpar.rfhpar.oob
     cache               = m.opt.cache
@@ -566,11 +568,11 @@ function fit!(m::RFImputer,X)
     multipleImputations  = m.hpar.multipleImputations
 
     imputed = fill(similar(X),multipleImputations)
-    if maxFeatures == typemax(Int64) && nTrees >1
-      maxFeatures = Int(round(sqrt(size(X,2))))
+    if max_features == typemax(Int64) && n_trees >1
+      max_features = Int(round(sqrt(size(X,2))))
     end
-    maxFeatures   = min(nC,maxFeatures) 
-    maxDepth      = min(nR,maxDepth)
+    max_features   = min(nC,max_features) 
+    max_depth      = min(nR,max_depth)
 
     catCols = [! (nonmissingtype(eltype(identity.(X[:,c]))) <: Number ) || c in forced_categorical_cols for c in 1:nC]
 
@@ -578,7 +580,7 @@ function fit!(m::RFImputer,X)
     nonMissingMask = .! missingMask 
     nImputedValues = sum(missingMask)
     oobErrors      = fill(fill(Inf,nC),multipleImputations) # by imputations and dimensions
-    forests   = Array{Forest}(undef,multipleImputations,nC)
+    forests        = Array{Trees.Forest}(undef,multipleImputations,nC)
 
     for imputation in 1:multipleImputations
         verbosity >= STD && println("** Processing imputation $imputation")
@@ -592,10 +594,10 @@ function fit!(m::RFImputer,X)
             end 
             for d in sortedDims
                 verbosity >= FULL && println("  - processing dimension $d")
-                if m.hpar.rfhpar.splittingCriterion == nothing
-                    splittingCriterion = catCols[d] ?  gini : variance
+                if m.hpar.rfhpar.splitting_criterion == nothing
+                    splitting_criterion = catCols[d] ?  gini : variance
                 else
-                    splittingCriterion = splittingCriterion
+                    splitting_criterion = splitting_criterion
                 end
                 nmy  = nonMissingMask[:,d]
                 y    = X[nmy,d]
@@ -603,16 +605,16 @@ function fit!(m::RFImputer,X)
                 y    = convert(Vector{ty},y)
                 Xd   = Matrix(Xout[nmy,[1:(d-1);(d+1):end]])
                 dfor = buildForest(Xd,y, # forest model specific for this dimension
-                            nTrees,
-                            maxDepth            = maxDepth,
-                            minGain             = minGain,
-                            minRecords          = minRecords,
-                            maxFeatures         = maxFeatures,
-                            splittingCriterion  = splittingCriterion,
+                            n_trees,
+                            max_depth            = max_depth,
+                            min_gain             = min_gain,
+                            min_records          = min_records,
+                            max_features         = max_features,
+                            splitting_criterion  = splitting_criterion,
                             β                   = β,
                             oob                 = false,
                             rng                 = rng,
-                            forceClassification = catCols[d])
+                            force_classification = catCols[d])
                 # imputing missing values in d...
                 for i in 1:nR
                     if ! missingMask[i,d]
@@ -810,7 +812,7 @@ function GeneralImputer(;kwargs...)
 end
 
 """
-    fit!(imputer::GenralImputer,X)
+    fit!(imputer::GeneralImputer,X)
 
 Fit a matrix with missing data using [`GeneralImputer`](@ref)
 """

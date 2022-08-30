@@ -1,14 +1,4 @@
-"""
-  Stats.jl File
-
-Classical statistical methods implementation (Module BetaML.Stars)
-
-`?BetaML.Stats` for documentation
-
-- [Importable source code (most up-to-date version)](https://github.com/sylvaticus/BetaML.jl/blob/master/src/Stats.jl) - [Julia Package](https://github.com/sylvaticus/BetaML.jl)
-- New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
-
-"""
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 
 """

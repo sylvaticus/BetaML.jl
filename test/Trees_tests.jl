@@ -5,6 +5,7 @@ const Mlj = MLJBase
 using StableRNGs
 #rng = StableRNG(123)
 using BetaML
+import BetaML.Trees: predictSingle, updateTreesWeights!
 
 #TESTRNG = FIXEDRNG # This could change...
 TESTRNG = StableRNG(123)
@@ -58,7 +59,7 @@ ŷtest2 = predict(m, xtest)
 @test accuracy(ŷtest,ytest,rng=copy(TESTRNG)) >= 0.8
 @test ŷtest == ŷtest2
 
-@test info(m) == Dict(:jobIsRegression => 0,:maxDepth => 3, :dimensions => 2, :fitted_records => 5, :avgDepth => 2.6666666666666665)
+@test info(m) == Dict(:jobIsRegression => 0,:max_depth => 3, :dimensions => 2, :fitted_records => 5, :avgDepth => 2.6666666666666665)
 #print(myTree)
 
 # --------------------------------------------------------------
@@ -83,7 +84,7 @@ ytrain = y[1:ntrain]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-myTree = buildTree(xtrain,ytrain, splittingCriterion=entropy,rng=copy(TESTRNG))
+myTree = buildTree(xtrain,ytrain, splitting_criterion=entropy,rng=copy(TESTRNG))
 ŷtrain = predict(myTree, xtrain,rng=copy(TESTRNG))
 @test accuracy(ŷtrain,ytrain,rng=copy(TESTRNG)) >= 0.98
 ŷtest = predict(myTree, xtest,rng=copy(TESTRNG))
@@ -100,14 +101,14 @@ ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtrain[i] for (i,x) in enumerate(eachrow(xtra
 xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
 ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest))]
 
-myTree = buildTree(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3,rng=copy(TESTRNG))
+myTree = buildTree(xtrain,ytrain, min_gain=0.001, min_records=2, max_depth=3,rng=copy(TESTRNG))
 ŷtrain = predict(myTree, xtrain,rng=copy(TESTRNG))
 ŷtest = predict(myTree, xtest,rng=copy(TESTRNG))
 mreTrain = meanRelError(ŷtrain,ytrain)
 @test mreTrain <= 0.06
 mreTest  = meanRelError(ŷtest,ytest)
 @test mreTest <= 0.3
-m = DTModel(minGain=0.001,minRecords=2,maxDepth=3,rng=copy(TESTRNG))
+m = DTModel(min_gain=0.001,min_records=2,max_depth=3,rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 @test predict(m,xtrain) == ŷtrain
 reset!(m)
@@ -126,7 +127,7 @@ ytrain = y[1:ntrain]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-myForest = buildForest(xtrain,ytrain,β=0,maxDepth=20,oob=true,rng=copy(TESTRNG))
+myForest = buildForest(xtrain,ytrain,β=0,max_depth=20,oob=true,rng=copy(TESTRNG))
 
 trees = myForest.trees
 treesWeights = myForest.weights
@@ -142,7 +143,7 @@ ŷtest2 = predict(myForest, xtest,rng=copy(TESTRNG))
 @test accuracy(ŷtest2,ytest,rng=copy(TESTRNG))  >= 0.96
 @test oobError <= 0.1
 
-m = RFModel(maxDepth=20,oob=true,beta=0,rng=copy(TESTRNG))
+m = RFModel(max_depth=20,oob=true,beta=0,rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 m.opt.rng=copy(TESTRNG) 
 ŷtrainNew = predict(m,xtrain)
@@ -195,7 +196,7 @@ ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtrain[i] for (i,x) in enumerate(eachrow(xtra
 xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
 ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest))]
 
-myForest         = buildForest(xtrain,ytrain, minGain=0.001, minRecords=2, maxDepth=3,rng=copy(TESTRNG))
+myForest         = buildForest(xtrain,ytrain, min_gain=0.001, min_records=2, max_depth=3,rng=copy(TESTRNG))
 trees            = myForest.trees
 treesWeights     = myForest.weights
 
@@ -249,7 +250,7 @@ ŷtest2 = predict(m,xtest)
 @test meanRelError(ŷtest,ytest,normDim=false,normRec=false) ≈ meanRelError(ŷtest2,ytest,normDim=false,normRec=false)
 
 myTree2 = buildTree(xtrain,ytrainInt,rng=copy(TESTRNG))
-myTree3 = buildTree(xtrain,ytrainInt, forceClassification=true,rng=copy(TESTRNG))
+myTree3 = buildTree(xtrain,ytrainInt, force_classification=true,rng=copy(TESTRNG))
 @test typeof(myTree1) <: Trees.DecisionNode && typeof(myTree2) <: Trees.DecisionNode && typeof(myTree3) <: Trees.DecisionNode
 
 reset!(m)
@@ -329,7 +330,7 @@ regressor_dtc                  = Mlj.machine(model_dtc, X, y)
 yhat_dtc                       = Mlj.predict(model_dtc, fitresult_dtc, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_dtc, y)) < 0.0002
 
-model_rfc                      = RandomForestClassifier(maxFeatures=3,rng=copy(TESTRNG))
+model_rfc                      = RandomForestClassifier(max_features=3,rng=copy(TESTRNG))
 regressor_rfc                  = Mlj.machine(model_rfc, X, y)
 (fitresult_rfc, cache, report) = Mlj.fit(model_rfc, 0, X, y)
 yhat_rfc                       = Mlj.predict(model_rfc, fitresult_rfc, X)

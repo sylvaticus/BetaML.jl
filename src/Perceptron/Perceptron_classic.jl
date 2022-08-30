@@ -1,3 +1,4 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 """
     perceptron(x,y;θ,θ₀,T,nMsgs,shuffle,force_origin,return_mean_hyperplane)
@@ -248,10 +249,9 @@ end
 # API V2...
 
 """
-
 $(TYPEDEF)
 
-Hyperparameters for the `PerceptronClassic` model
+Hyperparameters for the [`PerceptronClassic`](@ref) model
 
 ## Parameters:
 $(TYPEDFIELDS)
@@ -281,9 +281,9 @@ The classical "perceptron" linear classifier (supervised).
 
 For the parameters see [`?PerceptronClassicHyperParametersSet`](@ref PerceptronClassicHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
 
-## Limitations:
+# Notes:
 - data must be numerical
-- online training (retraining) not supported
+- online fitting (re-fitting with new data) is not supported
 
 """
 mutable struct PerceptronClassic <: BetaMLSupervisedModel
@@ -315,7 +315,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit the PerceptronClassic model to data
+Fit the [`PerceptronClassic`](@ref) model to data
 
 """
 function fit!(m::PerceptronClassic,X,Y)
@@ -359,7 +359,7 @@ function fit!(m::PerceptronClassic,X,Y)
 
     m.info[:fitted_records] = nR
     m.info[:dimensions]    = nD
-    m.info[:nClasses]      = size(weights,1)
+    m.info[:n_classes]      = size(weights,1)
 
     m.fitted = true
 
@@ -369,7 +369,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the labels associated to some feature data using the PerceptronClassic model
+Predict the labels associated to some feature data using a fitted [`PerceptronClassic`](@ref) model
 
 """
 function predict(m::PerceptronClassic,X)
@@ -389,9 +389,9 @@ end
 function show(io::IO, m::PerceptronClassic)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes linear perceptron classifier (unfitted)")
+        println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes linear perceptron classifier (unfitted)")
     else
-        println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:nClasses])-classes linear perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes linear perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
         println(io,"Weights:")
         println(io,m.par.weigths)
     end

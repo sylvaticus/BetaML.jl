@@ -7,13 +7,13 @@ Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT.
 
 (Hard) Clustering algorithms
 
-Provide hard clustering methods using K-means and k-medoids. Please see also the [`GMM`](@ref) module for GMM-mased soft clustering, missing values imputation / collaborative filtering / reccomendation systems using clustering methods as backend.
+Provide hard clustering methods using K-means and k-medoids. Please see also the [`GMM`](@ref) module for GMM-based soft clustering (i.e. where a probability distribution to be part of the various classes is assigned to each record instead of a single class), missing values imputation / collaborative filtering / reccomendation systems using clustering methods as backend.
 
-The module provides the following functions. Use `?[function]` to access their full signature and detailed documentation:
+The module provides the following models. Use `?[model]` to access their documentation:
 
-- [`initRepresentatives(X,K;initStrategy,Z₀)`](@ref initRepresentatives): Initialisation strategies for Kmean and Kmedoids
-- [`kmeans(X,K;dist,initStrategy,Z₀)`](@ref kmeans): Classical KMean algorithm
-- [`kmedoids(X,K;dist,initStrategy,Z₀)`](@ref kmedoids): Kmedoids algorithm
+- [`KMeansModel`](@ref): Classical KMean algorithm
+- [`KMedoidsModel`](@ref kmeans): Kmedoids algorithm with configurable distance metric
+
 """
 module Clustering
 
@@ -27,7 +27,8 @@ using  ForceImport
 import Base.print
 import Base.show
 
-export initRepresentatives, kmeans, kmedoids
+export kmeans, kmedoids
+export KMeansMedoidsHyperParametersSet, KMeansModel, KMedoidsModel 
 
 include("Clustering_hard.jl") # K-means and k-medoids
 # MLJ interface

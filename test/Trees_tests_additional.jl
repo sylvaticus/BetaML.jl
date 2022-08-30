@@ -24,7 +24,7 @@ model_dtc                      = DecisionTreeClassifier()
 regressor_dtc                  = Mlj.machine(model_dtc, X, y)
 Mlj.evaluate!(regressor_dtc, resampling=Mlj.CV(), measure=Mlj.LogLoss())
 
-model_rfc                      = RandomForestClassifier(maxFeatures=3)
+model_rfc                      = RandomForestClassifier(max_features=3)
 regressor_rfc                  = Mlj.machine(model_rfc, X, y)
 Mlj.evaluate!(regressor_rfc, resampling=Mlj.CV(), measure=Mlj.LogLoss())
 

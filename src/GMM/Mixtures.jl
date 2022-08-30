@@ -1,3 +1,5 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 using Statistics, LinearAlgebra, PDMats
 import Distributions: IsoNormal, DiagNormal, FullNormal, logpdf
 import PDMats: ScalMat, PDiagMat, PDMat
@@ -92,21 +94,21 @@ end
 
 
 """
-    initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid",rng=Random.GLOBAL_RNG)
+    initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initialisation_strategy="grid",rng=Random.GLOBAL_RNG)
 
 
- The parameter `initStrategy` can be `grid`, `kmeans` or `given`:
+ The parameter `initialisation_strategy` can be `grid`, `kmeans` or `given`:
  - `grid`: Uniformly cover the space observed by the data
  - `kmeans`: Use the kmeans algorithm. If the data contains missing values, a first run of `predictMissing` is done under init=`grid` to impute the missing values just to allow the kmeans algorithm. Then the em algorithm is used with the output of kmean as init values.
  - `given`: Leave the provided set of initial mixtures
 
 """
-function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initStrategy="grid",rng = Random.GLOBAL_RNG) where {T <: AbstractGaussian}
+function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=0.0, initialisation_strategy="grid",rng = Random.GLOBAL_RNG) where {T <: AbstractGaussian}
     # debug..
     #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing 2; 3.3 38; missing -2.3; 5.2 -2.4]
     #mixtures = [SphericalGaussian() for i in 1:3]
     # ---
-    if initStrategy == "given"
+    if initialisation_strategy == "given"
         return
     end
 
@@ -121,7 +123,7 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
         end
     end
 
-    if initStrategy == "grid"
+    if initialisation_strategy == "grid"
 
         minX = fill(-Inf,D)
         maxX = fill(Inf,D)
@@ -147,7 +149,7 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
            end
         end
 
-    elseif initStrategy == "kmeans"
+    elseif initialisation_strategy == "kmeans"
         if !any(ismissing.(X)) # there are no missing
             kmμ = kmeans(X,K,rng=rng)[2]
             for (k,m) in enumerate(mixtures)
@@ -156,11 +158,11 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
                end
             end
         else # missings are present
-            # First pass of predictMissing using initStrategy=grid
-            #emOut1 = predictMissing(X,K;mixtures=mixtures,verbosity=NONE,minVariance=minVariance,minCovariance=minCovariance,initStrategy="grid",rng=rng,maxIter=10) 
+            # First pass of predictMissing using initialisation_strategy=grid
+            #emOut1 = predictMissing(X,K;mixtures=mixtures,verbosity=NONE,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy="grid",rng=rng,maxIter=10) 
             #kmμ = kmeans(emOut1.X̂,K,rng=rng)[2]
             # replicate here code of predictMissing as this has been modev to a subsequent module Imputation, so not available here
-            emOutInner = gmm(X,K;mixtures=mixtures,verbosity=NONE,minVariance=minVariance,minCovariance=minCovariance,initStrategy="grid",rng=rng,maxIter=10) 
+            emOutInner = gmm(X,K;mixtures=mixtures,verbosity=NONE,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy="grid",rng=rng,maxIter=10) 
             (N,D) = size(X)
             XMask = .! ismissing.(X)
             X̂ = [XMask[n,d] ? X[n,d] : sum([emOutInner.mixtures[k].μ[d] * emOutInner.pₙₖ[n,k] for k in 1:K]) for n in 1:N, d in 1:D ]
@@ -175,7 +177,7 @@ function initMixtures!(mixtures::Array{T,1}, X; minVariance=0.25, minCovariance=
             end
         end
     else
-        @error "initStrategy $initStrategy not supported by this mixture type"
+        @error "initialisation_strategy $initialisation_strategy not supported by this mixture type"
     end
 
     initVariances!(mixtures,X,minVariance=minVariance, minCovariance=minCovariance,rng=rng)

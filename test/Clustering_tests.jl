@@ -3,6 +3,7 @@ using Test
 import MLJBase
 const Mlj = MLJBase
 using BetaML
+import BetaML.Clustering: initRepresentatives
 
 TESTRNG = FIXEDRNG # This could change...
 
@@ -13,7 +14,7 @@ println("*** Testing Clustering...")
 # ==================================
 println("Testing initRepreserntative...")
 
-Z₀ = initRepresentatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2,initStrategy="given",Z₀=[1.7 15; 3.6 40])
+Z₀ = initRepresentatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2,initialisation_strategy="given",Z₀=[1.7 15; 3.6 40])
 @test isapprox(Z₀,[1.7  15.0; 3.6  40.0])
 
 # ==================================
@@ -23,10 +24,10 @@ println("Testing kmeans...")
 
 X = [1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4]
 
-(clIdxKMeans,Z) = kmeans(X,3,initStrategy="grid",rng=copy(TESTRNG))
+(clIdxKMeans,Z) = kmeans(X,3,initialisation_strategy="grid",rng=copy(TESTRNG))
 @test clIdxKMeans == [2, 2, 2, 2, 3, 3, 3, 1, 1]
 #@test (clIdx,Z) .== ([2, 2, 2, 2, 3, 3, 3, 1, 1], [5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664])
-m = KMeansModel(nClasses=3,verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG), descr="First test k-means model")
+m = KMeansModel(n_classes=3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG), descr="First test k-means model")
 fit!(m,X)
 classes = predict(m)
 @test clIdxKMeans == classes
@@ -47,9 +48,9 @@ classes = predict(m)
 # New test
 # ==================================
 println("Testing kmedoids...")
-(clIdxKMedoids,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initStrategy="shuffle",rng=copy(TESTRNG))
+(clIdxKMedoids,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initialisation_strategy="shuffle",rng=copy(TESTRNG))
 @test clIdxKMedoids == [1, 1, 1, 1, 2, 2, 2, 3, 3]
-m = KMedoidsModel(nClasses=3,verbosity=NONE, initStrategy="shuffle",rng=copy(TESTRNG))
+m = KMedoidsModel(n_classes=3,verbosity=NONE, initialisation_strategy="shuffle",rng=copy(TESTRNG))
 fit!(m,X)
 classes = predict(m)
 @test clIdxKMedoids == classes

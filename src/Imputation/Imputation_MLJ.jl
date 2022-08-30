@@ -1,3 +1,5 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 # MLJ interface for imputers models
 
 import MLJModelInterface       # It seems that having done this in the top module is not enought
@@ -15,7 +17,7 @@ mutable struct MissingImputator <: MMI.Unsupervised
     tol::Float64
     minVariance::Float64
     minCovariance::Float64
-    initStrategy::String
+    initialisation_strategy::String
     verbosity::Verbosity
     rng::AbstractRNG
 end
@@ -26,10 +28,10 @@ MissingImputator(;
     tol           = 10^(-6),
     minVariance   = 0.05,
     minCovariance = 0.0,
-    initStrategy  = "kmeans",
+    initialisation_strategy  = "kmeans",
     verbosity     = STD,
     rng           = Random.GLOBAL_RNG,
-) = MissingImputator(K,p₀,mixtures, tol, minVariance, minCovariance,initStrategy,verbosity,rng)
+) = MissingImputator(K,p₀,mixtures, tol, minVariance, minCovariance,initialisation_strategy,verbosity,rng)
 
 mutable struct BetaMLMeanImputer <: MMI.Unsupervised
     norm::Int64
@@ -39,54 +41,54 @@ BetaMLMeanImputer(;
 ) = BetaMLMeanImputer(norm)
 
 mutable struct BetaMLGMMImputer <: MMI.Unsupervised
-    nClasses::Int64
+    n_classes::Int64
     probMixtures::Vector{Float64}
     mixtures::Symbol
     tol::Float64
     minVariance::Float64
     minCovariance::Float64
-    initStrategy::String
+    initialisation_strategy::String
     verbosity::Verbosity
     rng::AbstractRNG
 end
 BetaMLGMMImputer(;
-    nClasses      = 3,
+    n_classes      = 3,
     probMixtures  = Float64[],
     mixtures      = :diag_gaussian,
     tol           = 10^(-6),
     minVariance   = 0.05,
     minCovariance = 0.0,
-    initStrategy  = "kmeans",
+    initialisation_strategy  = "kmeans",
     verbosity     = STD,
     rng           = Random.GLOBAL_RNG,
-) = BetaMLGMMImputer(nClasses,probMixtures,mixtures, tol, minVariance, minCovariance,initStrategy,verbosity,rng)
+) = BetaMLGMMImputer(n_classes,probMixtures,mixtures, tol, minVariance, minCovariance,initialisation_strategy,verbosity,rng)
 
 mutable struct BetaMLRFImputer <: MMI.Unsupervised
-    nTrees::Int64
-    maxDepth::Union{Nothing,Int64}
-    minGain::Float64
-    minRecords::Int64
-    maxFeatures::Union{Nothing,Int64}
+    n_trees::Int64
+    max_depth::Union{Nothing,Int64}
+    min_gain::Float64
+    min_records::Int64
+    max_features::Union{Nothing,Int64}
     forced_categorical_cols::Vector{Int64}
-    splittingCriterion::Union{Nothing,Function}
+    splitting_criterion::Union{Nothing,Function}
     recursivePassages::Int64                  
     #multipleImputations::Int64 
     verbosity::Verbosity
     rng::AbstractRNG
 end
 BetaMLRFImputer(;
-    nTrees                 = 30, 
-    maxDepth               = nothing,
-    minGain                = 0.0,
-    minRecords             = 2,
-    maxFeatures            = nothing,
+    n_trees                 = 30, 
+    max_depth               = nothing,
+    min_gain                = 0.0,
+    min_records             = 2,
+    max_features            = nothing,
     forced_categorical_cols  = Int64[],
-    splittingCriterion     = nothing,
+    splitting_criterion     = nothing,
     recursivePassages      = 1,
     #multipleImputations    = 1,
     verbosity              = STD,
     rng                    = Random.GLOBAL_RNG,
-) = BetaMLRFImputer(nTrees, maxDepth, minGain, minRecords, maxFeatures, forced_categorical_cols, splittingCriterion, recursivePassages, verbosity, rng)
+) = BetaMLRFImputer(n_trees, max_depth, min_gain, min_records, max_features, forced_categorical_cols, splitting_criterion, recursivePassages, verbosity, rng)
 
 mutable struct BetaMLGenericImputer <: MMI.Unsupervised
     models::Union{Vector,Nothing}
@@ -118,7 +120,7 @@ function MMI.fit(m::MissingImputator, verbosity, X)
     else
         error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
-    res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initStrategy=m.initStrategy,verbosity=NONE,rng=m.rng)
+    res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initialisation_strategy=m.initialisation_strategy,verbosity=NONE,rng=m.rng)
     fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # pₙₖ=res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
@@ -141,23 +143,23 @@ end
 function MMI.fit(m::BetaMLGMMImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
     if m.mixtures == :diag_gaussian
-        mixtures = [DiagonalGaussian() for i in 1:m.nClasses]
+        mixtures = [DiagonalGaussian() for i in 1:m.n_classes]
     elseif m.mixtures == :full_gaussian
-        mixtures = [FullGaussian() for i in 1:m.nClasses]
+        mixtures = [FullGaussian() for i in 1:m.n_classes]
     elseif m.mixtures == :spherical_gaussian
-        mixtures = [SphericalGaussian() for i in 1:m.nClasses]
+        mixtures = [SphericalGaussian() for i in 1:m.n_classes]
     else
         error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
 
     mod = GMMImputer(
-        nClasses      = m.nClasses,
+        n_classes      = m.n_classes,
         probMixtures  = m.probMixtures,
         mixtures      = mixtures,
         tol           = m.tol,
         minVariance   = m.minVariance,
         minCovariance = m.minCovariance,
-        initStrategy  = m.initStrategy,
+        initialisation_strategy  = m.initialisation_strategy,
         verbosity     = m.verbosity,
         rng           = m.rng
     )
@@ -174,13 +176,13 @@ function MMI.fit(m::BetaMLRFImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
 
     mod = RFImputer(
-        nTrees                 = m.nTrees, 
-        maxDepth               = m.maxDepth,
-        minGain                = m.minGain,
-        minRecords             = m.minRecords,
-        maxFeatures            = m.maxFeatures,
+        n_trees                 = m.n_trees, 
+        max_depth               = m.max_depth,
+        min_gain                = m.min_gain,
+        min_records             = m.min_records,
+        max_features            = m.max_features,
         forced_categorical_cols  = m.forced_categorical_cols,
-        splittingCriterion     = m.splittingCriterion,
+        splitting_criterion     = m.splitting_criterion,
         verbosity              = m.verbosity,
         recursivePassages      = m.recursivePassages,
         #multipleImputations    = m.multipleImputations,
@@ -230,7 +232,7 @@ function MMI.transform(m::MissingImputator, fitResults, X)
     (pₖ,mixtures) = fitResults.pₖ, fitResults.mixtures   #
     nCl           = length(pₖ)
     # Fill the missing data of this "new X" using the mixtures computed in the fit stage
-    xout          = predictMissing(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initStrategy="given",maxIter=1,rng=m.rng)
+    xout          = predictMissing(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initialisation_strategy="given",maxIter=1,rng=m.rng)
     return MMI.table(xout.X̂)
 end
 function MMI.transform(m::Union{BetaMLMeanImputer,BetaMLGMMImputer,BetaMLRFImputer,BetaMLGenericImputer}, fitResults, X)

@@ -1,3 +1,5 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 # MLJ interface for hard clustering models
 
 import MLJModelInterface       # It seems that having done this in the top module is not enought
@@ -11,32 +13,32 @@ export KMeans, KMedoids, KMeansModel, KMedoidsModel
 mutable struct KMeans <: MMI.Unsupervised
    K::Int64
    dist::Function
-   initStrategy::String
+   initialisation_strategy::String
    Z₀::Union{Nothing,Matrix{Float64}}
    rng::AbstractRNG
 end
 KMeans(;
    K            = 3,
    dist         = dist=(x,y) -> norm(x-y),
-   initStrategy = "shuffle",
+   initialisation_strategy = "shuffle",
    Z₀           = nothing,
    rng          = Random.GLOBAL_RNG,
- ) = KMeans(K,dist,initStrategy,Z₀,rng)
+ ) = KMeans(K,dist,initialisation_strategy,Z₀,rng)
 
  mutable struct KMedoids <: MMI.Unsupervised
     K::Int64
     dist::Function
-    initStrategy::String
+    initialisation_strategy::String
     Z₀::Union{Nothing,Matrix{Float64}}
     rng::AbstractRNG
  end
  KMedoids(;
     K            = 3,
     dist         = dist=(x,y) -> norm(x-y),
-    initStrategy = "shuffle",
+    initialisation_strategy = "shuffle",
     Z₀           = nothing,
     rng          = Random.GLOBAL_RNG,
-  ) = KMedoids(K,dist,initStrategy,Z₀,rng)
+  ) = KMedoids(K,dist,initialisation_strategy,Z₀,rng)
 
 # ------------------------------------------------------------------------------
 # Fit functions...
@@ -44,9 +46,9 @@ function MMI.fit(m::Union{KMeans,KMedoids}, verbosity, X)
     x  = MMI.matrix(X)                        # convert table to matrix
     # Using low level API here. We could switch to APIV2...
     if typeof(m) == KMeans
-        (assignedClasses,representatives) = kmeans(x,m.K,dist=m.dist,initStrategy=m.initStrategy,Z₀=m.Z₀,rng=m.rng)
+        (assignedClasses,representatives) = kmeans(x,m.K,dist=m.dist,initialisation_strategy=m.initialisation_strategy,Z₀=m.Z₀,rng=m.rng)
     else
-        (assignedClasses,representatives) = kmedoids(x,m.K,dist=m.dist,initStrategy=m.initStrategy,Z₀=m.Z₀,rng=m.rng)
+        (assignedClasses,representatives) = kmedoids(x,m.K,dist=m.dist,initialisation_strategy=m.initialisation_strategy,Z₀=m.Z₀,rng=m.rng)
     end
     cache=nothing
     report=nothing

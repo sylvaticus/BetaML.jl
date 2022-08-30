@@ -1,3 +1,5 @@
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 import Base.iterate
 abstract type  AbstractDataSampler end
 

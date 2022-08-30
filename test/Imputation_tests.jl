@@ -20,15 +20,15 @@ println("*** Testing Imputations...")
 # ==================================
 println("Testing predictMissing...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out = predictMissing(X,3,mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+out = predictMissing(X,3,mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
 @test isapprox(out.X̂[2,2],14.155186593170251)
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out2 = predictMissing(X,3,mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+out2 = predictMissing(X,3,mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
 @test out2.X̂[2,2] ≈ 14.588514438886131
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out3 = predictMissing(X,3,mixtures=[FullGaussian() for i in 1:3],verbosity=NONE, initStrategy="grid",rng=copy(TESTRNG))
+out3 = predictMissing(X,3,mixtures=[FullGaussian() for i in 1:3],verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
 @test out3.X̂[2,2] ≈ 11.166652292936876
 
 # ------------------------------------------------------------------------------
@@ -62,25 +62,25 @@ println("Testing GMMImputer...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 
-mod = GMMImputer(mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE,initStrategy="grid",rng=copy(TESTRNG))
+mod = GMMImputer(mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE,initialisation_strategy="grid",rng=copy(TESTRNG))
 x̂ = predict(mod)
 @test x̂ == nothing
 fit!(mod,X)
 x̂ = predict(mod)
 @test isapprox(x̂[2,2],14.155186593170251)
 
-mod = GMMImputer(mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE,initStrategy="grid",rng=copy(TESTRNG))
+mod = GMMImputer(mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE,initialisation_strategy="grid",rng=copy(TESTRNG))
 fit!(mod,X)
 x̂ = predict(mod)
 @test isapprox(x̂[2,2],14.588514438886131)
 
-mod = GMMImputer(mixtures=[FullGaussian() for i in 1:3],verbosity=NONE,initStrategy="grid",rng=copy(TESTRNG))
+mod = GMMImputer(mixtures=[FullGaussian() for i in 1:3],verbosity=NONE,initialisation_strategy="grid",rng=copy(TESTRNG))
 fit!(mod,X)
 x̂ = predict(mod)
 @test x̂[2,2] ≈ 11.166652292936876
 
 X = [2 missing 10; 2000 4000 10000; 2000 4000 10000; 3 5 12; 4 8 20; 2000 4000 8000; 1 5 8 ]
-mod = GMMImputer(nClasses=2,rng=copy(TESTRNG),verbosity=NONE, initStrategy="kmeans")
+mod = GMMImputer(n_classes=2,rng=copy(TESTRNG),verbosity=NONE, initialisation_strategy="kmeans")
 fit!(mod,X)
 x̂ = predict(mod)
 @test x̂[1,2] ≈ 6.0
@@ -106,7 +106,7 @@ reset!(mod)
 println("Testing RFFImputer...")
 
 X = [2 missing 10 "aaa" missing; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
-mod = RFImputer(nTrees=30,forced_categorical_cols=[5],recursivePassages=3,multipleImputations=10, rng=copy(TESTRNG),verbosity=NONE)
+mod = RFImputer(n_trees=30,forced_categorical_cols=[5],recursivePassages=3,multipleImputations=10, rng=copy(TESTRNG),verbosity=NONE)
 fit!(mod,X)
 
 @test predict(mod)[1][1,2] == predict(mod)[3][1,2] == 400
@@ -144,6 +144,8 @@ nR,nC = size(vals[1])
 meanValues = [mean([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 @test meanValues[1,2] == 3.0
 
+vals[1] == vals[10]
+
 model_save("test.jld2"; mod)
 modj  = model_load("test.jld2","mod")
 valsj = predict(modj)
@@ -160,7 +162,7 @@ meanValues = [mean([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
 trng = copy(TESTRNG)
 #Random.seed!(trng,123)
-mod = GeneralImputer(models=[DTModel(rng=trng,verbosity=NONE),RFModel(nTrees=1,rng=trng,verbosity=NONE),RFModel(nTrees=1,rng=trng,verbosity=NONE),RFModel(nTrees=1,rng=trng,verbosity=NONE),DTModel(rng=trng,verbosity=NONE)],rng=trng,verbosity=NONE)
+mod = GeneralImputer(models=[DTModel(rng=trng,verbosity=NONE),RFModel(n_trees=1,rng=trng,verbosity=NONE),RFModel(n_trees=1,rng=trng,verbosity=NONE),RFModel(n_trees=1,rng=trng,verbosity=NONE),DTModel(rng=trng,verbosity=NONE)],rng=trng,verbosity=NONE)
 
 fit!(mod,X)
 Random.seed!(trng,123)
@@ -183,7 +185,7 @@ println("Testing MLJ Interfaces...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 X = Mlj.table(X)
-model                       = MissingImputator(initStrategy="kmeans",rng=copy(TESTRNG))
+model                       = MissingImputator(initialisation_strategy="kmeans",rng=copy(TESTRNG))
 modelMachine                = Mlj.machine(model,X)
 (fitResults, cache, report) = Mlj.fit(model, 0, X)
 XD                          = Mlj.transform(model,fitResults,X)
@@ -215,7 +217,7 @@ println("Testing MLJ Interface for BetaMLGMMImputer...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
-model                       =  BetaMLGMMImputer(initStrategy="grid",rng=copy(TESTRNG))
+model                       =  BetaMLGMMImputer(initialisation_strategy="grid",rng=copy(TESTRNG))
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
@@ -231,7 +233,7 @@ println("Testing MLJ Interface for BetaMLRFImputer...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
-model                       =  BetaMLRFImputer(nTrees=40,rng=copy(TESTRNG))
+model                       =  BetaMLRFImputer(n_trees=40,rng=copy(TESTRNG))
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
@@ -248,7 +250,7 @@ println("Testing MLJ Interface for BetaMLGenericImputer...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
 trng = copy(TESTRNG)
-model                       =  BetaMLGenericImputer(models=[GMMRegressor1(rng=trng,verbosity=NONE),RFModel(nTrees=40,rng=copy(TESTRNG),verbosity=NONE)],rng=copy(TESTRNG),recursivePassages=2,verbosity=NONE)
+model                       =  BetaMLGenericImputer(models=[GMMRegressor1(rng=trng,verbosity=NONE),RFModel(n_trees=40,rng=copy(TESTRNG),verbosity=NONE)],rng=copy(TESTRNG),recursivePassages=2,verbosity=NONE)
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
