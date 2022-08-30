@@ -14,8 +14,8 @@ mutable struct PerceptronClassifier <: MMI.Probabilistic
    initialθ₀::Union{Vector{Float64},Nothing} 
    maxEpochs::Int64
    shuffle::Bool
-   forceOrigin::Bool
-   returnMeanHyperplane::Bool
+   force_origin::Bool
+   return_mean_hyperplane::Bool
    rng::AbstractRNG
 end
 PerceptronClassifier(;
@@ -23,10 +23,10 @@ PerceptronClassifier(;
   initialθ₀=nothing,
   maxEpochs=1000,
   shuffle=false,
-  forceOrigin=false,
-  returnMeanHyperplane=false,
+  force_origin=false,
+  return_mean_hyperplane=false,
   rng = Random.GLOBAL_RNG,
-  ) = PerceptronClassifier(initialθ,initialθ₀,maxEpochs,shuffle,forceOrigin,returnMeanHyperplane,rng)
+  ) = PerceptronClassifier(initialθ,initialθ₀,maxEpochs,shuffle,force_origin,return_mean_hyperplane,rng)
 
 "The kernel perceptron algorithm using one-vs-one for multiclass, from the Beta Machine Learning Toolkit (BetaML)."
 mutable struct KernelPerceptronClassifier <: MMI.Probabilistic
@@ -52,8 +52,8 @@ mutable struct PegasosClassifier <: MMI.Probabilistic
    η::Function
    maxEpochs::Int64
    shuffle::Bool
-   forceOrigin::Bool
-   returnMeanHyperplane::Bool
+   force_origin::Bool
+   return_mean_hyperplane::Bool
    rng::AbstractRNG
 end
 PegasosClassifier(;
@@ -63,10 +63,10 @@ PegasosClassifier(;
   η = (t -> 1/sqrt(t)),
   maxEpochs=1000,
   shuffle=false,
-  forceOrigin=false,
-  returnMeanHyperplane=false,
+  force_origin=false,
+  return_mean_hyperplane=false,
   rng = Random.GLOBAL_RNG,
-  ) = PegasosClassifier(initialθ,initialθ₀,λ,η,maxEpochs,shuffle,forceOrigin,returnMeanHyperplane,rng)
+  ) = PegasosClassifier(initialθ,initialθ₀,λ,η,maxEpochs,shuffle,force_origin,return_mean_hyperplane,rng)
 
 # ------------------------------------------------------------------------------
 # Fit functions...
@@ -75,7 +75,7 @@ function MMI.fit(model::PerceptronClassifier, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
  #initialθ  = length(model.initialθ) == 0 ? zeros(size(x,2)) : model.initialθ
- fitresult = perceptron(x, y; θ=model.initialθ, θ₀=model.initialθ₀, T=model.maxEpochs, nMsgs=0, shuffle=model.shuffle, forceOrigin=model.forceOrigin, returnMeanHyperplane=model.returnMeanHyperplane,rng=model.rng)
+ fitresult = perceptron(x, y; θ=model.initialθ, θ₀=model.initialθ₀, T=model.maxEpochs, nMsgs=0, shuffle=model.shuffle, force_origin=model.force_origin, return_mean_hyperplane=model.return_mean_hyperplane,rng=model.rng)
  cache=nothing
  report=nothing
  return (fitresult,allClasses), cache, report
@@ -95,7 +95,7 @@ function MMI.fit(model::PegasosClassifier, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
  #initialθ  = length(model.initialθ) == 0 ? zeros(size(x,2)) : model.initialθ
- fitresult = pegasos(x, y; θ=model.initialθ,θ₀=model.initialθ₀, λ=model.λ,η=model.η, T=model.maxEpochs, nMsgs=0, shuffle=model.shuffle, forceOrigin=model.forceOrigin, returnMeanHyperplane=model.returnMeanHyperplane,rng=model.rng)
+ fitresult = pegasos(x, y; θ=model.initialθ,θ₀=model.initialθ₀, λ=model.λ,η=model.η, T=model.maxEpochs, nMsgs=0, shuffle=model.shuffle, force_origin=model.force_origin, return_mean_hyperplane=model.return_mean_hyperplane,rng=model.rng)
  cache=nothing
  report=nothing
  return (fitresult,allClasses), cache, report

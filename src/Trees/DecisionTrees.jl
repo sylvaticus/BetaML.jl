@@ -89,6 +89,15 @@ mutable struct DecisionNode{Tx} <: AbstractDecisionNode
 end
 
 # Avi v2..
+"""
+
+$(TYPEDEF)
+
+Hyperparameters for [`DTModel`](@ref) (Decision Tree).
+
+## Parameters:
+$(TYPEDFIELDS)
+"""
 Base.@kwdef mutable struct DTHyperParametersSet <: BetaMLHyperParametersSet
     maxDepth::Union{Nothing,Int64}              = nothing
     minGain::Float64                            = 0.0

@@ -94,10 +94,10 @@ Base.@kwdef mutable struct BetaMLDefaultOptionsSet
    cache::Bool = true
    "An optional title and/or description for this model"
    descr::String = "" 
-   "The verbosity level to be used in training or prediction (see [`Verbosity`](@ref)) [deafult: `STD`]
+   "The verbosity level to be used in training or prediction (see [`?Verbosity`](@ref Verbosity)) [deafult: `STD`]
    "
    verbosity::Verbosity = STD
-   "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+   "Random Number Generator (see [`?FIXEDSEED`](@ref FIXEDSEED)) [deafult: `Random.GLOBAL_RNG`]
    "
    rng::AbstractRNG = Random.GLOBAL_RNG
 end
@@ -194,10 +194,11 @@ Returns the learned parameters of a BetaML model.
     The returned object is a reference, so if it is modified, the relative object in the model will change too.
 """ 
 parameters(m::BetaMLModel)      = m.par
+
 """
     hyperparameters(m::BetaMLModel)
 
-Returns the hyperparameters of a BetaML model. See also [`options`](@ref) for the parameters that do not directly affect learning.
+Returns the hyperparameters of a BetaML model. See also [`?options`](@ref options) for the parameters that do not directly affect learning.
 
 !!! warning
     The returned object is a reference, so if it is modified, the relative object in the model will change too.
@@ -207,7 +208,7 @@ hyperparameters(m::BetaMLModel) = m.hpar
 """
     options(m::BetaMLModel)
 
-Returns the non-learning related options of a BetaML model. See also [`hyperparameters`](@ref) for the parameters that directly affect learning.
+Returns the non-learning related options of a BetaML model. See also [`?hyperparameters`](@ref hyperparameters) for the parameters that directly affect learning.
 
 !!! warning
     The returned object is a reference, so if it is modified, the relative object in the model will change too.
@@ -233,7 +234,7 @@ julia> model_save("fittedModels.jl"; mod1Name=mod1,mod2)
 ```
 """
 function model_save(filename;kargs...)
-    jldopen(filename, "a+") do f
+    JLD2.jldopen(filename, "a+") do f
         for (k,v) in kargs
             ks = string(k)
             if ks in keys(f)

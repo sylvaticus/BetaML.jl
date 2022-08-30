@@ -1,12 +1,12 @@
 
 """
-    perceptron(x,y;θ,θ₀,T,nMsgs,shuffle,forceOrigin,returnMeanHyperplane)
+    perceptron(x,y;θ,θ₀,T,nMsgs,shuffle,force_origin,return_mean_hyperplane)
 
 Train the multiclass classifier "perceptron" algorithm  based on x and y (labels).
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use the model PerceptronClassic() instead. 
+    Use the model `PerceptronClassic` instead. 
 
 The perceptron is a _linear_ classifier. Multiclass is supported using a one-vs-all approach.
 
@@ -20,8 +20,8 @@ The perceptron is a _linear_ classifier. Multiclass is supported using a one-vs-
              is not fully classified earlier) [def: 1000]
 * `nMsg`:        Maximum number of messages to show if all iterations are done [def: `0`]
 * `shuffle`:     Whether to randomly shuffle the data at each iteration [def: `false`]
-* `forceOrigin`: Whether to force `θ₀` to remain zero [def: `false`]
-* `returnMeanHyperplane`: Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]
+* `force_origin`: Whether to force `θ₀` to remain zero [def: `false`]
+* `return_mean_hyperplane`: Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]
 * `rng`:         Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
@@ -39,7 +39,7 @@ julia> model = perceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 julia> ŷ     = predict([2.1 3.1; 7.3 5.2], model.θ, model.θ₀, model.classes)
 ```
 """
-function perceptron(x::AbstractMatrix, y::AbstractVector; θ=nothing,θ₀=nothing, T=1000, nMsgs=0, shuffle=false, forceOrigin=false, returnMeanHyperplane=false, rng = Random.GLOBAL_RNG)
+function perceptron(x::AbstractMatrix, y::AbstractVector; θ=nothing,θ₀=nothing, T=1000, nMsgs=0, shuffle=false, force_origin=false, return_mean_hyperplane=false, rng = Random.GLOBAL_RNG)
 yclasses = unique(y)
 nCl      = length(yclasses)
 nD       = size(x,2)
@@ -61,8 +61,8 @@ end
 
 for (i,c) in enumerate(yclasses)
     ybin = ((y .== c) .*2 .-1)  # conversion to -1/+1
-    outBinary = perceptronBinary(x, ybin; θ=θ[i],θ₀=θ₀[i], T=T, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, rng=rng)
-    if returnMeanHyperplane
+    outBinary = perceptronBinary(x, ybin; θ=θ[i],θ₀=θ₀[i], T=T, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, rng=rng)
+    if return_mean_hyperplane
         outθ[i]  = outBinary.avgθ
         outθ₀[i] = outBinary.avgθ₀
     else
@@ -79,7 +79,7 @@ return (θ=outθ,θ₀=outθ₀,classes=yclasses)
 end
 
 """
-    perceptronBinary(x,y;θ,θ₀,T,nMsgs,shuffle,forceOrigin)
+    perceptronBinary(x,y;θ,θ₀,T,nMsgs,shuffle,force_origin)
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
@@ -97,7 +97,7 @@ Train the binary classifier "perceptron" algorithm based on x and y (labels)
              is not fully classified earlier) [def: 1000]
 * `nMsg`:        Maximum number of messages to show if all iterations are done
 * `shuffle`:     Whether to randomly shuffle the data at each iteration [def: `false`]
-* `forceOrigin`: Whether to force `θ₀` to remain zero [def: `false`]
+* `force_origin`: Whether to force `θ₀` to remain zero [def: `false`]
 * `rng`:         Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
@@ -118,7 +118,7 @@ Train the binary classifier "perceptron" algorithm based on x and y (labels)
 julia> model = perceptronBinary([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 """
-function perceptronBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=10, shuffle=false, forceOrigin=false, rng = Random.GLOBAL_RNG)
+function perceptronBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=10, shuffle=false, force_origin=false, rng = Random.GLOBAL_RNG)
 if nMsgs != 0
    @codeLocation
    println("***\n*** Training perceptron for maximum $T iterations. Random shuffle: $shuffle")
@@ -127,7 +127,7 @@ x = makeMatrix(x)
 (n,d) = size(x)
 bestϵ = Inf
 lastϵ = Inf
-if forceOrigin θ₀ = 0.0; end
+if force_origin θ₀ = 0.0; end
 sumθ = θ; sumθ₀ = θ₀
 @showprogress 1 "Training Perceptron..." for t in 1:T
    ϵ = 0
@@ -140,7 +140,7 @@ sumθ = θ; sumθ₀ = θ₀
    for i in 1:n
        if y[i]*(θ' * x[i,:] + θ₀) <= eps()
            θ  = θ + y[i] * x[i,:]
-           θ₀ = forceOrigin ? 0.0 : θ₀ + y[i]
+           θ₀ = force_origin ? 0.0 : θ₀ + y[i]
            sumθ += θ; sumθ₀ += θ₀
            ϵ += 1
        end
@@ -258,15 +258,15 @@ $(TYPEDFIELDS)
 """
 Base.@kwdef mutable struct PerceptronClassicHyperParametersSet <: BetaMLHyperParametersSet
     "Initial parameters. If given, should be a matrix of n-classes by feature dimension + 1 (to include the constant term as the first element) [def: `nothing`, i.e. zeros]"
-    initPars::Union{Nothing,Matrix{Float64}} = nothing
+    initial_parameters::Union{Nothing,Matrix{Float64}} = nothing
     "Maximum number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
     epochs::Int64 = 1000
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `false`]"
     shuffle::Bool = false  
     "Whether to force the parameter associated with the constant term to remain zero [def: `false`]"
-    forceOrigin::Bool = false
+    force_origin::Bool = false
     " Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]"
-    returnMeanHyperplane::Bool=false
+    return_mean_hyperplane::Bool=false
 end
 
 Base.@kwdef mutable struct PerceptronClassicLearnableParameters <: BetaMLLearnableParametersSet
@@ -279,7 +279,7 @@ $(TYPEDEF)
 
 The classical "perceptron" linear classifier (supervised).
 
-For the parameters see [`PerceptronClassicHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref)
+For the parameters see [`?PerceptronClassicHyperParametersSet`](@ref PerceptronClassicHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
 
 ## Limitations:
 - data must be numerical
@@ -322,11 +322,11 @@ function fit!(m::PerceptronClassic,X,Y)
     
 
     # Parameter alias..
-    initPars             = m.hpar.initPars
+    initial_parameters             = m.hpar.initial_parameters
     epochs               = m.hpar.epochs
     shuffle              = m.hpar.shuffle
-    forceOrigin          = m.hpar.forceOrigin
-    returnMeanHyperplane = m.hpar.returnMeanHyperplane
+    force_origin          = m.hpar.force_origin
+    return_mean_hyperplane = m.hpar.return_mean_hyperplane
     cache                = m.opt.cache
     verbosity            = m.opt.verbosity
     rng                  = m.opt.rng
@@ -334,7 +334,7 @@ function fit!(m::PerceptronClassic,X,Y)
     nR,nD    = size(X)
     yclasses = unique(Y)
     nCl      = length(yclasses)
-    initPars =  (initPars == nothing) ? zeros(nCl, nD+1) : initPars 
+    initial_parameters =  (initial_parameters == nothing) ? zeros(nCl, nD+1) : initial_parameters 
     
     if verbosity == NONE
         nMsgs = 0
@@ -348,7 +348,7 @@ function fit!(m::PerceptronClassic,X,Y)
         nMsgs = 100000
     end
 
-    out = perceptron(X,Y; θ₀=initPars[:,1], θ=[initPars[:,c] for c in 2:nD+1], T=epochs, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, returnMeanHyperplane=returnMeanHyperplane, rng = rng)
+    out = perceptron(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[:,c] for c in 2:nD+1], T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng)
 
     weights = hcat(out.θ₀,vcat(out.θ' ...))
     m.par = PerceptronClassicLearnableParameters(weights,out.classes)

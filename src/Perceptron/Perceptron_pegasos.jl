@@ -1,8 +1,12 @@
 
 """
-pegasos(x,y;θ,θ₀,λ,η,T,nMsgs,shuffle,forceOrigin,returnMeanHyperplane)
+pegasos(x,y;θ,θ₀,λ,η,T,nMsgs,shuffle,force_origin,return_mean_hyperplane)
 
 Train the multiclass classifier "pegasos" algorithm according to x (features) and y (labels)
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use the model `Pegasos` instead. 
 
 Pegasos is a _linear_, gradient-based classifier. Multiclass is supported using a one-vs-all approach.
 
@@ -16,8 +20,8 @@ Pegasos is a _linear_, gradient-based classifier. Multiclass is supported using 
 * `T`:           Maximum number of iterations across the whole set (if the set is not fully classified earlier) [def: 1000]
 * `nMsg`:        Maximum number of messages to show if all iterations are done
 * `shuffle`:     Whether to randomly shuffle the data at each iteration [def: `false`]
-* `forceOrigin`: Whehter to force `θ₀` to remain zero [def: `false`]
-* `returnMeanHyperplane`: Whether to return the average hyperplane coefficients instead of the average ones  [def: `false`]
+* `force_origin`: Whether to force `θ₀` to remain zero [def: `false`]
+* `return_mean_hyperplane`: Whether to return the average hyperplane coefficients instead of the average ones  [def: `false`]
 * `rng`:         Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
@@ -35,7 +39,7 @@ julia> model = pegasos([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 julia> ŷ     = predict([2.1 3.1; 7.3 5.2], model.θ, model.θ₀, model.classes)
 ```
 """
-function pegasos(x, y; θ=nothing,θ₀=nothing, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=0, shuffle=false, forceOrigin=false,returnMeanHyperplane=false, rng = Random.GLOBAL_RNG)
+function pegasos(x, y; θ=nothing,θ₀=nothing, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=0, shuffle=false, force_origin=false,return_mean_hyperplane=false, rng = Random.GLOBAL_RNG)
 yclasses = unique(y)
 nCl      = length(yclasses)
 nD       = size(x,2)
@@ -57,8 +61,8 @@ end
 
 for (i,c) in enumerate(yclasses)
     ybin = ((y .== c) .*2 .-1)  # conversion to -1/+1
-    outBinary = pegasosBinary(x, ybin; θ=θ[i],θ₀=θ₀[i], λ=λ,η=η, T=T, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, rng=rng)
-    if returnMeanHyperplane
+    outBinary = pegasosBinary(x, ybin; θ=θ[i],θ₀=θ₀[i], λ=λ,η=η, T=T, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, rng=rng)
+    if return_mean_hyperplane
         outθ[i]  = outBinary.avgθ
         outθ₀[i] = outBinary.avgθ₀
     else
@@ -77,9 +81,13 @@ end
 
 
 """
-pegasosBinary(x,y;θ,θ₀,λ,η,T,nMsgs,shuffle,forceOrigin)
+pegasosBinary(x,y;θ,θ₀,λ,η,T,nMsgs,shuffle,force_origin)
 
 Train the peagasos algorithm based on x and y (labels)
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use the model `Pegasos` instead. 
 
 # Parameters:
 * `x`:           Feature matrix of the training data (n × d)
@@ -91,7 +99,7 @@ Train the peagasos algorithm based on x and y (labels)
 * `T`:           Maximum number of iterations across the whole set (if the set is not fully classified earlier) [def: 1000]
 * `nMsg`:        Maximum number of messages to show if all iterations are done
 * `shuffle`:    Whether to randomly shuffle the data at each iteration [def: `false`]
-* `forceOrigin`: Whether to force `θ₀` to remain zero [def: `false`]
+* `force_origin`: Whether to force `θ₀` to remain zero [def: `false`]
 
 # Return a named tuple with:
 * `θ`:          The final weights of the classifier
@@ -111,7 +119,7 @@ Train the peagasos algorithm based on x and y (labels)
 julia> pegasos([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 """
-function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, shuffle=false, forceOrigin=false, rng = Random.GLOBAL_RNG)
+function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, shuffle=false, force_origin=false, rng = Random.GLOBAL_RNG)
 if nMsgs != 0
   @codeLocation
   println("***\n*** Training pegasos for maximum $T iterations. Random shuffle: $shuffle")
@@ -120,7 +128,7 @@ x = makeMatrix(x)
 (n,d) = size(x)
 bestϵ = Inf
 lastϵ = Inf
-if forceOrigin θ₀ = 0.0; end
+if force_origin θ₀ = 0.0; end
 sumθ = θ; sumθ₀ = θ₀
 @showprogress 1 "Training Pegasos..." for t in 1:T
   ϵ = 0
@@ -134,7 +142,7 @@ sumθ = θ; sumθ₀ = θ₀
   for i in 1:n
       if y[i]*(θ' * x[i,:] + θ₀) <= eps()
           θ  = (1-ηₜ*λ) * θ + ηₜ * y[i] * x[i,:]
-          θ₀ = forceOrigin ? 0.0 : θ₀ + ηₜ * y[i]
+          θ₀ = force_origin ? 0.0 : θ₀ + ηₜ * y[i]
           sumθ += θ; sumθ₀ += θ₀
           ϵ += 1
       else
@@ -161,28 +169,28 @@ end
 # API V2...
 
 """
-**`$(TYPEDEF)`**
+$(TYPEDEF)
 
-Hyperparameters for the `Pegasos` model
+Hyperparameters for the [`Pegasos`](@ref) model.
 
 ## Parameters:
-$(FIELDS)
+$(TYPEDFIELDS)
 """
 Base.@kwdef mutable struct PegasosHyperParametersSet <: BetaMLHyperParametersSet
     "Learning rate [def: (epoch -> 1/sqrt(epoch))]"
-    learningRate::Function =  (epoch -> 1/sqrt(epoch)) 
+    learning_rate::Function =  (epoch -> 1/sqrt(epoch)) 
     "Multiplicative term of the learning rate [def: `0.5`]"         
-    learningRateMultiplicative::Float64 = 0.5           
+    learning_rate_multiplicative::Float64 = 0.5           
     "Initial parameters. If given, should be a matrix of n-classes by feature dimension + 1 (to include the constant term as the first element) [def: `nothing`, i.e. zeros]"
-    initPars::Union{Nothing,Matrix{Float64}} = nothing
+    initial_parameters::Union{Nothing,Matrix{Float64}} = nothing
     "Maximum number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
     epochs::Int64 = 1000
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `false`]"
     shuffle::Bool = false  
     "Whether to force the parameter associated with the constant term to remain zero [def: `false`]"
-    forceOrigin::Bool = false
+    force_origin::Bool = false
     " Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]"
-    returnMeanHyperplane::Bool=false
+    return_mean_hyperplane::Bool=false
 end
 
 Base.@kwdef mutable struct PegasosLearnableParameters <: BetaMLLearnableParametersSet
@@ -190,6 +198,14 @@ Base.@kwdef mutable struct PegasosLearnableParameters <: BetaMLLearnableParamete
     classes::Vector  = []
 end
 
+"""
+$(TYPEDEF)
+
+The `Pegasos` model, a _linear_, gradient-based classifier. Multiclass is supported using a one-vs-all approach.
+
+See [`?PegasosHyperParametersSet`](@ref PegasosHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet) for applicable hyperparameters and options. 
+
+"""
 mutable struct Pegasos <: BetaMLSupervisedModel
     hpar::PegasosHyperParametersSet
     opt::BetaMLDefaultOptionsSet
@@ -216,17 +232,23 @@ function Pegasos(;kwargs...)
     return m
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Fit a [`Pegasos`](@ref) model.
+
+"""
 function fit!(m::Pegasos,X,Y)
     
 
     # Parameter alias..
-    learningRate               = m.hpar.learningRate
-    learningRateMultiplicative = m.hpar.learningRateMultiplicative
-    initPars                   = m.hpar.initPars
+    learning_rate               = m.hpar.learning_rate
+    learning_rate_multiplicative = m.hpar.learning_rate_multiplicative
+    initial_parameters                   = m.hpar.initial_parameters
     epochs                     = m.hpar.epochs
     shuffle                    = m.hpar.shuffle
-    forceOrigin                = m.hpar.forceOrigin
-    returnMeanHyperplane       = m.hpar.returnMeanHyperplane
+    force_origin                = m.hpar.force_origin
+    return_mean_hyperplane       = m.hpar.return_mean_hyperplane
     cache                      = m.opt.cache
     verbosity                  = m.opt.verbosity
     rng                        = m.opt.rng
@@ -234,7 +256,7 @@ function fit!(m::Pegasos,X,Y)
     nR,nD    = size(X)
     yclasses = unique(Y)
     nCl      = length(yclasses)
-    initPars =  (initPars == nothing) ? zeros(nCl, nD+1) : initPars 
+    initial_parameters =  (initial_parameters == nothing) ? zeros(nCl, nD+1) : initial_parameters 
     
     if verbosity == NONE
         nMsgs = 0
@@ -248,7 +270,7 @@ function fit!(m::Pegasos,X,Y)
         nMsgs = 100000
     end
 
-    out = pegasos(X,Y; θ₀=initPars[:,1], θ=[initPars[:,c] for c in 2:nD+1], λ=learningRateMultiplicative, η=learningRate, T=epochs, nMsgs=nMsgs, shuffle=shuffle, forceOrigin=forceOrigin, returnMeanHyperplane=returnMeanHyperplane, rng = rng)
+    out = pegasos(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[:,c] for c in 2:nD+1], λ=learning_rate_multiplicative, η=learning_rate, T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng)
 
     weights = hcat(out.θ₀,vcat(out.θ' ...))
     m.par = PegasosLearnableParameters(weights,out.classes)
@@ -266,6 +288,12 @@ function fit!(m::Pegasos,X,Y)
     return cache ? m.cres : nothing
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Predict labels using a fitted [`Pegasos`](@ref) model.
+
+"""
 function predict(m::Pegasos,X)
     θ₀ = [ i for i in m.par.weigths[:,1]]
     θ  = [r for r in eachrow(m.par.weigths[:,2:end])]

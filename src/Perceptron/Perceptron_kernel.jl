@@ -280,7 +280,7 @@ end
 """
 $(TYPEDEF)
 
-Hyperparameters for the `Pegasos` model
+Hyperparameters for the [`KernelPerceptron`](@ref) model
 
 # Parameters:
 $(FIELDS)
@@ -289,7 +289,7 @@ Base.@kwdef mutable struct KernelPerceptronHyperParametersSet <: BetaMLHyperPara
     "Kernel function to employ. See `?radialKernel` or `?polynomialKernel` for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]"
     kernel::Function = radialKernel       
     "Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(nClasses  * (nClasses - 1)) / 2`"
-    initErrors::Union{Nothing,Vector{Vector{Int64}}} = nothing
+    inittial_errors::Union{Nothing,Vector{Vector{Int64}}} = nothing
     "Maximum number of epochs, i.e. passages trough the whole training sample [def: `100`]"
     epochs::Int64 = 100
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `false`]"
@@ -308,7 +308,7 @@ $(TYPEDEF)
 
 A "kernel" version of the `Pegasos` model (supervised) with user configurable kernel function.
 
-For the parameters see [`KernelPerceptronHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref)
+For the parameters see [`?KernelPerceptronHyperParametersSet`](@ref KernelPerceptronHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet)
 
 ## Limitations:
 - data must be numerical
@@ -342,9 +342,9 @@ function KernelPerceptron(;kwargs...)
 end
 
 """
-$(TYPEDFIELDS)
+$(TYPEDSIGNATURES)
 
-Fit a KernelPerceptron model.
+Fit a [`KernelPerceptron`](@ref) model.
 
 """
 function fit!(m::KernelPerceptron,X,Y)
@@ -352,7 +352,7 @@ function fit!(m::KernelPerceptron,X,Y)
 
     # Parameter alias..
     kernel          = m.hpar.kernel
-    initErrors      = m.hpar.initErrors
+    inittial_errors = m.hpar.inittial_errors
     epochs          = m.hpar.epochs
     shuffle         = m.hpar.shuffle
 
@@ -364,7 +364,7 @@ function fit!(m::KernelPerceptron,X,Y)
     yclasses = unique(Y)
     nCl      = length(yclasses)
     nModels   = Int((nCl  * (nCl - 1)) / 2)
-    initErrors =  (initErrors == nothing) ? [zeros(nR) for i in 1:nCl] : initErrors 
+    inittial_errors =  (inittial_errors == nothing) ? [zeros(nR) for i in 1:nCl] : inittial_errors 
     
     if verbosity == NONE
         nMsgs = 0
@@ -378,7 +378,7 @@ function fit!(m::KernelPerceptron,X,Y)
         nMsgs = 100000
     end
 
-    out = kernelPerceptron(X, Y; K=kernel, T=epochs, α=initErrors, nMsgs=nMsgs, shuffle=shuffle, rng = rng)
+    out = kernelPerceptron(X, Y; K=kernel, T=epochs, α=inittial_errors, nMsgs=nMsgs, shuffle=shuffle, rng = rng)
 
     m.par = KernelPerceptronLearnableParameters(out.x,out.y,out.α,out.classes)
 
@@ -399,9 +399,9 @@ function fit!(m::KernelPerceptron,X,Y)
 end
 
 """
-$(TYPEDFIELDS)
+$(TYPEDSIGNATURES)
 
-Predict labels using a fitted KernelPerceptron model.
+Predict labels using a fitted [`KernelPerceptron`](@ref) model.
 
 """
 function predict(m::KernelPerceptron,X)

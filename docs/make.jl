@@ -27,7 +27,7 @@ end
 
 # Documentation source and temp dir
 const SRC_ROOTDIR = joinpath(@__DIR__, "src/")
-const SRC_TEMPDIR = joinpath(@__DIR__, "srctemp/")
+#const SRC_TEMPDIR = joinpath(@__DIR__, "srctemp/")
 
 
 push!(LOAD_PATH,"../src/") # this is the source of the code, not the documentation
@@ -110,10 +110,33 @@ function literate_directory(dir)
     return nothing
 end
 
+function preprocessDoc()
+    rm(SRC_TEMPDIR,recursive=true,force=true)
+    mkdir(SRC_TEMPDIR)
+    cp(SRC_ROOTDIR, SRC_TEMPDIR; force=true)
+    repl = r"`\?(\w+)`" => s"[`\1`](@ref)"
+    for (root, dirs, files) in walkdir(SRC_TEMPDIR)
+        #println("Files in $root")
+        for file in files
+            if endswith(file,".md") || endswith(file,".jl")
+                pathfile = joinpath(root, file)
+                #println(pathfile) # path to files
+                write(pathfile, replace(read(pathfile, String), repl))
+    
+            end
+        end
+    end
+    touch(joinpath(SRC_TEMPDIR,".gitkeep"))
+end
+
+
+
+
 println("Starting literating tutorials (.jl --> .md)...")
 literate_directory.(joinpath.(_TUTORIAL_DIR, _TUTORIAL_SUBDIR))
 
 println("Starting making the documentation...")
+#preprocessDoc()
 makedocs(sitename="BetaML.jl Documentation",
          authors = "Antonello Lobianco",
          pages = [
@@ -148,7 +171,8 @@ makedocs(sitename="BetaML.jl Documentation",
          ],
          format = Documenter.HTML(prettyurls = false, analytics = "G-JYKX8QY5JW"),
          #strict = true,
-         #doctest = false
+         #doctest = false,
+         #source  = SRC_TEMPDIR, # Attention here !!!!!!!!!!!
 )
 println("Starting deploying the documentation...")
 deploydocs(
