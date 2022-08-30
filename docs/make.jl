@@ -25,10 +25,15 @@ else
     println("*** Building documentation and testing tutorials...")
 end
 
-push!(LOAD_PATH,"../src/")
+# Documentation source and temp dir
+const SRC_ROOTDIR = joinpath(@__DIR__, "src/")
+const SRC_TEMPDIR = joinpath(@__DIR__, "srctemp/")
 
 
-const _TUTORIAL_DIR = joinpath(@__DIR__, "src", "tutorials")
+push!(LOAD_PATH,"../src/") # this is the source of the code, not the documentation
+
+
+const _TUTORIAL_DIR = joinpath(SRC_ROOTDIR, "tutorials")
 # Important: If some tutorial is removed but the md file is left, this may still  be used by Documenter
 _TUTORIAL_SUBDIR = [
     #"Getting started",

@@ -9,9 +9,11 @@ Utils
 ```@index
 Modules = [Utils]
 Order   = [:constant, :type, :function, :macro]
+Private = false
 ```
 ## Detailed API
 
 ```@autodocs
 Modules = [Utils]
+Private = false
 ```

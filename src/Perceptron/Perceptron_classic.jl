@@ -1,8 +1,12 @@
 
 """
-perceptron(x,y;θ,θ₀,T,nMsgs,shuffle,forceOrigin,returnMeanHyperplane)
+    perceptron(x,y;θ,θ₀,T,nMsgs,shuffle,forceOrigin,returnMeanHyperplane)
 
 Train the multiclass classifier "perceptron" algorithm  based on x and y (labels).
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use the model PerceptronClassic() instead. 
 
 The perceptron is a _linear_ classifier. Multiclass is supported using a one-vs-all approach.
 
@@ -75,7 +79,11 @@ return (θ=outθ,θ₀=outθ₀,classes=yclasses)
 end
 
 """
-perceptronBinary(x,y;θ,θ₀,T,nMsgs,shuffle,forceOrigin)
+    perceptronBinary(x,y;θ,θ₀,T,nMsgs,shuffle,forceOrigin)
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use the model PerceptronClassic() instead. 
 
 Train the binary classifier "perceptron" algorithm based on x and y (labels)
 
@@ -155,9 +163,13 @@ end
 
 
 """
-  predict(x,θ,θ₀)
+    predict(x,θ,θ₀)
 
 Predict a binary label {-1,1} given the feature vector and the linear coefficients
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use the `predict` function with your desired model instead. 
 
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
@@ -187,9 +199,13 @@ end
 
 
 """
-  predict(x,θ,θ₀,classes)
+    predict(x,θ,θ₀,classes)
 
 Predict a multiclass label given the feature vector, the linear coefficients and the classes vector
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use the `predict` function of your desired model instead. 
 
 # Parameters:
 * `x`:       Feature matrix of the training data (n × d)
@@ -233,23 +249,7 @@ end
 
 """
 
-SIGNATURES: 
-
-$(SIGNATURES)
-
-FunctionName
-$(FUNCTIONNAME)
-
-TYPEDEF
 $(TYPEDEF)
-
-TYPEDSIGNATURES
-$(TYPEDSIGNATURES)
-
-METHODLIST
-$(METHODLIST)
-
-PerceptronClassicHyperParametersSet
 
 Hyperparameters for the `PerceptronClassic` model
 
@@ -275,25 +275,11 @@ Base.@kwdef mutable struct PerceptronClassicLearnableParameters <: BetaMLLearnab
 end
 
 """
-SIGNATURES: 
-
-$(SIGNATURES)
-
-FunctionName
-$(FUNCTIONNAME)
-
-TYPEDEF
 $(TYPEDEF)
-
-TYPEDSIGNATURES
-$(TYPEDSIGNATURES)
-
-METHODLIST
-$(METHODLIST)
 
 The classical "perceptron" linear classifier (supervised).
 
-For the parameters see  [`PerceptronClassicLearnableParameters`](@ref).
+For the parameters see [`PerceptronClassicHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref)
 
 ## Limitations:
 - data must be numerical
@@ -327,22 +313,9 @@ function PerceptronClassic(;kwargs...)
 end
 
 """
-
-SIGNATURES: 
-
-$(SIGNATURES)
-
-FunctionName
-$(FUNCTIONNAME)
-
-TYPEDEF
-$(TYPEDEF)
-
-TYPEDSIGNATURES
 $(TYPEDSIGNATURES)
 
-METHODLIST
-$(METHODLIST)
+Fit the PerceptronClassic model to data
 
 """
 function fit!(m::PerceptronClassic,X,Y)
@@ -393,6 +366,12 @@ function fit!(m::PerceptronClassic,X,Y)
     return cache ? m.cres : nothing
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Predict the labels associated to some feature data using the PerceptronClassic model
+
+"""
 function predict(m::PerceptronClassic,X)
     θ₀ = [ i for i in m.par.weigths[:,1]]
     θ  = [r for r in eachrow(m.par.weigths[:,2:end])]

@@ -41,6 +41,7 @@ ŷtrain3 = predict(m,xtrain)
 ϵtrain    = error(ytrain, mode(ŷtrain3))
 @test ŷtrain == ŷtrain2 == ŷtrain3
 
+# Test save/load
 model_save("test.jld2"; m, m2=m)
 models   = model_load("test.jld2")
 ŷtrain4  = predict(models["m2"]) 
@@ -50,6 +51,20 @@ ŷtrain5 = predict(mb)
 ŷtrain6 = predict(mc) 
 ŷtrain7 = predict(md) 
 @test ŷtrain == ŷtrain4 == ŷtrain5 == ŷtrain6 == ŷtrain7
+
+pars = parameters(m)
+pars.weigths[1,1] = 10
+pars.weigths[2,1] = -10
+ŷtrain8 = predict(m,xtrain) 
+@test ŷtrain8 != ŷtrain 
+
+hpars = hyperparameters(m)
+hpars.epochs = 10
+@test m.hpar.epochs == 10
+
+opt = options(m)
+opt.descr="Hello"
+@test m.opt.descr == "Hello"
 
 println("Testing multiple classes...")
 

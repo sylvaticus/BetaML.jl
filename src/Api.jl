@@ -189,18 +189,28 @@ end
     parameters(m::BetaMLModel)
 
 Returns the learned parameters of a BetaML model.
+
+!!! warning
+    The returned object is a reference, so if it is modified, the relative object in the model will change too.
 """ 
-parameters(m::BetaMLModel)      = m.pars
+parameters(m::BetaMLModel)      = m.par
 """
     hyperparameters(m::BetaMLModel)
 
 Returns the hyperparameters of a BetaML model. See also [`options`](@ref) for the parameters that do not directly affect learning.
+
+!!! warning
+    The returned object is a reference, so if it is modified, the relative object in the model will change too.
+
 """ 
-hyperparameters(m::BetaMLModel) = m.hpars
+hyperparameters(m::BetaMLModel) = m.hpar
 """
     options(m::BetaMLModel)
 
 Returns the non-learning related options of a BetaML model. See also [`hyperparameters`](@ref) for the parameters that directly affect learning.
+
+!!! warning
+    The returned object is a reference, so if it is modified, the relative object in the model will change too.
 """ 
 options(m::BetaMLModel)         = m.opt
 
@@ -208,24 +218,31 @@ options(m::BetaMLModel)         = m.opt
 #    JLD2.jldsave(filename;names...)
 #end
 """
-    model_save(filename::AbstractString,args...)
     model_save(filename::AbstractString;kwargs...)
 
 Allow to save one or more BetaML models (wheter fitted or not), eventually specifying a name for each of them.
 
-!!! warning
-    If the destination file is already present, it will be overwritten!
-
 # Notes:
+- If an object with the given name already exists on the destination JLD2 file it will be ovenwritten. If the file exists, but is not a JLD2 file, an error will be raisen.
 - Use the semicolon `;` to separate the filename from the model(s) to save
-- For further options see the documentation of the function `jldsave` of the [`JLD2`](https://juliaio.github.io/JLD2.jl/stable/) package
+- For further options see the documentation of the [`JLD2`](https://juliaio.github.io/JLD2.jl/stable/) package
 
 # Examples
 ```
 julia> model_save("fittedModels.jl"; mod1Name=mod1,mod2)
 ```
 """
-const model_save = JLD2.jldsave
+function model_save(filename;kargs...)
+    jldopen(filename, "a+") do f
+        for (k,v) in kargs
+            ks = string(k)
+            if ks in keys(f)
+                delete!(f, ks)
+            end
+            f[ks] = v
+        end
+    end
+end
 
 """
     model_load(filename::AbstractString)

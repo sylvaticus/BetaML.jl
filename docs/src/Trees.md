@@ -9,9 +9,11 @@ Trees
 ```@index
 Modules = [Trees]
 Order   = [:constant, :type, :function, :macro]
+Private = false
 ```
 ## Detailed API
 
 ```@autodocs
 Modules = [Trees]
+Private = false
 ```

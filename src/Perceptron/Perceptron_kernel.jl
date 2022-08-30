@@ -1,8 +1,12 @@
 
 """
-kernelPerceptron(x,y;K,T,α,nMsgs,shuffle)
+    kernelPerceptron(x,y;K,T,α,nMsgs,shuffle)
 
 Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use the model KernelPerceptron() instead. 
 
 `kernelPerceptron` is a (potentially) non-linear perceptron-style classifier employing user-defined kernel funcions. Multiclass is supported using a one-vs-one approach.
 
@@ -63,9 +67,13 @@ function kernelPerceptron(x, y; K=radialKernel, T=100, α=nothing, nMsgs=0, shuf
 end
 
 """
-kernelPerceptronBinary(x,y;K,T,α,nMsgs,shuffle)
+    kernelPerceptronBinary(x,y;K,T,α,nMsgs,shuffle)
 
 Train a binary kernel classifier "perceptron" algorithm based on x and y
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use the model KernelPerceptron() instead. 
 
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
@@ -149,9 +157,13 @@ function kernelPerceptronBinary(x, y; K=radialKernel, T=1000, α=zeros(Int64,len
 end
 
 """
-  predict(x,xtrain,ytrain,α;K)
+    predict(x,xtrain,ytrain,α;K)
 
 Predict a binary label {-1,1} given the feature vector and the training data together with their errors (as trained by a kernel perceptron algorithm)
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use the `predict` function with your desired model instead. 
 
 # Parameters:
 * `x`:      Feature matrix of the data to predict (n × d)
@@ -188,9 +200,13 @@ function predict(x,xtrain,ytrain,α;K=radialKernel)
 
 
  """
-   predict(x,xtrain,ytrain,α,classes;K)
+     predict(x,xtrain,ytrain,α,classes;K)
 
  Predict a multiclass label given the new feature vector and a trained kernel perceptron model.
+
+ !!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use the `predict` function with your desired model instead. 
 
  # Parameters:
  * `x`:      Feature matrix of the data to predict (n × d)
@@ -262,15 +278,15 @@ end
 # API V2...
 
 """
-**`$(TYPEDEF)`**
+$(TYPEDEF)
 
 Hyperparameters for the `Pegasos` model
 
-## Parameters:
+# Parameters:
 $(FIELDS)
 """
 Base.@kwdef mutable struct KernelPerceptronHyperParametersSet <: BetaMLHyperParametersSet
-    "Kernel function to employ. See `?radialKernel` or `?polynomialKernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]"
+    "Kernel function to employ. See `?radialKernel` or `?polynomialKernel` for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]"
     kernel::Function = radialKernel       
     "Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(nClasses  * (nClasses - 1)) / 2`"
     initErrors::Union{Nothing,Vector{Vector{Int64}}} = nothing
@@ -287,6 +303,18 @@ Base.@kwdef mutable struct KernelPerceptronLearnableParameters <: BetaMLLearnabl
     classes::Vector  = []
 end
 
+"""
+$(TYPEDEF)
+
+A "kernel" version of the `Pegasos` model (supervised) with user configurable kernel function.
+
+For the parameters see [`KernelPerceptronHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref)
+
+## Limitations:
+- data must be numerical
+- online training (retraining) is not supported
+
+"""
 mutable struct KernelPerceptron <: BetaMLSupervisedModel
     hpar::KernelPerceptronHyperParametersSet
     opt::BetaMLDefaultOptionsSet
@@ -313,6 +341,12 @@ function KernelPerceptron(;kwargs...)
     return m
 end
 
+"""
+$(TYPEDFIELDS)
+
+Fit a KernelPerceptron model.
+
+"""
 function fit!(m::KernelPerceptron,X,Y)
     
 
@@ -364,6 +398,12 @@ function fit!(m::KernelPerceptron,X,Y)
     return cache ? m.cres : nothing
 end
 
+"""
+$(TYPEDFIELDS)
+
+Predict labels using a fitted KernelPerceptron model.
+
+"""
 function predict(m::KernelPerceptron,X)
     return predict(X,m.par.xtrain,m.par.ytrain,m.par.errors,m.par.classes;K=m.hpar.kernel)
 end

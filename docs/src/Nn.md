@@ -9,9 +9,11 @@ Nn
 ```@index
 Modules = [Nn]
 Order   = [:constant, :type, :function, :macro]
+Private = false
 ```
 ## Detailed API
 
 ```@autodocs
 Modules = [Nn]
+Private = false
 ```

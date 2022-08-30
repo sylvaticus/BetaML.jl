@@ -9,10 +9,12 @@ GMM
 ```@index
 Modules = [GMM]
 Order   = [:constant, :type, :function, :macro]
+Private = false
 ```
 
 ## Detailed API
 
 ```@autodocs
 Modules = [GMM]
+Private = false
 ```
