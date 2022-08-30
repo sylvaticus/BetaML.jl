@@ -79,15 +79,15 @@ cOut = crossValidation([x,y],sampler,returnStatistics=false) do trainData,testDa
          clusteringOut     = kmeans(xtrain,3,rng=rng) ## init is grid by default
          ## ... and we compute the accuracy using the real labels
          kMeansAccuracy    = accuracy(clusteringOut[1],ytrain,ignoreLabels=true)
-         clusteringOut     = kmeans(xtrain,3,rng=rng,initStrategy="random")
+         clusteringOut     = kmeans(xtrain,3,rng=rng,initialisation_strategy="random")
          kMeansRAccuracy   = accuracy(clusteringOut[1],ytrain,ignoreLabels=true)
-         clusteringOut     = kmeans(xtrain,3,rng=rng,initStrategy="shuffle")
+         clusteringOut     = kmeans(xtrain,3,rng=rng,initialisation_strategy="shuffle")
          kMeansSAccuracy   = accuracy(clusteringOut[1],ytrain,ignoreLabels=true)
          clusteringOut     = kmedoids(xtrain,3,rng=rng)   ## init is grid by default
          kMedoidsAccuracy  = accuracy(clusteringOut[1],ytrain,ignoreLabels=true)
-         clusteringOut     = kmedoids(xtrain,3,rng=rng,initStrategy="random")
+         clusteringOut     = kmedoids(xtrain,3,rng=rng,initialisation_strategy="random")
          kMedoidsRAccuracy = accuracy(clusteringOut[1],ytrain,ignoreLabels=true)
-         clusteringOut     = kmedoids(xtrain,3,rng=rng,initStrategy="shuffle")
+         clusteringOut     = kmedoids(xtrain,3,rng=rng,initialisation_strategy="shuffle")
          kMedoidsSAccuracy = accuracy(clusteringOut[1],ytrain,ignoreLabels=true)
          clusteringOut     = gmm(xtrain,3,mixtures=[SphericalGaussian() for i in 1:3], verbosity=NONE, rng=rng)
          gmmSpherAccuracy  = accuracy(clusteringOut.pₙₖ,ytrain,ignoreLabels=true, rng=rng)

@@ -80,9 +80,9 @@ y_oh  = oneHotEncoder(y);
 
 # To "build" the forest model (i.e. to "train" it) we need to give the model the training feature matrix and the associated "true" training labels, and we need to specify the number of trees to employ (this is an example of hyper-parameters). Here we use 30 individual decision trees.
 
-# As the labels are encoded using integers,  we need also to specify the parameter `forceClassification=true`, otherwise the model would undergo a _regression_ job instead.
+# As the labels are encoded using integers,  we need also to specify the parameter `force_classification=true`, otherwise the model would undergo a _regression_ job instead.
 
-myForest       = buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),forceClassification=true);
+myForest       = buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),force_classification=true);
 
 # To obtain the predicted values, we can simply use the function [`BetaML.Trees.predict`](@ref)
 #src [`predict`](@ref BetaML.Trees.predict)  [`predict`](@ref forest_prediction)
@@ -108,7 +108,7 @@ print(cm,"all")
 # From the report we can see that Japanese cars have more trouble in being correctly classified, and in particular many Japanease cars are classified as US ones. This is likely a result of the class imbalance of the data set, and could be solved by balancing the dataset with various sampling tecniques before training the model.
 
 # When we benchmark the resourse used (time and memory) we find that Random Forests remain pretty fast, expecially when we compare them with neural networks (see later)
-# @btime buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),forceClassification=true);
+# @btime buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),force_classification=true);
 # 134.096 ms (781027 allocations: 196.30 MiB)
 
 # ### Comparision with DecisionTree.jl
