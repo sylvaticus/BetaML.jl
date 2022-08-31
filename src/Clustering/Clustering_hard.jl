@@ -245,7 +245,7 @@ $(TYPEDEF)
 
 Hyperparameters for both the [`KMeansModel`](@ref) and [`KMedoidsModel`](@ref) models
 
-## Parameters:
+# Parameters:
 $(TYPEDFIELDS)
 """
 Base.@kwdef mutable struct KMeansMedoidsHyperParametersSet <: BetaMLHyperParametersSet
@@ -297,7 +297,7 @@ $(TYPEDEF)
 
 The classical "K-Medoids" clustering algorithm (unsupervised).
 
-Similar to K-Means, but the "representatives" (the cetroids) are guaranteed to be one of the training point. The algorithm work with any arbitrary distance measure.
+Similar to K-Means, but the "representatives" (the cetroids) are guaranteed to be one of the training points. The algorithm work with any arbitrary distance measure.
 
 For the parameters see [`?KMeansMedoidsHyperParametersSet`](@ref KMeansMedoidsHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
 

@@ -15,8 +15,8 @@ mutable struct MissingImputator <: MMI.Unsupervised
     p₀::AbstractArray{Float64,1}
     mixtures::Symbol
     tol::Float64
-    minVariance::Float64
-    minCovariance::Float64
+    minimum_variance::Float64
+    minimum_covariance::Float64
     initialisation_strategy::String
     verbosity::Verbosity
     rng::AbstractRNG
@@ -26,12 +26,12 @@ MissingImputator(;
     p₀            = Float64[],
     mixtures      = :diag_gaussian,
     tol           = 10^(-6),
-    minVariance   = 0.05,
-    minCovariance = 0.0,
+    minimum_variance   = 0.05,
+    minimum_covariance = 0.0,
     initialisation_strategy  = "kmeans",
     verbosity     = STD,
     rng           = Random.GLOBAL_RNG,
-) = MissingImputator(K,p₀,mixtures, tol, minVariance, minCovariance,initialisation_strategy,verbosity,rng)
+) = MissingImputator(K,p₀,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,verbosity,rng)
 
 mutable struct BetaMLMeanImputer <: MMI.Unsupervised
     norm::Int64
@@ -42,26 +42,26 @@ BetaMLMeanImputer(;
 
 mutable struct BetaMLGMMImputer <: MMI.Unsupervised
     n_classes::Int64
-    probMixtures::Vector{Float64}
+    initial_probmixtures::Vector{Float64}
     mixtures::Symbol
     tol::Float64
-    minVariance::Float64
-    minCovariance::Float64
+    minimum_variance::Float64
+    minimum_covariance::Float64
     initialisation_strategy::String
     verbosity::Verbosity
     rng::AbstractRNG
 end
 BetaMLGMMImputer(;
     n_classes      = 3,
-    probMixtures  = Float64[],
+    initial_probmixtures  = Float64[],
     mixtures      = :diag_gaussian,
     tol           = 10^(-6),
-    minVariance   = 0.05,
-    minCovariance = 0.0,
+    minimum_variance   = 0.05,
+    minimum_covariance = 0.0,
     initialisation_strategy  = "kmeans",
     verbosity     = STD,
     rng           = Random.GLOBAL_RNG,
-) = BetaMLGMMImputer(n_classes,probMixtures,mixtures, tol, minVariance, minCovariance,initialisation_strategy,verbosity,rng)
+) = BetaMLGMMImputer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,verbosity,rng)
 
 mutable struct BetaMLRFImputer <: MMI.Unsupervised
     n_trees::Int64
@@ -120,7 +120,7 @@ function MMI.fit(m::MissingImputator, verbosity, X)
     else
         error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
-    res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initialisation_strategy=m.initialisation_strategy,verbosity=NONE,rng=m.rng)
+    res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minimum_variance=m.minimum_variance, minimum_covariance=m.minimum_covariance,initialisation_strategy=m.initialisation_strategy,verbosity=NONE,rng=m.rng)
     fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # pₙₖ=res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
@@ -154,11 +154,11 @@ function MMI.fit(m::BetaMLGMMImputer, verbosity, X)
 
     mod = GMMImputer(
         n_classes      = m.n_classes,
-        probMixtures  = m.probMixtures,
+        initial_probmixtures  = m.initial_probmixtures,
         mixtures      = mixtures,
         tol           = m.tol,
-        minVariance   = m.minVariance,
-        minCovariance = m.minCovariance,
+        minimum_variance   = m.minimum_variance,
+        minimum_covariance = m.minimum_covariance,
         initialisation_strategy  = m.initialisation_strategy,
         verbosity     = m.verbosity,
         rng           = m.rng
@@ -232,7 +232,7 @@ function MMI.transform(m::MissingImputator, fitResults, X)
     (pₖ,mixtures) = fitResults.pₖ, fitResults.mixtures   #
     nCl           = length(pₖ)
     # Fill the missing data of this "new X" using the mixtures computed in the fit stage
-    xout          = predictMissing(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initialisation_strategy="given",maxIter=1,rng=m.rng)
+    xout          = predictMissing(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minimum_variance=m.minimum_variance,minimum_covariance=m.minimum_covariance,initialisation_strategy="given",maximum_iterations=1,rng=m.rng)
     return MMI.table(xout.X̂)
 end
 function MMI.transform(m::Union{BetaMLMeanImputer,BetaMLGMMImputer,BetaMLRFImputer,BetaMLGenericImputer}, fitResults, X)

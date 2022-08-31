@@ -118,14 +118,14 @@ x        = convert(Array{Float64,2}, iris[:,1:4])
 x        = scale(x) # normalise all dimensions to (μ=0, σ=1)
 y        = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iris[:, 5]) # Convert the target column to numbers
 
-# Get some ranges of minVariance and minCovariance to test
+# Get some ranges of minimum_variance and minimum_covariance to test
 minVarRange   = collect(0.04:0.05:1.5)
 minCovarRange = collect(0:0.05:1.45)
 
 # Run the gmm(em) algorithm for the various cases...
-sphOut   = [gmm(x,3,mixtures=[SphericalGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE) for v in minVarRange, cv in minCovarRange[1:1]]
-diagOut  = [gmm(x,3,mixtures=[DiagonalGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE)  for v in minVarRange, cv in minCovarRange[1:1]]
-fullOut  = [gmm(x,3,mixtures=[FullGaussian() for i in 1:3],minVariance=v, minCovariance=cv, verbosity=NONE)  for v in minVarRange, cv in minCovarRange]
+sphOut   = [gmm(x,3,mixtures=[SphericalGaussian() for i in 1:3],minimum_variance=v, minimum_covariance=cv, verbosity=NONE) for v in minVarRange, cv in minCovarRange[1:1]]
+diagOut  = [gmm(x,3,mixtures=[DiagonalGaussian() for i in 1:3],minimum_variance=v, minimum_covariance=cv, verbosity=NONE)  for v in minVarRange, cv in minCovarRange[1:1]]
+fullOut  = [gmm(x,3,mixtures=[FullGaussian() for i in 1:3],minimum_variance=v, minimum_covariance=cv, verbosity=NONE)  for v in minVarRange, cv in minCovarRange]
 
 # Get the Bayesian information criterion (AIC is also available)
 sphBIC  = [sphOut[v,cv].BIC for v in 1:length(minVarRange), cv in 1:1]
@@ -137,8 +137,8 @@ sphAcc  = [accuracy(sphOut[v,cv].pₙₖ,y,ignoreLabels=true) for v in 1:length(
 diagAcc = [accuracy(diagOut[v,cv].pₙₖ,y,ignoreLabels=true) for v in 1:length(minVarRange), cv in 1:1]
 fullAcc = [accuracy(fullOut[v,cv].pₙₖ,y,ignoreLabels=true) for v in 1:length(minVarRange), cv in 1:length(minCovarRange)]
 
-plot(minVarRange,[sphBIC diagBIC fullBIC[:,1] fullBIC[:,15] fullBIC[:,30]], markershape=:circle, label=["sph" "diag" "full (cov=0)" "full (cov=0.7)" "full (cov=1.45)"], title="BIC", xlabel="minVariance")
-plot(minVarRange,[sphAcc diagAcc fullAcc[:,1] fullAcc[:,15] fullAcc[:,30]], markershape=:circle, label=["sph" "diag" "full (cov=0)" "full (cov=0.7)" "full (cov=1.45)"], title="Accuracies", xlabel="minVariance")
+plot(minVarRange,[sphBIC diagBIC fullBIC[:,1] fullBIC[:,15] fullBIC[:,30]], markershape=:circle, label=["sph" "diag" "full (cov=0)" "full (cov=0.7)" "full (cov=1.45)"], title="BIC", xlabel="minimum_variance")
+plot(minVarRange,[sphAcc diagAcc fullAcc[:,1] fullAcc[:,15] fullAcc[:,30]], markershape=:circle, label=["sph" "diag" "full (cov=0)" "full (cov=0.7)" "full (cov=1.45)"], title="Accuracies", xlabel="minimum_variance")
 ```
 
 <img src="assets/sepalClustersBIC.png" width="400"/> <img src="assets/sepalClustersAccuracy.png" width="400"/>

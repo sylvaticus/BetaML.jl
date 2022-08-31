@@ -7,7 +7,7 @@ import BetaML.Utils.allowmissing!
 
 Base.@kwdef mutable struct GMMRegressor1LearnableParameters <: BetaMLLearnableParametersSet
     mixtures::Vector{AbstractMixture}              = []
-    probMixtures::Vector{Float64}                  = []
+    initial_probmixtures::Vector{Float64}                  = []
     #probRecords::Union{Nothing,Matrix{Float64}}    = nothing
     meanYByMixture::Union{Nothing,Matrix{Float64}} = nothing
 end
@@ -72,22 +72,22 @@ function fit!(m::GMMRegressor1,x,y)
 
     # Parameter alias..
     K             = m.hpar.n_classes
-    p₀            = m.hpar.probMixtures
+    p₀            = m.hpar.initial_probmixtures
     mixtures      = m.hpar.mixtures
     tol           = m.hpar.tol
-    minVariance   = m.hpar.minVariance
-    minCovariance = m.hpar.minCovariance
+    minimum_variance   = m.hpar.minimum_variance
+    minimum_covariance = m.hpar.minimum_covariance
     initialisation_strategy  = m.hpar.initialisation_strategy
-    maxIter       = m.hpar.maxIter
+    maximum_iterations       = m.hpar.maximum_iterations
     cache         = m.opt.cache
     verbosity     = m.opt.verbosity
     rng           = m.opt.rng
 
     if m.fitted
         verbosity >= STD && @warn "Continuing training of a pre-fitted model"
-        gmmOut = gmm(x,K;p₀=m.par.probMixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy="given",maxIter=maxIter,rng = rng)
+        gmmOut = gmm(x,K;p₀=m.par.initial_probmixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy="given",maximum_iterations=maximum_iterations,rng = rng)
     else
-        gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy=initialisation_strategy,maxIter=maxIter,rng = rng)
+        gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)
     end
 
     probRecords    = gmmOut.pₙₖ
@@ -95,7 +95,7 @@ function fit!(m::GMMRegressor1,x,y)
     ysum           = probRecords' * y
     ymean          = vcat(transpose([ysum[r,:] / sumProbrecords[1,r] for r in 1:size(ysum,1)])...)
 
-    m.par  = GMMRegressor1LearnableParameters(mixtures = gmmOut.mixtures, probMixtures=makeColVector(gmmOut.pₖ), meanYByMixture = ymean)
+    m.par  = GMMRegressor1LearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makeColVector(gmmOut.pₖ), meanYByMixture = ymean)
     m.cres = cache ? probRecords  * ymean : nothing
 
 
@@ -114,8 +114,8 @@ function predict(m::GMMRegressor1,X)
     N,DX = size(X)
     mixtures = m.par.mixtures
     yByMixture = m.par.meanYByMixture
-    probMixtures = m.par.probMixtures
-    probRecords, lL = estep(X,probMixtures,mixtures)
+    initial_probmixtures = m.par.initial_probmixtures
+    probRecords, lL = estep(X,initial_probmixtures,mixtures)
     return probRecords * yByMixture
 end
 
@@ -137,7 +137,7 @@ function show(io::IO, m::GMMRegressor1)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)
         println(io,"Probability of each mixture:")
-        println(io,m.par.probMixtures)
+        println(io,m.par.initial_probmixtures)
     end
 end
 
@@ -204,25 +204,25 @@ function fit!(m::GMMRegressor2,x,y)
     DFull = size(x,2)
     # Parameter alias..
     K             = m.hpar.n_classes
-    p₀            = m.hpar.probMixtures
+    p₀            = m.hpar.initial_probmixtures
     mixtures      = m.hpar.mixtures
     tol           = m.hpar.tol
-    minVariance   = m.hpar.minVariance
-    minCovariance = m.hpar.minCovariance
+    minimum_variance   = m.hpar.minimum_variance
+    minimum_covariance = m.hpar.minimum_covariance
     initialisation_strategy  = m.hpar.initialisation_strategy
-    maxIter       = m.hpar.maxIter
+    maximum_iterations       = m.hpar.maximum_iterations
     cache         = m.opt.cache
     verbosity     = m.opt.verbosity
     rng           = m.opt.rng
 
     if m.fitted
         verbosity >= STD && @warn "Continuing training of a pre-fitted model"
-        gmmOut = gmm(x,K;p₀=m.par.probMixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy="given",maxIter=maxIter,rng = rng)
+        gmmOut = gmm(x,K;p₀=m.par.initial_probmixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy="given",maximum_iterations=maximum_iterations,rng = rng)
     else
-        gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy=initialisation_strategy,maxIter=maxIter,rng = rng)
+        gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)
     end
     probRecords = gmmOut.pₙₖ
-    m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, probMixtures=makeColVector(gmmOut.pₖ))
+    m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makeColVector(gmmOut.pₖ))
     m.cres = cache ?  probRecords  * [gmmOut.mixtures[k].μ[d] for k in 1:K, d in DX+1:DFull]  : nothing
 
     m.info[:error]          = gmmOut.ϵ
@@ -244,8 +244,8 @@ function predict(m::GMMRegressor2,X)
     K        = length(mixtures)
     X        = hcat(X,fill(missing,N,DFull-DX))
     yByMixture = [mixtures[k].μ[d] for k in 1:K, d in DX+1:DFull]
-    probMixtures = m.par.probMixtures
-    probRecords, lL = estep(X,probMixtures,mixtures)
+    initial_probmixtures = m.par.initial_probmixtures
+    probRecords, lL = estep(X,initial_probmixtures,mixtures)
     return probRecords * yByMixture
 end
 
@@ -267,6 +267,6 @@ function show(io::IO, m::GMMRegressor2)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)
         println(io,"Probability of each mixture:")
-        println(io,m.par.probMixtures)
+        println(io,m.par.initial_probmixtures)
     end
 end

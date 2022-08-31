@@ -18,7 +18,7 @@ m2 = SphericalGaussian([1.1,2,3])
 m3 = SphericalGaussian(nothing,10.2)
 mixtures = [m1,m2,m3]
 X = [1 10 20; 1.2 12 missing; 3.1 21 41; 2.9 18 39; 1.5 15 25]
-initMixtures!(mixtures,X,minVariance=0.25,rng=copy(TESTRNG))
+init_mixtures!(mixtures,X,minimum_variance=0.25,rng=copy(TESTRNG))
 @test sum([sum(m.μ) for m in mixtures]) ≈ 102.2
 @test sum([sum(m.σ²) for m in mixtures]) ≈ 19.651086419753085
 mask = [true, true, false]
@@ -28,7 +28,7 @@ m1 = DiagonalGaussian()
 m2 = DiagonalGaussian([1.1,2,3])
 m3 = DiagonalGaussian(nothing,[0.1,11,25.0])
 mixtures = [m1,m2,m3]
-initMixtures!(mixtures,X,minVariance=0.25,rng=copy(TESTRNG))
+init_mixtures!(mixtures,X,minimum_variance=0.25,rng=copy(TESTRNG))
 @test sum([sum(m.σ²) for m in mixtures]) ≈ 291.27933333333334
 @test lpdf(m1,X[2,:][mask],mask) ≈ -3.383055441795939
 
@@ -36,7 +36,7 @@ m1 = FullGaussian()
 m2 = FullGaussian([1.1,2,3])
 m3 = FullGaussian(nothing,[0.1 0.2 0.5; 0 2 0.8; 1 0 5])
 mixtures = [m1,m2,m3]
-initMixtures!(mixtures,X,minVariance=0.25,rng=copy(TESTRNG))
+init_mixtures!(mixtures,X,minimum_variance=0.25,rng=copy(TESTRNG))
 @test sum([sum(m.σ²) for m in mixtures]) ≈ 264.77933333333334
 @test lpdf(m1,X[2,:][mask],mask) ≈ -3.383055441795939
 
@@ -59,7 +59,7 @@ gmmOut = gmm(X,3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG
 @test gmmOut.pₙₖ == probs
 
 μ_x1alone = hcat([m.par.mixtures[i].μ for i in 1:3]...)
-pk_x1alone = m.par.probMixtures
+pk_x1alone = m.par.initial_probmixtures
 
 X2 = [2.0 12; 3 20; 4 15; 1.5 11]
 

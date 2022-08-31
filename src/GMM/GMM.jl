@@ -5,18 +5,23 @@
 
 Generative (Gaussian) Mixed Model learners (supervised/unsupervised)
 
-Provides clustering/collaborative filtering (via clustering) / missing values imputation / collaborative filtering / reccomendation systems, regressor and fitter using Generative Gaussiam Model (probabilistic). 
+Provides clustering and regressors using  (Generative) Gaussiam Mixture Model (probabilistic).
 
-The module provides the following functions. Use `?[function]` to access their full signature and detailed documentation:
+Collaborative filtering / missing values imputation / reccomendation systems based on GMM is available in the [`Imputation`](@ref) module.
 
-- [`gmm(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance,initialisation_strategy)`](@ref gmm): gmm algorithm over GMM
-- [`predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)`](@ref predictMissing): Impute mixing values ("matrix completion") using gmm as backbone. Note that this can be used for collaborative filtering / reccomendation systems often with better results than traditional algorithms as k-nearest neighbors (KNN)
+The module provides the following models. Use `?[model]` to access their documentation:
 
-{Spherical|Diagonal|Full} Gaussian mixtures are already provided. User defined mixtures can be used defining a struct as subtype of `AbstractMixture` and implementing for that mixture the following functions:
-- `initMixtures!(mixtures, X; minVariance, minCovariance, initialisation_strategy)`
+- [`GMMClusterMode`](@ref): soft-clustering using GMM
+- [`GMMRegressor1`](@ref): regressor using GMM as back-end (first algorithm)
+- [`GMMRegressor1`](@ref): regressor using GMM as back-end (second algorithm)
+
+All the algorithms works with arbitrary mixture distribution, altought only {Spherical|Diagonal|Full} Gaussian mixtures has been implemented. User defined mixtures can be used defining a struct as subtype of `AbstractMixture` and implementing for that mixture the following functions:
+- `init_mixtures!(mixtures, X; minimum_variance, minimum_covariance, initialisation_strategy)`
 - `lpdf(m,x,mask)` (for the e-step)
-- `updateParameters!(mixtures, X, pₙₖ; minVariance, minCovariance)` (the m-step)
+- `update_parameters!(mixtures, X, pₙₖ; minimum_variance, minimum_covariance)` (the m-step)
 
+
+All the GMM-based algorithms works only with numerical data, but accepts also Missing one.
 """
 module GMM
 

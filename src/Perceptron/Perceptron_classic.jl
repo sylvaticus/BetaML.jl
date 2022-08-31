@@ -369,11 +369,11 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the labels associated to some feature data using a fitted [`PerceptronClassic`](@ref) model
+Predict the labels associated to some feature data using the linear coefficients learned by fitting a [`PerceptronClassic`](@ref) model
 
 """
 function predict(m::PerceptronClassic,X)
-    θ₀ = [ i for i in m.par.weigths[:,1]]
+    θ₀ = [i for i in m.par.weigths[:,1]]
     θ  = [r for r in eachrow(m.par.weigths[:,2:end])]
     return predict(X,θ,θ₀,m.par.classes)
 end

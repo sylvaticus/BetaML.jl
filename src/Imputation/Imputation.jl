@@ -32,6 +32,8 @@ Imputations for all these models can be optained by running `mod = ImputatorMode
 Trained models can be also used to impute missing values in new data with `predict(mox,xNew)`.
 Note that if multiple imputations are run (for the supporting imputators) `predict()` will return a vector of predictions rather than a single one`.
 
+    Note that this can be used for collaborative filtering / reccomendation systems often with better results than traditional algorithms as k-nearest neighbors (KNN)
+
 ## Example   
 
 ```julia
@@ -106,7 +108,7 @@ abstract type Imputer <: BetaMLModel end
 # ------------------------------------------------------------------------------
 
 """
-predictMissing(X,K;p₀,mixtures,tol,verbosity,minVariance,minCovariance)
+predictMissing(X,K;p₀,mixtures,tol,verbosity,minimum_variance,minimum_covariance)
 
 Note: This is the OLD API. See [`GMMClusterer`](@ref) for the V2 API.
 
@@ -124,10 +126,10 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 * `mixtures`:      An array (of length K) of the mixture to employ (see notes) [def: `[DiagonalGaussian() for i in 1:K]`]
 * `tol`:           Tolerance to stop the algorithm [default: 10^(-6)]
 * `verbosity`:     A verbosity parameter regulating the information messages frequency [def: `STD`]
-* `minVariance`:   Minimum variance for the mixtures [default: 0.05]
-* `minCovariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minVariance (see notes).
+* `minimum_variance`:   Minimum variance for the mixtures [default: 0.05]
+* `minimum_covariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minimum_variance (see notes).
 * `initialisation_strategy`:  Mixture initialisation algorithm [def: `grid`]
-* `maxIter`:       Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]
+* `maximum_iterations`:       Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]
 * `rng`:           Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Returns:
@@ -140,7 +142,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 
 # Notes:
 - The mixtures currently implemented are `SphericalGaussian(μ,σ²)`,`DiagonalGaussian(μ,σ²)` and `FullGaussian(μ,σ²)`
-- For `initialisation_strategy`, look at the documentation of `initMixtures!` for the mixture you want. The provided gaussian mixtures support `grid`, `kmeans` or `given`. `grid` is faster, but `kmeans` often provides better results.
+- For `initialisation_strategy`, look at the documentation of `init_mixtures!` for the mixture you want. The provided gaussian mixtures support `grid`, `kmeans` or `given`. `grid` is faster, but `kmeans` often provides better results.
 - The algorithm requires to specify a number of "latent classes" (mlixtures) to divide the dataset into. If there isn't any prior domain specific knowledge on this point one can test sevaral `k` and verify which one minimise the `BIC` or `AIC` criteria.
 
 
@@ -149,11 +151,11 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 julia>  cFOut = predictMissing([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3)
 ```
 """
-function predictMissing(X,K=3;p₀=[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minVariance=0.05,minCovariance=0.0,initialisation_strategy="kmeans",maxIter=typemax(Int64),rng = Random.GLOBAL_RNG)
+function predictMissing(X,K=3;p₀=[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minimum_variance=0.05,minimum_covariance=0.0,initialisation_strategy="kmeans",maximum_iterations=typemax(Int64),rng = Random.GLOBAL_RNG)
  if verbosity > STD
      @codeLocation
  end
- emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy=initialisation_strategy,maxIter=maxIter,rng=rng)
+ emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng=rng)
 
  (N,D) = size(X)
  nDim  = ndims(X)
@@ -307,7 +309,7 @@ end
 # GMMImputer
 Base.@kwdef mutable struct GMMImputerLearnableParameters <: BetaMLLearnableParametersSet
     mixtures::Vector{AbstractMixture}           = []
-    probMixtures::Vector{Float64}               = []
+    initial_probmixtures::Vector{Float64}               = []
     probRecords::Union{Nothing,Matrix{Float64}} = nothing
     #imputedValues                               = nothing
 end
@@ -370,13 +372,13 @@ function fit!(m::GMMImputer,X)
 
     # Parameter alias..
     K             = m.hpar.n_classes
-    p₀            = m.hpar.probMixtures
+    p₀            = m.hpar.initial_probmixtures
     mixtures      = m.hpar.mixtures
     tol           = m.hpar.tol
-    minVariance   = m.hpar.minVariance
-    minCovariance = m.hpar.minCovariance
+    minimum_variance   = m.hpar.minimum_variance
+    minimum_covariance = m.hpar.minimum_covariance
     initialisation_strategy  = m.hpar.initialisation_strategy
-    maxIter       = m.hpar.maxIter
+    maximum_iterations       = m.hpar.maximum_iterations
     cache         = m.opt.cache
     verbosity     = m.opt.verbosity
     rng           = m.opt.rng
@@ -386,9 +388,9 @@ function fit!(m::GMMImputer,X)
     end
     if m.fitted
         verbosity >= STD && @warn "Continuing training of a pre-fitted model"
-        emOut = gmm(X,K;p₀=m.par.probMixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy="given",maxIter=maxIter,rng = rng)
+        emOut = gmm(X,K;p₀=m.par.initial_probmixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy="given",maximum_iterations=maximum_iterations,rng = rng)
     else
-        emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minVariance=minVariance,minCovariance=minCovariance,initialisation_strategy=initialisation_strategy,maxIter=maxIter,rng = rng)
+        emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)
     end
 
     (N,D) = size(X)
@@ -400,7 +402,7 @@ function fit!(m::GMMImputer,X)
 
     nImputedValues = nFill
 
-    m.par  = GMMImputerLearnableParameters(mixtures = emOut.mixtures, probMixtures=makeColVector(emOut.pₖ), probRecords = emOut.pₙₖ)
+    m.par  = GMMImputerLearnableParameters(mixtures = emOut.mixtures, initial_probmixtures=makeColVector(emOut.pₖ), probRecords = emOut.pₙₖ)
 
     if cache
         X̂ = [XMask[n,d] ? X[n,d] : sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:K]) for n in 1:N, d in 1:D ]
@@ -431,8 +433,8 @@ function predict(m::GMMImputer,X)
     N,D = size(X)
     XMask = .! ismissing.(X)
     mixtures = m.par.mixtures
-    probMixtures = m.par.probMixtures
-    probRecords, lL = estep(X,probMixtures,mixtures)
+    initial_probmixtures = m.par.initial_probmixtures
+    probRecords, lL = estep(X,initial_probmixtures,mixtures)
 
     X̂ = [XMask[n,d] ? X[n,d] : sum([mixtures[k].μ[d] * probRecords[n,k] for k in 1:m.hpar.n_classes]) for n in 1:N, d in 1:D ]
     

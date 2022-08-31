@@ -117,7 +117,7 @@ The training of the model is done with the highly parametrisable `train!` functi
 
 Both the classical `kmeans` and `kmedoids` algorithms are provided (with the difference being that the clusters "representatives" can be in any $R^n$ point in `kmeans`, while are restricted to be one of the data point in `kmedoids`), where different measure metrics can be provided (either those defined in `Utils` or user-provided ones) as well as different initialisation strategies (`random`, `grid`, `shuffle` or `given`).
 
-Alongside these "hard clustering" algorithms, the `Clustering` module provides `gmm`, an implementation of the Expectation-Maximisation algorithm to estimate a generative mixture model, with variance-free and variance-constrained Gaussian mixture components already provided (and again, one can write his own mixture component by subclassing `Mixture` and implementing `initMixtures!`, `lpdf`, `updateParameters!` and `npar`).
+Alongside these "hard clustering" algorithms, the `Clustering` module provides `gmm`, an implementation of the Expectation-Maximisation algorithm to estimate a generative mixture model, with variance-free and variance-constrained Gaussian mixture components already provided (and again, one can write his own mixture component by subclassing `Mixture` and implementing `init_mixtures!`, `lpdf`, `update_parameters!` and `npar`).
 
 Notably the `gmm` function works also with missing input data either in one or all dimensions (and in the former case parameter estimation will be based using only the available dimensions).
 

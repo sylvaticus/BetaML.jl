@@ -16,8 +16,8 @@ mutable struct GMMClusterer <: MMI.Unsupervised
   p₀::AbstractArray{Float64,1}
   mixtures::Symbol
   tol::Float64
-  minVariance::Float64
-  minCovariance::Float64
+  minimum_variance::Float64
+  minimum_covariance::Float64
   initialisation_strategy::String
   rng::AbstractRNG
 end
@@ -26,36 +26,36 @@ GMMClusterer(;
     p₀            = Float64[],
     mixtures      = :diag_gaussian,
     tol           = 10^(-6),
-    minVariance   = 0.05,
-    minCovariance = 0.0,
+    minimum_variance   = 0.05,
+    minimum_covariance = 0.0,
     initialisation_strategy  = "kmeans",
     rng           = Random.GLOBAL_RNG,
-) = GMMClusterer(K,p₀,mixtures, tol, minVariance, minCovariance,initialisation_strategy,rng)
+) = GMMClusterer(K,p₀,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,rng)
 
 mutable struct BetaMLGMMRegressor <: MMI.Deterministic
     n_classes::Int64 
-    probMixtures::Vector{Float64}
+    initial_probmixtures::Vector{Float64}
     mixtures::Symbol
     tol::Float64
-    minVariance::Float64
-    minCovariance::Float64
+    minimum_variance::Float64
+    minimum_covariance::Float64
     initialisation_strategy::String
-    maxIter::Int64 
+    maximum_iterations::Int64 
     verbosity::Verbosity
     rng::AbstractRNG
 end
 BetaMLGMMRegressor(;
     n_classes      = 3,
-    probMixtures  = [],
+    initial_probmixtures  = [],
     mixtures      = :diag_gaussian,
     tol           = 10^(-6),
-    minVariance   = 0.05,
-    minCovariance = 0.0,
+    minimum_variance   = 0.05,
+    minimum_covariance = 0.0,
     initialisation_strategy  = "kmeans",
-    maxIter       = typemax(Int64),
+    maximum_iterations       = typemax(Int64),
     verbosity     = STD,
     rng           = Random.GLOBAL_RNG
-   ) = BetaMLGMMRegressor(n_classes,probMixtures,mixtures,tol,minVariance,minCovariance,initialisation_strategy,maxIter,verbosity,rng)
+   ) = BetaMLGMMRegressor(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,verbosity,rng)
 
 
 # ------------------------------------------------------------------------------
@@ -73,7 +73,7 @@ function MMI.fit(m::GMMClusterer, verbosity, X)
     else
         error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
-    res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minVariance=m.minVariance, minCovariance=m.minCovariance,initialisation_strategy=m.initialisation_strategy,verbosity=NONE,rng=m.rng)
+    res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minimum_variance=m.minimum_variance, minimum_covariance=m.minimum_covariance,initialisation_strategy=m.initialisation_strategy,verbosity=NONE,rng=m.rng)
     fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
@@ -99,12 +99,12 @@ function MMI.fit(m::BetaMLGMMRegressor, verbosity, X, y)
     end
     betamod = GMMRegressor2(
         n_classes     = m.n_classes,
-        probMixtures = m.probMixtures,
+        initial_probmixtures = m.initial_probmixtures,
         mixtures     = mixtures,
         tol          = m.tol,
-        minVariance  = m.minVariance,
+        minimum_variance  = m.minimum_variance,
         initialisation_strategy = m.initialisation_strategy,
-        maxIter      = m.maxIter,
+        maximum_iterations      = m.maximum_iterations,
         verbosity    = m.verbosity,
         rng          = m.rng
     )
@@ -124,7 +124,7 @@ function MMI.predict(m::GMMClusterer, fitResults, X)
     (pₖ,mixtures)   = (fitResults.pₖ, fitResults.mixtures)
     nCl             = length(pₖ)
     # Compute the probabilities that maximise the likelihood given existing mistures and a single iteration (i.e. doesn't update the mixtures)
-    thisOut         = gmm(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minVariance=m.minVariance,minCovariance=m.minCovariance,initialisation_strategy="given",maxIter=1,rng=m.rng)
+    thisOut         = gmm(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minimum_variance=m.minimum_variance,minimum_covariance=m.minimum_covariance,initialisation_strategy="given",maximum_iterations=1,rng=m.rng)
     classes         = CategoricalArray(1:nCl)
     predictions     = MMI.UnivariateFinite(classes, thisOut.pₙₖ)
     return predictions
