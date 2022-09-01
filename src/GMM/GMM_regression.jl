@@ -19,7 +19,7 @@ A multi-dimensional, missing data friendly non-linear regressor based on Generat
 
 The training data is used to fit a probabilistic model with latent mixtures (Gaussian distributions with different covariances are already implemented) and then predictions of new data is obtained by fitting the new data to the mixtures.
 
-For hyperparameters see [`GMMClusterHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).
+For hyperparameters see [`GMMHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).
 
 this strategy (GMMRegressor1) works by training the EM algorithm on the feature matrix X.
 Once the data has been probabilistically assigned to the various classes, a mean value of Y is computed for each cluster (using the probabilities as weigths).
@@ -27,7 +27,7 @@ At predict time, the new data is first fitted to the learned mixtures using the 
 
 """
 mutable struct GMMRegressor1 <: BetaMLUnsupervisedModel
-    hpar::GMMClusterHyperParametersSet
+    hpar::GMMHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,GMMRegressor1LearnableParameters}
     cres::Union{Nothing,Matrix{Float64}} 
@@ -39,9 +39,9 @@ function GMMRegressor1(;kwargs...)
     # ugly manual case...
     if (:n_classes in keys(kwargs) && ! (:mixtures in keys(kwargs)))
         n_classes = kwargs[:n_classes]
-        hps = GMMClusterHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
+        hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
     else 
-        hps = GMMClusterHyperParametersSet()
+        hps = GMMHyperParametersSet()
     end
     m = GMMRegressor1(hps,BetaMLDefaultOptionsSet(),GMMRegressor1LearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
@@ -150,14 +150,14 @@ A multi-dimensional, missing data friendly non-linear regressor based on Generat
 
 The training data is used to fit a probabilistic model with latent mixtures (Gaussian distributions with different covariances are already implemented) and then predictions of new data is obtained by fitting the new data to the mixtures.
 
-For hyperparameters see [`GMMClusterHyperParametersSet`](@ref) and [`GMMClusterOptionsSet`](@ref).
+For hyperparameters see [`GMMHyperParametersSet`](@ref) and [`GMMClusterOptionsSet`](@ref).
 
 Thsi strategy (GMMRegressor2) works by training the EM algorithm on a combined (hcat) matrix of X and Y.
 At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm (and using missing values for the dimensions belonging to Y) to obtain the probabilistic assignment of each record to the various mixtures. Thes these probabilities are multiplied to the mixture averages for the Y dimensions to obtain the predicted value(s) for each record. 
 
 """
 mutable struct GMMRegressor2 <: BetaMLUnsupervisedModel
-    hpar::GMMClusterHyperParametersSet
+    hpar::GMMHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,GMMClusterLearnableParameters}
     cres::Union{Nothing,Matrix{Float64}}
@@ -169,9 +169,9 @@ function GMMRegressor2(;kwargs...)
     # ugly manual case...
     if (:n_classes in keys(kwargs) && ! (:mixtures in keys(kwargs)))
         n_classes = kwargs[:n_classes]
-        hps = GMMClusterHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
+        hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
     else 
-        hps = GMMClusterHyperParametersSet()
+        hps = GMMHyperParametersSet()
     end
     m = GMMRegressor2(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))

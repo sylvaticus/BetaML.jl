@@ -87,7 +87,7 @@ Similar to K-Means, but the "representatives" (the cetroids) are guaranteed to b
     initialisation_strategy = "shuffle",
     initial_representatives           = nothing,
     rng          = Random.GLOBAL_RNG,
-  ) = KMedoids(K,dist,initialisation_strategy,initial_representatives,rng)
+  ) = KMedoids(n_classes,dist,initialisation_strategy,initial_representatives,rng)
 
 # ------------------------------------------------------------------------------
 # Fit functions...

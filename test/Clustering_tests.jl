@@ -3,7 +3,7 @@ using Test
 import MLJBase
 const Mlj = MLJBase
 using BetaML
-import BetaML.Clustering: initRepresentatives
+import BetaML.Clustering: init_representatives
 
 TESTRNG = FIXEDRNG # This could change...
 
@@ -14,8 +14,8 @@ println("*** Testing Clustering...")
 # ==================================
 println("Testing initRepreserntative...")
 
-Z₀ = initRepresentatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2,initialisation_strategy="given",Z₀=[1.7 15; 3.6 40])
-@test isapprox(Z₀,[1.7  15.0; 3.6  40.0])
+initial_representatives = init_representatives([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.6 38],2,initialisation_strategy="given",initial_representatives=[1.7 15; 3.6 40])
+@test isapprox(initial_representatives,[1.7  15.0; 3.6  40.0])
 
 # ==================================
 # New test

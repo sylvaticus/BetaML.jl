@@ -40,7 +40,7 @@ export gmm, AbstractMixture,
        GMMClusterModel,
        GMMRegressor1, GMMRegressor2,
        BetaMLGMMRegressor,
-       GMMClusterHyperParametersSet
+       GMMHyperParametersSet
 
 abstract type AbstractMixture end
 

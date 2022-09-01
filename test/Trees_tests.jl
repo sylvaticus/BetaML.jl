@@ -41,8 +41,9 @@ ŷtrain3 = predict(m) # using cached elements
 using AbstractTrees
 import AbstractTrees: printnode
 wrappedNode = wrap(myTree)
+print("Node printing: ")
 printnode(stdout,wrappedNode)
-
+println("")
 
 xtest = [
     "Green"  3;

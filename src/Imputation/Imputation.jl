@@ -329,7 +329,7 @@ For the parameters (`n_classes`,`mixtures`,..) see  [`GMMImputerLearnableParamet
 - currently the Mixtures available do not support random initialisation for missing imputation, and the rest of the algorithm (we use the Expectation-Maximisation) is deterministic, so there is no random component involved (i.e. no multiple imputations)    
 """
 mutable struct GMMImputer <: Imputer
-    hpar::GMMClusterHyperParametersSet
+    hpar::GMMHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{GMMImputerLearnableParameters,Nothing}
     cres::Union{Nothing,Matrix{Float64}}
@@ -341,9 +341,9 @@ function GMMImputer(;kwargs...)
     # ugly manual case...
     if (:n_classes in keys(kwargs) && ! (:mixtures in keys(kwargs)))
         n_classes = kwargs[:n_classes]
-        hps = GMMClusterHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
+        hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
     else 
-        hps = GMMClusterHyperParametersSet()
+        hps = GMMHyperParametersSet()
     end
     m              = GMMImputer(hps,BetaMLDefaultOptionsSet(),GMMImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))

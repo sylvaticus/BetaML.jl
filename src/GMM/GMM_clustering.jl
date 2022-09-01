@@ -41,7 +41,7 @@ Compute Expectation-Maximisation algorithm to identify K clusters of X data, i.e
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use one of the various models that use GMM as backen instead.
+    Use one of the various models that use GMM as backend instead.
 
 X can contain missing values in some or all of its dimensions. In such case the learning is done only with the available data.
 Implemented in the log-domain for better numerical accuracy with many dimensions.
@@ -174,12 +174,14 @@ Hyperparameters for GMM clusters and other GMM-based algorithms
 ## Parameters:
 $(FIELDS)
 """
-Base.@kwdef mutable struct GMMClusterHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
     "Number of mixtures (latent classes) to consider [def: 3]"
     n_classes::Int64                   = 3
     "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
     initial_probmixtures::Vector{Float64}     = Float64[]
-    "An array (of length `n_classes``) of the mixture to employ (see notes) [def: `[DiagonalGaussian() for i in 1:n_classes]`]"
+    """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
+    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\"`
+    [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
     mixtures::Vector{AbstractMixture} = [DiagonalGaussian() for i in 1:n_classes]
     "Tolerance to stop the algorithm [default: 10^(-6)]"
     tol::Float64                      = 10^(-6)
@@ -187,7 +189,14 @@ Base.@kwdef mutable struct GMMClusterHyperParametersSet <: BetaMLHyperParameters
     minimum_variance::Float64              = 0.05
     "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minimum_variance (see notes)."
     minimum_covariance::Float64            = 0.0
-    "Mixture initialisation algorithm [def: `kmeans`]"
+    """
+    The computation method of the vector of the initial mixtures.
+    One of the following:
+    - "random": randomly in the X space [default]
+    - "grid": using a grid approach
+    - "shuffle": selecting randomly within the available points
+    - "given": using the mixture provided in the fully qualified `mixtures` parameter
+    """
     initialisation_strategy::String              = "kmeans"
     "Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]"
     maximum_iterations::Int64                    = typemax(Int64)
@@ -200,11 +209,21 @@ Base.@kwdef mutable struct GMMClusterLearnableParameters <: BetaMLLearnableParam
     #probRecords::Union{Nothing,Matrix{Float64}} = nothing
 end
 
+"""
+$(TYPEDEF)
 
+Assign class probabilities to records (i.e. _soft_ clustering) assuming a probabilistic generative model of observed data using mixtures.
 
+For the parameters see [`?GMMHyperParametersSet`](@ref GMMHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
 
+# Notes:
+- Data must be numerical
+- Mixtures can be user defined: see the [`?GMM`](@ref GMM) module documentation for a discussion on provided vs custom mixtures.
+- Online fitting (re-fitting with new data) is supported by setting the old learned mixtrures as the starting values
+- The model is fitted using an Expectation-Minimisation (EM) algorithm that supports Missing data and is implemented in the log-domain for better numerical accuracy with many dimensions
+"""
 mutable struct GMMClusterModel <: BetaMLUnsupervisedModel
-    hpar::GMMClusterHyperParametersSet
+    hpar::GMMHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,GMMClusterLearnableParameters}
     cres::Union{Nothing,Matrix{Float64}}
@@ -216,9 +235,9 @@ function GMMClusterModel(;kwargs...)
     # ugly manual case...
     if (:n_classes in keys(kwargs) && ! (:mixtures in keys(kwargs)))
         n_classes = kwargs[:n_classes]
-        hps = GMMClusterHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
+        hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
     else 
-        hps = GMMClusterHyperParametersSet()
+        hps = GMMHyperParametersSet()
     end
     m = GMMClusterModel(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))

@@ -43,8 +43,11 @@ ŷtrain3 = predict(m,xtrain)
 
 
 # Test save/load
-model_save("test.jld2"; m, m2=m)
+model_save("test.jld2"; mtemp=m)
+model_save("test.jld2", true; m, m2=m) # should overwrite the file...
+model_save("test.jld2"; m3=m)
 models   = model_load("test.jld2")
+@test collect(keys(models)) == ["m","m2","m3"]
 ŷtrain4  = predict(models["m2"]) 
 mb       = model_load("test.jld2","m") 
 (mc, md) = model_load("test.jld2","m", "m2") 

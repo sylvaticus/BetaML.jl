@@ -218,12 +218,17 @@ options(m::BetaMLModel)         = m.opt
 #    JLD2.jldsave(filename;names...)
 #end
 """
-    model_save(filename::AbstractString;kwargs...)
+    model_save(filename::AbstractString,overwrite_file::Bool=false;kwargs...)
 
 Allow to save one or more BetaML models (wheter fitted or not), eventually specifying a name for each of them.
 
+# Parameters:
+- `filename`: Name of the destination file
+- `overwrite_file`: Wheter to overrite the file if it alreaxy exist or preserve it (for the objects different than the one that are going to be saved) [def: `false`, i.e. preserve the file]
+- `kwargs`: model objects to be saved, eventually associated with a different name to save the mwith (e.g. `mod1Name=mod1,mod2`)  
 # Notes:
-- If an object with the given name already exists on the destination JLD2 file it will be ovenwritten. If the file exists, but is not a JLD2 file, an error will be raisen.
+- If an object with the given name already exists on the destination JLD2 file it will be ovenwritten.
+- If the file exists, but it is not a JLD2 file and the option `overwrite_file` is set to `false`, an error will be raisen.
 - Use the semicolon `;` to separate the filename from the model(s) to save
 - For further options see the documentation of the [`JLD2`](https://juliaio.github.io/JLD2.jl/stable/) package
 
@@ -232,8 +237,9 @@ Allow to save one or more BetaML models (wheter fitted or not), eventually speci
 julia> model_save("fittedModels.jl"; mod1Name=mod1,mod2)
 ```
 """
-function model_save(filename;kargs...)
-    JLD2.jldopen(filename, "a+") do f
+function model_save(filename,overwrite_file::Bool=false;kargs...)
+    flag = overwrite_file ? "w" : "a+"
+    JLD2.jldopen(filename, flag) do f
         for (k,v) in kargs
             ks = string(k)
             if ks in keys(f)

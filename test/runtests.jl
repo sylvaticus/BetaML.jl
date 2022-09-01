@@ -14,6 +14,8 @@ else
     println("Running normal testing")
 end
 
+# just to reset the file used to save models in several mudules..
+rm("test.jld2", force=true)
 
 if "all" in ARGS || "Utils" in ARGS || nArgs == 0
     include("Utils_tests.jl")
@@ -47,3 +49,5 @@ if "all" in ARGS
     include("Trees_tests_additional.jl")
     include("Clustering_tests_additional.jl")
 end
+
+rm("test.jld2", force=true)
