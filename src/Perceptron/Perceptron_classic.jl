@@ -7,7 +7,7 @@ Train the multiclass classifier "perceptron" algorithm  based on x and y (labels
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use the model `PerceptronClassic` instead. 
+    Use the model [`PerceptronClassic`](@ref) instead. 
 
 The perceptron is a _linear_ classifier. Multiclass is supported using a one-vs-all approach.
 
@@ -253,7 +253,7 @@ $(TYPEDEF)
 
 Hyperparameters for the [`PerceptronClassic`](@ref) model
 
-## Parameters:
+# Parameters:
 $(TYPEDFIELDS)
 """
 Base.@kwdef mutable struct PerceptronClassicHyperParametersSet <: BetaMLHyperParametersSet

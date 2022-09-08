@@ -59,3 +59,77 @@ Models can be resetted to lose the learned information with `reset!(mod)` and tr
 Hyperparameters, options and learned parameters can be retrieved with the functions `hyperparameters`, `parameters` and `options` respectively. Note that they can be used also to set new values to the model as they return a reference to the required objects.
 
 Some models allow an inverse transformation, that using the parameters learned at trainign time (e.g. the scale factors) perform an inverse tranformation of new data to the space of the training data (e.g. the unscaled space). Use `inverse_predict(mod,xnew)`.
+
+
+# Available models
+
+Currently the following models are available
+
+| BetaML name | MLJ Interface | Notes |
+| ----------- | ------------- | ---------------------------------------------- |
+| PerceptronClassic | PerceptronClassifier |  | 
+| KernelPerceptron  | KernelPerceptronClassifier
+| Pegasos | PegasosClassifier |
+| DTModel | DecisionTreeClassifier, DecisionTreeRegressor | 
+| RFModel |  RandomForestClassifier, RandomForestRegressor |
+| FeedforwardNN | FeedforwardNeuralNetwork
+| KMeansModel | KMeans
+| KMedoidsModel | KMedoids
+| GMMClusterModel | GMMClusterer
+| GMMRegressor1 | 
+| GMMRegressor2 | BetaMLGMMRegressor
+| MeanImputer | BetaMLMeanImputer
+| GMMImputer | BetaMLGMMImputer
+| RFImputer | BetaMLRFImputer
+| GeneralImputer | BetaMLGenericImputer
+| MinMaxScaler | |
+| StandardScaler | |
+| Scaler | |
+| PCA | |
+| OneHotEncoder | |
+| OrdinalEncoder | |
+
+
+| Perceptron | PerceptronClassifier |  | 
+| KernelPerceptron  | KernelPerceptronClassifier
+| Pegasos | PegasosClassifier |
+| DecitionTree | DecisionTreeClassifier, DecisionTreeRegressor | 
+| RandomForest |  RandomForestClassifier, RandomForestRegressor |
+| NeuralNetwork | FeedforwardNeuralNetwork
+| GMMRegressor1 | 
+| GMMRegressor2 | BetaMLGMMRegressor
+| KMeans | KMeans
+| KMedoids | KMedoids
+| GMMClusterer | GMMClusterer
+| MeanImputer | BetaMLMeanImputer
+| GMMImputer | BetaMLGMMImputer
+| RFImputer | BetaMLRFImputer
+| GeneralImputer | BetaMLGenericImputer
+| MinMaxScaler | |
+| StandardScaler | |
+| Scaler | |
+| PCA | |
+| OneHotEncoder | |
+| OrdinalEncoder | |
+
+| PerceptronClassifier | Perceptron |  | 
+| KernelPerceptronClassifier  | KernelPerceptron
+| PegasosClassifier | Pegasos |
+| DecisionTreePredictor | DecisionTreeClassifier, DecisionTreeRegressor | 
+| RandomForestPredictor |  RandomForestClassifier, RandomForestRegressor |
+| NeuralNetworkPredictor | NeuralNetworkClassifier, MultitargetNeuralNetworkRegressor
+| GMMRegressor1 | 
+| GMMRegressor2 | GMMRegressor
+| KMeansClusterer | KMeans
+| KMedoidsClusterer | KMedoids
+| GMMClusterer | GMM
+| MeanImputer | ImputerByMean
+| GMMImputer |ImputerByGMM
+| RFImputer | ImputerByRandomForest
+| GeneralImputer | ImputerByAny
+| MinMaxScaler | |
+| StandardScaler | |
+| Scaler | |
+| PCATransformer | |
+| OneHotEncoder | |
+| OrdinalEncoder | |

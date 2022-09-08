@@ -141,7 +141,7 @@ mreTrain2d = meanRelError(ŷtrain2d,ytrain2d)
 println("Testing MLJ interface for GMM models....")
 X, y                           = Mlj.@load_iris
 
-model                       =  GMMClusterer(mixtures=:diag_gaussian,rng=copy(TESTRNG))
+model                       =  GMMClusterer(mixtures=[DiagonalGaussian() for i in 1:3],rng=copy(TESTRNG))
 modelMachine                =  Mlj.machine(model, X) # DimensionMismatch
 (fitResults, cache, report) =  Mlj.fit(model, 0, X)
 yhat_prob                   =  Mlj.predict(model, fitResults, X)  # Mlj.transform(model,fitResults,X)

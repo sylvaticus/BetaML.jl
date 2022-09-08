@@ -47,7 +47,7 @@ julia> [code]
 
 ```
 """
-$(TYPEDEF)
+
 
 One line description
 

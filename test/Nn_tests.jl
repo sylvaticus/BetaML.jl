@@ -321,7 +321,7 @@ println("Testing MLJ interface for FeedfordwarNN....")
 import MLJBase
 const Mlj = MLJBase
 X, y                           = Mlj.@load_boston
-model                          = FeedforwardNeuralNetwork(rng=copy(TESTRNG))
+model                          = MultitargetNeuralNetworkRegressor(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = dropdims(Mlj.predict(model, fitresult, X),dims=2)
@@ -329,7 +329,7 @@ yhat                           = dropdims(Mlj.predict(model, fitresult, X),dims=
 
 X, y                           = Mlj.@load_iris
 y_oh                           = oneHotEncoder(y)
-model                          = FeedforwardNeuralNetwork(rng=copy(TESTRNG))
+model                          = MultitargetNeuralNetworkRegressor(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y_oh)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y_oh)
 yhat                           = Mlj.predict(model, fitresult, X)

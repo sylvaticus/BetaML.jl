@@ -15,24 +15,19 @@ Implement the BetaML.Imputation module
     Imputation module
 
 Provide various imputation methods for missing data. Note that the interpretation of "missing" can be very wide.
-For example, reccomendation systems / collaborative filtering (e.g. suggestion of the film to watch) can well be representated as a missing data to impute problem.
+For example, reccomendation systems / collaborative filtering (e.g. suggestion of the film to watch) can well be representated as a missing data to impute problem, often with better results than traditional algorithms as k-nearest neighbors (KNN)
 
-Using the original "V1" API:
-- [`predictMissing`](@ref): Impute data using a Generative (Gaussian) Mixture Model (good trade off)
+Provided imputers:
 
-Using the v2 API (experimental):
-
-- [`MeanImputer`](@ref): Simple imputator using the features or the records means, with optional record normalisation (fastest)
+- [`MeanImputer`](@ref): Impute data using the feature (column) mean, optionally normalised by l-norms of the records (rows) (fastest)
 - [`GMMImputer`](@ref): Impute data using a Generative (Gaussian) Mixture Model (good trade off)
 - [`RFImputer`](@ref): Impute missing data using Random Forests, with optional replicable multiple imputations (most accurate).
-- [`GenericImputer`](@ref): Impute missing data using a vector (one per column) of arbitrary learning models (classifiers/regressors) that implement `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)`.
+- [`GenericImputer`](@ref): Impute missing data using a vector (one per column) of arbitrary learning models (classifiers/regressors) that implement `m = Model([options])`, `fit!(m,X,Y)` and `predict(m,X)`.
 
 
 Imputations for all these models can be optained by running `mod = ImputatorModel([options])`, `fit!(mod,X)`. The data with the missing values imputed can then be obtained with `predict(mod)`. Use`info(m::Imputer)` to retrieve further information concerning the imputation.
 Trained models can be also used to impute missing values in new data with `predict(mox,xNew)`.
 Note that if multiple imputations are run (for the supporting imputators) `predict()` will return a vector of predictions rather than a single one`.
-
-    Note that this can be used for collaborative filtering / reccomendation systems often with better results than traditional algorithms as k-nearest neighbors (KNN)
 
 ## Example   
 
@@ -48,10 +43,9 @@ julia> X            = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4
     4     8            20
     1     2             5
 
-julia> mod          = RFImputer(multipleImputations=10,  rng=copy(FIXEDRNG));
+julia> mod          = RFImputer(multiple_imputations=10,  rng=copy(FIXEDRNG));
 
-julia> fit!(mod,X)
-true
+julia> fit!(mod,X);
 
 julia> vals         = predict(mod)
 10-element Vector{Matrix{Union{Missing, Int64}}}:
@@ -80,7 +74,7 @@ julia> medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 
 julia> infos        = info(mod);
 
-julia> infos[:nImputedValues]
+julia> infos[:n_imputed_values]
 1
 ```
 """
@@ -108,12 +102,13 @@ abstract type Imputer <: BetaMLModel end
 # ------------------------------------------------------------------------------
 
 """
-predictMissing(X,K;p₀,mixtures,tol,verbosity,minimum_variance,minimum_covariance)
+    predictMissing(X,K;initial_probmixtures,mixtures,tol,verbosity,minimum_variance,minimum_covariance)
 
-Note: This is the OLD API. See [`GMMClusterer`](@ref) for the V2 API.
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use the model [`GMMClusterer`](@ref) instead. 
 
-Fill missing entries in a sparse matrix (i.e. perform a "matrix completion") assuming an underlying Gaussian Mixture probabilistic Model (GMM) and implementing
-an Expectation-Maximisation algorithm.
+Fill missing entries in a sparse matrix (i.e. perform a "matrix completion") assuming an underlying Gaussian Mixture probabilistic Model (GMM) fitted using an Expectation-Maximisation algorithm.
 
 While the name of the function is `predictMissing`, the function can be also used for system reccomendation / collaborative filtering and GMM-based regressions. The advantage over traditional algorithms as k-nearest neighbors (KNN) is that GMM can "detect" the hidden structure of the observed data, where some observation can be similar to a certain pool of other observvations for a certain characteristic, but similar to an other pool of observations for other characteristics.
 
@@ -122,7 +117,7 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 # Parameters:
 * `X`  :           A (N x D) sparse matrix of data to fill according to a GMM model
 * `K`  :           Number of mixtures (latent classes) to consider [def: 3]
-* `p₀` :           Initial probabilities of the categorical distribution (K x 1) [default: `[]`]
+* `initial_probmixtures` :           Initial probabilities of the categorical distribution (K x 1) [default: `[]`]
 * `mixtures`:      An array (of length K) of the mixture to employ (see notes) [def: `[DiagonalGaussian() for i in 1:K]`]
 * `tol`:           Tolerance to stop the algorithm [default: 10^(-6)]
 * `verbosity`:     A verbosity parameter regulating the information messages frequency [def: `STD`]
@@ -151,11 +146,11 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 julia>  cFOut = predictMissing([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3)
 ```
 """
-function predictMissing(X,K=3;p₀=[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minimum_variance=0.05,minimum_covariance=0.0,initialisation_strategy="kmeans",maximum_iterations=typemax(Int64),rng = Random.GLOBAL_RNG)
+function predictMissing(X,K=3;initial_probmixtures=[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minimum_variance=0.05,minimum_covariance=0.0,initialisation_strategy="kmeans",maximum_iterations=typemax(Int64),rng = Random.GLOBAL_RNG)
  if verbosity > STD
      @codeLocation
  end
- emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng=rng)
+ emOut = gmm(X,K;initial_probmixtures=initial_probmixtures,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng=rng)
 
  (N,D) = size(X)
  nDim  = ndims(X)
@@ -181,8 +176,16 @@ end
 
 # ------------------------------------------------------------------------------
 # MeanImputer
+"""
+$(TYPEDEF)
 
+Hyperparameters for the [`MeanImputer`](@ref) model
+
+# Parameters:
+$(TYPEDFIELDS)
+"""
 Base.@kwdef mutable struct MeanImputerHyperParametersSet <: BetaMLHyperParametersSet
+    "Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries)."
     norm::Union{Nothing,Int64}       = nothing
 end
 Base.@kwdef mutable struct MeanImputerLearnableParameters <: BetaMLLearnableParametersSet
@@ -192,14 +195,14 @@ Base.@kwdef mutable struct MeanImputerLearnableParameters <: BetaMLLearnablePara
 end
 
 """
-**`MeanImputer`**
+$(TYPEDEF)
 
 Simple imputer using the feature (column) mean, optionally normalised by l-norms of the records (rows)
 
-## Parameters:
+# Parameters:
 - `norm`: Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries).  
 
-## Limitations:
+# Limitations:
 - data must be numerical
 """
 mutable struct MeanImputer <: Imputer
@@ -230,7 +233,7 @@ end
 
 
 """
-    fit!(imputer::MeanImputer,X)
+$(TYPEDSIGNATURES)
 
 Fit a matrix with missing data using [`MeanImputer`](@ref)
 """
@@ -254,22 +257,15 @@ function fit!(imputer::MeanImputer,X)
     end
     imputer.par = MeanImputerLearnableParameters(cMeans,adjNorms)
     imputer.cres = cache ? X̂ : nothing
-    imputer.info[:nImputedValues] = sum(missingMask)
+    imputer.info[:n_imputed_values] = sum(missingMask)
     imputer.fitted = true
     return cache ? imputer.cres : nothing
 end
 
-#"""
-#    predict(m::MeanImputer)
-#
-#Return the data with the missing values replaced with the imputed ones using [`MeanImputer`](@ref).
-#"""
-#predict(m::MeanImputer) = m.par.imputedValues
-
 """
-    predict(m::MeanImputer, X)
+$(TYPEDSIGNATURES)
 
-Return the data with the missing values replaced with the imputed ones using [`MeanImputer`](@ref).
+Predict the missing data using the feature averages (eventually normalised) learned by fitting a [`MeanImputer`](@ref) model
 """
 function predict(m::MeanImputer,X)
     nR,nC = size(X)
@@ -316,17 +312,16 @@ end
 
 
 """
+$(TYPEDEF)
 
-**`GMMImputer`**
-
-Missing data imputer that uses a Generated (Gaussian) Mixture Model.
+Missing data imputer that uses a Generative (Gaussian) Mixture Model.
 
 For the parameters (`n_classes`,`mixtures`,..) see  [`GMMImputerLearnableParameters`](@ref).
 
-## Limitations:
+# Limitations:
 - data must be numerical
 - the resulted matrix is a Matrix{Float64}
-- currently the Mixtures available do not support random initialisation for missing imputation, and the rest of the algorithm (we use the Expectation-Maximisation) is deterministic, so there is no random component involved (i.e. no multiple imputations)    
+- currently the Mixtures available do not support random initialisation for missing imputation, and the rest of the algorithm (Expectation-Maximisation) is deterministic, so there is no random component involved (i.e. no multiple imputations)
 """
 mutable struct GMMImputer <: Imputer
     hpar::GMMHyperParametersSet
@@ -363,7 +358,7 @@ end
 
 
 """
-    fit!(imputer::GMMImputer,X)
+$(TYPEDSIGNATURES)
 
 Fit a matrix with missing data using [`GMMImputer`](@ref)
 """
@@ -372,7 +367,7 @@ function fit!(m::GMMImputer,X)
 
     # Parameter alias..
     K             = m.hpar.n_classes
-    p₀            = m.hpar.initial_probmixtures
+    initial_probmixtures            = m.hpar.initial_probmixtures
     mixtures      = m.hpar.mixtures
     tol           = m.hpar.tol
     minimum_variance   = m.hpar.minimum_variance
@@ -388,9 +383,9 @@ function fit!(m::GMMImputer,X)
     end
     if m.fitted
         verbosity >= STD && @warn "Continuing training of a pre-fitted model"
-        emOut = gmm(X,K;p₀=m.par.initial_probmixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy="given",maximum_iterations=maximum_iterations,rng = rng)
+        emOut = gmm(X,K;initial_probmixtures=m.par.initial_probmixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy="given",maximum_iterations=maximum_iterations,rng = rng)
     else
-        emOut = gmm(X,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)
+        emOut = gmm(X,K;initial_probmixtures=initial_probmixtures,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)
     end
 
     (N,D) = size(X)
@@ -400,7 +395,7 @@ function fit!(m::GMMImputer,X)
     XMask = .! ismissing.(X)
     nFill = (N * D) - sum(XMask)
 
-    nImputedValues = nFill
+    n_imputed_values = nFill
 
     m.par  = GMMImputerLearnableParameters(mixtures = emOut.mixtures, initial_probmixtures=makeColVector(emOut.pₖ), probRecords = emOut.pₙₖ)
 
@@ -415,18 +410,17 @@ function fit!(m::GMMImputer,X)
     m.info[:AIC]            = emOut.AIC
     m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(X,1)
     m.info[:dimensions]     = size(X,2)
-    m.info[:nImputedValues]     = nImputedValues
+    m.info[:n_imputed_values]     = n_imputed_values
     m.fitted=true
     return cache ? m.cres : nothing
 end
 
-#"""
-#    predict(m::GMMImputer)
-#
-#Return the data with the missing values replaced with the imputed ones using [`GMMImputer`](@ref).
-#"""
-#predict(m::GMMImputer) = (! m.fitted) ? nothing : m.par.imputedValues 
+"""
+$(TYPEDSIGNATURES)
 
+Predict the missing data using the mixtures learned by fitting a [`GMMImputer`](@ref) model
+
+"""
 function predict(m::GMMImputer,X)
     m.fitted || error("Trying to predict from an untrained model")
     X   = makeMatrix(X)
@@ -463,38 +457,44 @@ end
 # RFImputer
 
 """
-**`RFImputerHyperParametersSet`**
+$(TYPEDEF)
 
-Hyperparameters for RFImputer
+Hyperparameters for [`RFImputer`](@ref)
 
-#Parameters
-- For the underlying random forest algorithm parameters (`n_trees`,`max_depth`,`min_gain`,`min_records`,`max_features:`,`splitting_criterion`,`β`,`initialisation_strategy`, `oob` and `rng`) see [`RFHyperParametersSet`](@ref) for the specific RF algorithm parameters
-- `forcedCategoricalCols`: specify the positions of the integer columns to treat as categorical instead of cardinal. [Default: empty vector (all numerical cols are treated as cardinal by default and the others as categorical)]
-- `recursivePassages `: Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`].
-- `multipleImputations`: Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG).
+# Parameters:
+$(TYPEDFIELDS)
+
+# Example:
+```
+julia>mod = RFImputer(n_trees=20,max_depth=10,recursive_passages=3)
+```
 """
 Base.@kwdef mutable struct RFImputerHyperParametersSet <: BetaMLHyperParametersSet
+    "For the underlying random forest algorithm parameters (`n_trees`,`max_depth`,`min_gain`,`min_records`,`max_features:`,`splitting_criterion`,`β`,`initialisation_strategy`, `oob` and `rng`) see [`RFHyperParametersSet`](@ref) for the specific RF algorithm parameters"
     rfhpar                                      = RFHyperParametersSet()
+    "Specify the positions of the integer columns to treat as categorical instead of cardinal. [Default: empty vector (all numerical cols are treated as cardinal by default and the others as categorical)]"
     forced_categorical_cols::Vector{Int64}                = Int64[] # like in RF, normally integers are considered ordinal
-    recursivePassages::Int64                    = 1
-    multipleImputations::Int64                  = 1
+    "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
+    recursive_passages::Int64                    = 1
+    "Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG)."
+    multiple_imputations::Int64                  = 1
 end
 
 Base.@kwdef struct RFImputerLearnableParameters <: BetaMLLearnableParametersSet
     forests        = nothing
     #imputedValues  = nothing
-    #nImputedValues::Int64
+    #n_imputed_values::Int64
     #oob::Vector{Vector{Float64}}
 end
 
 """
-    RFImputer
+$(TYPEDEF)
 
 Impute missing data using Random Forests, with optional replicable multiple imputations. 
 
-See [`RFImputerHyperParametersSet`](@ref) and [`RFHyperParametersSet`](@ref)
+See [`RFImputerHyperParametersSet`](@ref), [`RFHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref) for the parameters.
 
-### Notes:
+# Notes:
 - Given a certain RNG and its status (e.g. `RFImputer(...,rng=StableRNG(FIXEDSEED))`), the algorithm is completely deterministic, i.e. replicable. 
 - The algorithm accepts virtually any kind of data, sortable or not
 """
@@ -536,7 +536,7 @@ function RFImputer(;kwargs...)
 end
 
 """
-    fit!(imputer::RFImputer,X)
+$(TYPEDSIGNATURES)
 
 Fit a matrix with missing data using [`RFImputer`](@ref)
 """
@@ -566,10 +566,10 @@ function fit!(m::RFImputer,X)
     verbosity           = m.opt.verbosity
      
     forced_categorical_cols        = m.hpar.forced_categorical_cols
-    recursivePassages    = m.hpar.recursivePassages
-    multipleImputations  = m.hpar.multipleImputations
+    recursive_passages    = m.hpar.recursive_passages
+    multiple_imputations  = m.hpar.multiple_imputations
 
-    imputed = fill(similar(X),multipleImputations)
+    imputed = fill(similar(X),multiple_imputations)
     if max_features == typemax(Int64) && n_trees >1
       max_features = Int(round(sqrt(size(X,2))))
     end
@@ -580,16 +580,16 @@ function fit!(m::RFImputer,X)
 
     missingMask    = ismissing.(X)
     nonMissingMask = .! missingMask 
-    nImputedValues = sum(missingMask)
-    oobErrors      = fill(fill(Inf,nC),multipleImputations) # by imputations and dimensions
-    forests        = Array{Trees.Forest}(undef,multipleImputations,nC)
+    n_imputed_values = sum(missingMask)
+    oobErrors      = fill(fill(Inf,nC),multiple_imputations) # by imputations and dimensions
+    forests        = Array{Trees.Forest}(undef,multiple_imputations,nC)
 
-    for imputation in 1:multipleImputations
+    for imputation in 1:multiple_imputations
         verbosity >= STD && println("** Processing imputation $imputation")
         Xout    = copy(X)
         sortedDims     = reverse(sortperm(makeColVector(sum(missingMask,dims=1)))) # sorted from the dim with more missing values
         oobErrorsImputation = fill(Inf,nC)
-        for pass in 1:recursivePassages 
+        for pass in 1:recursive_passages 
             m.opt.verbosity >= HIGH && println("- processing passage $pass")
             if pass > 1
                 shuffle!(rng, sortedDims) # randomise the order we go trough the various dimensions at this passage
@@ -639,7 +639,7 @@ function fit!(m::RFImputer,X)
                     #return Xout
                 end
                 # This is last passage: save the model and compute oob errors if requested
-                if pass == recursivePassages 
+                if pass == recursive_passages 
                     forests[imputation,d] = dfor 
                     if oob
                         oobErrorsImputation[d] = Trees.oobError(dfor,Xd,y,rng=rng) # BetaML.Trees.oobError(dfor,Xd,y)
@@ -653,41 +653,38 @@ function fit!(m::RFImputer,X)
     end # end individual imputation
     m.par = RFImputerLearnableParameters(forests)
     if cache
-        if multipleImputations == 1
+        if multiple_imputations == 1
             m.cres = imputed[1]
         else
             m.cres = imputed
         end
     end 
-    m.info[:nImputedValues] = nImputedValues
+    m.info[:n_imputed_values] = n_imputed_values
     m.info[:oobErrors] = oobErrors
 
     m.fitted = true
     return cache ? m.cres : nothing
 end
 
-#"""
-#    predict(m::RFImputer)
-#
-#Return the data with the missing values replaced with the imputed ones using [`RFImputer`](@ref). If `multipleImputations` was set >1 this is a vector of matrices (the individual imputations) instead of a single matrix.
-#"""
-#predict(m::RFImputer) =  (! m.fitted) ? nothing : (m.hpar.multipleImputations == 1 ? m.cres[1] : m.cres)
 """
-    predict(m::RFImputer, X)
+$(TYPEDSIGNATURES)
 
-Return the data with the missing values replaced with the imputed ones using [`RFImputer`](@ref). If `multipleImputations` was set >1 this is a vector of matrices (the individual imputations) instead of a single matrix.
+Return the data with the missing values replaced with the imputed ones using the non-linear structure learned fitting a [`RFImputer`](@ref) model.
+
+# Notes:
+- If `multiple_imputations` was set > 1 this is a vector of matrices (the individual imputations) instead of a single matrix.
 """
 function predict(m::RFImputer,X)
     nR,nC = size(X)
     missingMask    = ismissing.(X)
     nonMissingMask = .! missingMask 
-    multipleImputations  = m.hpar.multipleImputations
+    multiple_imputations  = m.hpar.multiple_imputations
     rng = m.opt.rng
     forests = m.par.forests
     verbosity = m.opt.verbosity
 
-    imputed = fill(similar(X),multipleImputations)
-    for imputation in 1:multipleImputations
+    imputed = fill(similar(X),multiple_imputations)
+    for imputation in 1:multiple_imputations
         verbosity >= STD && println("** Processing imputation $imputation")
         Xout    = copy(X)
         for d in 1:nC
@@ -723,7 +720,7 @@ function predict(m::RFImputer,X)
         end # end dimension
         imputed[imputation]   = Xout
     end # end individual imputation
-    multipleImputations == 1 ? (return imputed[1]) : return imputed
+    multiple_imputations == 1 ? (return imputed[1]) : return imputed
 end
 
 function show(io::IO, ::MIME"text/plain", m::RFImputer)
@@ -750,18 +747,18 @@ end
 """
 $(TYPEDEF)
 
-Hyperparameters for GeneralImputer
+Hyperparameters for [`GeneralImputer`](@ref)
 
-## Parameters:
+# Parameters:
 $(FIELDS)
 """
 Base.@kwdef mutable struct GeneralImputerHyperParametersSet <: BetaMLHyperParametersSet
-    "Specify a regressor or classier model per column. Default to random forests."
+    "Specify a regressor or classier model (and its options/hyper-parameters) per each column of the matrix to impute. Default to random forests."
     models                        = nothing
     "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
-    recursivePassages::Int64      = 1
+    recursive_passages::Int64      = 1
     "Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG)."
-    multipleImputations::Int64    = 1
+    multiple_imputations::Int64    = 1
 end
 
 Base.@kwdef struct GeneralImputerLearnableParameters <: BetaMLLearnableParametersSet
@@ -770,7 +767,7 @@ Base.@kwdef struct GeneralImputerLearnableParameters <: BetaMLLearnableParameter
 end
 
 """
-    GeneralImputer
+$(TYPEDEF)
 
 Impute missing data using any regressor/classifier (not necessarily from BetaML) that implements `m=Model([options])`, `fit!(m,X,Y)` and `predict(m,X)`
 
@@ -814,23 +811,23 @@ function GeneralImputer(;kwargs...)
 end
 
 """
-    fit!(imputer::GeneralImputer,X)
+$(TYPEDSIGNATURES)
 
 Fit a matrix with missing data using [`GeneralImputer`](@ref)
 """
 function fit!(m::GeneralImputer,X)
     nR,nC   = size(X)
-    multipleImputations  = m.hpar.multipleImputations
-    recursivePassages    = m.hpar.recursivePassages
+    multiple_imputations  = m.hpar.multiple_imputations
+    recursive_passages    = m.hpar.recursive_passages
     cache                = m.opt.cache
     verbosity            = m.opt.verbosity 
     rng                  = m.opt.rng
-    # Setting `models`, a matrix of multipleImputations x nC individual models...
+    # Setting `models`, a matrix of multiple_imputations x nC individual models...
     if ! m.fitted
         if m.hpar.models == nothing
-            models = [RFModel(rng = m.opt.rng, verbosity=verbosity) for i in 1:multipleImputations, d in 1:nC]
+            models = [RFModel(rng = m.opt.rng, verbosity=verbosity) for i in 1:multiple_imputations, d in 1:nC]
         else
-            models = vcat([permutedims(deepcopy(m.hpar.models)) for i in 1:multipleImputations]...)
+            models = vcat([permutedims(deepcopy(m.hpar.models)) for i in 1:multiple_imputations]...)
         end
     else
         m.opt.verbosity >= STD && @warn "This imputer has already been fitted. Not all learners support multiple training."
@@ -838,17 +835,17 @@ function fit!(m::GeneralImputer,X)
     end
 
     
-    imputed = fill(similar(X),multipleImputations)
+    imputed = fill(similar(X),multiple_imputations)
 
     missingMask    = ismissing.(X)
     nonMissingMask = .! missingMask 
-    nImputedValues = sum(missingMask)
+    n_imputed_values = sum(missingMask)
 
-    for imputation in 1:multipleImputations
+    for imputation in 1:multiple_imputations
         verbosity >= STD && println("** Processing imputation $imputation")
         Xout    = copy(X)
         sortedDims     = reverse(sortperm(makeColVector(sum(missingMask,dims=1)))) # sorted from the dim with more missing values
-        for pass in 1:recursivePassages 
+        for pass in 1:recursive_passages 
             m.opt.verbosity >= HIGH && println("- processing passage $pass")
             if pass > 1
                 shuffle!(rng, sortedDims) # randomise the order we go trough the various dimensions at this passage
@@ -900,7 +897,7 @@ function fit!(m::GeneralImputer,X)
                     #return Xout
                 end
                 # This is last passage: save the model and compute oob errors if requested
-                if pass == recursivePassages 
+                if pass == recursive_passages 
                     models[imputation,d] = dmodel 
                 end
             end # end dimension
@@ -909,40 +906,37 @@ function fit!(m::GeneralImputer,X)
     end # end individual imputation
     m.par = GeneralImputerLearnableParameters(models)
     if cache
-        if multipleImputations == 1
+        if multiple_imputations == 1
             m.cres = imputed[1]
         else
             m.cres = imputed
         end
     end 
-    m.info[:nImputedValues] = nImputedValues
+    m.info[:n_imputed_values] = n_imputed_values
     m.fitted = true
     return cache ? m.cres : nothing
 end
 
-#"""
-#    predict(m::GeneralImputer)
-#
-#Return the data with the missing values replaced with the imputed ones using [`RFImputer`](@ref). If `multipleImputations` was set >1 this is a vector of matrices (the individual imputations) instead of a single matrix.
-#"""
-#predict(m::GeneralImputer) =  (! m.fitted) ? nothing : (m.hpar.multipleImputations == 1 ? m.par.imputedValues[1] : m.par.imputedValues)
 
 """
-    predict(m::GeneralImputer, [X])
+$(TYPEDSIGNATURES)
 
-Return the data with the missing values replaced with the imputed ones using [`RFImputer`](@ref). If `multipleImputations` was set >1 this is a vector of matrices (the individual imputations) instead of a single matrix.
+Return the data with the missing values replaced with the imputed ones using the non-linear structure learned fitting a [`GeneralImputer`](@ref) model.
+
+# Notes:
+- If `multiple_imputations` was set > 1 this is a vector of matrices (the individual imputations) instead of a single matrix.
 """
 function predict(m::GeneralImputer,X)
     nR,nC = size(X)
     missingMask    = ismissing.(X)
     nonMissingMask = .! missingMask 
-    multipleImputations  = m.hpar.multipleImputations
+    multiple_imputations  = m.hpar.multiple_imputations
     rng = m.opt.rng
     models = m.par.fittedModels
     verbosity = m.opt.verbosity
 
-    imputed = fill(similar(X),multipleImputations)
-    for imputation in 1:multipleImputations
+    imputed = fill(similar(X),multiple_imputations)
+    for imputation in 1:multiple_imputations
         verbosity >= STD && println("** Processing imputation $imputation")
         Xout    = copy(X)
         for d in 1:nC
@@ -989,7 +983,7 @@ function predict(m::GeneralImputer,X)
         end # end dimension
         imputed[imputation]   = Xout
     end # end individual imputation
-    multipleImputations == 1 ? (return imputed[1]) : return imputed
+    multiple_imputations == 1 ? (return imputed[1]) : return imputed
 end
 
 function show(io::IO, ::MIME"text/plain", m::GeneralImputer)

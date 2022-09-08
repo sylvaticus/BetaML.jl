@@ -13,7 +13,7 @@ Base.@kwdef mutable struct GMMRegressor1LearnableParameters <: BetaMLLearnablePa
 end
 
 """
-    GMMRegressor1
+$(TYPEDEF)
 
 A multi-dimensional, missing data friendly non-linear regressor based on Generative (Gaussian) Mixture Model (strategy "1").
 
@@ -21,8 +21,8 @@ The training data is used to fit a probabilistic model with latent mixtures (Gau
 
 For hyperparameters see [`GMMHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).
 
-this strategy (GMMRegressor1) works by training the EM algorithm on the feature matrix X.
-Once the data has been probabilistically assigned to the various classes, a mean value of Y is computed for each cluster (using the probabilities as weigths).
+This strategy (`GMMRegressor1`) works by fitting the EM algorithm on the feature matrix X.
+Once the data has been probabilistically assigned to the various classes, a mean value of fitting values Y is computed for each cluster (using the probabilities as weigths).
 At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm to obtain the probabilistic assignment of each record to the various mixtures. Then these probabilities are multiplied to the mixture averages for the Y dimensions learned at training time to obtain the predicted value(s) for each record. 
 
 """
@@ -60,10 +60,12 @@ function GMMRegressor1(;kwargs...)
 end
 
 """
-    fit!(m::GMMRegressor1,x)
+$(TYPEDSIGNATURES)
 
-## Notes:
-`fit!` caches as record probabilities only those of the last set of data used to train the model
+Fit the [`GMMRegressor1`](@ref) model to data
+
+# Notes:
+- re-fitting is a new complete fitting but starting with mixtures computed in the previous fitting(s)
 """
 function fit!(m::GMMRegressor1,x,y)
 
@@ -72,7 +74,7 @@ function fit!(m::GMMRegressor1,x,y)
 
     # Parameter alias..
     K             = m.hpar.n_classes
-    p₀            = m.hpar.initial_probmixtures
+    initial_probmixtures            = m.hpar.initial_probmixtures
     mixtures      = m.hpar.mixtures
     tol           = m.hpar.tol
     minimum_variance   = m.hpar.minimum_variance
@@ -85,9 +87,9 @@ function fit!(m::GMMRegressor1,x,y)
 
     if m.fitted
         verbosity >= STD && @warn "Continuing training of a pre-fitted model"
-        gmmOut = gmm(x,K;p₀=m.par.initial_probmixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy="given",maximum_iterations=maximum_iterations,rng = rng)
+        gmmOut = gmm(x,K;initial_probmixtures=m.par.initial_probmixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy="given",maximum_iterations=maximum_iterations,rng = rng)
     else
-        gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)
+        gmmOut = gmm(x,K;initial_probmixtures=initial_probmixtures,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)
     end
 
     probRecords    = gmmOut.pₙₖ
@@ -107,8 +109,14 @@ function fit!(m::GMMRegressor1,x,y)
     m.info[:dimensions]     = size(x,2)
     m.fitted=true
     return cache ? m.cres : nothing
-end    
+end  
 
+"""
+$(TYPEDSIGNATURES)
+
+Predict the classes probabilities associated to new data assuming the mixtures and average values per class computed in fitting a [`GMMRegressor1`](@ref) model.
+
+"""
 function predict(m::GMMRegressor1,X)
     X    = makeMatrix(X)
     N,DX = size(X)
@@ -144,7 +152,7 @@ end
 # ------------------------------------------------------------------------------
 # GMMRegressor2
 """
-    GMMRegressor2
+$(TYPEDEF)
 
 A multi-dimensional, missing data friendly non-linear regressor based on Generative (Gaussian) Mixture Model.
 
@@ -152,9 +160,8 @@ The training data is used to fit a probabilistic model with latent mixtures (Gau
 
 For hyperparameters see [`GMMHyperParametersSet`](@ref) and [`GMMClusterOptionsSet`](@ref).
 
-Thsi strategy (GMMRegressor2) works by training the EM algorithm on a combined (hcat) matrix of X and Y.
-At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm (and using missing values for the dimensions belonging to Y) to obtain the probabilistic assignment of each record to the various mixtures. Thes these probabilities are multiplied to the mixture averages for the Y dimensions to obtain the predicted value(s) for each record. 
-
+Thsi strategy (`GMMRegressor2`) works by training the EM algorithm on a combined (hcat) matrix of X and Y.
+At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm (and using missing values for the dimensions belonging to Y) to obtain the probabilistic assignment of each record to the various mixtures. Then these probabilities are multiplied to the mixture averages for the Y dimensions to obtain the predicted value(s) for each record. 
 """
 mutable struct GMMRegressor2 <: BetaMLUnsupervisedModel
     hpar::GMMHyperParametersSet
@@ -190,10 +197,12 @@ function GMMRegressor2(;kwargs...)
 end
 
 """
-    fit!(m::GMMRegressor2,x)
+$(TYPEDSIGNATURES)
 
-## Notes:
-`fit!` caches as record probabilities only those of the last set of data used to train the model
+Fit the [`GMMRegressor2`](@ref) model to data
+
+# Notes:
+- re-fitting is a new complete fitting but starting with mixtures computed in the previous fitting(s)
 """
 function fit!(m::GMMRegressor2,x,y)
 
@@ -204,7 +213,7 @@ function fit!(m::GMMRegressor2,x,y)
     DFull = size(x,2)
     # Parameter alias..
     K             = m.hpar.n_classes
-    p₀            = m.hpar.initial_probmixtures
+    initial_probmixtures            = m.hpar.initial_probmixtures
     mixtures      = m.hpar.mixtures
     tol           = m.hpar.tol
     minimum_variance   = m.hpar.minimum_variance
@@ -217,9 +226,9 @@ function fit!(m::GMMRegressor2,x,y)
 
     if m.fitted
         verbosity >= STD && @warn "Continuing training of a pre-fitted model"
-        gmmOut = gmm(x,K;p₀=m.par.initial_probmixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy="given",maximum_iterations=maximum_iterations,rng = rng)
+        gmmOut = gmm(x,K;initial_probmixtures=m.par.initial_probmixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy="given",maximum_iterations=maximum_iterations,rng = rng)
     else
-        gmmOut = gmm(x,K;p₀=p₀,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)
+        gmmOut = gmm(x,K;initial_probmixtures=initial_probmixtures,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)
     end
     probRecords = gmmOut.pₙₖ
     m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makeColVector(gmmOut.pₖ))
@@ -235,6 +244,11 @@ function fit!(m::GMMRegressor2,x,y)
     return cache ? m.cres : nothing
 end    
 
+"""
+$(TYPEDSIGNATURES)
+
+Predict the classes probabilities associated to new data assuming the mixtures computed fitting a [`GMMRegressor2`](@ref) model on a merged X and Y matrix
+"""
 function predict(m::GMMRegressor2,X)
     X    = makeMatrix(X)
     allowmissing!(X)

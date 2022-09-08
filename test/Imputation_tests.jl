@@ -41,7 +41,7 @@ fit!(mod,X)
 x̂ = predict(mod)
 @test x̂[1,2] == 40
 @test typeof(x̂) == Matrix{Float64}
-@test info(mod) == Dict{Symbol,Any}(:nImputedValues => 1)
+@test info(mod) == Dict{Symbol,Any}(:n_imputed_values => 1)
 
 X2 = [2 4 missing; 20 40 100]
 x̂2 = predict(mod,X2)
@@ -85,7 +85,7 @@ fit!(mod,X)
 x̂ = predict(mod)
 @test x̂[1,2] ≈ 6.0
 infos = info(mod)
-@test infos[:nImputedValues] == 1 && infos[:lL] ≈ -163.12896063447343  && infos[:BIC] ≈ 351.5547532066659 && infos[:AIC] ≈ 352.25792126894686
+@test infos[:n_imputed_values] == 1 && infos[:lL] ≈ -163.12896063447343  && infos[:BIC] ≈ 351.5547532066659 && infos[:AIC] ≈ 352.25792126894686
 
 X2 = [3 6 9; 2000 missing 10000; 1 2 5; 1500 3000 9000; 1.5 3 6]
 
@@ -106,21 +106,21 @@ reset!(mod)
 println("Testing RFFImputer...")
 
 X = [2 missing 10 "aaa" missing; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
-mod = RFImputer(n_trees=30,forced_categorical_cols=[5],recursivePassages=3,multipleImputations=10, rng=copy(TESTRNG),verbosity=NONE)
+mod = RFImputer(n_trees=30,forced_categorical_cols=[5],recursive_passages=3,multiple_imputations=10, rng=copy(TESTRNG),verbosity=NONE)
 fit!(mod,X)
 
 @test predict(mod)[1][1,2] == predict(mod)[3][1,2] == 400
 @test predict(mod)[2][1,2] == 40
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
-mod = RFImputer(multipleImputations=10, rng=copy(TESTRNG),oob=true, verbosity=NONE)
+mod = RFImputer(multiple_imputations=10, rng=copy(TESTRNG),oob=true, verbosity=NONE)
 fit!(mod,X)
 vals = predict(mod)
 nR,nC = size(vals[1])
 medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 @test medianValues[1,2] == 4.0
 infos = info(mod)
-@test infos[:nImputedValues] == 1
+@test infos[:n_imputed_values] == 1
 @test infos[:oobErrors][1] ≈ [0.4219142630021683, 0.1888918370047503, 1.4813804498107928]
 
 X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
@@ -137,7 +137,7 @@ println("Testing GeneralImputer...")
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
 trng = copy(TESTRNG)
-mod = GeneralImputer(models=[GMMRegressor1(rng=trng,verbosity=NONE),RFModel(rng=trng,verbosity=NONE),RFModel(rng=trng,verbosity=NONE)], multipleImputations=10, recursivePassages=3, rng=copy(TESTRNG),verbosity=NONE)
+mod = GeneralImputer(models=[GMMRegressor1(rng=trng,verbosity=NONE),RFModel(rng=trng,verbosity=NONE),RFModel(rng=trng,verbosity=NONE)], multiple_imputations=10, recursive_passages=3, rng=copy(TESTRNG),verbosity=NONE)
 fit!(mod,X)
 vals = predict(mod)
 nR,nC = size(vals[1])
@@ -152,7 +152,7 @@ valsj = predict(modj)
 @test isequal(vals,valsj)
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
-mod = GeneralImputer(multipleImputations=10, recursivePassages=3, rng=copy(TESTRNG), verbosity=NONE)
+mod = GeneralImputer(multiple_imputations=10, recursive_passages=3, rng=copy(TESTRNG), verbosity=NONE)
 fit!(mod,X)
 vals = predict(mod)
 nR,nC = size(vals[1])
@@ -250,7 +250,7 @@ println("Testing MLJ Interface for BetaMLGenericImputer...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
 trng = copy(TESTRNG)
-model                       =  BetaMLGenericImputer(models=[GMMRegressor1(rng=trng,verbosity=NONE),RFModel(n_trees=40,rng=copy(TESTRNG),verbosity=NONE)],rng=copy(TESTRNG),recursivePassages=2,verbosity=NONE)
+model                       =  BetaMLGenericImputer(models=[GMMRegressor1(rng=trng,verbosity=NONE),RFModel(n_trees=40,rng=copy(TESTRNG),verbosity=NONE)],rng=copy(TESTRNG),recursive_passages=2,verbosity=NONE)
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)

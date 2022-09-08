@@ -213,9 +213,9 @@ end
 """
 $(TYPEDEF)
 
-Hyperparameters for both OnHotEncoder and OrdinalEncoder
+Hyperparameters for both [`OneHotEncoder`](@ref) and [`OrdinalEncoder`](@ref)
 
-## Parameters
+# Parameters:
 $(FIELDS)
 
 """
@@ -599,7 +599,7 @@ $(TYPEDEF)
 
 Scale the data to a given (def: unit) hypercube
 
-## Parameters
+# Parameters
 $(FIELDS)
 
 """
@@ -613,13 +613,12 @@ Base.@kwdef mutable struct MinMaxScalerLearnableParameters <: AbstractScalerLear
   inputRangeApplied::Vector{Tuple{Float64,Float64}} = [(-Inf,+Inf)]
 end
 
-"
+"""
 $(TYPEDEF)
 
-Standardise the input to zero mean (unless `center=false` is used) and unit standard deviation (unless `scale=false` is used), aka \"Z-score\".
+Standardise the input to zero mean (unless `center=false` is used) and unit standard deviation (unless `scale=false` is used), aka "Z-score".
 Note that missing values are skipped.
-
-"
+"""
 Base.@kwdef mutable struct StandardScaler <: AbstractScaler
     scale::Bool=true
     center::Bool=true

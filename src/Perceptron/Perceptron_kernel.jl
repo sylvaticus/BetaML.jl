@@ -290,7 +290,7 @@ Base.@kwdef mutable struct KernelPerceptronHyperParametersSet <: BetaMLHyperPara
     "Kernel function to employ. See `?radialKernel` or `?polynomialKernel` for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]"
     kernel::Function = radialKernel       
     "Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`"
-    inittial_errors::Union{Nothing,Vector{Vector{Int64}}} = nothing
+    initial_errors::Union{Nothing,Vector{Vector{Int64}}} = nothing
     "Maximum number of epochs, i.e. passages trough the whole training sample [def: `100`]"
     epochs::Int64 = 100
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `false`]"
@@ -353,7 +353,7 @@ function fit!(m::KernelPerceptron,X,Y)
 
     # Parameter alias..
     kernel          = m.hpar.kernel
-    inittial_errors = m.hpar.inittial_errors
+    initial_errors = m.hpar.initial_errors
     epochs          = m.hpar.epochs
     shuffle         = m.hpar.shuffle
 
@@ -365,7 +365,7 @@ function fit!(m::KernelPerceptron,X,Y)
     yclasses = unique(Y)
     nCl      = length(yclasses)
     nModels   = Int((nCl  * (nCl - 1)) / 2)
-    inittial_errors =  (inittial_errors == nothing) ? [zeros(nR) for i in 1:nCl] : inittial_errors 
+    initial_errors =  (initial_errors == nothing) ? [zeros(nR) for i in 1:nCl] : initial_errors 
     
     if verbosity == NONE
         nMsgs = 0
@@ -379,7 +379,7 @@ function fit!(m::KernelPerceptron,X,Y)
         nMsgs = 100000
     end
 
-    out = kernelPerceptron(X, Y; K=kernel, T=epochs, α=inittial_errors, nMsgs=nMsgs, shuffle=shuffle, rng = rng)
+    out = kernelPerceptron(X, Y; K=kernel, T=epochs, α=initial_errors, nMsgs=nMsgs, shuffle=shuffle, rng = rng)
 
     m.par = KernelPerceptronLearnableParameters(out.x,out.y,out.α,out.classes)
 

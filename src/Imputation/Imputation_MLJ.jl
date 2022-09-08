@@ -12,7 +12,7 @@ export MissingImputator, BetaMLMeanImputer,BetaMLGMMImputer, BetaMLRFImputer, Be
 
 mutable struct MissingImputator <: MMI.Unsupervised
     K::Int64
-    p₀::AbstractArray{Float64,1}
+    initial_probmixtures::AbstractArray{Float64,1}
     mixtures::Symbol
     tol::Float64
     minimum_variance::Float64
@@ -23,7 +23,7 @@ mutable struct MissingImputator <: MMI.Unsupervised
 end
 MissingImputator(;
     K             = 3,
-    p₀            = Float64[],
+    initial_probmixtures            = Float64[],
     mixtures      = :diag_gaussian,
     tol           = 10^(-6),
     minimum_variance   = 0.05,
@@ -31,11 +31,12 @@ MissingImputator(;
     initialisation_strategy  = "kmeans",
     verbosity     = STD,
     rng           = Random.GLOBAL_RNG,
-) = MissingImputator(K,p₀,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,verbosity,rng)
+) = MissingImputator(K,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,verbosity,rng)
 
 mutable struct BetaMLMeanImputer <: MMI.Unsupervised
     norm::Int64
 end
+
 BetaMLMeanImputer(;
     norm::Union{Nothing,Int64}       = nothing,
 ) = BetaMLMeanImputer(norm)
@@ -71,8 +72,8 @@ mutable struct BetaMLRFImputer <: MMI.Unsupervised
     max_features::Union{Nothing,Int64}
     forced_categorical_cols::Vector{Int64}
     splitting_criterion::Union{Nothing,Function}
-    recursivePassages::Int64                  
-    #multipleImputations::Int64 
+    recursive_passages::Int64                  
+    #multiple_imputations::Int64 
     verbosity::Verbosity
     rng::AbstractRNG
 end
@@ -84,26 +85,26 @@ BetaMLRFImputer(;
     max_features            = nothing,
     forced_categorical_cols  = Int64[],
     splitting_criterion     = nothing,
-    recursivePassages      = 1,
-    #multipleImputations    = 1,
+    recursive_passages      = 1,
+    #multiple_imputations    = 1,
     verbosity              = STD,
     rng                    = Random.GLOBAL_RNG,
-) = BetaMLRFImputer(n_trees, max_depth, min_gain, min_records, max_features, forced_categorical_cols, splitting_criterion, recursivePassages, verbosity, rng)
+) = BetaMLRFImputer(n_trees, max_depth, min_gain, min_records, max_features, forced_categorical_cols, splitting_criterion, recursive_passages, verbosity, rng)
 
 mutable struct BetaMLGenericImputer <: MMI.Unsupervised
     models::Union{Vector,Nothing}
-    recursivePassages::Int64     
-    #multipleImputations::Int64
+    recursive_passages::Int64     
+    #multiple_imputations::Int64
     verbosity::Verbosity 
     rng::AbstractRNG
 end
 BetaMLGenericImputer(;
     models               = nothing,
-    recursivePassages    = 1,
-    #multipleImputations  = 1,
+    recursive_passages    = 1,
+    #multiple_imputations  = 1,
     verbosity            = STD,
     rng                  = Random.GLOBAL_RNG,
-) = BetaMLGenericImputer(models, recursivePassages, verbosity, rng)
+) = BetaMLGenericImputer(models, recursive_passages, verbosity, rng)
 
 
 # ------------------------------------------------------------------------------
@@ -120,7 +121,7 @@ function MMI.fit(m::MissingImputator, verbosity, X)
     else
         error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
-    res        = gmm(x,m.K,p₀=deepcopy(m.p₀),mixtures=mixtures, minimum_variance=m.minimum_variance, minimum_covariance=m.minimum_covariance,initialisation_strategy=m.initialisation_strategy,verbosity=NONE,rng=m.rng)
+    res        = gmm(x,m.K,initial_probmixtures=deepcopy(m.initial_probmixtures),mixtures=mixtures, minimum_variance=m.minimum_variance, minimum_covariance=m.minimum_covariance,initialisation_strategy=m.initialisation_strategy,verbosity=NONE,rng=m.rng)
     fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # pₙₖ=res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
@@ -184,12 +185,12 @@ function MMI.fit(m::BetaMLRFImputer, verbosity, X)
         forced_categorical_cols  = m.forced_categorical_cols,
         splitting_criterion     = m.splitting_criterion,
         verbosity              = m.verbosity,
-        recursivePassages      = m.recursivePassages,
-        #multipleImputations    = m.multipleImputations,
+        recursive_passages      = m.recursive_passages,
+        #multiple_imputations    = m.multiple_imputations,
         rng                    = m.rng,
     )
     fit!(mod,x)
-    #if m.multipleImputations == 1
+    #if m.multiple_imputations == 1
     #    fitResults = MMI.table(predict(mod))
     #else
     #    fitResults = MMI.table.(predict(mod))
@@ -206,12 +207,12 @@ function MMI.fit(m::BetaMLGenericImputer, verbosity, X)
     mod =  GeneralImputer(
         models                 = m.models,
         verbosity              = m.verbosity,
-        recursivePassages      = m.recursivePassages,
-        #multipleImputations    = m.multipleImputations,
+        recursive_passages      = m.recursive_passages,
+        #multiple_imputations    = m.multiple_imputations,
         rng                    = m.rng,
     )
     fit!(mod,x)
-    #if m.multipleImputations == 1
+    #if m.multiple_imputations == 1
     #    fitResults = MMI.table(predict(mod))
     #else
     #    fitResults = MMI.table.(predict(mod))
@@ -232,7 +233,7 @@ function MMI.transform(m::MissingImputator, fitResults, X)
     (pₖ,mixtures) = fitResults.pₖ, fitResults.mixtures   #
     nCl           = length(pₖ)
     # Fill the missing data of this "new X" using the mixtures computed in the fit stage
-    xout          = predictMissing(x,nCl,p₀=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minimum_variance=m.minimum_variance,minimum_covariance=m.minimum_covariance,initialisation_strategy="given",maximum_iterations=1,rng=m.rng)
+    xout          = predictMissing(x,nCl,initial_probmixtures=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minimum_variance=m.minimum_variance,minimum_covariance=m.minimum_covariance,initialisation_strategy="given",maximum_iterations=1,rng=m.rng)
     return MMI.table(xout.X̂)
 end
 function MMI.transform(m::Union{BetaMLMeanImputer,BetaMLGMMImputer,BetaMLRFImputer,BetaMLGenericImputer}, fitResults, X)
