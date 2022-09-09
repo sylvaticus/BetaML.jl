@@ -92,19 +92,19 @@ BetaMLRFImputer(;
 ) = BetaMLRFImputer(n_trees, max_depth, min_gain, min_records, max_features, forced_categorical_cols, splitting_criterion, recursive_passages, verbosity, rng)
 
 mutable struct BetaMLGenericImputer <: MMI.Unsupervised
-    models::Union{Vector,Nothing}
+    estimators::Union{Vector,Nothing}
     recursive_passages::Int64     
     #multiple_imputations::Int64
     verbosity::Verbosity 
     rng::AbstractRNG
 end
 BetaMLGenericImputer(;
-    models               = nothing,
+    estimators               = nothing,
     recursive_passages    = 1,
     #multiple_imputations  = 1,
     verbosity            = STD,
     rng                  = Random.GLOBAL_RNG,
-) = BetaMLGenericImputer(models, recursive_passages, verbosity, rng)
+) = BetaMLGenericImputer(estimators, recursive_passages, verbosity, rng)
 
 
 # ------------------------------------------------------------------------------
@@ -205,7 +205,7 @@ function MMI.fit(m::BetaMLGenericImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
 
     mod =  GeneralImputer(
-        models                 = m.models,
+        estimators                 = m.estimators,
         verbosity              = m.verbosity,
         recursive_passages      = m.recursive_passages,
         #multiple_imputations    = m.multiple_imputations,

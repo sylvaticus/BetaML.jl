@@ -753,8 +753,8 @@ Hyperparameters for [`GeneralImputer`](@ref)
 $(FIELDS)
 """
 Base.@kwdef mutable struct GeneralImputerHyperParametersSet <: BetaMLHyperParametersSet
-    "Specify a regressor or classier model (and its options/hyper-parameters) per each column of the matrix to impute. Default to random forests."
-    models                        = nothing
+    "Specify a regressor or classifier model (and its options/hyper-parameters) per each column of the matrix to impute. Default to random forests."
+    estimators                        = nothing
     "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
     recursive_passages::Int64      = 1
     "Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG)."
@@ -822,16 +822,16 @@ function fit!(m::GeneralImputer,X)
     cache                = m.opt.cache
     verbosity            = m.opt.verbosity 
     rng                  = m.opt.rng
-    # Setting `models`, a matrix of multiple_imputations x nC individual models...
+    # Setting `estimators`, a matrix of multiple_imputations x nC individual models...
     if ! m.fitted
-        if m.hpar.models == nothing
-            models = [RFModel(rng = m.opt.rng, verbosity=verbosity) for i in 1:multiple_imputations, d in 1:nC]
+        if m.hpar.estimators == nothing
+            estimators = [RFModel(rng = m.opt.rng, verbosity=verbosity) for i in 1:multiple_imputations, d in 1:nC]
         else
-            models = vcat([permutedims(deepcopy(m.hpar.models)) for i in 1:multiple_imputations]...)
+            estimators = vcat([permutedims(deepcopy(m.hpar.estimators)) for i in 1:multiple_imputations]...)
         end
     else
         m.opt.verbosity >= STD && @warn "This imputer has already been fitted. Not all learners support multiple training."
-        models = m.par.fittedModels
+        estimators = m.par.fittedModels
     end
 
     
@@ -857,7 +857,7 @@ function fit!(m::GeneralImputer,X)
                 ty   = nonmissingtype(eltype(y))
                 y    = convert(Vector{ty},y)
                 Xd   = Matrix(Xout[nmy,[1:(d-1);(d+1):end]])
-                dmodel = deepcopy(models[imputation,d])
+                dmodel = deepcopy(estimators[imputation,d])
                 #println(dmodel)
                 #println(Xd)
                 #println(y)
@@ -898,13 +898,13 @@ function fit!(m::GeneralImputer,X)
                 end
                 # This is last passage: save the model and compute oob errors if requested
                 if pass == recursive_passages 
-                    models[imputation,d] = dmodel 
+                    estimators[imputation,d] = dmodel 
                 end
             end # end dimension
         end # end recursive passage pass
         imputed[imputation]   = Xout
     end # end individual imputation
-    m.par = GeneralImputerLearnableParameters(models)
+    m.par = GeneralImputerLearnableParameters(estimators)
     if cache
         if multiple_imputations == 1
             m.cres = imputed[1]
@@ -932,7 +932,7 @@ function predict(m::GeneralImputer,X)
     nonMissingMask = .! missingMask 
     multiple_imputations  = m.hpar.multiple_imputations
     rng = m.opt.rng
-    models = m.par.fittedModels
+    estimators = m.par.fittedModels
     verbosity = m.opt.verbosity
 
     imputed = fill(similar(X),multiple_imputations)
@@ -946,7 +946,7 @@ function predict(m::GeneralImputer,X)
             ty   = nonmissingtype(eltype(y))
             y    = convert(Vector{ty},y)
             Xd   = Matrix(Xout[nmy,[1:(d-1);(d+1):end]])
-            dmod = models[imputation,d]
+            dmod = estimators[imputation,d]
             # imputing missing values in d...
             for i in 1:nR
                 if ! missingMask[i,d]
