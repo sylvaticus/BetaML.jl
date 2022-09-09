@@ -73,8 +73,8 @@ export AbstractLayer, forward, backward, getParams, getNParams, getGradient, set
        Learnable,
        show
 
-export FeedforwardNN
-export FeedforwardNNHyperParametersSet, FeedforwardNNOptionsSet
+export NeuralNetworkEstimator
+export NeuralNetworkEstimatorHyperParametersSet, NeuralNetworkEstimatorOptionsSet
 
 # for working on gradient as e.g [([1.0 2.0; 3.0 4.0], [1.0,2.0,3.0]),([1.0,2.0,3.0],1.0)]
 """
@@ -788,7 +788,7 @@ $(FIELDS)
 To know the available layers type `subtypes(AbstractLayer)`) and then type `?LayerName` for information on how to use each layer.
 
 """
-Base.@kwdef mutable struct FeedforwardNNHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct NeuralNetworkEstimatorHyperParametersSet <: BetaMLHyperParametersSet
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
     """Loss (cost) function [def: `squaredCost`].
@@ -808,14 +808,14 @@ Base.@kwdef mutable struct FeedforwardNNHyperParametersSet <: BetaMLHyperParamet
     shuffle::Bool = true  
 end
 """
-FeedforwardNNOptionsSet
+NeuralNetworkEstimatorOptionsSet
 
 A struct defining the options used by the Feedforward neural network model
 
 ## Parameters:
 $(FIELDS)
 """
-Base.@kwdef mutable struct FeedforwardNNOptionsSet
+Base.@kwdef mutable struct NeuralNetworkEstimatorOptionsSet
    "Cache the results of the fitting stage, as to allow predict(mod) [default: `true`]. Set it to `false` to save memory for large data."
    cache::Bool = true
    "An optional title and/or description for this model"
@@ -830,17 +830,17 @@ Base.@kwdef mutable struct FeedforwardNNOptionsSet
    rng::AbstractRNG = Random.GLOBAL_RNG
 end
 
-Base.@kwdef mutable struct FeedforwardNNLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct NeuralNetworkEstimatorLearnableParameters <: BetaMLLearnableParametersSet
     nnstruct::Union{Nothing,NN} = nothing    
 end
 
 """
 
-**`FeedforwardNN`**
+**`NeuralNetworkEstimator`**
 
 A "feedforward" neural network (supervised).
 
-For the parameters see [`FeedforwardNNLearnableParameters`](@ref).
+For the parameters see [`NeuralNetworkEstimatorLearnableParameters`](@ref).
 
 ## Notes:
 - data must be numerical
@@ -848,17 +848,17 @@ For the parameters see [`FeedforwardNNLearnableParameters`](@ref).
   - For one-dimension regressions drop the unnecessary dimension with `dropdims(ŷ,dims=2)`
   - For classification tasks the columns should be interpreted as the probabilities for each categories
 """
-mutable struct FeedforwardNN <: BetaMLSupervisedModel
-    hpar::FeedforwardNNHyperParametersSet
-    opt::FeedforwardNNOptionsSet
-    par::Union{Nothing,FeedforwardNNLearnableParameters}
+mutable struct NeuralNetworkEstimator <: BetaMLSupervisedModel
+    hpar::NeuralNetworkEstimatorHyperParametersSet
+    opt::NeuralNetworkEstimatorOptionsSet
+    par::Union{Nothing,NeuralNetworkEstimatorLearnableParameters}
     cres::Union{Nothing,AbstractArray}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
 
-function FeedforwardNN(;kwargs...)
-    m              = FeedforwardNN(FeedforwardNNHyperParametersSet(),FeedforwardNNOptionsSet(),FeedforwardNNLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function NeuralNetworkEstimator(;kwargs...)
+    m              = NeuralNetworkEstimator(NeuralNetworkEstimatorHyperParametersSet(),NeuralNetworkEstimatorOptionsSet(),NeuralNetworkEstimatorLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -874,7 +874,7 @@ function FeedforwardNN(;kwargs...)
     return m
 end
 
-function fit!(m::FeedforwardNN,X,Y)
+function fit!(m::NeuralNetworkEstimator,X,Y)
     
 
     # Parameter alias..
@@ -918,7 +918,7 @@ function fit!(m::FeedforwardNN,X,Y)
                 layers = [l1,l2,l3,l4]
             end
         end
-        m.par = FeedforwardNNLearnableParameters(NN(deepcopy(layers),loss,dloss,false,descr))
+        m.par = NeuralNetworkEstimatorLearnableParameters(NN(deepcopy(layers),loss,dloss,false,descr))
         m.info[:epochsRan] = 0
         m.info[:lossPerEpoch] = Float64[]
         m.info[:parPerEpoch] = []
@@ -951,22 +951,22 @@ function fit!(m::FeedforwardNN,X,Y)
     return cache ? m.cres : nothing
 end
 
-function predict(m::FeedforwardNN,X)
+function predict(m::NeuralNetworkEstimator,X)
     return predict(m.par.nnstruct,X)
 end
 
-function show(io::IO, ::MIME"text/plain", m::FeedforwardNN)
+function show(io::IO, ::MIME"text/plain", m::NeuralNetworkEstimator)
     if m.fitted == false
-        print(io,"FeedforwardNN - A Feed-forward neural network (unfitted)")
+        print(io,"NeuralNetworkEstimator - A Feed-forward neural network (unfitted)")
     else
-        print(io,"FeedforwardNN - A Feed-forward neural network (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"NeuralNetworkEstimator - A Feed-forward neural network (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
-function show(io::IO, m::FeedforwardNN)
+function show(io::IO, m::NeuralNetworkEstimator)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"FeedforwardNN - A $(length(m.hpar.layers))-layers feedfordward neural network (unfitted)")
+        println(io,"NeuralNetworkEstimator - A $(length(m.hpar.layers))-layers feedfordward neural network (unfitted)")
         println(io,"Loss function:")
         println(io,m.hpar.loss)
         println(io,"Optimisation algorithm:")
@@ -978,7 +978,7 @@ function show(io::IO, m::FeedforwardNN)
           println("$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
         end
     else
-        println(io,"FeedforwardNN - A $(m.info[:dimensions])-dimensions $(m.info[:nLayers])-layers feedfordward neural network (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"NeuralNetworkEstimator - A $(m.info[:dimensions])-dimensions $(m.info[:nLayers])-layers feedfordward neural network (fitted on $(m.info[:fitted_records]) records)")
         println(io,"Cost function:")
         println(io,m.hpar.loss)
         println(io,"Optimisation algorithm:")

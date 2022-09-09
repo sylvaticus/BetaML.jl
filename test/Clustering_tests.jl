@@ -27,7 +27,7 @@ X = [1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4]
 (clIdxKMeans,Z) = kmeans(X,3,initialisation_strategy="grid",rng=copy(TESTRNG))
 @test clIdxKMeans == [2, 2, 2, 2, 3, 3, 3, 1, 1]
 #@test (clIdx,Z) .== ([2, 2, 2, 2, 3, 3, 3, 1, 1], [5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664])
-m = KMeansModel(n_classes=3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG), descr="First test k-means model")
+m = KMeansClusterer(n_classes=3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG), descr="First test k-means model")
 fit!(m,X)
 classes = predict(m)
 @test clIdxKMeans == classes
@@ -42,7 +42,7 @@ fit!(m,X)
 classes = predict(m)
 @test clIdxKMeans == classes
 @test info(m)[:fitted_records] == 9
-@test sprint(print, m) == "First test k-means model\nKMeansModel - A 2-dimensions 3-classes K-Means Model (fitted on 9 records)\nDict{Symbol, Any}(:fitted_records => 9, :dimensions => 2)\nRepresentatives:\n[5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664]\n"
+@test sprint(print, m) == "First test k-means model\nKMeansClusterer - A 2-dimensions 3-classes K-Means Model (fitted on 9 records)\nDict{Symbol, Any}(:fitted_records => 9, :dimensions => 2)\nRepresentatives:\n[5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664]\n"
 
 # ==================================
 # New test
@@ -50,7 +50,7 @@ classes = predict(m)
 println("Testing kmedoids...")
 (clIdxKMedoids,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initialisation_strategy="shuffle",rng=copy(TESTRNG))
 @test clIdxKMedoids == [1, 1, 1, 1, 2, 2, 2, 3, 3]
-m = KMedoidsModel(n_classes=3,verbosity=NONE, initialisation_strategy="shuffle",rng=copy(TESTRNG))
+m = KMedoidsClusterer(n_classes=3,verbosity=NONE, initialisation_strategy="shuffle",rng=copy(TESTRNG))
 fit!(m,X)
 classes = predict(m)
 @test clIdxKMedoids == classes
@@ -62,7 +62,7 @@ classes3 = predict(m)
 @test classes3 == [1,2,2,3]
 @test info(m)[:fitted_records] == 13
 reset!(m)
-@test sprint(print, m) == "KMedoidsModel - A 3-classes K-Medoids Model (unfitted)"
+@test sprint(print, m) == "KMedoidsClusterer - A 3-classes K-Medoids Model (unfitted)"
 # ==================================
 # NEW TEST
 println("Testing MLJ interface for Clustering models....")

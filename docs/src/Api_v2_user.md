@@ -63,82 +63,28 @@ Some models allow an inverse transformation, that using the parameters learned a
 
 # Available models
 
-Currently the following models are available
+Currently the following models are available:
 
-| BetaML name | MLJ Interface | Notes |
-| ----------- | ------------- | ---------------------------------------------- |
-| PerceptronClassifier | LinearPerceptron |  | 
+| BetaML name | MLJ Interface | 
+| ----------- | ------------- | 
+| PerceptronClassifier | LinearPerceptron | 
 | KernelPerceptronClassifier  | KernelPerceptron
 | PegasosClassifier | Pegasos |
-| DTModel | DecisionTreeClassifier, DecisionTreeRegressor | 
-| RFModel |  RandomForestClassifier, RandomForestRegressor |
-| FeedforwardNN | FeedforwardNeuralNetwork
-| KMeansModel | KMeans
-| KMedoidsModel | KMedoids
-| GMMClusterModel | GMMClusterer
+| DecisionTreeEstimator | DecisionTreeClassifier, DecisionTreeRegressor | 
+| RandomForestEstimator |  RandomForestClassifier, RandomForestRegressor |
+| NeuralNetworkEstimator | FeedforwardNeuralNetwork
 | GMMRegressor1 | 
-| GMMRegressor2 | BetaMLGMMRegressor
-| MeanImputer | BetaMLMeanImputer
-| GMMImputer | BetaMLGMMImputer
-| RFImputer | BetaMLRFImputer
-| GeneralImputer | BetaMLGenericImputer
-| MinMaxScaler | |
-| StandardScaler | |
-| Scaler | |
-| PCA | |
-| OneHotEncoder | |
-| OrdinalEncoder | |
-
-
-prop1:
-
-| BetaML name | MLJ Interface | Notes |
-| ----------- | ------------- | ---------------------------------------------- |
-| Perceptron | LinearPerceptron |  | 
-| KernelPerceptronClassifier  | KernelPerceptron
-| PegasosClassifier | Pegasos |
-| DecitionTree | DecisionTreeClassifier, DecisionTreeRegressor | 
-| RandomForest |  RandomForestClassifier, RandomForestRegressor |
-| NeuralNetwork | FeedforwardNeuralNetwork
-| GMMRegressor1 | 
-| GMMRegressor2 | BetaMLGMMRegressor
-| KMeans | KMeans
-| KMedoids | KMedoids
-| GMMClusterer | GMMClusterer
-| MeanImputer | BetaMLMeanImputer
-| GMMImputer | BetaMLGMMImputer
-| RFImputer | BetaMLRFImputer
-| GeneralImputer | BetaMLGenericImputer
-| MinMaxScaler | |
-| StandardScaler | |
-| Scaler | |
-| PCA | |
-| OneHotEncoder | |
-| OrdinalEncoder | |
-
-
-Prop2: 
-
-| BetaML name | MLJ Interface | Notes |
-| ----------- | ------------- | ---------------------------------------------- |
-| LinearPerceptron | Perceptron |  | 
-| KernelPerceptron  | KernelPerceptronClassifier
-| Pegasos | PegasosClassifier |
-| DecisionTreePredictor | DecisionTreeClassifier, DecisionTreeRegressor | 
-| RandomForestPredictor |  RandomForestClassifier, RandomForestRegressor |
-| NeuralNetworkPredictor | NeuralNetworkClassifier, MultitargetNeuralNetworkRegressor
-| GMMRegressor1 | 
-| GMMRegressor2 | GMMRegressor
+| GMMRegressor2 | GaussianMixtureRegressor
 | KMeansClusterer | KMeans
 | KMedoidsClusterer | KMedoids
-| GMMClusterer | GMM
-| MeanImputer | ImputerByMean
-| GMMImputer |ImputerByGMM
-| RFImputer | ImputerByRandomForest
-| GeneralImputer | ImputerByAny
+| GMMClusterer | GaussianMixtureClusterer
+| FeatureBasedImputer | SimpleImputer
+| GMMImputer | GaussianMixtureImputer
+| RFImputer | RandomForestImputer
+| UniversalImputer | GeneralImputer
 | MinMaxScaler | |
 | StandardScaler | |
 | Scaler | |
-| PCATransformer | |
+| PCA | |
 | OneHotEncoder | |
 | OrdinalEncoder | |

@@ -221,7 +221,7 @@ For the parameters see [`?GMMHyperParametersSet`](@ref GMMHyperParametersSet) an
 - Online fitting (re-fitting with new data) is supported by setting the old learned mixtrures as the starting values
 - The model is fitted using an Expectation-Minimisation (EM) algorithm that supports Missing data and is implemented in the log-domain for better numerical accuracy with many dimensions
 """
-mutable struct GMMClusterModel <: BetaMLUnsupervisedModel
+mutable struct GMMClusterer <: BetaMLUnsupervisedModel
     hpar::GMMHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,GMMClusterLearnableParameters}
@@ -230,7 +230,7 @@ mutable struct GMMClusterModel <: BetaMLUnsupervisedModel
     info::Dict{Symbol,Any}
 end
 
-function GMMClusterModel(;kwargs...)
+function GMMClusterer(;kwargs...)
     # ugly manual case...
     if (:n_classes in keys(kwargs) && ! (:mixtures in keys(kwargs)))
         n_classes = kwargs[:n_classes]
@@ -238,7 +238,7 @@ function GMMClusterModel(;kwargs...)
     else 
         hps = GMMHyperParametersSet()
     end
-    m = GMMClusterModel(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = GMMClusterer(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -257,12 +257,12 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit the [`GMMClusterModel`](@ref) model to data
+Fit the [`GMMClusterer`](@ref) model to data
 
 # Notes:
 - re-fitting is a new complete fitting but starting with mixtures computed in the previous fitting(s)
 """
-function fit!(m::GMMClusterModel,x)
+function fit!(m::GMMClusterer,x)
 
     # Parameter alias..
     K             = m.hpar.n_classes
@@ -300,10 +300,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the classes probabilities associated to new data assuming the mixtures computed in fitting a [`GMMClusterModel`](@ref) model.
+Predict the classes probabilities associated to new data assuming the mixtures computed in fitting a [`GMMClusterer`](@ref) model.
 
 """
-function predict(m::GMMClusterModel,X)
+function predict(m::GMMClusterer,X)
     X = makeMatrix(X)
     mixtures = m.par.mixtures
     initial_probmixtures = m.par.initial_probmixtures
@@ -311,20 +311,20 @@ function predict(m::GMMClusterModel,X)
     return probRecords
 end
 
-function show(io::IO, ::MIME"text/plain", m::GMMClusterModel)
+function show(io::IO, ::MIME"text/plain", m::GMMClusterer)
     if m.fitted == false
-        print(io,"GMMClusterModel - A Generative Mixture Model (unfitted)")
+        print(io,"GMMClusterer - A Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMClusterModel - A Generative Mixture Model (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"GMMClusterer - A Generative Mixture Model (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
-function show(io::IO, m::GMMClusterModel)
+function show(io::IO, m::GMMClusterer)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"GMMClusterModel - A $(m.hpar.n_classes)-classes Generative Mixture Model (unfitted)")
+        print(io,"GMMClusterer - A $(m.hpar.n_classes)-classes Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMClusterModel - A $(m.hpar.n_classes)-classes Generative Mixture Model(fitted on $(m.info[:fitted_records]) records)")
+        print(io,"GMMClusterer - A $(m.hpar.n_classes)-classes Generative Mixture Model(fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)

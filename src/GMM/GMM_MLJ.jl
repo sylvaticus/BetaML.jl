@@ -5,7 +5,7 @@
 import MLJModelInterface       # It seems that having done this in the top module is not enought
 const MMI = MLJModelInterface  # We need to repeat it here
 
-export  GMMClusterer, BetaMLGMMRegressor
+export  GaussianMixtureClusterer, GaussianMixtureRegressor
 
 # ------------------------------------------------------------------------------
 # Model Structure declarations..
@@ -18,7 +18,7 @@ A Expectation-Maximisation clustering algorithm with customisable mixtures, from
 # Hyperparameters:
 $(TYPEDFIELDS)
 """
-mutable struct GMMClusterer <: MMI.Unsupervised
+mutable struct GaussianMixtureClusterer <: MMI.Unsupervised
   "Number of mixtures (latent classes) to consider [def: 3]"  
   n_classes::Int64
   "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
@@ -47,7 +47,7 @@ mutable struct GMMClusterer <: MMI.Unsupervised
   "Random Number Generator [deafult: `Random.GLOBAL_RNG`]"
   rng::AbstractRNG
 end
-GMMClusterer(;
+GaussianMixtureClusterer(;
     n_classes             = 3,
     initial_probmixtures            = Float64[],
     mixtures      = [DiagonalGaussian() for i in 1:m.n_classes],
@@ -57,7 +57,7 @@ GMMClusterer(;
     initialisation_strategy  = "kmeans",
     maximum_iterations       = typemax(Int64),
     rng           = Random.GLOBAL_RNG,
-) = GMMClusterer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,maximum_iterations,rng)
+) = GaussianMixtureClusterer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,maximum_iterations,rng)
 
 """
 $(TYPEDEF)
@@ -67,7 +67,7 @@ A non-linear regressor derived from fitting the data on a probabilistic model (G
 # Hyperparameters:
 $(TYPEDFIELDS)
 """
-mutable struct BetaMLGMMRegressor <: MMI.Deterministic
+mutable struct GaussianMixtureRegressor <: MMI.Deterministic
     "Number of mixtures (latent classes) to consider [def: 3]"
     n_classes::Int64 
     "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
@@ -96,7 +96,7 @@ mutable struct BetaMLGMMRegressor <: MMI.Deterministic
     "Random Number Generator [deafult: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
-BetaMLGMMRegressor(;
+GaussianMixtureRegressor(;
     n_classes      = 3,
     initial_probmixtures  = [],
     mixtures      = [DiagonalGaussian() for i in 1:n_classes],
@@ -106,13 +106,13 @@ BetaMLGMMRegressor(;
     initialisation_strategy  = "kmeans",
     maximum_iterations       = typemax(Int64),
     rng           = Random.GLOBAL_RNG
-   ) = BetaMLGMMRegressor(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,rng)
+   ) = GaussianMixtureRegressor(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,rng)
 
 
 # ------------------------------------------------------------------------------
 # Fit functions...
 
-function MMI.fit(m::GMMClusterer, verbosity, X)
+function MMI.fit(m::GaussianMixtureClusterer, verbosity, X)
     # X is nothing, y is the data: https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/#Models-that-learn-a-probability-distribution-1
     x          = MMI.matrix(X) # convert table to matrix
     #=
@@ -133,9 +133,9 @@ function MMI.fit(m::GMMClusterer, verbosity, X)
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
     return (fitResults, cache, report)
 end
-MMI.fitted_params(model::GMMClusterer, fitresult) = (weights=fitesult.pₖ, mixtures=fitresult.mixtures)
+MMI.fitted_params(model::GaussianMixtureClusterer, fitresult) = (weights=fitesult.pₖ, mixtures=fitresult.mixtures)
 
-function MMI.fit(m::BetaMLGMMRegressor, verbosity, X, y)
+function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
     x  = MMI.matrix(X) # convert table to matrix
     #=
     if typeof(y) <: AbstractMatrix
@@ -174,7 +174,7 @@ end
 # ------------------------------------------------------------------------------
 # Predict functions...
 
-function MMI.predict(m::GMMClusterer, fitResults, X)
+function MMI.predict(m::GaussianMixtureClusterer, fitResults, X)
     x               = MMI.matrix(X) # convert table to matrix
     (N,D)           = size(x)
     (pₖ,mixtures)   = (fitResults.pₖ, fitResults.mixtures)
@@ -186,7 +186,7 @@ function MMI.predict(m::GMMClusterer, fitResults, X)
     return predictions
 end
 
-function MMI.predict(m::BetaMLGMMRegressor, fitResults, X)
+function MMI.predict(m::GaussianMixtureRegressor, fitResults, X)
     x               = MMI.matrix(X) # convert table to matrix
     betamod         = fitResults
     return predict(betamod,x)
@@ -197,20 +197,20 @@ end
 # ------------------------------------------------------------------------------
 # Model metadata for registration in MLJ...
 
-MMI.metadata_model(GMMClusterer,
+MMI.metadata_model(GaussianMixtureClusterer,
     input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
     output_scitype   = AbstractArray{<:MMI.Multiclass},       # scitype of the output of `transform`
     target_scitype   = AbstractArray{<:MMI.Multiclass},       # scitype of the output of `predict`
     #prediction_type  = :probabilistic,  # option not added to metadata_model function, need to do it separately
     supports_weights = false,                                 # does the model support sample weights?
-	load_path        = "BetaML.GMM.GMMClusterer"
+	load_path        = "BetaML.GMM.GaussianMixtureClusterer"
 )
-MMI.prediction_type(::Type{<:GMMClusterer}) = :probabilistic
+MMI.prediction_type(::Type{<:GaussianMixtureClusterer}) = :probabilistic
 
-MMI.metadata_model(BetaMLGMMRegressor,
+MMI.metadata_model(GaussianMixtureRegressor,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Infinite}),
     target_scitype   = AbstractVector{<: MMI.Continuous},           # for a supervised model, what target?
     supports_weights = false,                                       # does the model support sample weights?
-	load_path        = "BetaML.GMM.BetaMLGMMRegressor"
+	load_path        = "BetaML.GMM.GaussianMixtureRegressor"
     )
 

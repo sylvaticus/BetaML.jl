@@ -5,7 +5,7 @@
 import MLJModelInterface       # It seems that having done this in the top module is not enought
 const MMI = MLJModelInterface  # We need to repeat it here
 
-export MissingImputator, BetaMLMeanImputer,BetaMLGMMImputer, BetaMLRFImputer, BetaMLGenericImputer
+export MissingImputator, SimpleImputer,GaussianMixtureImputer, RandomForestImputer, GeneralImputer
 
 # ------------------------------------------------------------------------------
 # Model Structure declarations..
@@ -33,15 +33,17 @@ MissingImputator(;
     rng           = Random.GLOBAL_RNG,
 ) = MissingImputator(K,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,verbosity,rng)
 
-mutable struct BetaMLMeanImputer <: MMI.Unsupervised
+mutable struct SimpleImputer <: MMI.Unsupervised
+    statistic::Function
     norm::Int64
 end
 
-BetaMLMeanImputer(;
+SimpleImputer(;
+    statistic::Function              = mean,
     norm::Union{Nothing,Int64}       = nothing,
-) = BetaMLMeanImputer(norm)
+) = SimpleImputer(statistic,norm)
 
-mutable struct BetaMLGMMImputer <: MMI.Unsupervised
+mutable struct GaussianMixtureImputer <: MMI.Unsupervised
     n_classes::Int64
     initial_probmixtures::Vector{Float64}
     mixtures::Symbol
@@ -52,7 +54,7 @@ mutable struct BetaMLGMMImputer <: MMI.Unsupervised
     verbosity::Verbosity
     rng::AbstractRNG
 end
-BetaMLGMMImputer(;
+GaussianMixtureImputer(;
     n_classes      = 3,
     initial_probmixtures  = Float64[],
     mixtures      = :diag_gaussian,
@@ -62,9 +64,9 @@ BetaMLGMMImputer(;
     initialisation_strategy  = "kmeans",
     verbosity     = STD,
     rng           = Random.GLOBAL_RNG,
-) = BetaMLGMMImputer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,verbosity,rng)
+) = GaussianMixtureImputer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,verbosity,rng)
 
-mutable struct BetaMLRFImputer <: MMI.Unsupervised
+mutable struct RandomForestImputer <: MMI.Unsupervised
     n_trees::Int64
     max_depth::Union{Nothing,Int64}
     min_gain::Float64
@@ -77,7 +79,7 @@ mutable struct BetaMLRFImputer <: MMI.Unsupervised
     verbosity::Verbosity
     rng::AbstractRNG
 end
-BetaMLRFImputer(;
+RandomForestImputer(;
     n_trees                 = 30, 
     max_depth               = nothing,
     min_gain                = 0.0,
@@ -89,22 +91,22 @@ BetaMLRFImputer(;
     #multiple_imputations    = 1,
     verbosity              = STD,
     rng                    = Random.GLOBAL_RNG,
-) = BetaMLRFImputer(n_trees, max_depth, min_gain, min_records, max_features, forced_categorical_cols, splitting_criterion, recursive_passages, verbosity, rng)
+) = RandomForestImputer(n_trees, max_depth, min_gain, min_records, max_features, forced_categorical_cols, splitting_criterion, recursive_passages, verbosity, rng)
 
-mutable struct BetaMLGenericImputer <: MMI.Unsupervised
+mutable struct GeneralImputer <: MMI.Unsupervised
     estimators::Union{Vector,Nothing}
     recursive_passages::Int64     
     #multiple_imputations::Int64
     verbosity::Verbosity 
     rng::AbstractRNG
 end
-BetaMLGenericImputer(;
+GeneralImputer(;
     estimators               = nothing,
     recursive_passages    = 1,
     #multiple_imputations  = 1,
     verbosity            = STD,
     rng                  = Random.GLOBAL_RNG,
-) = BetaMLGenericImputer(estimators, recursive_passages, verbosity, rng)
+) = GeneralImputer(estimators, recursive_passages, verbosity, rng)
 
 
 # ------------------------------------------------------------------------------
@@ -128,10 +130,11 @@ function MMI.fit(m::MissingImputator, verbosity, X)
     return (fitResults, cache, report)
 end
 
-function MMI.fit(m::BetaMLMeanImputer, verbosity, X)
+function MMI.fit(m::SimpleImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
-    mod = MeanImputer(
-        norm = m.norm,
+    mod = FeatureBasedImputer(
+        statistic = m.statistic,
+        norm      = m.norm,
     )
     fit!(mod,x)
     #fitResults = MMI.table(predict(mod))
@@ -141,7 +144,7 @@ function MMI.fit(m::BetaMLMeanImputer, verbosity, X)
     return (fitResults, cache, report)
 end
 
-function MMI.fit(m::BetaMLGMMImputer, verbosity, X)
+function MMI.fit(m::GaussianMixtureImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
     if m.mixtures == :diag_gaussian
         mixtures = [DiagonalGaussian() for i in 1:m.n_classes]
@@ -173,7 +176,7 @@ function MMI.fit(m::BetaMLGMMImputer, verbosity, X)
     return (fitResults, cache, report)  
 end
 
-function MMI.fit(m::BetaMLRFImputer, verbosity, X)
+function MMI.fit(m::RandomForestImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
 
     mod = RFImputer(
@@ -201,10 +204,10 @@ function MMI.fit(m::BetaMLRFImputer, verbosity, X)
     return (fitResults, cache, report)
 end
 
-function MMI.fit(m::BetaMLGenericImputer, verbosity, X)
+function MMI.fit(m::GeneralImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
 
-    mod =  GeneralImputer(
+    mod =  UniversalImputer(
         estimators                 = m.estimators,
         verbosity              = m.verbosity,
         recursive_passages      = m.recursive_passages,
@@ -236,7 +239,7 @@ function MMI.transform(m::MissingImputator, fitResults, X)
     xout          = predictMissing(x,nCl,initial_probmixtures=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minimum_variance=m.minimum_variance,minimum_covariance=m.minimum_covariance,initialisation_strategy="given",maximum_iterations=1,rng=m.rng)
     return MMI.table(xout.X̂)
 end
-function MMI.transform(m::Union{BetaMLMeanImputer,BetaMLGMMImputer,BetaMLRFImputer,BetaMLGenericImputer}, fitResults, X)
+function MMI.transform(m::Union{SimpleImputer,GaussianMixtureImputer,RandomForestImputer,GeneralImputer}, fitResults, X)
     x   = MMI.matrix(X) # convert table to matrix
     mod = fitResults
     return MMI.table(predict(mod,x))
@@ -250,37 +253,37 @@ MMI.metadata_model(MissingImputator,
     input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
     output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
-    descr            = "Impute missing values using an Expectation-Maximisation clustering algorithm, from the Beta Machine Learning Toolkit (BetaML). Old API, consider also `BetaMLGMMImputer` (equivalent, experimental)",
+    descr            = "Impute missing values using an Expectation-Maximisation clustering algorithm, from the Beta Machine Learning Toolkit (BetaML). Old API, consider also `GaussianMixtureImputer` (equivalent, experimental)",
 	load_path        = "BetaML.Imputation.MissingImputator"
 )
 
-MMI.metadata_model(BetaMLMeanImputer,
+MMI.metadata_model(SimpleImputer,
     input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
     output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
     descr            = "Impute missing values using feature (column) mean, with optional record normalisation (using l-`norm` norms), from the Beta Machine Learning Toolkit (BetaML). Experimental.",
-	load_path        = "BetaML.Imputation.BetaMLMeanImputer"
+	load_path        = "BetaML.Imputation.SimpleImputer"
 )
 
-MMI.metadata_model(BetaMLGMMImputer,
+MMI.metadata_model(GaussianMixtureImputer,
     input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
     output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
     descr            = "Impute missing values using a probabilistic approach (Gaussian Mixture Models) fitted using the Expectation-Maximisation algorithm, from the Beta Machine Learning Toolkit (BetaML). Experimental.",
-	load_path        = "BetaML.Imputation.BetaMLGMMImputer"
+	load_path        = "BetaML.Imputation.GaussianMixtureImputer"
 )
 
-MMI.metadata_model(BetaMLRFImputer,
+MMI.metadata_model(RandomForestImputer,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     output_scitype   = MMI.Table(MMI.Known),          # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
     descr            = "Impute missing values using Random Forests, from the Beta Machine Learning Toolkit (BetaML). Experimental.",
-	load_path        = "BetaML.Imputation.BetaMLRFImputer"
+	load_path        = "BetaML.Imputation.RandomForestImputer"
 )
-MMI.metadata_model(BetaMLGenericImputer,
+MMI.metadata_model(GeneralImputer,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     output_scitype   = MMI.Table(MMI.Known),          # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
     descr            = "Impute missing values using a vector (one per column) of arbitrary learning models (classifiers/regressors) that implement `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)` (default to Random Forests), from the Beta Machine Learning Toolkit (BetaML). Experimental.",
-	load_path        = "BetaML.Imputation.BetaMLGenericImputer"
+	load_path        = "BetaML.Imputation.GeneralImputer"
 )

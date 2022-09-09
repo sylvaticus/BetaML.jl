@@ -4,7 +4,7 @@
 """
     BetaML.Trees module
 
-Implement the [`DTModel`](@ref) and [`RFModel`](@ref) models (Decision Trees and Random Forests).
+Implement the [`DecisionTreeEstimator`](@ref) and [`RandomForestEstimator`](@ref) models (Decision Trees and Random Forests).
 
 Both Decision Trees and Random Forests can be used for regression or classification problems, based on the type of the labels (numerical or not). The automatic selection can be overridden with the parameter `force_classification=true`, typically if labels are integer representing some categories rather than numbers. For classification problems the output of `predict` is a dictionary with the key being the labels with non-zero probabilitity and the corresponding value its probability; for regression it is a numerical value.
 
@@ -32,12 +32,12 @@ using  ForceImport
 import Base.print
 import Base.show
 
-export DTModel, DTHyperParametersSet
+export DecisionTreeEstimator, DTHyperParametersSet
 # export AbstractDecisionNode,Leaf, DecisionNode, 
 export buildTree
 #predictSingle # TODO: to remove
 
-export RFModel, RFHyperParametersSet
+export RandomForestEstimator, RFHyperParametersSet
 #export  Forest 
 export buildForest
 # updateTreesWeights! # TODO:to remove

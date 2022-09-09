@@ -27,7 +27,7 @@ xtrain = [
 
 ytrain = ["Apple",  "Apple", "Grape", "Grape", "Lemon"]
 myTree = buildTree(xtrain,ytrain,rng=copy(TESTRNG))
-m = DTModel(rng=copy(TESTRNG))
+m = DecisionTreeEstimator(rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 
 ŷtrain  = predict(myTree, xtrain,rng=copy(TESTRNG))
@@ -68,7 +68,7 @@ X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
 xtrain = [2 4 10 "aaa"; 200 400 1000 "zzzz"]
 ytrain = [10,1000]
 xtest = [20 40 100 "gggg"] 
-m = DTModel(rng=copy(TESTRNG))
+m = DecisionTreeEstimator(rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 @test predict(m,xtest)[1] == 505 
 
@@ -109,7 +109,7 @@ mreTrain = meanRelError(ŷtrain,ytrain)
 @test mreTrain <= 0.06
 mreTest  = meanRelError(ŷtest,ytest)
 @test mreTest <= 0.3
-m = DTModel(min_gain=0.001,min_records=2,max_depth=3,rng=copy(TESTRNG))
+m = DecisionTreeEstimator(min_gain=0.001,min_records=2,max_depth=3,rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 @test predict(m,xtrain) == ŷtrain
 reset!(m)
@@ -144,7 +144,7 @@ ŷtest2 = predict(myForest, xtest,rng=copy(TESTRNG))
 @test accuracy(ŷtest2,ytest,rng=copy(TESTRNG))  >= 0.96
 @test oobError <= 0.1
 
-m = RFModel(max_depth=20,oob=true,beta=0,rng=copy(TESTRNG))
+m = RandomForestEstimator(max_depth=20,oob=true,beta=0,rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 m.opt.rng=copy(TESTRNG) 
 ŷtrainNew = predict(m,xtrain)
@@ -243,7 +243,7 @@ mreTrain2 = meanRelError(ŷtrain,ytrain)
 mreTest2  = meanRelError(ŷtest,ytest)
 @test mreTest2 <= mreTest * 1.5
 
-m = RFModel(oob=true,beta=1,rng=copy(TESTRNG))
+m = RandomForestEstimator(oob=true,beta=1,rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 m.opt.rng=copy(TESTRNG) # the model RNG is consumed at each operation
 ŷtest2 = predict(m,xtest)

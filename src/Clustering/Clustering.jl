@@ -11,8 +11,8 @@ Provide hard clustering methods using K-means and k-medoids. Please see also the
 
 The module provides the following models. Use `?[model]` to access their documentation:
 
-- [`KMeansModel`](@ref): Classical KMean algorithm
-- [`KMedoidsModel`](@ref kmeans): Kmedoids algorithm with configurable distance metric
+- [`KMeansClusterer`](@ref): Classical KMean algorithm
+- [`KMedoidsClusterer`](@ref kmeans): Kmedoids algorithm with configurable distance metric
 
 """
 module Clustering
@@ -28,7 +28,7 @@ import Base.print
 import Base.show
 
 export kmeans, kmedoids
-export KMeansMedoidsHyperParametersSet, KMeansModel, KMedoidsModel 
+export KMeansMedoidsHyperParametersSet, KMeansClusterer, KMedoidsClusterer 
 
 include("Clustering_hard.jl") # K-means and k-medoids
 # MLJ interface

@@ -142,7 +142,7 @@ ŷtrain = dropdims(predict(mynn,xtrain),dims=2)
 ŷtest = dropdims(predict(mynn,xtest),dims=2)
 @test any(isapprox(expectedŷtest,ŷtest))
 
-m = FeedforwardNN(layers=[l1,l2,l3],loss=squaredCost,dloss=dSquaredCost,batchSize=1,shuffle=false,epochs=100,verbosity=NONE,optAlg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test")
+m = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=squaredCost,dloss=dSquaredCost,batchSize=1,shuffle=false,epochs=100,verbosity=NONE,optAlg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test")
 fit!(m,xtrain,ytrain)
 ŷtrain2 =  dropdims(predict(m),dims=2)
 ŷtrain3 =  dropdims(predict(m,xtrain),dims=2)
@@ -190,7 +190,7 @@ mreTrain = meanRelError(ŷtrain,ytrain)
 mreTest  = meanRelError(ŷtest,ytest)
 @test mreTest <= 0.05
 
-m = FeedforwardNN(rng=copy(TESTRNG),verbosity=NONE)
+m = NeuralNetworkEstimator(rng=copy(TESTRNG),verbosity=NONE)
 fit!(m,xtrain,ytrain)
 ŷtrain2 =  dropdims(predict(m),dims=2)
 mreTrain = meanRelError(ŷtrain,ytrain)
@@ -257,7 +257,7 @@ trainAccuracy = accuracy(ŷtrain,ytrain,tol=1)
 testAccuracy  = accuracy(ŷtest,ytest,tol=1)
 @test testAccuracy >= 1
 
-m = FeedforwardNN(layers=[l1,l2,l3],loss=squaredCost,dloss=nothing,batchSize=8,shuffle=false,epochs=10,verbosity=NONE,optAlg=ADAM(η=t -> 1/(1+t), λ=0.5),rng=copy(TESTRNG),descr="Iris classification")
+m = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=squaredCost,dloss=nothing,batchSize=8,shuffle=false,epochs=10,verbosity=NONE,optAlg=ADAM(η=t -> 1/(1+t), λ=0.5),rng=copy(TESTRNG),descr="Iris classification")
 fit!(m,xtrain,ytrain_oh)
 ŷtrain2 =  predict(m)
 @test ŷtrain ≈ ŷtrain2
@@ -273,7 +273,7 @@ ŷtrain4 =  predict(m)
 acc = accuracy(ŷtrain4,ytrain,tol=1)
 @test acc >= 0.95
 
-m = FeedforwardNN(rng=copy(TESTRNG),verbosity=NONE)
+m = NeuralNetworkEstimator(rng=copy(TESTRNG),verbosity=NONE)
 fit!(m,xtrain,ytrain_oh)
 ŷtrain5 = predict(m)
 acc = accuracy(ŷtrain5,ytrain,tol=1, rng=copy(TESTRNG))

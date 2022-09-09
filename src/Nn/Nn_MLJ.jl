@@ -54,7 +54,7 @@ Base.@kwdef mutable struct MultitargetNeuralNetworkRegressor <: MMI.Deterministi
 end
 """
 
-MMI.fit(model::FeedforwardNN, verbosity, X, y)
+MMI.fit(model::NeuralNetworkEstimator, verbosity, X, y)
 
 For the `verbosity` parameter see [`Verbosity`](@ref))
 
@@ -64,7 +64,7 @@ function MMI.fit(m::MultitargetNeuralNetworkRegressor, verbosity, X, y)
     if !(verbosity == 0 || verbosity == 10 || verbosity == 20 || verbosity == 30 || verbosity == 40) 
         error("Wrong verbosity level. Verbosity must be either 0, 10, 20, 30 or 40.")
     end
-    mi = FeedforwardNN(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batchSize=m.batchSize, optAlg=m.optAlg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=Verbosity(verbosity))
+    mi = NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batchSize=m.batchSize, optAlg=m.optAlg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=Verbosity(verbosity))
     fit!(mi,x,y)
     fitresults = mi
     cache      = nothing
@@ -164,7 +164,7 @@ function MMI.fit(m::NeuralNetworkClassifier, verbosity, X, y)
         layers = deepcopy(m.layers)
         push!(layers,VectorFunctionLayer(nDy,f=softmax))
     end
-    mi = FeedforwardNN(;layers=layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batchSize=m.batchSize, optAlg=m.optAlg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=Verbosity(verbosity))
+    mi = NeuralNetworkEstimator(;layers=layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batchSize=m.batchSize, optAlg=m.optAlg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=Verbosity(verbosity))
     fit!(mi,x,Y_oh)
     fitresults = (mi,ohmod)
     cache      = nothing

@@ -94,7 +94,7 @@ end
 
 $(TYPEDEF)
 
-Hyperparameters for [`DTModel`](@ref) (Decision Tree).
+Hyperparameters for [`DecisionTreeEstimator`](@ref) (Decision Tree).
 
 ## Parameters:
 $(TYPEDFIELDS)
@@ -133,7 +133,7 @@ For the parameters see [`?DTHyperParametersSet`](@ref DTHyperParametersSet) and 
 - Missing data (in the feature dataset) is supported.
 
 """
-mutable struct DTModel <: BetaMLSupervisedModel
+mutable struct DecisionTreeEstimator <: BetaMLSupervisedModel
     hpar::DTHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,DTLearnableParameters}
@@ -142,8 +142,8 @@ mutable struct DTModel <: BetaMLSupervisedModel
     info::Dict{Symbol,Any}
 end
 
-function DTModel(;kwargs...)
-    m              = DTModel(DTHyperParametersSet(),BetaMLDefaultOptionsSet(),DTLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function DecisionTreeEstimator(;kwargs...)
+    m              = DecisionTreeEstimator(DTHyperParametersSet(),BetaMLDefaultOptionsSet(),DTLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -329,7 +329,7 @@ Builds (define and train) a Decision Tree.
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use [`DTModel`](@ref) instead. 
+    Use [`DecisionTreeEstimator`](@ref) instead. 
 
 Given a dataset of features `x` and the corresponding dataset of labels `y`, recursivelly build a decision tree by finding at each node the best question to split the data untill either all the dataset is separated or a terminal condition is reached.
 The given tree is then returned.
@@ -421,10 +421,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit a [`DTModel`](@ref) to the data
+Fit a [`DecisionTreeEstimator`](@ref) to the data
 
 """
-function fit!(m::DTModel,x,y::AbstractArray{Ty,1}) where {Ty}
+function fit!(m::DecisionTreeEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
 
     if m.fitted
         @warn "This model has already been fitted (trained) and it doesn't support multiple fitting. This fitting will override the previous one(s)"
@@ -497,7 +497,7 @@ Predict the labels of a feature dataset.
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use [`DTModel`](@ref) and the associated `predict(m::Model,x)` function instead.
+    Use [`DecisionTreeEstimator`](@ref) and the associated `predict(m::Model,x)` function instead.
 
 For each record of the dataset, recursivelly traverse the tree to find the prediction most opportune for the given record.
 If the labels the tree has been fitted with are numeric, the prediction is also numeric.
@@ -514,10 +514,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the labels associated to some feature data using a trained [`DTModel`](@ref)
+Predict the labels associated to some feature data using a trained [`DecisionTreeEstimator`](@ref)
 
 """
-function predict(m::DTModel,x)
+function predict(m::DecisionTreeEstimator,x)
     return predictSingle.(Ref(m.par.tree),eachrow(x),rng=m.opt.rng)
 end
 
@@ -586,22 +586,22 @@ function _printNode(node::AbstractNode, rootDepth="")
 end
 
 
-function show(io::IO, ::MIME"text/plain", m::DTModel)
+function show(io::IO, ::MIME"text/plain", m::DecisionTreeEstimator)
     if m.fitted == false
-        print(io,"DTModel - A Decision Tree model (unfitted)")
+        print(io,"DecisionTreeEstimator - A Decision Tree model (unfitted)")
     else
         job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        print(io,"DTModel - A Decision Tree $job (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"DecisionTreeEstimator - A Decision Tree $job (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
-function show(io::IO, m::DTModel)
+function show(io::IO, m::DecisionTreeEstimator)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"DTModel - A Decision Tree model (unfitted)")
+        print(io,"DecisionTreeEstimator - A Decision Tree model (unfitted)")
     else
         job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        println(io,"DTModel - A Decision Tree $job (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"DecisionTreeEstimator - A Decision Tree $job (fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         _printNode(m.par.tree)
     end

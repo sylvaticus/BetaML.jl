@@ -33,10 +33,10 @@ out3 = predictMissing(X,3,mixtures=[FullGaussian() for i in 1:3],verbosity=NONE,
 
 # ------------------------------------------------------------------------------
 
-println("Testing MeanImputer...")
+println("Testing FeatureBasedImputer...")
 
 X = [2 missing 10; 20 40 100]
-mod = MeanImputer()
+mod = FeatureBasedImputer()
 fit!(mod,X)
 x̂ = predict(mod)
 @test x̂[1,2] == 40
@@ -49,7 +49,7 @@ x̂2 = predict(mod,X2)
 reset!(mod)
 
 X = [2.0 missing 10; 20 40 100]
-mod = MeanImputer(norm=1)
+mod = FeatureBasedImputer(norm=1)
 fit!(mod,X)
 x̂ = predict(mod)
 @test isapprox(x̂[1,2],4.044943820224719)
@@ -133,11 +133,11 @@ X2 = [2 4 10 missing 10; 20 40 100 "gggg" 100; 200 400 1000 "zzzz" 1000]
 X̂2 =  predict(mod,X2)
 @test X̂2[1,4] == "aaa"
 
-println("Testing GeneralImputer...")
+println("Testing UniversalImputer...")
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
 trng = copy(TESTRNG)
-mod = GeneralImputer(estimators=[GMMRegressor1(rng=trng,verbosity=NONE),RFModel(rng=trng,verbosity=NONE),RFModel(rng=trng,verbosity=NONE)], multiple_imputations=10, recursive_passages=3, rng=copy(TESTRNG),verbosity=NONE)
+mod = UniversalImputer(estimators=[GMMRegressor1(rng=trng,verbosity=NONE),RandomForestEstimator(rng=trng,verbosity=NONE),RandomForestEstimator(rng=trng,verbosity=NONE)], multiple_imputations=10, recursive_passages=3, rng=copy(TESTRNG),verbosity=NONE)
 fit!(mod,X)
 vals = predict(mod)
 nR,nC = size(vals[1])
@@ -152,7 +152,7 @@ valsj = predict(modj)
 @test isequal(vals,valsj)
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
-mod = GeneralImputer(multiple_imputations=10, recursive_passages=3, rng=copy(TESTRNG), verbosity=NONE)
+mod = UniversalImputer(multiple_imputations=10, recursive_passages=3, rng=copy(TESTRNG), verbosity=NONE)
 fit!(mod,X)
 vals = predict(mod)
 nR,nC = size(vals[1])
@@ -162,7 +162,7 @@ meanValues = [mean([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
 trng = copy(TESTRNG)
 #Random.seed!(trng,123)
-mod = GeneralImputer(estimators=[DTModel(rng=trng,verbosity=NONE),RFModel(n_trees=1,rng=trng,verbosity=NONE),RFModel(n_trees=1,rng=trng,verbosity=NONE),RFModel(n_trees=1,rng=trng,verbosity=NONE),DTModel(rng=trng,verbosity=NONE)],rng=trng,verbosity=NONE)
+mod = UniversalImputer(estimators=[DecisionTreeEstimator(rng=trng,verbosity=NONE),RandomForestEstimator(n_trees=1,rng=trng,verbosity=NONE),RandomForestEstimator(n_trees=1,rng=trng,verbosity=NONE),RandomForestEstimator(n_trees=1,rng=trng,verbosity=NONE),DecisionTreeEstimator(rng=trng,verbosity=NONE)],rng=trng,verbosity=NONE)
 
 fit!(mod,X)
 Random.seed!(trng,123)
@@ -197,11 +197,11 @@ XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
 XDMNew                      = Mlj.matrix(XDNew)
 @test isapprox(XDMNew[1,2],XDM[2,2])
 
-println("Testing MLJ Interface for BetaMLMeanImputer...")
+println("Testing MLJ Interface for SimpleImputer...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
-model                       =  BetaMLMeanImputer(norm=1)
+model                       =  SimpleImputer(norm=1)
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
@@ -213,11 +213,11 @@ XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
 XDMNew                      = Mlj.matrix(XDNew)
 @test isapprox(XDMNew[2,2],x̂[2,2]) # position only matters
 
-println("Testing MLJ Interface for BetaMLGMMImputer...")
+println("Testing MLJ Interface for GaussianMixtureImputer...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
-model                       =  BetaMLGMMImputer(initialisation_strategy="grid",rng=copy(TESTRNG))
+model                       =  GaussianMixtureImputer(initialisation_strategy="grid",rng=copy(TESTRNG))
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
@@ -229,11 +229,11 @@ XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
 XDMNew                      = Mlj.matrix(XDNew)
 @test isapprox(XDMNew[1,2],x̂[2,2])
 
-println("Testing MLJ Interface for BetaMLRFImputer...")
+println("Testing MLJ Interface for RandomForestImputer...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
-model                       =  BetaMLRFImputer(n_trees=40,rng=copy(TESTRNG))
+model                       =  RandomForestImputer(n_trees=40,rng=copy(TESTRNG))
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
@@ -245,12 +245,12 @@ XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
 XDMNew                      = Mlj.matrix(XDNew)
 @test isapprox(XDMNew[1,2],x̂[2,2])
 
-println("Testing MLJ Interface for BetaMLGenericImputer...")
+println("Testing MLJ Interface for GeneralImputer...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
 trng = copy(TESTRNG)
-model                       =  BetaMLGenericImputer(estimators=[GMMRegressor1(rng=trng,verbosity=NONE),RFModel(n_trees=40,rng=copy(TESTRNG),verbosity=NONE)],rng=copy(TESTRNG),recursive_passages=2,verbosity=NONE)
+model                       =  GeneralImputer(estimators=[GMMRegressor1(rng=trng,verbosity=NONE),RandomForestEstimator(n_trees=40,rng=copy(TESTRNG),verbosity=NONE)],rng=copy(TESTRNG),recursive_passages=2,verbosity=NONE)
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)

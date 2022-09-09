@@ -31,7 +31,7 @@ end
 
 $(TYPEDEF)
 
-Hyperparameters for [`RFModel`](@ref) (Random Forest).
+Hyperparameters for [`RandomForestEstimator`](@ref) (Random Forest).
 
 ## Parameters:
 $(TYPEDFIELDS)
@@ -62,7 +62,7 @@ $(TYPEDEF)
 
 A Random Forest classifier and regressor (supervised).
 
-Random forests are _ensemble_ of Decision Trees models (see [`?DTModel`](@ref DTModel)).
+Random forests are _ensemble_ of Decision Trees models (see [`?DecisionTreeEstimator`](@ref DecisionTreeEstimator)).
 
 For the parameters see [`?RFHyperParametersSet`](@ref RFHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
 
@@ -70,12 +70,12 @@ For the parameters see [`?RFHyperParametersSet`](@ref RFHyperParametersSet) and 
 - Each individual decision tree is built using bootstrap over the data, i.e. "sampling N records with replacement" (hence, some records appear multiple times and some records do not appear in the specific tree training). The `maxx_feature` injects further variability and reduces the correlation between the forest trees.
 - The predictions of the "forest" (using the function `predict()`) are then the aggregated predictions of the individual trees (from which the name "bagging": **b**oostrap **agg**regat**ing**).
 - The performances of each individual trees,  as measured using the records they have not being trained with, can then be (optionally) used as weights in the `predict` function. The parameter `beta ≥ 0` regulate the distribution of these weights: larger is `β`, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of `beta` depends on the problem under exam (and the chosen caratteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
-- Note that training `RFModel` uses multiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
+- Note that training `RandomForestEstimator` uses multiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
 - Online fitting (re-fitting with new data) is not supported
 - Missing data (in the feature dataset) is supported.
 
 """
-mutable struct RFModel <: BetaMLSupervisedModel
+mutable struct RandomForestEstimator <: BetaMLSupervisedModel
     hpar::RFHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,Forest} #TODO: Forest contain info that is actualy in report. Currently we duplicate, we should just remofe them from par by making a dedicated struct instead of Forest
@@ -84,8 +84,8 @@ mutable struct RFModel <: BetaMLSupervisedModel
     info::Dict{Symbol,Any}
 end
 
-function RFModel(;kwargs...)
-m              = RFModel(RFHyperParametersSet(),BetaMLDefaultOptionsSet(),nothing,nothing,false,Dict{Symbol,Any}())
+function RandomForestEstimator(;kwargs...)
+m              = RandomForestEstimator(RFHyperParametersSet(),BetaMLDefaultOptionsSet(),nothing,nothing,false,Dict{Symbol,Any}())
 thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
 for (kw,kwv) in kwargs
     found = false
@@ -111,7 +111,7 @@ Builds (define and train) a "forest" of Decision Trees.
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use [`RFModel`](@ref) instead. 
+    Use [`RandomForestEstimator`](@ref) instead. 
 
 # Parameters:
 See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with the `max_features` defaulting to `√D` instead of `D`) plus the following parameters:
@@ -178,10 +178,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit a [`RFModel`](@ref) to the data
+Fit a [`RandomForestEstimator`](@ref) to the data
 
 """
-function fit!(m::RFModel,x,y::AbstractArray{Ty,1}) where {Ty}
+function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
 
     if m.fitted
         @warn "This model has already been fitted and it doesn't support multiple training. This training will override the previous one(s)"
@@ -252,7 +252,7 @@ Predict the labels of a feature dataset.
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use [`RFModel`](@ref) and the associated `predict(m::Model,x)` function instead.
+    Use [`RandomForestEstimator`](@ref) and the associated `predict(m::Model,x)` function instead.
 
 For each record of the dataset and each tree of the "forest", recursivelly traverse the tree to find the prediction most opportune for the given record.
 If the labels the tree has been trained with are numeric, the prediction is also numeric (the mean of the different trees predictions, in turn the mean of the labels of the training records ended in that leaf node).
@@ -269,10 +269,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the labels associated to some feature data using a trained [`RFModel`](@ref)
+Predict the labels associated to some feature data using a trained [`RandomForestEstimator`](@ref)
 
 """
-function predict(m::RFModel,x)
+function predict(m::RandomForestEstimator,x)
     return predictSingle.(Ref(m.par),eachrow(x),rng=m.opt.rng)
 end
 
@@ -353,22 +353,22 @@ function oobError(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
     end
 end
 
-function show(io::IO, ::MIME"text/plain", m::RFModel)
+function show(io::IO, ::MIME"text/plain", m::RandomForestEstimator)
     if m.fitted == false
-        print(io,"RFModel - A $(m.hpar.n_trees) trees Random Forest model (unfitted)")
+        print(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest model (unfitted)")
     else
         job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        print(io,"RFModel - A $(m.hpar.n_trees) trees Random Forest $job (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest $job (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
-function show(io::IO, m::RFModel)
+function show(io::IO, m::RandomForestEstimator)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"RFModel - A $(m.hpar.n_trees) trees Random Forest model (unfitted)")
+        print(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest model (unfitted)")
     else
         job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        println(io,"RFModel - A $(m.hpar.n_trees) trees Random Forest $job (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest $job (fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
     end
 end

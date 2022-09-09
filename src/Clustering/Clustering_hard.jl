@@ -95,7 +95,7 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use `KMeansModel` instead. 
+    Use `KMeansClusterer` instead. 
 
 # Parameters:
 * `X`: a (N x D) data to clusterise
@@ -182,7 +182,7 @@ Compute K-Medoids algorithm to identify K clusters of X using distance definitio
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use `KMedoidsModel` instead. 
+    Use `KMedoidsClusterer` instead. 
 
 # Parameters:
 * `X`: a (n x d) data to clusterise
@@ -244,7 +244,7 @@ end
 """
 $(TYPEDEF)
 
-Hyperparameters for both the [`KMeansModel`](@ref) and [`KMedoidsModel`](@ref) models
+Hyperparameters for both the [`KMeansClusterer`](@ref) and [`KMedoidsClusterer`](@ref) models
 
 # Parameters:
 $(TYPEDFIELDS)
@@ -252,7 +252,7 @@ $(TYPEDFIELDS)
 Base.@kwdef mutable struct KMeansMedoidsHyperParametersSet <: BetaMLHyperParametersSet
     "Number of classes to discriminate the data [def: 3]"
     n_classes::Int64                  = 3
-    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2²_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansModel` algorithm is not guaranteed to converge with other distances than the Euclidean one."
+    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2²_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
     dist::Function                    = (x,y) -> norm(x-y)
     """
     The computation method of the vector of the initial representatives.
@@ -284,7 +284,7 @@ For the parameters see [`?KMeansMedoidsHyperParametersSet`](@ref KMeansMedoidsHy
 - online fitting (re-fitting with new data) is supported
 
 """
-mutable struct KMeansModel <: BetaMLUnsupervisedModel
+mutable struct KMeansClusterer <: BetaMLUnsupervisedModel
     hpar::KMeansMedoidsHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,KMeansMedoidsLearnableParameters}
@@ -307,7 +307,7 @@ For the parameters see [`?KMeansMedoidsHyperParametersSet`](@ref KMeansMedoidsHy
 - online fitting (re-fitting with new data) is supported
 
 """
-mutable struct KMedoidsModel <: BetaMLUnsupervisedModel
+mutable struct KMedoidsClusterer <: BetaMLUnsupervisedModel
     hpar::KMeansMedoidsHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,KMeansMedoidsLearnableParameters}
@@ -317,8 +317,8 @@ mutable struct KMedoidsModel <: BetaMLUnsupervisedModel
 end
 
 
-function KMeansModel(;kwargs...)
-    m = KMeansModel(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function KMeansClusterer(;kwargs...)
+    m = KMeansClusterer(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -334,8 +334,8 @@ function KMeansModel(;kwargs...)
     return m
 end
 
-function KMedoidsModel(;kwargs...)
-    m = KMedoidsModel(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function KMedoidsClusterer(;kwargs...)
+    m = KMedoidsClusterer(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -354,10 +354,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit the [`KMeansModel`](@ref) model to data
+Fit the [`KMeansClusterer`](@ref) model to data
 
 """
-function fit!(m::KMeansModel,x)
+function fit!(m::KMeansClusterer,x)
 
     # Parameter alias..
     K                      = m.hpar.n_classes
@@ -388,10 +388,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit the [`KMedoidsModel`](@ref) model to data
+Fit the [`KMedoidsClusterer`](@ref) model to data
 
 """
-function fit!(m::KMedoidsModel,x)
+function fit!(m::KMedoidsClusterer,x)
 
     # Parameter alias..
     K                      = m.hpar.n_classes
@@ -422,38 +422,38 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Assign the class of new data using the representatives learned by fitting a [`KMeansModel`](@ref) or [`KMedoidsModel`](@ref) model.
+Assign the class of new data using the representatives learned by fitting a [`KMeansClusterer`](@ref) or [`KMedoidsClusterer`](@ref) model.
 
 """
-function predict(m::Union{KMeansModel,KMedoidsModel},X)
+function predict(m::Union{KMeansClusterer,KMedoidsClusterer},X)
     X               = makeMatrix(X)
     representatives = m.par.representatives
     classes = classAssignation(X,representatives,m.hpar.dist)
     return classes
 end
 
-function show(io::IO, ::MIME"text/plain", m::KMeansModel)
+function show(io::IO, ::MIME"text/plain", m::KMeansClusterer)
     if m.fitted == false
-        print(io,"KMeansModel - A K-Means Model (unfitted)")
+        print(io,"KMeansClusterer - A K-Means Model (unfitted)")
     else
-        print(io,"KMeansModel - A K-Means Model (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"KMeansClusterer - A K-Means Model (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
-function show(io::IO, ::MIME"text/plain", m::KMedoidsModel)
+function show(io::IO, ::MIME"text/plain", m::KMedoidsClusterer)
     if m.fitted == false
-        print(io,"KMedoidsModel - A K-Medoids Model (unfitted)")
+        print(io,"KMedoidsClusterer - A K-Medoids Model (unfitted)")
     else
-        print(io,"KMedoidsModel - A K-Medoids Model (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"KMedoidsClusterer - A K-Medoids Model (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
-function show(io::IO, m::KMeansModel)
+function show(io::IO, m::KMeansClusterer)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"KMeansModel - A $(m.hpar.n_classes)-classes K-Means Model (unfitted)")
+        print(io,"KMeansClusterer - A $(m.hpar.n_classes)-classes K-Means Model (unfitted)")
     else
-        println(io,"KMeansModel - A $(m.info[:dimensions])-dimensions $(m.hpar.n_classes)-classes K-Means Model (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"KMeansClusterer - A $(m.info[:dimensions])-dimensions $(m.hpar.n_classes)-classes K-Means Model (fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         println(io,"Representatives:")
         println(io,m.par.representatives)
@@ -461,12 +461,12 @@ function show(io::IO, m::KMeansModel)
 end
 
 
-function show(io::IO, m::KMedoidsModel)
+function show(io::IO, m::KMedoidsClusterer)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"KMedoidsModel - A $(m.hpar.n_classes)-classes K-Medoids Model (unfitted)")
+        print(io,"KMedoidsClusterer - A $(m.hpar.n_classes)-classes K-Medoids Model (unfitted)")
     else
-        println(io,"KMedoidsModel - A $(m.info[:dimensions])-dimensions $(m.hpar.n_classes)-classes K-Medoids Model (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"KMedoidsClusterer - A $(m.info[:dimensions])-dimensions $(m.hpar.n_classes)-classes K-Medoids Model (fitted on $(m.info[:fitted_records]) records)")
         println(io,m.info)
         println(io,"Distance function used:")
         println(io,m.hpar.dist)

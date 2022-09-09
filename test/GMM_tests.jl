@@ -49,10 +49,10 @@ clusters = gmm(X,3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTR
 @test isapprox(clusters.BIC,114.1492467835965)
 
 
-println("Testing GMMClusterModel...")
+println("Testing GMMClusterer...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 
-m = GMMClusterModel(n_classes=3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
+m = GMMClusterer(n_classes=3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
 fit!(m,X)
 probs = predict(m)
 gmmOut = gmm(X,3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
@@ -63,7 +63,7 @@ pk_x1alone = m.par.initial_probmixtures
 
 X2 = [2.0 12; 3 20; 4 15; 1.5 11]
 
-m2 = GMMClusterModel(n_classes=3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
+m2 = GMMClusterer(n_classes=3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
 fit!(m2,X2)
 #μ_x2alone = hcat([m.par.mixtures[i].μ for i in 1:3]...)
 probsx2alone = predict(m2)
@@ -77,7 +77,7 @@ fit!(m,X2) # this greately reduces mixture variance
 probsx2 = predict(m)
 @test probsx2[1,1] > 0.999 # it feels more certain as it uses the info of he first training
 reset!(m)
-@test sprint(print,m) == "GMMClusterModel - A 3-classes Generative Mixture Model (unfitted)"
+@test sprint(print,m) == "GMMClusterer - A 3-classes Generative Mixture Model (unfitted)"
 
 # Testing GMM Regressor 1
 ϵtrain = [1.023,1.08,0.961,0.919,0.933,0.993,1.011,0.923,1.084,1.037,1.012]
@@ -141,7 +141,7 @@ mreTrain2d = meanRelError(ŷtrain2d,ytrain2d)
 println("Testing MLJ interface for GMM models....")
 X, y                           = Mlj.@load_iris
 
-model                       =  GMMClusterer(mixtures=[DiagonalGaussian() for i in 1:3],rng=copy(TESTRNG))
+model                       =  GaussianMixtureClusterer(mixtures=[DiagonalGaussian() for i in 1:3],rng=copy(TESTRNG))
 modelMachine                =  Mlj.machine(model, X) # DimensionMismatch
 (fitResults, cache, report) =  Mlj.fit(model, 0, X)
 yhat_prob                   =  Mlj.predict(model, fitResults, X)  # Mlj.transform(model,fitResults,X)
@@ -149,10 +149,10 @@ yhat_prob                   =  Mlj.predict(model, fitResults, X)  # Mlj.transfor
 @test Distributions.pdf(yhat_prob[end],2) ≈ 0.5937443601647852
 
 
-println("Testing MLJ interface for BetaMLGMMRegressor models....")
+println("Testing MLJ interface for GMMRegressor models....")
 X, y                           = Mlj.@load_boston
 
-model_gmmr                      = BetaMLGMMRegressor(n_classes=20,rng=copy(TESTRNG))
+model_gmmr                      = GaussianMixtureRegressor(n_classes=20,rng=copy(TESTRNG))
 regressor_gmmr                  = Mlj.machine(model_gmmr, X, y)
 (fitresult_gmmr, cache, report) = Mlj.fit(model_gmmr, 0, X, y)
 yhat_gmmr                       = Mlj.predict(model_gmmr, fitresult_gmmr, X)

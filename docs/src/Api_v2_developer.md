@@ -5,13 +5,13 @@ Each model is a child of either `BetaMLSuperVisedModel` or `BetaMLSuperVisedMode
 ```
 BetaMLSuperVisedModel   <: BetaMLModel
 BetaMLUnsupervisedModel <: BetaMLModel
-RFModel                 <: BetaMLSuperVisedModel
+RandomForestEstimator                 <: BetaMLSuperVisedModel
 ```
 
 The model struct is composed of the following elements:
 
 ```
-mutable struct DTModel <: BetaMLSupervisedModel
+mutable struct DecisionTreeEstimator <: BetaMLSupervisedModel
     hpar::DTHyperParametersSet   # Hyper-pharameters
     opt::BetaMLDefaultOptionsSet # Option sets, default or a specific one for the model
     par::DTLearnableParameters   # Model learnable parameters (needed for predictions)
@@ -43,8 +43,8 @@ end
 Note that the user doesn't generally need to make a difference between an hyperparameter and an option, as both are provided as keyword arguments to the model constructor thanks to a model constructor like the following one:
 
 ```
-function KMedoidsModel(;kwargs...)
-    m = KMedoidsModel(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function KMedoidsClusterer(;kwargs...)
+    m = KMedoidsClusterer(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false

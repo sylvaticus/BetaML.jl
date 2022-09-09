@@ -19,7 +19,7 @@ For example, reccomendation systems / collaborative filtering (e.g. suggestion o
 
 Provided imputers:
 
-- [`MeanImputer`](@ref): Impute data using the feature (column) mean, optionally normalised by l-norms of the records (rows) (fastest)
+- [`FeatureBasedImputer`](@ref): Impute data using the feature (column) mean, optionally normalised by l-norms of the records (rows) (fastest)
 - [`GMMImputer`](@ref): Impute data using a Generative (Gaussian) Mixture Model (good trade off)
 - [`RFImputer`](@ref): Impute missing data using Random Forests, with optional replicable multiple imputations (most accurate).
 - [`GenericImputer`](@ref): Impute missing data using a vector (one per column) of arbitrary learning models (classifiers/regressors) that implement `m = Model([options])`, `fit!(m,X,Y)` and `predict(m,X)`.
@@ -93,8 +93,8 @@ import Base.print
 import Base.show
 
 export predictMissing,
-       MeanImputerHyperParametersSet, RFImputerHyperParametersSet,GeneralImputerHyperParametersSet,
-       Imputer, MeanImputer, GMMImputer, RFImputer, GeneralImputer,
+       FeatureBasedImputerHyperParametersSet, RFImputerHyperParametersSet,UniversalImputerHyperParametersSet,
+       Imputer, FeatureBasedImputer, GMMImputer, RFImputer, UniversalImputer,
        fit!, predict, info
 
 abstract type Imputer <: BetaMLModel end   
@@ -175,21 +175,24 @@ function predictMissing(X,K=3;initial_probmixtures=[],mixtures=[DiagonalGaussian
 end
 
 # ------------------------------------------------------------------------------
-# MeanImputer
+# FeatureBasedImputer
 """
 $(TYPEDEF)
 
-Hyperparameters for the [`MeanImputer`](@ref) model
+Hyperparameters for the [`FeatureBasedImputer`](@ref) model
 
 # Parameters:
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct MeanImputerHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct FeatureBasedImputerHyperParametersSet <: BetaMLHyperParametersSet
+    "The descriptive statistic of the column (feature) to use as imputed value [def: `mean`]"
+    statistic::Function                   = mean
     "Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries)."
     norm::Union{Nothing,Int64}       = nothing
+
 end
-Base.@kwdef mutable struct MeanImputerLearnableParameters <: BetaMLLearnableParametersSet
-    cMeans::Vector{Float64} = []
+Base.@kwdef mutable struct FeatureBasedImputerLearnableParameters <: BetaMLLearnableParametersSet
+    cStats::Vector{Float64} = []
     norms::Vector{Float64}  = []
     #imputedValues::Union{Nothing,Matrix{Float64}} = nothing
 end
@@ -197,25 +200,26 @@ end
 """
 $(TYPEDEF)
 
-Simple imputer using the feature (column) mean, optionally normalised by l-norms of the records (rows)
+Simple imputer using the missing data's feature (column) statistic (def: `mean`), optionally normalised by l-norms of the records (rows)
 
 # Parameters:
+- `statistics`: The descriptive statistic of the column (feature) to use as imputed value [def: `mean`]
 - `norm`: Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries).  
 
 # Limitations:
 - data must be numerical
 """
-mutable struct MeanImputer <: Imputer
-    hpar::MeanImputerHyperParametersSet
+mutable struct FeatureBasedImputer <: Imputer
+    hpar::FeatureBasedImputerHyperParametersSet
     opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,MeanImputerLearnableParameters}
+    par::Union{Nothing,FeatureBasedImputerLearnableParameters}
     cres::Union{Nothing,Matrix{Float64}}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
 
-function MeanImputer(;kwargs...)
-    m              = MeanImputer(MeanImputerHyperParametersSet(),BetaMLDefaultOptionsSet(),MeanImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function FeatureBasedImputer(;kwargs...)
+    m              = FeatureBasedImputer(FeatureBasedImputerHyperParametersSet(),BetaMLDefaultOptionsSet(),FeatureBasedImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -235,27 +239,28 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit a matrix with missing data using [`MeanImputer`](@ref)
+Fit a matrix with missing data using [`FeatureBasedImputer`](@ref)
 """
-function fit!(imputer::MeanImputer,X)
+function fit!(imputer::FeatureBasedImputer,X)
     (imputer.fitted == false ) || error("multiple training unsupported on this model")
     #X̂ = copy(X)
     nR,nC = size(X)
     cache       = imputer.opt.cache
     missingMask = ismissing.(X)
-    overallMean = mean(skipmissing(X))
-    cMeans   = [sum(ismissing.(X[:,i])) == nR ? overallMean : mean(skipmissing(X[:,i])) for i in 1:nC]
+    overallStat = mean(skipmissing(X))
+    statf       = imputer.hpar.statistic
+    cStats      = [sum(ismissing.(X[:,i])) == nR ? overallStat : statf(skipmissing(X[:,i])) for i in 1:nC]
 
     if imputer.hpar.norm == nothing
         adjNorms = []
-        X̂ = [missingMask[r,c] ? cMeans[c] : X[r,c] for r in 1:nR, c in 1:nC]
+        X̂ = [missingMask[r,c] ? cStats[c] : X[r,c] for r in 1:nR, c in 1:nC]
     else
         adjNorms = [sum(ismissing.(r)) == nC ? missing : norm(collect(skipmissing(r)),imputer.hpar.norm) /   (nC - sum(ismissing.(r))) for r in eachrow(X)]
         adjNormsMean = mean(skipmissing(adjNorms))
         adjNorms[ismissing.(adjNorms)] .= adjNormsMean
-        X̂        = [missingMask[r,c] ? cMeans[c]*adjNorms[r]/sum(adjNorms) : X[r,c] for r in 1:nR, c in 1:nC]
+        X̂        = [missingMask[r,c] ? cStats[c]*adjNorms[r]/sum(adjNorms) : X[r,c] for r in 1:nR, c in 1:nC]
     end
-    imputer.par = MeanImputerLearnableParameters(cMeans,adjNorms)
+    imputer.par = FeatureBasedImputerLearnableParameters(cStats,adjNorms)
     imputer.cres = cache ? X̂ : nothing
     imputer.info[:n_imputed_values] = sum(missingMask)
     imputer.fitted = true
@@ -265,37 +270,37 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the missing data using the feature averages (eventually normalised) learned by fitting a [`MeanImputer`](@ref) model
+Predict the missing data using the feature averages (eventually normalised) learned by fitting a [`FeatureBasedImputer`](@ref) model
 """
-function predict(m::MeanImputer,X)
+function predict(m::FeatureBasedImputer,X)
     nR,nC = size(X)
     m.fitted || error()
-    nC == length(m.par.cMeans) || error("`MeanImputer` can only predict missing values in matrices with the same number of columns as the matrice it has been trained with.")
-    (m.hpar.norm == nothing || nR == length(m.par.norms)) || error("If norms are used, `MeanImputer` can predict only matrices with the same number of rows as the matrix it has been trained with.")
+    nC == length(m.par.cStats) || error("`FeatureBasedImputer` can only predict missing values in matrices with the same number of columns as the matrice it has been trained with.")
+    (m.hpar.norm == nothing || nR == length(m.par.norms)) || error("If norms are used, `FeatureBasedImputer` can predict only matrices with the same number of rows as the matrix it has been trained with.")
 
     missingMask = ismissing.(X)
     if m.hpar.norm == nothing
-        X̂ = [missingMask[r,c] ? m.par.cMeans[c] : X[r,c] for r in 1:nR, c in 1:nC]
+        X̂ = [missingMask[r,c] ? m.par.cStats[c] : X[r,c] for r in 1:nR, c in 1:nC]
     else
-        X̂        = [missingMask[r,c] ? m.par.cMeans[c]*m.par.norms[r]/sum(m.par.norms) : X[r,c] for r in 1:nR, c in 1:nC]
+        X̂        = [missingMask[r,c] ? m.par.cStats[c]*m.par.norms[r]/sum(m.par.norms) : X[r,c] for r in 1:nR, c in 1:nC]
     end
     return X̂
 end
 
-function show(io::IO, ::MIME"text/plain", m::MeanImputer)
+function show(io::IO, ::MIME"text/plain", m::FeatureBasedImputer)
     if m.fitted == false
-        print(io,"MeanImputer - A simple feature-mean imputer (unfitted)")
+        print(io,"FeatureBasedImputer - A simple feature-stat based imputer (unfitted)")
     else
-        print(io,"MeanImputer - A simple feature-mean imputer (fitted)")
+        print(io,"FeatureBasedImputer - A simple feature-stat based imputer (fitted)")
     end
 end
 
-function show(io::IO, m::MeanImputer)
+function show(io::IO, m::FeatureBasedImputer)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"MeanImputer - A simple feature-mean imputer (unfitted)")
+        print(io,"FeatureBasedImputer - A simple feature-stat based imputer (unfitted)")
     else
-        print(io,"MeanImputer - A simple feature-mean imputer (fitted)")
+        print(io,"FeatureBasedImputer - A simple feature-stat based imputer (fitted)")
         println(io,m.info)
     end
 end
@@ -742,17 +747,17 @@ function show(io::IO, m::RFImputer)
 end
 
 # ------------------------------------------------------------------------------
-# GeneralImputer
+# UniversalImputer
 
 """
 $(TYPEDEF)
 
-Hyperparameters for [`GeneralImputer`](@ref)
+Hyperparameters for [`UniversalImputer`](@ref)
 
 # Parameters:
 $(FIELDS)
 """
-Base.@kwdef mutable struct GeneralImputerHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct UniversalImputerHyperParametersSet <: BetaMLHyperParametersSet
     "Specify a regressor or classifier model (and its options/hyper-parameters) per each column of the matrix to impute. Default to random forests."
     estimators                        = nothing
     "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
@@ -761,7 +766,7 @@ Base.@kwdef mutable struct GeneralImputerHyperParametersSet <: BetaMLHyperParame
     multiple_imputations::Int64    = 1
 end
 
-Base.@kwdef struct GeneralImputerLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef struct UniversalImputerLearnableParameters <: BetaMLLearnableParametersSet
     fittedModels  = nothing
     #imputedValues  = nothing
 end
@@ -771,22 +776,22 @@ $(TYPEDEF)
 
 Impute missing data using any regressor/classifier (not necessarily from BetaML) that implements `m=Model([options])`, `fit!(m,X,Y)` and `predict(m,X)`
 
-See [`GeneralImputerHyperParametersSet`](@ref) for the hyper-parameters.
+See [`UniversalImputerHyperParametersSet`](@ref) for the hyper-parameters.
 
 """
-mutable struct GeneralImputer <: Imputer
-    hpar::GeneralImputerHyperParametersSet
+mutable struct UniversalImputer <: Imputer
+    hpar::UniversalImputerHyperParametersSet
     opt::BetaMLDefaultOptionsSet
-    par::Union{GeneralImputerLearnableParameters,Nothing}
+    par::Union{UniversalImputerLearnableParameters,Nothing}
     cres
     fitted::Bool
     info::Dict{Symbol,Any}    
 end
 
-function GeneralImputer(;kwargs...)
+function UniversalImputer(;kwargs...)
     
-    hps = GeneralImputerHyperParametersSet()
-    m   = GeneralImputer(hps,BetaMLDefaultOptionsSet(),GeneralImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    hps = UniversalImputerHyperParametersSet()
+    m   = UniversalImputer(hps,BetaMLDefaultOptionsSet(),UniversalImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -813,9 +818,9 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit a matrix with missing data using [`GeneralImputer`](@ref)
+Fit a matrix with missing data using [`UniversalImputer`](@ref)
 """
-function fit!(m::GeneralImputer,X)
+function fit!(m::UniversalImputer,X)
     nR,nC   = size(X)
     multiple_imputations  = m.hpar.multiple_imputations
     recursive_passages    = m.hpar.recursive_passages
@@ -825,7 +830,7 @@ function fit!(m::GeneralImputer,X)
     # Setting `estimators`, a matrix of multiple_imputations x nC individual models...
     if ! m.fitted
         if m.hpar.estimators == nothing
-            estimators = [RFModel(rng = m.opt.rng, verbosity=verbosity) for i in 1:multiple_imputations, d in 1:nC]
+            estimators = [RandomForestEstimator(rng = m.opt.rng, verbosity=verbosity) for i in 1:multiple_imputations, d in 1:nC]
         else
             estimators = vcat([permutedims(deepcopy(m.hpar.estimators)) for i in 1:multiple_imputations]...)
         end
@@ -904,7 +909,7 @@ function fit!(m::GeneralImputer,X)
         end # end recursive passage pass
         imputed[imputation]   = Xout
     end # end individual imputation
-    m.par = GeneralImputerLearnableParameters(estimators)
+    m.par = UniversalImputerLearnableParameters(estimators)
     if cache
         if multiple_imputations == 1
             m.cres = imputed[1]
@@ -921,12 +926,12 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Return the data with the missing values replaced with the imputed ones using the non-linear structure learned fitting a [`GeneralImputer`](@ref) model.
+Return the data with the missing values replaced with the imputed ones using the non-linear structure learned fitting a [`UniversalImputer`](@ref) model.
 
 # Notes:
 - If `multiple_imputations` was set > 1 this is a vector of matrices (the individual imputations) instead of a single matrix.
 """
-function predict(m::GeneralImputer,X)
+function predict(m::UniversalImputer,X)
     nR,nC = size(X)
     missingMask    = ismissing.(X)
     nonMissingMask = .! missingMask 
@@ -986,20 +991,20 @@ function predict(m::GeneralImputer,X)
     multiple_imputations == 1 ? (return imputed[1]) : return imputed
 end
 
-function show(io::IO, ::MIME"text/plain", m::GeneralImputer)
+function show(io::IO, ::MIME"text/plain", m::UniversalImputer)
     if m.fitted == false
-        print(io,"GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted)")
+        print(io,"UniversalImputer - A imputer based on an arbitrary regressor/classifier(unfitted)")
     else
-        print(io,"GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted) (fitted)")
+        print(io,"UniversalImputer - A imputer based on an arbitrary regressor/classifier(unfitted) (fitted)")
     end
 end
 
-function show(io::IO, m::GeneralImputer)
+function show(io::IO, m::UniversalImputer)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted) (unfitted)")
+        print(io,"UniversalImputer - A imputer based on an arbitrary regressor/classifier(unfitted) (unfitted)")
     else
-        print(io,"GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted) (fitted)")
+        print(io,"UniversalImputer - A imputer based on an arbitrary regressor/classifier(unfitted) (fitted)")
         println(io,m.info)
     end
 end

@@ -50,7 +50,7 @@ BetaML exports the following modules for usage with the [`MLJ`](https://github.c
 
 - Perceptron models: `LinearPerceptron`, `KernelPerceptron`, `Pegasos`
 - Decision trees/Random forest models:  `DecisionTreeClassifier`, `DecisionTreeRegressor`, `RandomForestClassifier`, `RandomForestRegressor`
-- Clustering models and derived models: `KMeans`, `KMedoids`, `GMMClusterer`, `MissingImputator`
+- Clustering models and derived models: `KMeans`, `KMedoids`, `GaussianMixtures`, `MissingImputator`
 
 Currently BetaML neural network models are not available in MLJ.
 
