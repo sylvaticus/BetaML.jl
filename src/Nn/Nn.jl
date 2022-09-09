@@ -791,10 +791,13 @@ To know the available layers type `subtypes(AbstractLayer)`) and then type `?Lay
 Base.@kwdef mutable struct FeedforwardNNHyperParametersSet <: BetaMLHyperParametersSet
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
-    "Loss (cost) function [def: `squaredCost`]"
+    """Loss (cost) function [def: `squaredCost`].
+    !!! warning
+        If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
+    """
     loss::Union{Nothing,Function} = squaredCost
-    "Derivative of the cost function [def: `nothing`, i.e. use autodiff]"
-    dloss::Union{Function,Nothing}  = nothing
+    "Derivative of the loss function [def: `dSquaredCost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
+    dloss::Union{Function,Nothing}  = dSquaredCost
     "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
     epochs::Int64 = 100
     "Size of each individual batch [def: `32`]"

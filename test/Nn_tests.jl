@@ -4,6 +4,8 @@ using DelimitedFiles, LinearAlgebra, Statistics #, MLDatasets
 using StableRNGs
 #rng = StableRNG(123)
 using BetaML
+import MLJBase
+const Mlj = MLJBase
 
 TESTRNG = FIXEDRNG # This could change...
 #TESTRNG = StableRNG(123)
@@ -255,7 +257,7 @@ trainAccuracy = accuracy(ŷtrain,ytrain,tol=1)
 testAccuracy  = accuracy(ŷtest,ytest,tol=1)
 @test testAccuracy >= 1
 
-m = FeedforwardNN(layers=[l1,l2,l3],loss=squaredCost,batchSize=8,shuffle=false,epochs=10,verbosity=NONE,optAlg=ADAM(η=t -> 1/(1+t), λ=0.5),rng=copy(TESTRNG),descr="Iris classification")
+m = FeedforwardNN(layers=[l1,l2,l3],loss=squaredCost,dloss=nothing,batchSize=8,shuffle=false,epochs=10,verbosity=NONE,optAlg=ADAM(η=t -> 1/(1+t), λ=0.5),rng=copy(TESTRNG),descr="Iris classification")
 fit!(m,xtrain,ytrain_oh)
 ŷtrain2 =  predict(m)
 @test ŷtrain ≈ ŷtrain2
@@ -328,10 +330,9 @@ yhat                           = dropdims(Mlj.predict(model, fitresult, X),dims=
 @test meanRelError(yhat,y) < 0.2
 
 X, y                           = Mlj.@load_iris
-y_oh                           = oneHotEncoder(y)
-model                          = MultitargetNeuralNetworkRegressor(rng=copy(TESTRNG))
-regressor                      = Mlj.machine(model, X, y_oh)
-(fitresult, cache, report)     = Mlj.fit(model, 0, X, y_oh)
+model                          = NeuralNetworkClassifier(rng=copy(TESTRNG))
+regressor                      = Mlj.machine(model, X, y)
+(fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
-@test accuracy(mode(yhat),mode(y_oh)) >= 0.98
-
+#@test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat, y)) < 0.25
+@test sum(Mlj.mode.(yhat) .== y)/length(y) >= 0.98

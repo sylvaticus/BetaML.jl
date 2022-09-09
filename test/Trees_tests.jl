@@ -330,13 +330,14 @@ regressor_dtc                  = Mlj.machine(model_dtc, X, y)
 (fitresult_dtc, cache, report) = Mlj.fit(model_dtc, 0, X, y)
 yhat_dtc                       = Mlj.predict(model_dtc, fitresult_dtc, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_dtc, y)) < 0.0002
+@test sum(Mlj.mode.(yhat_dtc) .== y)/length(y) == 1
 
 model_rfc                      = RandomForestClassifier(max_features=3,rng=copy(TESTRNG))
 regressor_rfc                  = Mlj.machine(model_rfc, X, y)
 (fitresult_rfc, cache, report) = Mlj.fit(model_rfc, 0, X, y)
 yhat_rfc                       = Mlj.predict(model_rfc, fitresult_rfc, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_rfc, y)) < 0.04
-
+sum(Mlj.mode.(yhat_rfc) .== y)/length(y) == 1
 
 # Other MLJ classifier models
 #=

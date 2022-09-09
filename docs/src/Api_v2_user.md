@@ -90,6 +90,10 @@ Currently the following models are available
 | OrdinalEncoder | |
 
 
+prop1:
+
+| BetaML name | MLJ Interface | Notes |
+| ----------- | ------------- | ---------------------------------------------- |
 | Perceptron | PerceptronClassifier |  | 
 | KernelPerceptron  | KernelPerceptronClassifier
 | Pegasos | PegasosClassifier |
@@ -112,6 +116,11 @@ Currently the following models are available
 | OneHotEncoder | |
 | OrdinalEncoder | |
 
+
+Prop2: 
+
+| BetaML name | MLJ Interface | Notes |
+| ----------- | ------------- | ---------------------------------------------- |
 | PerceptronClassifier | Perceptron |  | 
 | KernelPerceptronClassifier  | KernelPerceptron
 | PegasosClassifier | Pegasos |
