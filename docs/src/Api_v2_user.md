@@ -67,9 +67,9 @@ Currently the following models are available
 
 | BetaML name | MLJ Interface | Notes |
 | ----------- | ------------- | ---------------------------------------------- |
-| PerceptronClassic | PerceptronClassifier |  | 
-| KernelPerceptron  | KernelPerceptronClassifier
-| Pegasos | PegasosClassifier |
+| PerceptronClassifier | LinearPerceptron |  | 
+| KernelPerceptronClassifier  | KernelPerceptron
+| PegasosClassifier | Pegasos |
 | DTModel | DecisionTreeClassifier, DecisionTreeRegressor | 
 | RFModel |  RandomForestClassifier, RandomForestRegressor |
 | FeedforwardNN | FeedforwardNeuralNetwork
@@ -94,9 +94,9 @@ prop1:
 
 | BetaML name | MLJ Interface | Notes |
 | ----------- | ------------- | ---------------------------------------------- |
-| Perceptron | PerceptronClassifier |  | 
-| KernelPerceptron  | KernelPerceptronClassifier
-| Pegasos | PegasosClassifier |
+| Perceptron | LinearPerceptron |  | 
+| KernelPerceptronClassifier  | KernelPerceptron
+| PegasosClassifier | Pegasos |
 | DecitionTree | DecisionTreeClassifier, DecisionTreeRegressor | 
 | RandomForest |  RandomForestClassifier, RandomForestRegressor |
 | NeuralNetwork | FeedforwardNeuralNetwork
@@ -121,9 +121,9 @@ Prop2:
 
 | BetaML name | MLJ Interface | Notes |
 | ----------- | ------------- | ---------------------------------------------- |
-| PerceptronClassifier | Perceptron |  | 
-| KernelPerceptronClassifier  | KernelPerceptron
-| PegasosClassifier | Pegasos |
+| LinearPerceptron | Perceptron |  | 
+| KernelPerceptron  | KernelPerceptronClassifier
+| Pegasos | PegasosClassifier |
 | DecisionTreePredictor | DecisionTreeClassifier, DecisionTreeRegressor | 
 | RandomForestPredictor |  RandomForestClassifier, RandomForestRegressor |
 | NeuralNetworkPredictor | NeuralNetworkClassifier, MultitargetNeuralNetworkRegressor

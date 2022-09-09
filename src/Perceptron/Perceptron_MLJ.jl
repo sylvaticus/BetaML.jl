@@ -5,13 +5,13 @@
 import MLJModelInterface       # It seems that having done this in the top module is not enought
 const MMI = MLJModelInterface  # We need to repoeat it here
 
-export PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier
+export LinearPerceptron, KernelPerceptron, Pegasos
 
 
 # ------------------------------------------------------------------------------
 # Model Structure declarations..
 "The classical perceptron algorithm using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML)."
-mutable struct PerceptronClassifier <: MMI.Probabilistic
+mutable struct LinearPerceptron <: MMI.Probabilistic
    initialθ::Union{Matrix{Float64},Nothing} 
    initialθ₀::Union{Vector{Float64},Nothing} 
    maxEpochs::Int64
@@ -20,7 +20,7 @@ mutable struct PerceptronClassifier <: MMI.Probabilistic
    return_mean_hyperplane::Bool
    rng::AbstractRNG
 end
-PerceptronClassifier(;
+LinearPerceptron(;
   initialθ=nothing,
   initialθ₀=nothing,
   maxEpochs=1000,
@@ -28,26 +28,26 @@ PerceptronClassifier(;
   force_origin=false,
   return_mean_hyperplane=false,
   rng = Random.GLOBAL_RNG,
-  ) = PerceptronClassifier(initialθ,initialθ₀,maxEpochs,shuffle,force_origin,return_mean_hyperplane,rng)
+  ) = LinearPerceptron(initialθ,initialθ₀,maxEpochs,shuffle,force_origin,return_mean_hyperplane,rng)
 
 "The kernel perceptron algorithm using one-vs-one for multiclass, from the Beta Machine Learning Toolkit (BetaML)."
-mutable struct KernelPerceptronClassifier <: MMI.Probabilistic
+mutable struct KernelPerceptron <: MMI.Probabilistic
      K::Function
      maxEpochs::Int64
      initialα::Union{Nothing,Vector{Vector{Int64}}}
      shuffle::Bool
      rng::AbstractRNG
 end
-KernelPerceptronClassifier(;
+KernelPerceptron(;
     K=radialKernel,
     maxEpochs=100,
     initialα = nothing,
     shuffle=false,
     rng = Random.GLOBAL_RNG,
-    ) = KernelPerceptronClassifier(K,maxEpochs,initialα,shuffle,rng)
+    ) = KernelPerceptron(K,maxEpochs,initialα,shuffle,rng)
 
 "The gradient-based linear \"pegasos\" classifier using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML)."
-mutable struct PegasosClassifier <: MMI.Probabilistic
+mutable struct Pegasos <: MMI.Probabilistic
    initialθ::Union{Matrix{Float64},Nothing} 
    initialθ₀::Union{Vector{Float64},Nothing} 
    λ::Float64
@@ -58,7 +58,7 @@ mutable struct PegasosClassifier <: MMI.Probabilistic
    return_mean_hyperplane::Bool
    rng::AbstractRNG
 end
-PegasosClassifier(;
+Pegasos(;
   initialθ=nothing,
   initialθ₀=nothing,
   λ = 0.5,
@@ -68,12 +68,12 @@ PegasosClassifier(;
   force_origin=false,
   return_mean_hyperplane=false,
   rng = Random.GLOBAL_RNG,
-  ) = PegasosClassifier(initialθ,initialθ₀,λ,η,maxEpochs,shuffle,force_origin,return_mean_hyperplane,rng)
+  ) = Pegasos(initialθ,initialθ₀,λ,η,maxEpochs,shuffle,force_origin,return_mean_hyperplane,rng)
 
 # ------------------------------------------------------------------------------
 # Fit functions...
 
-function MMI.fit(model::PerceptronClassifier, verbosity, X, y)
+function MMI.fit(model::LinearPerceptron, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
  #initialθ  = length(model.initialθ) == 0 ? zeros(size(x,2)) : model.initialθ
@@ -83,7 +83,7 @@ function MMI.fit(model::PerceptronClassifier, verbosity, X, y)
  return (fitresult,allClasses), cache, report
 end
 
-function MMI.fit(model::KernelPerceptronClassifier, verbosity, X, y)
+function MMI.fit(model::KernelPerceptron, verbosity, X, y)
  x          = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
  #initialα   = length(model.initialα) == 0 ? zeros(Int64,length(y)) : model.initialα
@@ -93,7 +93,7 @@ function MMI.fit(model::KernelPerceptronClassifier, verbosity, X, y)
  return (fitresult,allClasses), cache, report
 end
 
-function MMI.fit(model::PegasosClassifier, verbosity, X, y)
+function MMI.fit(model::Pegasos, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
  #initialθ  = length(model.initialθ) == 0 ? zeros(size(x,2)) : model.initialθ
@@ -106,7 +106,7 @@ end
 # ------------------------------------------------------------------------------
 # Predict functions....
 
-function MMI.predict(model::Union{PerceptronClassifier,PegasosClassifier}, fitresult, Xnew)
+function MMI.predict(model::Union{LinearPerceptron,Pegasos}, fitresult, Xnew)
     fittedModel      = fitresult[1]
     #classes          = CategoricalVector(fittedModel.classes)
     classes          = fittedModel.classes
@@ -128,7 +128,7 @@ function MMI.predict(model::Union{PerceptronClassifier,PegasosClassifier}, fitre
     return predictions
 end
 
-function MMI.predict(model::KernelPerceptronClassifier, fitresult, Xnew)
+function MMI.predict(model::KernelPerceptron, fitresult, Xnew)
     fittedModel      = fitresult[1]
     #classes          = CategoricalVector(fittedModel.classes)
     classes          = fittedModel.classes
@@ -157,26 +157,26 @@ end
 # ------------------------------------------------------------------------------
 # Model metadata for registration in MLJ...
 
-MMI.metadata_model(PerceptronClassifier,
+MMI.metadata_model(LinearPerceptron,
     input_scitype    = MMI.Table(MMI.Infinite),
     target_scitype   = AbstractVector{<: MMI.Finite},
     supports_weights = false,
     descr            = "The classical perceptron algorithm using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML).",
-	load_path        = "BetaML.Perceptron.PerceptronClassifier"
+	load_path        = "BetaML.Perceptron.LinearPerceptron"
 )
 
-MMI.metadata_model(KernelPerceptronClassifier,
+MMI.metadata_model(KernelPerceptron,
     input_scitype    = MMI.Table(MMI.Infinite),
     target_scitype   = AbstractVector{<: MMI.Finite},
     supports_weights = false,
     descr            = "The kernel perceptron algorithm using one-vs-one for multiclass, from the Beta Machine Learning Toolkit (BetaML).",
-	load_path        = "BetaML.Perceptron.KernelPerceptronClassifier"
+	load_path        = "BetaML.Perceptron.KernelPerceptron"
 )
 
-MMI.metadata_model(PegasosClassifier,
+MMI.metadata_model(Pegasos,
     input_scitype    = MMI.Table(MMI.Infinite),
     target_scitype   = AbstractVector{<: MMI.Finite},
     supports_weights = false,
     descr            = "The gradient-based linear \"pegasos\" classifier using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML).",
-	load_path        = "BetaML.Perceptron.PegasosClassifier"
+	load_path        = "BetaML.Perceptron.Pegasos"
 )

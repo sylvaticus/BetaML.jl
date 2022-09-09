@@ -50,7 +50,7 @@ include("Imputation/Imputation.jl") # (Missing) imputation algorithms
 
 # ------------------------------------------------------------------------------
 #MLJ interface...
-const MLJ_PERCEPTRON_MODELS = (PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier)
+const MLJ_PERCEPTRON_MODELS = (LinearPerceptron, KernelPerceptron, Pegasos)
 const MLJ_TREES_MODELS      = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
 const MLJ_CLUSTERING_MODELS = (KMeans, KMedoids, GMMClusterer, MissingImputator)
 const MLJ_IMPUTERS_MODELS   = (BetaMLMeanImputer, BetaMLGMMImputer, BetaMLRFImputer,BetaMLGenericImputer) # these are the name of the MLJ models, not the BetaML ones...

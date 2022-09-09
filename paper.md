@@ -96,9 +96,9 @@ Finally, the Bayesian Information Criterion `bic` and Akaike Information Criteri
 
 ## The `Perceptron` module
 
-It provides the classical Perceptron linear classifier, a _kernelised_ version of it and "Pegasos" [@Shalev-Shwartz:2011], a gradient-descent based implementation.
+It provides the classical Perceptron linear classifier, a _kernelised_ version of it and "PegasosClassifier" [@Shalev-Shwartz:2011], a gradient-descent based implementation.
 
-The basic Perceptron classifier is implemented in the `perceptron` function, where the user can provide the initial weights and retrieve both the final and the average parameters of the classifier. In `kernelPerceptron` the user can either pass one of the kernel implemented in `Utils` or implement its own kernel function. `pegasos` performs the classification using a basic stochastic descent method^[We plan to generalise the Pegasos algorithm to use the optimisation algorithms implemented for neural networks.]. Finally `predict` predicts the binary label given the feature vector and the linear coefficients or the error distribution as obtained by the kernel Perceptron algorithm.
+The basic Perceptron classifier is implemented in the `perceptron` function, where the user can provide the initial weights and retrieve both the final and the average parameters of the classifier. In `KernelPerceptronClassifier` the user can either pass one of the kernel implemented in `Utils` or implement its own kernel function. `pegasos` performs the classification using a basic stochastic descent method^[We plan to generalise the PegasosClassifier algorithm to use the optimisation algorithms implemented for neural networks.]. Finally `predict` predicts the binary label given the feature vector and the linear coefficients or the error distribution as obtained by the kernel Perceptron algorithm.
 
 ## The `Nn` module
 

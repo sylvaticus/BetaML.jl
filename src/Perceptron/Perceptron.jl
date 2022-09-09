@@ -7,14 +7,14 @@ Provide linear and kernel classifiers.
 
 Provide the following supervised models:
 
-- [`PerceptronClassic`](@ref): Train data using the classical perceptron
-- [`KernelPerceptron`](@ref): Train data using the kernel perceptron
-- [`Pegasos`](@ref): Train data using the pegasos algorithm
+- [`PerceptronClassifier`](@ref): Train data using the classical perceptron
+- [`KernelPerceptronClassifier`](@ref): Train data using the kernel perceptron
+- [`PegasosClassifier`](@ref): Train data using the pegasos algorithm
 
 
-All algorithms are multiclass, with `PerceptronClassic` and `Pegasos` employing a one-vs-all strategy, while `KernelPerceptron` employs a _one-vs-one_ approach, and return a "probability" for each class in term of a dictionary for each record. Use `mode(ŷ)` to return a single class prediction per record.
+All algorithms are multiclass, with `PerceptronClassifier` and `PegasosClassifier` employing a one-vs-all strategy, while `KernelPerceptronClassifier` employs a _one-vs-one_ approach, and return a "probability" for each class in term of a dictionary for each record. Use `mode(ŷ)` to return a single class prediction per record.
 
-These models are available in the MLJ framework as `PerceptronClassifier`,`KernelPerceptronClassifier` and `PegasosClassifier` respectivly.
+These models are available in the MLJ framework as `LinearPerceptron`,`KernelPerceptron` and `Pegasos` respectivly.
 """
 module Perceptron
 
@@ -27,8 +27,8 @@ using ForceImport
 import Base.show
 
 export perceptron, perceptronBinary, kernelPerceptron, kernelPerceptronBinary, pegasos, pegasosBinary, predict
-export PerceptronClassic, KernelPerceptron, Pegasos
-export PerceptronClassicHyperParametersSet, KernelPerceptronHyperParametersSet, PegasosHyperParametersSet
+export PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier
+export PerceptronClassifierHyperParametersSet, KernelPerceptronClassifierHyperParametersSet, PegasosClassifierHyperParametersSet
 
 
 include("Perceptron_classic.jl")

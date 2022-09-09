@@ -12,14 +12,14 @@ println("Testing MLJ interface for Perceptron models....")
 
 X, y                      = Mlj.@load_iris
 
-model                     = PerceptronClassifier()
+model                     = LinearPerceptron()
 regressor                 = Mlj.machine(model, X, y)
 Mlj.evaluate!(regressor, resampling=Mlj.CV(), measure=Mlj.LogLoss())
 
-model                     = KernelPerceptronClassifier()
+model                     = KernelPerceptron()
 regressor                 = Mlj.machine(model, X, y)
 Mlj.evaluate!(regressor, resampling=Mlj.CV(), measure=Mlj.LogLoss())
 
-model                     = PegasosClassifier()
+model                     = Pegasos()
 regressor                 = Mlj.machine(model, X, y)
 Mlj.evaluate!(regressor, resampling=Mlj.CV(), measure=Mlj.LogLoss())

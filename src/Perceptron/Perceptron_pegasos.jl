@@ -7,9 +7,9 @@ Train the multiclass classifier "pegasos" algorithm according to x (features) an
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use the model `Pegasos` instead. 
+    Use the model `PegasosClassifier` instead. 
 
-Pegasos is a _linear_, gradient-based classifier. Multiclass is supported using a one-vs-all approach.
+PegasosClassifier is a _linear_, gradient-based classifier. Multiclass is supported using a one-vs-all approach.
 
 # Parameters:
 * `x`:           Feature matrix of the training data (n × d)
@@ -32,7 +32,7 @@ Pegasos is a _linear_, gradient-based classifier. Multiclass is supported using 
 
 # Notes:
 * The trained parameters can then be used to make predictions using the function `predict()`.
-* This model is available in the MLJ framework as the `PegasosClassifier`
+* This model is available in the MLJ framework as the `Pegasos`
 
 # Example:
 ```jldoctest
@@ -88,7 +88,7 @@ Train the peagasos algorithm based on x and y (labels)
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use the model `Pegasos` instead. 
+    Use the model `PegasosClassifier` instead. 
 
 # Parameters:
 * `x`:           Feature matrix of the training data (n × d)
@@ -131,7 +131,7 @@ bestϵ = Inf
 lastϵ = Inf
 if force_origin θ₀ = 0.0; end
 sumθ = θ; sumθ₀ = θ₀
-@showprogress 1 "Training Pegasos..." for t in 1:T
+@showprogress 1 "Training PegasosClassifier..." for t in 1:T
   ϵ = 0
   ηₜ = η(t)
   if shuffle
@@ -172,12 +172,12 @@ end
 """
 $(TYPEDEF)
 
-Hyperparameters for the [`Pegasos`](@ref) model.
+Hyperparameters for the [`PegasosClassifier`](@ref) model.
 
 ## Parameters:
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct PegasosHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct PegasosClassifierHyperParametersSet <: BetaMLHyperParametersSet
     "Learning rate [def: (epoch -> 1/sqrt(epoch))]"
     learning_rate::Function =  (epoch -> 1/sqrt(epoch)) 
     "Multiplicative term of the learning rate [def: `0.5`]"         
@@ -194,7 +194,7 @@ Base.@kwdef mutable struct PegasosHyperParametersSet <: BetaMLHyperParametersSet
     return_mean_hyperplane::Bool=false
 end
 
-Base.@kwdef mutable struct PegasosLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct PegasosClassifierLearnableParameters <: BetaMLLearnableParametersSet
     weigths::Union{Nothing,Matrix{Float64}} = nothing
     classes::Vector  = []
 end
@@ -202,22 +202,22 @@ end
 """
 $(TYPEDEF)
 
-The `Pegasos` model, a _linear_, gradient-based classifier. Multiclass is supported using a one-vs-all approach.
+The `PegasosClassifier` model, a _linear_, gradient-based classifier. Multiclass is supported using a one-vs-all approach.
 
-See [`?PegasosHyperParametersSet`](@ref PegasosHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet) for applicable hyperparameters and options. 
+See [`?PegasosClassifierHyperParametersSet`](@ref PegasosClassifierHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet) for applicable hyperparameters and options. 
 
 """
-mutable struct Pegasos <: BetaMLSupervisedModel
-    hpar::PegasosHyperParametersSet
+mutable struct PegasosClassifier <: BetaMLSupervisedModel
+    hpar::PegasosClassifierHyperParametersSet
     opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,PegasosLearnableParameters}
+    par::Union{Nothing,PegasosClassifierLearnableParameters}
     cres::Union{Nothing,Vector}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
 
-function Pegasos(;kwargs...)
-    m              = Pegasos(PegasosHyperParametersSet(),BetaMLDefaultOptionsSet(),PegasosLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function PegasosClassifier(;kwargs...)
+    m              = PegasosClassifier(PegasosClassifierHyperParametersSet(),BetaMLDefaultOptionsSet(),PegasosClassifierLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -236,10 +236,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit a [`Pegasos`](@ref) model.
+Fit a [`PegasosClassifier`](@ref) model.
 
 """
-function fit!(m::Pegasos,X,Y)
+function fit!(m::PegasosClassifier,X,Y)
     
 
     # Parameter alias..
@@ -274,7 +274,7 @@ function fit!(m::Pegasos,X,Y)
     out = pegasos(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[:,c] for c in 2:nD+1], λ=learning_rate_multiplicative, η=learning_rate, T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng)
 
     weights = hcat(out.θ₀,vcat(out.θ' ...))
-    m.par = PegasosLearnableParameters(weights,out.classes)
+    m.par = PegasosClassifierLearnableParameters(weights,out.classes)
     if cache
        out    = predict(X,out.θ,out.θ₀,out.classes)
        m.cres = cache ? out : nothing
@@ -292,29 +292,29 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict labels using a fitted [`Pegasos`](@ref) model.
+Predict labels using a fitted [`PegasosClassifier`](@ref) model.
 
 """
-function predict(m::Pegasos,X)
+function predict(m::PegasosClassifier,X)
     θ₀ = [ i for i in m.par.weigths[:,1]]
     θ  = [r for r in eachrow(m.par.weigths[:,2:end])]
     return predict(X,θ,θ₀,m.par.classes)
 end
 
-function show(io::IO, ::MIME"text/plain", m::Pegasos)
+function show(io::IO, ::MIME"text/plain", m::PegasosClassifier)
     if m.fitted == false
-        print(io,"Pegasos - a loss-based linear classifier without regularisation term (unfitted)")
+        print(io,"PegasosClassifier - a loss-based linear classifier without regularisation term (unfitted)")
     else
-        print(io,"Pegasos - a loss-based linear classifier without regularisation term (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"PegasosClassifier - a loss-based linear classifier without regularisation term (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
-function show(io::IO, m::Pegasos)
+function show(io::IO, m::PegasosClassifier)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"Pegasos - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes a loss-based linear classifier without regularisation term (unfitted)")
+        println(io,"PegasosClassifier - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes a loss-based linear classifier without regularisation term (unfitted)")
     else
-        println(io,"Pegasos - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes a loss-based linear classifier without regularisation term (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"PegasosClassifier - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes a loss-based linear classifier without regularisation term (fitted on $(m.info[:fitted_records]) records)")
         println(io,"Weights:")
         println(io,m.par.weights)
     end

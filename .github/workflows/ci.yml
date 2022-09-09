@@ -58,7 +58,7 @@ jobs:
             Pkg.instantiate()'
       # Test the documentation itself
       # The problem is that in the test I should call stuff like
-      # BetaML.kernelPerceptron(.) or use "meta"
+      # BetaML.KernelPerceptronClassifier(.) or use "meta"
       # https://juliadocs.github.io/Documenter.jl/stable/man/doctests/
       #- run: |
       #    julia --project=docs -e '

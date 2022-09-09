@@ -34,7 +34,7 @@ ŷavgtest = predict(xtest,outTest.θ,outTest.θ₀,outTest.classes)
 ϵavg     = error(ytest, mode(ŷavgtest))
 @test ϵ    < 0.03
 @test ϵavg < 0.2
-m      =  PerceptronClassic(shuffle=false, verbosity=NONE, rng=copy(TESTRNG))
+m      =  PerceptronClassifier(shuffle=false, verbosity=NONE, rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 ŷtrain2 = predict(m) 
 ŷtrain3 = predict(m,xtrain)
@@ -92,7 +92,7 @@ ŷtest  = predict(xtest,out.θ,out.θ₀,out.classes)
 @test ϵtrain  < 0.4
 @test ϵavg    < 0.4
 
-m      =  PerceptronClassic(shuffle=false, verbosity=NONE, rng=copy(TESTRNG))
+m      =  PerceptronClassifier(shuffle=false, verbosity=NONE, rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 ŷtrain2 = predict(m) 
 ŷtrain3 = predict(m,xtrain)
@@ -149,7 +149,7 @@ ŷtest  = predict(xtest,out.x,out.y,out.α, out.classes,K=out.K)
 @test ϵtrain  < 0.1
 @test ϵtest   < 0.8
 
-m = KernelPerceptron(shuffle=false,verbosity=NONE, rng=copy(TESTRNG))
+m = KernelPerceptronClassifier(shuffle=false,verbosity=NONE, rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 ŷtrain2 = predict(m)
 ŷtrain3 = predict(m,xtrain)
@@ -159,9 +159,9 @@ ŷtest2 = predict(m,xtest)
 
 
 # ==================================
-# Test 3: Pegasos
+# Test 3: PegasosClassifier
 # ==================================
-println("Going through Test3 (Pegasos)...")
+println("Going through Test3 (PegasosClassifier)...")
 
 
 perceptronData     = readdlm(joinpath(@__DIR__,"data/binary2DData.csv"),'\t')
@@ -201,7 +201,7 @@ ŷtest  = predict(xtest,out.θ,out.θ₀,out.classes)
 @test ϵtrain  <= 0.8 # this relation is not linear, normal error is big
 @test ϵtest   <= 0.8
 
-m = Pegasos(shuffle=false,verbosity=NONE, rng=copy(TESTRNG))
+m = PegasosClassifier(shuffle=false,verbosity=NONE, rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 ŷtrain2 = predict(m)
 ŷtrain3 = predict(m,xtrain)
@@ -247,19 +247,19 @@ println("Testing MLJ interface for Perceptron models....")
 
 X, y                           = Mlj.@load_iris
 
-model                          = PerceptronClassifier(rng=copy(TESTRNG))
+model                          = LinearPerceptron(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat, y)) < 3.1
 
-model                          = KernelPerceptronClassifier(rng=copy(TESTRNG))
+model                          = KernelPerceptron(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
 @test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat, y)) < 0.5
 
-model                          = PegasosClassifier(rng=copy(TESTRNG))
+model                          = Pegasos(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)

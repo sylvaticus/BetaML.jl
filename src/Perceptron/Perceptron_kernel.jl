@@ -7,7 +7,7 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use the model KernelPerceptron() instead. 
+    Use the model kernelPerceptron() instead. 
 
 `kernelPerceptron` is a (potentially) non-linear perceptron-style classifier employing user-defined kernel funcions. Multiclass is supported using a one-vs-one approach.
 
@@ -29,7 +29,7 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
 
 # Notes:
 * The trained model can then be used to make predictions using the function `predict()`.
-* This model is available in the MLJ framework as the `KernelPerceptronClassifier`
+* This model is available in the MLJ framework as the `KernelPerceptron`
 
 # Example:
 ```jldoctest
@@ -74,7 +74,7 @@ Train a binary kernel classifier "perceptron" algorithm based on x and y
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use the model KernelPerceptron() instead. 
+    Use the model KernelPerceptronClassifier() instead. 
 
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
@@ -281,12 +281,12 @@ end
 """
 $(TYPEDEF)
 
-Hyperparameters for the [`KernelPerceptron`](@ref) model
+Hyperparameters for the [`KernelPerceptronClassifier`](@ref) model
 
 # Parameters:
 $(FIELDS)
 """
-Base.@kwdef mutable struct KernelPerceptronHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct KernelPerceptronClassifierHyperParametersSet <: BetaMLHyperParametersSet
     "Kernel function to employ. See `?radialKernel` or `?polynomialKernel` for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]"
     kernel::Function = radialKernel       
     "Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`"
@@ -297,7 +297,7 @@ Base.@kwdef mutable struct KernelPerceptronHyperParametersSet <: BetaMLHyperPara
     shuffle::Bool = false
 end
 
-Base.@kwdef mutable struct KernelPerceptronLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct KernelPerceptronClassifierLearnableParameters <: BetaMLLearnableParametersSet
     xtrain::Union{Nothing,Vector{Matrix{Float64}}} = nothing
     ytrain::Union{Nothing,Vector{Vector{Int64}}} = nothing
     errors::Union{Nothing,Vector{Vector{Int64}}} = nothing
@@ -307,26 +307,26 @@ end
 """
 $(TYPEDEF)
 
-A "kernel" version of the `Pegasos` model (supervised) with user configurable kernel function.
+A "kernel" version of the `Perceptron` model (supervised) with user configurable kernel function.
 
-For the parameters see [`?KernelPerceptronHyperParametersSet`](@ref KernelPerceptronHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet)
+For the parameters see [`?KernelPerceptronClassifierHyperParametersSet`](@ref KernelPerceptronClassifierHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet)
 
 ## Limitations:
 - data must be numerical
 - online training (retraining) is not supported
 
 """
-mutable struct KernelPerceptron <: BetaMLSupervisedModel
-    hpar::KernelPerceptronHyperParametersSet
+mutable struct KernelPerceptronClassifier <: BetaMLSupervisedModel
+    hpar::KernelPerceptronClassifierHyperParametersSet
     opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,KernelPerceptronLearnableParameters}
+    par::Union{Nothing,KernelPerceptronClassifierLearnableParameters}
     cres::Union{Nothing,Vector}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
 
-function KernelPerceptron(;kwargs...)
-    m              = KernelPerceptron(KernelPerceptronHyperParametersSet(),BetaMLDefaultOptionsSet(),KernelPerceptronLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function KernelPerceptronClassifier(;kwargs...)
+    m              = KernelPerceptronClassifier(KernelPerceptronClassifierHyperParametersSet(),BetaMLDefaultOptionsSet(),KernelPerceptronClassifierLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -345,10 +345,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit a [`KernelPerceptron`](@ref) model.
+Fit a [`KernelPerceptronClassifier`](@ref) model.
 
 """
-function fit!(m::KernelPerceptron,X,Y)
+function fit!(m::KernelPerceptronClassifier,X,Y)
     
 
     # Parameter alias..
@@ -381,7 +381,7 @@ function fit!(m::KernelPerceptron,X,Y)
 
     out = kernelPerceptron(X, Y; K=kernel, T=epochs, α=initial_errors, nMsgs=nMsgs, shuffle=shuffle, rng = rng)
 
-    m.par = KernelPerceptronLearnableParameters(out.x,out.y,out.α,out.classes)
+    m.par = KernelPerceptronClassifierLearnableParameters(out.x,out.y,out.α,out.classes)
 
   
     if cache
@@ -402,27 +402,27 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict labels using a fitted [`KernelPerceptron`](@ref) model.
+Predict labels using a fitted [`KernelPerceptronClassifier`](@ref) model.
 
 """
-function predict(m::KernelPerceptron,X)
+function predict(m::KernelPerceptronClassifier,X)
     return predict(X,m.par.xtrain,m.par.ytrain,m.par.errors,m.par.classes;K=m.hpar.kernel)
 end
 
-function show(io::IO, ::MIME"text/plain", m::KernelPerceptron)
+function show(io::IO, ::MIME"text/plain", m::KernelPerceptronClassifier)
     if m.fitted == false
-        print(io,"KernelPerceptron - A \"kernelised\" version of the perceptron classifier (unfitted)")
+        print(io,"KernelPerceptronClassifier - A \"kernelised\" version of the perceptron classifier (unfitted)")
     else
-        print(io,"KernelPerceptron - A \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"KernelPerceptronClassifier - A \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
-function show(io::IO, m::KernelPerceptron)
+function show(io::IO, m::KernelPerceptronClassifier)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes \"kernelised\" version of the perceptron classifier (unfitted)")
+        println(io,"KernelPerceptronClassifier - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes \"kernelised\" version of the perceptron classifier (unfitted)")
     else
-        println(io,"KernelPerceptron - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"KernelPerceptronClassifier - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
         print(io,"Kernel: ")
         print(io,m.hpar.kernel)
     end

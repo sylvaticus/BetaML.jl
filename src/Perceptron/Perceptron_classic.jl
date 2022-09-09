@@ -7,7 +7,7 @@ Train the multiclass classifier "perceptron" algorithm  based on x and y (labels
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use the model [`PerceptronClassic`](@ref) instead. 
+    Use the model [`PerceptronClassifier`](@ref) instead. 
 
 The perceptron is a _linear_ classifier. Multiclass is supported using a one-vs-all approach.
 
@@ -32,7 +32,7 @@ The perceptron is a _linear_ classifier. Multiclass is supported using a one-vs-
 
 # Notes:
 * The trained parameters can then be used to make predictions using the function `predict()`.
-* This model is available in the MLJ framework as the `PerceptronClassifier`
+* This model is available in the MLJ framework as the `LinearPerceptron`
 
 # Example:
 ```jldoctest
@@ -84,7 +84,7 @@ end
 
 !!! warning
     This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use the model PerceptronClassic() instead. 
+    Use the model PerceptronClassifier() instead. 
 
 Train the binary classifier "perceptron" algorithm based on x and y (labels)
 
@@ -251,12 +251,12 @@ end
 """
 $(TYPEDEF)
 
-Hyperparameters for the [`PerceptronClassic`](@ref) model
+Hyperparameters for the [`PerceptronClassifier`](@ref) model
 
 # Parameters:
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct PerceptronClassicHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct PerceptronClassifierHyperParametersSet <: BetaMLHyperParametersSet
     "Initial parameters. If given, should be a matrix of n-classes by feature dimension + 1 (to include the constant term as the first element) [def: `nothing`, i.e. zeros]"
     initial_parameters::Union{Nothing,Matrix{Float64}} = nothing
     "Maximum number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
@@ -269,7 +269,7 @@ Base.@kwdef mutable struct PerceptronClassicHyperParametersSet <: BetaMLHyperPar
     return_mean_hyperplane::Bool=false
 end
 
-Base.@kwdef mutable struct PerceptronClassicLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct PerceptronClassifierLearnableParameters <: BetaMLLearnableParametersSet
     weigths::Union{Nothing,Matrix{Float64}} = nothing
     classes::Vector  = []
 end
@@ -279,24 +279,24 @@ $(TYPEDEF)
 
 The classical "perceptron" linear classifier (supervised).
 
-For the parameters see [`?PerceptronClassicHyperParametersSet`](@ref PerceptronClassicHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
+For the parameters see [`?PerceptronClassifierHyperParametersSet`](@ref PerceptronClassifierHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
 
 # Notes:
 - data must be numerical
 - online fitting (re-fitting with new data) is not supported
 
 """
-mutable struct PerceptronClassic <: BetaMLSupervisedModel
-    hpar::PerceptronClassicHyperParametersSet
+mutable struct PerceptronClassifier <: BetaMLSupervisedModel
+    hpar::PerceptronClassifierHyperParametersSet
     opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,PerceptronClassicLearnableParameters}
+    par::Union{Nothing,PerceptronClassifierLearnableParameters}
     cres::Union{Nothing,Vector}
     fitted::Bool
     info::Dict{Symbol,Any}
 end
 
-function PerceptronClassic(;kwargs...)
-    m              = PerceptronClassic(PerceptronClassicHyperParametersSet(),BetaMLDefaultOptionsSet(),PerceptronClassicLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function PerceptronClassifier(;kwargs...)
+    m              = PerceptronClassifier(PerceptronClassifierHyperParametersSet(),BetaMLDefaultOptionsSet(),PerceptronClassifierLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -315,10 +315,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit the [`PerceptronClassic`](@ref) model to data
+Fit the [`PerceptronClassifier`](@ref) model to data
 
 """
-function fit!(m::PerceptronClassic,X,Y)
+function fit!(m::PerceptronClassifier,X,Y)
     
 
     # Parameter alias..
@@ -351,7 +351,7 @@ function fit!(m::PerceptronClassic,X,Y)
     out = perceptron(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[:,c] for c in 2:nD+1], T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng)
 
     weights = hcat(out.θ₀,vcat(out.θ' ...))
-    m.par = PerceptronClassicLearnableParameters(weights,out.classes)
+    m.par = PerceptronClassifierLearnableParameters(weights,out.classes)
     if cache
        out    = predict(X,out.θ,out.θ₀,out.classes)
        m.cres = cache ? out : nothing
@@ -369,29 +369,29 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the labels associated to some feature data using the linear coefficients learned by fitting a [`PerceptronClassic`](@ref) model
+Predict the labels associated to some feature data using the linear coefficients learned by fitting a [`PerceptronClassifier`](@ref) model
 
 """
-function predict(m::PerceptronClassic,X)
+function predict(m::PerceptronClassifier,X)
     θ₀ = [i for i in m.par.weigths[:,1]]
     θ  = [r for r in eachrow(m.par.weigths[:,2:end])]
     return predict(X,θ,θ₀,m.par.classes)
 end
 
-function show(io::IO, ::MIME"text/plain", m::PerceptronClassic)
+function show(io::IO, ::MIME"text/plain", m::PerceptronClassifier)
     if m.fitted == false
-        print(io,"PerceptronClassic - The classic linear perceptron classifier (unfitted)")
+        print(io,"PerceptronClassifier - The classic linear perceptron classifier (unfitted)")
     else
-        print(io,"PerceptronClassic - The classic linear perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"PerceptronClassifier - The classic linear perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
     end
 end
 
-function show(io::IO, m::PerceptronClassic)
+function show(io::IO, m::PerceptronClassifier)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes linear perceptron classifier (unfitted)")
+        println(io,"PerceptronClassifier - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes linear perceptron classifier (unfitted)")
     else
-        println(io,"PerceptronClassic - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes linear perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"PerceptronClassifier - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes linear perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
         println(io,"Weights:")
         println(io,m.par.weigths)
     end
