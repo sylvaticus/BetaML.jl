@@ -367,9 +367,9 @@ function tuneHyperParameters(xtrain,ytrain,xval,yval;epochRange=50:50,hiddenLaye
            l1   = DenseLayer(D,hiddenLayerSize,f=relu,rng=tsrng) # Activation function is ReLU
            l2   = DenseLayer(hiddenLayerSize,hiddenLayerSize,f=identity,rng=tsrng)
            l3   = DenseLayer(hiddenLayerSize,1,f=relu,rng=tsrng)
-           mynn = buildNetwork([l1,l2,l3],squaredCost,name="Bike sharing regression model") # Build the NN and use the squared cost (aka MSE) as error function
+           mynn = buildNetwork([l1,l2,l3],squared_cost,name="Bike sharing regression model") # Build the NN and use the squared cost (aka MSE) as error function
            ## Training it (default to ADAM)
-           res  = train!(mynn,xtrain,ytrain,epochs=epoch,batchSize=8,optAlg=ADAM(),verbosity=NONE, rng=tsrng) # Use optAlg=SGD() to use Stochastic Gradient Descent
+           res  = train!(mynn,xtrain,ytrain,epochs=epoch,batch_size=8,opt_alg=ADAM(),verbosity=NONE, rng=tsrng) # Use opt_alg=SGD() to use Stochastic Gradient Descent
            ŷval = predict(mynn,xval)
            rmeVal  = meanRelError(ŷval,yval,normRec=false)
            totAttemptError += rmeVal
@@ -414,7 +414,7 @@ l3   = DenseLayer(bestSize,1,f=relu,rng=copy(FIXEDRNG))
 
 # Finally we "chain" the layers together and we assign a final loss function (agian, you can provide your own loss function, if those available in BetaML don't suit your needs) in order to create the "neural network" [`NN`](@ref) object with the [`buildNetwork`][@ref] function:
 
-mynn = buildNetwork([l1,l2,l3],squaredCost,name="Bike sharing regression model") ## Build the NN and use the squared cost (aka MSE) as error function
+mynn = buildNetwork([l1,l2,l3],squared_cost,name="Bike sharing regression model") ## Build the NN and use the squared cost (aka MSE) as error function
 
 # The above neural network will use automatic differentiation (using the [Zygote](https://github.com/FluxML/Zygote.jl) package) to compute the gradient used in the loss minimisation during the training step.
 # It is also possible, for the layers that support it, to use manual differentiation. The network below is exactly equivalent to the one above, except it avoids automatic differentiation as we tell BetaML the functions to use as derivatives of the activation functions and of the overall network loss function:
@@ -423,7 +423,7 @@ mynnManual = buildNetwork([
         DenseLayer(D,bestSize,f=relu,df=drelu,rng=copy(FIXEDRNG)),
         DenseLayer(bestSize,bestSize,f=identity,df=didentity,rng=copy(FIXEDRNG)),
         DenseLayer(bestSize,1,f=relu,df=drelu,rng=copy(FIXEDRNG))
-    ], squaredCost, name="Bike sharing regression model", dcf=dSquaredCost)
+    ], squared_cost, name="Bike sharing regression model", dcf=dSquaredCost)
 
 # We can now train the neural network with the best hyper-parameters using the function [`train!`](@ref). Note the esclamation point. By convention in julia, functions that end with an exclamation mark modify some of their inputs, normally the first one.
 
@@ -431,11 +431,11 @@ mynnManual = buildNetwork([
 
 # Several optimisation algorithms are available, and each accepts different parameters, like the _learning rate_ for the Stochastic Gradient Descent algorithm ([`SGD`](@ref], used by default) or the exponential decay rates for the  moments estimates for the [`ADAM`](@ref ) algorithm (that we use here, with the default parameters).
 println("Final training of $bestEpoch epochs, with layer size $bestSize ...")
-res  = train!(mynn,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG)) ## Use optAlg=SGD() to use Stochastic Gradient Descent
+res  = train!(mynn,xtrainScaled,ytrainScaled,epochs=bestEpoch,batch_size=8,opt_alg=ADAM(),rng=copy(FIXEDRNG)) ## Use opt_alg=SGD() to use Stochastic Gradient Descent
 
 # Let's benchmark the BetaML neural network training
 # ```
-# @btime train!(mynnManual,xtrainScaled,ytrainScaled,epochs=bestEpoch,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG), verbosity=NONE);
+# @btime train!(mynnManual,xtrainScaled,ytrainScaled,epochs=bestEpoch,batch_size=8,opt_alg=ADAM(),rng=copy(FIXEDRNG), verbosity=NONE);
 # 1.951 s (8716955 allocations: 702.71 MiB)
 # ```
 # As we can see the model training is one order of magnitude slower than random forests, altought the memory requirement is approximatly the same.
