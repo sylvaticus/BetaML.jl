@@ -131,11 +131,11 @@ manualGrad = dsoftmax([2,3,4],β=1/2)
 # ==================================
 # New test
 println("** Testing cross-entropy...")
-or = crossEntropy([0.8,0.001,0.001],[1.0,0,0],weight = [2,1,1])
+or = cross_entropy([0.8,0.001,0.001],[1.0,0,0],weight = [2,1,1])
 @test or ≈ 0.4462871026284194
 d = dCrossEntropy([0.8,0.001,0.001],[1.0,0,0],weight = [2,1,1])
 δ = 0.001
-dest = crossEntropy([0.8+δ,0.101,0.001],[1.0,0,0],weight = [2,1,1])
+dest = cross_entropy([0.8+δ,0.101,0.001],[1.0,0,0],weight = [2,1,1])
 @test isapprox(dest-or, d[1]*δ,atol=0.0001)
 
 # ==================================
@@ -341,10 +341,39 @@ mode(y,rng=copy(TESTRNG)) == [4,3]
 
 # ==================================
 # New test
-println("** Testing ConfusionMatrix()...")
-cm = ConfusionMatrix(ŷ,["Lemon","Lemon","Apple","Grape","Lemon"],rng=copy(FIXEDRNG))
+println("** Testing ConfMatrix()...")
+cm = ConfMatrix(ŷ,["Lemon","Lemon","Apple","Grape","Lemon"],rng=copy(FIXEDRNG))
 @test cm.scores == [2 0 1; 0 1 0; 0 0 1]
 @test cm.tp == [2,1,1] && cm.tn == [2,4,3] && cm.fp == [0,0,1] && cm.fn == [1, 0, 0]
+
+println("** Testing ConfusionMatrix()...")
+
+y = ["Lemon","Lemon","Apple","Grape","Lemon"]
+ŷ = ["Lemon","Grape","Apple","Grape","Lemon"]
+cm = ConfusionMatrix()
+scores1 = fit!(cm,y,ŷ)
+scores2 = predict(cm)
+res = info(cm)
+@test res[:scores]  == [2 0 1; 0 1 0; 0 0 1]
+@test res[:normalised_scores] == scores1 == scores2 ≈ [ 0.6666666666666666 0.0 0.3333333333333333; 0.0 1.0 0.0; 0.0 0.0 1.0]
+@test res[:tp] == [2,1,1] && res[:tn] == [2,4,3] && res[:fp] == [0,0,1] && res[:fn] == [1, 0, 0]
+parameters(cm)
+
+# Checking multiple training equal to just training on full data
+scores2 = fit!(cm,y,ŷ)
+res2 = info(cm)
+
+y3         =  vcat(y,y)
+ŷ3         =  vcat(ŷ,ŷ)
+cm3        =  ConfusionMatrix()
+scores3    =  fit!(cm3,y3,ŷ3)
+res3       =  info(cm3)
+@test res2 == res3
+
+# Checking infrequent setting
+cm = ConfusionMatrix(categories=["Lemon","Grape"],handle_unknown="infrequent")
+scores = fit!(cm,y,ŷ)
+res = info(cm)
 
 
 # Example from https://scikit-learn.org/stable/modules/model_evaluation.html#classification-report
@@ -353,18 +382,38 @@ ŷ = [0,0,2,1,0]
 labels = ["Class 0", "Class 1 with an extra long name super long", "Class 2"]
 #y = integerDecoder(y .+ 1,labels)
 #ŷ = integerDecoder(ŷ .+ 1,labels)
-cm = ConfusionMatrix(ŷ,y,labels=labels)
+cm = ConfMatrix(ŷ,y,labels=labels)
 
 @test cm.precision ≈ [0.6666666666666666, 0.0, 1.0]
 @test cm.recall ≈ [1.0, 0.0, 0.5]
 @test cm.specificity ≈ [0.6666666666666666, 0.75, 1.0]
-@test cm.f1Score ≈ [0.8, 0.0, 0.6666666666666666]
-@test cm.meanPrecision == (0.5555555555555555, 0.6666666666666666)
-@test cm.meanRecall == (0.5, 0.6)
-@test cm.meanSpecificity == (0.8055555555555555, 0.8166666666666667)
-@test cm.meanF1Score == (0.48888888888888893, 0.5866666666666667)
+@test cm.f1score ≈ [0.8, 0.0, 0.6666666666666666]
+@test cm.mean_precision == (0.5555555555555555, 0.6666666666666666)
+@test cm.mean_recall == (0.5, 0.6)
+@test cm.mean_specificity == (0.8055555555555555, 0.8166666666666667)
+@test cm.mean_f1score == (0.48888888888888893, 0.5866666666666667)
 @test cm.accuracy == 0.6
 @test cm.misclassification == 0.4
+
+# Same test on ConfusionMatrix
+y = [0,1,2,2,0]
+ŷ = [0,0,2,1,0]
+
+cm = ConfusionMatrix()
+fit!(cm,y,ŷ)
+res = info(cm)
+@test res[:precision] ≈ [0.6666666666666666, 0.0, 1.0]
+@test res[:recall] ≈ [1.0, 0.0, 0.5]
+@test res[:specificity] ≈ [0.6666666666666666, 0.75, 1.0]
+@test res[:f1score] ≈ [0.8, 0.0, 0.6666666666666666]
+@test res[:mean_precision] == (0.5555555555555555, 0.6666666666666666)
+@test res[:mean_recall] == (0.5, 0.6)
+@test res[:mean_specificity] == (0.8055555555555555, 0.8166666666666667)
+@test res[:mean_f1score] == (0.48888888888888893, 0.5866666666666667)
+@test res[:accuracy] == 0.6
+@test res[:misclassification] == 0.4
+
+
 
 # If I want to actually test the print content...
 #=
@@ -384,7 +433,7 @@ cm = ConfusionMatrix(ŷ,y,labels=labels)
    - Misclassification rate: 0.4
    - Number of classes:      3
    
-     N Class                                      precision   recall  specificity  f1Score  actualCount  predictedCount
+     N Class                                      precision   recall  specificity  f1score  actual_count  predicted_count
                                                                 TPR       TNR                 support                  
    
      1 Class 0                                        0.667    1.000        0.667    0.800            2               3
@@ -424,7 +473,7 @@ cm = ConfusionMatrix(ŷ,y,labels=labels)
    - Misclassification rate: 0.4
    - Number of classes:      3
    
-     N Class                                      precision   recall  specificity  f1Score  actualCount  predictedCount
+     N Class                                      precision   recall  specificity  f1score  actual_count  predicted_count
                                                                 TPR       TNR                 support                  
    
      1 Class 0                                        0.667    1.000        0.667    0.800            2               3

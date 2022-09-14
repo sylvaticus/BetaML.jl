@@ -29,19 +29,19 @@ BetaML_nn = buildNetwork([
                DenseLayer(8,64,f=tanh,w=rand(Uniform(-sqrt(6)/sqrt(8+64),sqrt(6)/sqrt(8+64)),64,8),wb=rand(Uniform(-sqrt(6)/sqrt(8+64),sqrt(6)/sqrt(8+64)),64)),
                DenseLayer(64,32,f=tanh,w=rand(Uniform(-sqrt(6)/sqrt(64+32),sqrt(6)/sqrt(64+32)),32,64),wb=rand(Uniform(-sqrt(6)/sqrt(64+32),sqrt(6)/sqrt(64+32)),32)),
                DenseLayer(32,2,f=tanh,w=rand(Uniform(-sqrt(6)/sqrt(32+2),sqrt(6)/sqrt(32+2)),2,32),wb=rand(Uniform(-sqrt(6)/sqrt(32+2),sqrt(6)/sqrt(32+2)),2))],
-               squaredCost,name="Bike sharing regression model")
+               squared_cost,name="Bike sharing regression model")
 
 BetaML_nn = buildNetwork([
               DenseLayer(8,64,f=tanh,w=rand(Uniform(-sqrt(6)/sqrt(8+64),sqrt(6)/sqrt(8+64)),64,8),wb=zeros(64)),
               DenseLayer(64,32,f=tanh,w=rand(Uniform(-sqrt(6)/sqrt(64+32),sqrt(6)/sqrt(64+32)),32,64),wb=zeros(32)),
               DenseLayer(32,2,f=tanh,w=rand(Uniform(-sqrt(6)/sqrt(32+2),sqrt(6)/sqrt(32+2)),2,32),wb=zeros(2))],
-              squaredCost,name="Bike sharing regression model")
+              squared_cost,name="Bike sharing regression model")
 
 BetaML_nn2 = buildNetwork([
             DenseLayer(8,64,f=tanh,w=rand(Uniform(-sqrt(6)/sqrt(8+64),sqrt(6)/sqrt(8+64)),64,8),wb=zeros(64), df=dtanh),
             DenseLayer(64,32,f=tanh,w=rand(Uniform(-sqrt(6)/sqrt(64+32),sqrt(6)/sqrt(64+32)),32,64),wb=zeros(32),df=dtanh),
             DenseLayer(32,2,f=tanh,w=rand(Uniform(-sqrt(6)/sqrt(32+2),sqrt(6)/sqrt(32+2)),2,32),wb=zeros(2),df=dtanh)],
-            squaredCost,name="Bike sharing regression model",dcf=dSquaredCost)
+            squared_cost,name="Bike sharing regression model",dcf=dSquaredCost)
 
 for i in [1, 10, 100, 1000]
     println("Batch size: $i")

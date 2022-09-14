@@ -39,7 +39,6 @@ import Base.show
 export gmm, AbstractMixture,
        GMMClusterer,
        GMMRegressor1, GMMRegressor2,
-       GMMRegressor,
        GMMHyperParametersSet
 
 abstract type AbstractMixture end

@@ -98,11 +98,11 @@ trainAccuracy,testAccuracy  = accuracy.([parse.(Int64,mode(ŷtrain,rng=copy(FIX
 # The predictions are quite good, for the training set the algoritm predicted almost all cars' origins correctly, while for the testing set (i.e. those records that has **not** been used to train the algorithm), the correct prediction level is still quite high, at 80%
 
 # While accuracy can sometimes suffice, we may often want to better understand which categories our model has trouble to predict correctly.
-# We can investigate the output of a multi-class classifier more in-deep with a [`ConfusionMatrix`](@ref) where the true values (`y`) are given in rows and the predicted ones (`ŷ`) in columns, together to some per-class metrics like the _precision_ (true class _i_ over predicted in class _i_), the _recall_ (predicted class _i_ over the true class _i_) and others.
+# We can investigate the output of a multi-class classifier more in-deep with a [`ConfMatrix`](@ref) where the true values (`y`) are given in rows and the predicted ones (`ŷ`) in columns, together to some per-class metrics like the _precision_ (true class _i_ over predicted in class _i_), the _recall_ (predicted class _i_ over the true class _i_) and others.
 
-# We fist build the [`ConfusionMatrix`](@ref BetaML.Utils.ConfusionMatrix) object between `ŷ` and `y` and then we print it (we do it here for the test subset):
+# We fist build the [`ConfMatrix`](@ref BetaML.Utils.ConfMatrix) object between `ŷ` and `y` and then we print it (we do it here for the test subset):
 
-cm = ConfusionMatrix(parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG))),ytest,classes=[1,2,3],labels=["US","EU","Japan"])
+cm = ConfMatrix(parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG))),ytest,classes=[1,2,3],labels=["US","EU","Japan"])
 print(cm,"all")
 
 # From the report we can see that Japanese cars have more trouble in being correctly classified, and in particular many Japanease cars are classified as US ones. This is likely a result of the class imbalance of the data set, and could be solved by balancing the dataset with various sampling tecniques before training the model.
@@ -122,7 +122,7 @@ model = DecisionTree.build_forest(ytrain, xtrainFull,-1,30,rng=123)
 (trainAccuracy,testAccuracy) = accuracy.([ŷtrain,ŷtest],[ytrain,ytest])
 #src (0.9969230769230769, 0.7530864197530864)
 
-#src nothing; cm = ConfusionMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"])
+#src nothing; cm = ConfMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"])
 #src nothing; println(cm)
 @test testAccuracy > 0.75 #src
 
@@ -154,11 +154,11 @@ l2   = DenseLayer(ls,nCl,f=relu,rng=copy(FIXEDRNG))
 l3   = VectorFunctionLayer(nCl,f=softmax) ## Add a (parameterless) layer whose activation function (softMax in this case) is defined to all its nodes at once
 
 # Finally we _chain_ the layers and assign a loss function with [`buildNetwork`](@ref):
-mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Cars") ## Build the NN and use the squared cost (aka MSE) as error function (crossEntropy could also be used)
+mynn = buildNetwork([l1,l2,l3],squared_cost,name="Multinomial logistic regression Model Cars") ## Build the NN and use the squared cost (aka MSE) as error function (cross_entropy could also be used)
 
 # Now we can train our network using the function [`train!`](@ref). It has many options, have a look at the documentation for all the possible arguments.
 # Note that we train the network based on the scaled feature matrix.
-res  = train!(mynn,scale(xtrainFull,xScaleFactors),ytrain_oh,epochs=500,batchSize=8,optAlg=ADAM(),rng=copy(FIXEDRNG)) ## Use optAlg=SGD() to use Stochastic Gradient Descent instead
+res  = train!(mynn,scale(xtrainFull,xScaleFactors),ytrain_oh,epochs=500,batch_size=8,opt_alg=ADAM(),rng=copy(FIXEDRNG)) ## Use opt_alg=SGD() to use Stochastic Gradient Descent instead
 
 # Once trained, we can predict the label. As the trained was based on the scaled feature matrix, so must be for the predictions
 (ŷtrain,ŷtest)  = predict.(Ref(mynn),[scale(xtrainFull,xScaleFactors),scale(xtestFull,xScaleFactors)])
@@ -173,7 +173,7 @@ testAccuracy    = accuracy(ŷtest,ytest,rng=copy(FIXEDRNG))
 
 #src accuracy(mode(ŷtest,rng=copy(FIXEDRNG)),ytest)
 
-cm = ConfusionMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"],rng=copy(FIXEDRNG))
+cm = ConfMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"],rng=copy(FIXEDRNG))
 # print(cm)
 
 # 4×4 Matrix{Any}:
@@ -192,7 +192,7 @@ cm = ConfusionMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"],rn
 # We see a bit the limits of neural networks in this example. While NN can be extremelly performant in many domains, they also require lot of data and computational power, expecially considering the many possible hyper-parameters and hence its large space in the hyper-parameter tuning.
 # In this example we arrive short to the performance of random forests, yet with a significant numberof neurons.
 
-# @btime train!(mynn,scale(xtrainFull),ytrain_oh,epochs=300,batchSize=8,rng=copy(FIXEDRNG),verbosity=NONE);
+# @btime train!(mynn,scale(xtrainFull),ytrain_oh,epochs=300,batch_size=8,rng=copy(FIXEDRNG),verbosity=NONE);
 # 11.841 s (62860672 allocations: 4.21 GiB)
 
 

@@ -65,26 +65,29 @@ Some models allow an inverse transformation, that using the parameters learned a
 
 Currently the following models are available:
 
-| BetaML name | MLJ Interface | 
-| ----------- | ------------- | 
-| PerceptronClassifier | LinearPerceptron | 
-| KernelPerceptronClassifier  | KernelPerceptron
-| PegasosClassifier | Pegasos |
-| DecisionTreeEstimator | DecisionTreeClassifier, DecisionTreeRegressor | 
-| RandomForestEstimator |  RandomForestClassifier, RandomForestRegressor |
-| NeuralNetworkEstimator | FeedforwardNeuralNetwork
-| GMMRegressor1 | 
-| GMMRegressor2 | GaussianMixtureRegressor
-| KMeansClusterer | KMeans
-| KMedoidsClusterer | KMedoids
-| GMMClusterer | GaussianMixtureClusterer
-| FeatureBasedImputer | SimpleImputer
-| GMMImputer | GaussianMixtureImputer
-| RFImputer | RandomForestImputer
-| UniversalImputer | GeneralImputer
-| MinMaxScaler | |
-| StandardScaler | |
-| Scaler | |
-| PCA | |
-| OneHotEncoder | |
-| OrdinalEncoder | |
+| BetaML name | MLJ Interface | Typology* |
+| ----------- | ------------- | -------- |
+| PerceptronClassifier | LinearPerceptron | _Supervised regressor_ | 
+| KernelPerceptronClassifier  | KernelPerceptron | _Supervised regressor_ | 
+| PegasosClassifier | Pegasos | _Supervised classifier_ |
+| DecisionTreeEstimator | DecisionTreeClassifier, DecisionTreeRegressor | _Supervised regressor and classifier_ |
+| RandomForestEstimator |  RandomForestClassifier, RandomForestRegressor | _Supervised regressor and classifier_ |
+| NeuralNetworkEstimator | MultitargetNeuralNetworkRegressor, NeuralNetworkClassifier | _Supervised regressor and classifier_ |
+| GMMRegressor1 | | _Supervised regressor_ | 
+| GMMRegressor2 | GaussianMixtureRegressor | _Supervised regressor_ | 
+| KMeansClusterer | KMeans | _Unsupervised hard clusterer_ |
+| KMedoidsClusterer | KMedoids | _Unsupervised hard clusterer_ |
+| GMMClusterer | GaussianMixtureClusterer | _Unsupervised soft clusterer_ |
+| FeatureBasedImputer | SimpleImputer | _Unsupervised missing data imputer_ |
+| GMMImputer | GaussianMixtureImputer | _Unsupervised missing data imputer_ |
+| RFImputer | RandomForestImputer | _Unsupervised missing data imputer_ |
+| UniversalImputer | GeneralImputer | _Unsupervised missing data imputer_ |
+| MinMaxScaler | | _Data transformer_ |
+| StandardScaler | | _Data transformer_ |
+| Scaler |  | _Data transformer_ |
+| PCA |  | _Data transformer_ |
+| OneHotEncoder |  | _Data transformer_ |
+| OrdinalEncoder |  | _Data transformer_ |
+| ConfusionMatrix | | _Predictions assessment_ |
+
+\* There is no formal distinction in BetaML between a transformer, or also a prediction assessment model, and a unsupervised model. They are all treated as unsupervised models that given some data they lern how to return some useful information, wheter a class grouping, a specific tranformation or a quality evaluation..

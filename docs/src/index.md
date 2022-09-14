@@ -82,10 +82,10 @@ y_oh     = oneHotEncoder(y) # Convert to One-hot representation (e.g. 2 => [0 1 
 l1   = DenseLayer(4,10,f=relu) # Activation function is ReLU
 l2   = DenseLayer(10,3)        # Activation function is identity by default
 l3   = VectorFunctionLayer(3,3,f=softMax) # Add a (parameterless) layer whose activation function (softMax in this case) is defined to all its nodes at once
-mynn = buildNetwork([l1,l2,l3],squaredCost,name="Multinomial logistic regression Model Sepal") # Build the NN and use the squared cost (aka MSE) as error function
+mynn = buildNetwork([l1,l2,l3],squared_cost,name="Multinomial logistic regression Model Sepal") # Build the NN and use the squared cost (aka MSE) as error function
 
 # Training it (default to ADAM)
-res = train!(mynn,scale(xtrain),ytrain_oh,epochs=100,batchSize=6) # Use optAlg=SGD (Stochastic Gradient Descent) by default
+res = train!(mynn,scale(xtrain),ytrain_oh,epochs=100,batch_size=6) # Use opt_alg=SGD (Stochastic Gradient Descent) by default
 
 # Test it
 ŷtrain        = predict(mynn,scale(xtrain))   # Note the scaling function

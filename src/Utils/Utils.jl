@@ -41,7 +41,7 @@ For the complete list of functions provided see below. The main ones are:
 
 ## Measures
 - Several functions of a pair of parameters (often `y` and `ŷ`) to measure the goodness of `ŷ`, the distance between the two elements of the pair, ...
-- Includes "classical" distance functions ([`l1_distance`](@ref), [`l2_distance`](@ref), [`l2²_distance`](@ref) [`cosine_distance`](@ref)), "cost" functions for continuous variables ([`squaredCost`](@ref), [`meanRelError`](@ref)) and comparision functions for multui-class variables ([`crossEntropy`](@ref), [`accuracy`](@ref), [`ConfusionMatrix`](@ref)).
+- Includes "classical" distance functions ([`l1_distance`](@ref), [`l2_distance`](@ref), [`l2²_distance`](@ref) [`cosine_distance`](@ref)), "cost" functions for continuous variables ([`squared_cost`](@ref), [`meanRelError`](@ref)) and comparision functions for multui-class variables ([`cross_entropy`](@ref), [`accuracy`](@ref), [`ConfMatrix`](@ref)).
 
 # Imputers
 - Imputers of missing values
@@ -62,8 +62,10 @@ export @codeLocation, generateParallelRngs,
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
        autoJacobian,
-       squaredCost, dSquaredCost, mse, crossEntropy, dCrossEntropy, classCounts, classCountsWithLabels, meanDicts, mode, gini, entropy, variance,
-       error, accuracy, meanRelError, ConfusionMatrix,
+       squared_cost, dSquaredCost, mse, cross_entropy, dCrossEntropy, classCounts, classCountsWithLabels, meanDicts, mode, gini, entropy, variance,
+       error, accuracy, meanRelError,
+       ConfusionMatrix, ConfusionMatrixHyperParametersSet,
+       ConfMatrix, labels, scores, normalised_scores,
        crossValidation, AbstractDataSampler, SamplerWithData, KFold,
        l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,

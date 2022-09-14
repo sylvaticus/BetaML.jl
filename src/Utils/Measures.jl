@@ -25,14 +25,14 @@ cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
 
 # Used as neural network loss function
 """
-   crossEntropy(ŷ, y; weight)
+   cross_entropy(ŷ, y; weight)
 
 Compute the (weighted) cross-entropy between the predicted and the sampled probability distributions.
 
 To be used in classification problems.
 
 """
-crossEntropy(ŷ, y; weight = ones(eltype(y),length(y)))  = -sum(y .* log.(ŷ .+ 1e-15) .* weight)
+cross_entropy(ŷ, y; weight = ones(eltype(y),length(y)))  = -sum(y .* log.(ŷ .+ 1e-15) .* weight)
 dCrossEntropy(ŷ, y; weight = ones(eltype(y),length(y))) = - y .* weight ./ (ŷ .+ 1e-15)
 
 
@@ -152,21 +152,304 @@ error(ŷ::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number} = 1 - accurac
 error(ŷ::Array{Dict{T,Float64},1},y::Array{T,1};tol=1) where {T} = 1 - accuracy(ŷ,y;tol=tol)
 
 """
-    ConfusionMatrix
+$(TYPEDEF)
+
+Hyperparameters for [`ConfusionMatrix`](@ref)
+
+# Parameters:
+$(FIELDS)
+
+"""
+Base.@kwdef mutable struct ConfusionMatrixHyperParametersSet <: BetaMLHyperParametersSet
+  "The categories (aka \"levels\") to represent. [def: `nothing`, i.e. unique ground true values]."  
+  categories::Union{Vector,Nothing} = nothing
+  "How to handle categories not seen in the ground true values or not present in the provided `categories` array? \"error\" (default) rises an error, \"infrequent\" adds a specific category for these values."
+  handle_unknown::String = "error"
+  "How to handle missing values in either ground true or predicted values ? \"error\" [default] will rise an error, \"drop\" will drop the record"
+  handle_missing::String = "error"
+  "Which value to assign to the \"other\" category (i.e. categories not seen in the gound truth or not present in the provided `categories` array? [def: ` nothing`, i.e. typemax(Int64) for integer vectors and \"other\" for other types]. This setting is active only if `handle_unknown=\"infrequent\"` and in that case it MUST be specified if the vector to one-hot encode is neither integer or strings"
+  other_categories_name = nothing
+  "Wheter `predict` should return the normalised scores. Note that both unnormalised and normalised scores remain available using `info`. [def: `true`]"
+  normalise_scores = true
+end
+
+Base.@kwdef mutable struct ConfusionMatrixLearnableParameters <: BetaMLLearnableParametersSet
+    categories_applied::Vector = []
+    original_vector_eltype::Union{Type,Nothing} = nothing 
+    scores::Union{Nothing,Matrix{Int64}} = nothing 
+  end
+
+"""
+$(TYPEDEF)
+
+Compute a confusion matrix detailing the mismatch between observations and predictions of a categorical variable
+
+For the parameters see [`ConfusionMatrixHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).
+
+The "predicted" values are either the scores or the normalised scores (depending on the parameter `normalise_scores` [def: `true`]).
+
+# Notes: 
+- The Confusion matrix report can be printed (i.e. `print(cm_model)`. If you plan to print the Confusion Matrix report, be sure that the type of the data in `y` and `ŷ` can be converted to `String`.
+
+- Information in a structured way is available trought the `info(cm)` function that returns the following dictionary:
+  - `accuracy`:           Oveall accuracy rate
+  - `misclassification`:  Overall misclassification rate
+  - `actual_count`:       Array of counts per lebel in the actual data
+  - `predicted_count`:    Array of counts per label in the predicted data
+  - `scores`:             Matrix actual (rows) vs predicted (columns)
+  - `normalised_scores`:  Normalised scores
+  - `tp`:                 True positive (by class)
+  - `tn`:                 True negative (by class)
+  - `fp`:                 False positive (by class)
+  - `fn`:                 False negative (by class)
+  - `precision`:          True class i over predicted class i (by class)
+  - `recall`:             Predicted class i over true class i (by class)
+  - `specificity`:        Predicted not class i over true not class i (by class)
+  - `f1score`:            Harmonic mean of precision and recall
+  - `mean_precision`:     Mean by class, respectively unweighted and weighted by actual_count
+  - `mean_recall`:        Mean by class, respectively unweighted and weighted by actual_count
+  - `mean_specificity`:   Mean by class, respectively unweighted and weighted by actual_count
+  - `mean_f1score`:       Mean by class, respectively unweighted and weighted by actual_count
+  - `categories`:         The categories considered
+  - `fitted_records`:     Number of records considered
+  - `n_categories`:       Number of categories considered
+
+- The confusion matrix can also be plotted, e.g.:
+```
+using Plots, BetaML 
+y  = [1,2,2,1,3,2,3]
+ŷ  = [1,3,2,2,3,3,3]
+cm = ConfusionMatrix()
+fit!(cm,y,ŷ)
+res = info(cm)
+heatmap(string.(res[:categories]),string.(res[:categories]),res[:normalised_scores],seriescolor=cgrad([:white,:blue]),xlabel="Predicted",ylabel="Actual", title="Confusion Matrix (normalised scores)")
+```
+
+"""
+mutable struct ConfusionMatrix <: BetaMLUnsupervisedModel
+    hpar::ConfusionMatrixHyperParametersSet
+    opt::BetaMLDefaultOptionsSet
+    par::Union{Nothing,ConfusionMatrixLearnableParameters}
+    cres::Union{Nothing,Matrix{Int64},Matrix{Float64}}
+    fitted::Bool
+    info::Dict{Symbol,Any}
+end
+
+function ConfusionMatrix(;kwargs...)
+    m = ConfusionMatrix(ConfusionMatrixHyperParametersSet(),BetaMLDefaultOptionsSet(),ConfusionMatrixLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       found = false
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+              found = true
+          end
+        end
+        found || error("Keyword \"$kw\" is not part of this model.")
+    end
+    return m
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Fit a [`ConfusionMatrix`](@ref) model to data.
+
+!!! warning
+    Data is expected in the order "ground truth, predictions" (i.e. `fit!(cm_model,y,ŷ)`)
+
+This model supports multiple training (but the categories, if not provided, are extracteed from the first training y only), while prediction with new data (i.e. `predict(cm_model,ŷnew)`) is not supported.
+
+"""
+function fit!(m::ConfusionMatrix,Y,Ŷ)
+    nR = size(Y,1)
+    size(Ŷ,1) == nR || error("Y and Ŷ have different number of elements!")
+    vtype = eltype(Y) 
+
+    # Parameter aliases
+    categories             = m.hpar.categories
+    handle_unknown         = m.hpar.handle_unknown
+    handle_missing         = m.hpar.handle_missing
+    other_categories_name  = m.hpar.other_categories_name
+    if isnothing(other_categories_name)
+        if nonmissingtype(vtype) <: Integer
+            other_categories_name = typemax(Int64)
+        else
+            other_categories_name = "other"
+        end
+    end
+    normalise_scores       = m.hpar.normalise_scores
+    cache                  = m.opt.cache
+    verbosity              = m.opt.verbosity
+    rng                    = m.opt.rng
+    fitted                 = m.fitted
+
+    if fitted
+        categories_applied = m.par.categories_applied
+        nCl = length(categories_applied)
+        scores = m.par.scores
+    else
+        categories_applied = isnothing(categories) ? collect(skipmissing(unique(Y))) : deepcopy(categories)
+        handle_unknown == "infrequent" && push!(categories_applied,other_categories_name)
+        nCl = length(categories_applied)
+        scores = zeros(Int64,nCl,nCl)
+    end
+
+    for n in 1:nR
+        if (ismissing(Y[n]) || ismissing(Ŷ[n]))
+            if handle_missing == "error"
+                error("Found a `missing` value in the data. To automatically drop missing data use the option `handle_missing=\"drop\"` in the `ConfusionMatrix` constructor.")
+            else
+                continue
+            end
+        end
+        r = findfirst(x -> isequal(x,Y[n]),categories_applied)
+        c = findfirst(x -> isequal(x,Ŷ[n]),categories_applied)
+        if isnothing(r)
+            if handle_unknown == "error"
+                error("Found a category ($(Y[n])) not present in `categories` and the `handle_unknown` is set to `error`. Perhaps you want to swith it to `infrequent`.")
+            elseif handle_unknown == "infrequent"
+                r = length(categories_applied)
+            else
+                error("I don't know how to process `handle_unknown == $(handle_unknown)`")
+            end
+        end
+        if isnothing(c)
+            if handle_unknown == "error"
+                error("Found a predicted category ($(Y[n])) not present in `categories` or in the true categories and the `handle_unknown` is set to `error`. Perhaps you want to swith it to `infrequent`.")
+            elseif handle_unknown == "infrequent"
+                c = length(categories_applied)
+            else
+                error("I don't know how to process `handle_unknown == $(handle_unknown)`")
+            end
+        end
+        scores[r,c] += 1
+    end
+
+    predicted_count = dropdims(sum(scores,dims=1)',dims=2)
+    actual_count    = dropdims(sum(scores,dims=2),dims=2)
+
+    normalised_scores = zeros(nCl, nCl)
+    [normalised_scores[r,:] = scores[r,:] ./ actual_count[r] for r in 1:nCl]
+    tp = [scores[i,i] for i in 1:nCl]
+    tn = [sum(scores[r,c] for r in 1:nCl, c in 1:nCl if r != i && c != i)  for i in 1:nCl]
+    fp = [sum(scores[r,c] for r in 1:nCl, c in 1:nCl if r != i && c == i)  for i in 1:nCl]
+    fn = [sum(scores[r,c] for r in 1:nCl, c in 1:nCl if r == i && c != i)  for i in 1:nCl]
+    precision         = tp ./ (tp .+ fp)
+    recall            = tp ./ (tp .+ fn)
+    specificity       = tn ./ (tn .+ fp)
+    f1score           = (2 .* tp) ./ (2 .* tp  .+ fp .+ fn )
+    mean_precision     = (mean(precision), sum(precision .* actual_count) / sum(actual_count) )
+    mean_recall        = (mean(recall), sum(recall .* actual_count) / sum(actual_count) )
+    mean_specificity   = (mean(specificity), sum(specificity .* actual_count) / sum(actual_count) )
+    mean_f1score       = (mean(f1score), sum(f1score .* actual_count) / sum(actual_count) )
+    accuracy           = sum(tp)/sum(scores)
+    misclassification  = 1-accuracy
+
+    cache && (m.cres = normalise_scores ? normalised_scores : scores)
+
+    m.par = ConfusionMatrixLearnableParameters(categories_applied,vtype,scores)
+
+    m.info[:accuracy]          = accuracy           # Overall accuracy rate
+    m.info[:misclassification] = misclassification  # Overall misclassification rate
+    m.info[:actual_count]      = actual_count       # Array of counts per lebel in the actual data
+    m.info[:predicted_count]   = predicted_count    # Array of counts per label in the predicted data
+    m.info[:scores]            = scores             # Matrix actual (rows) vs predicted (columns)
+    m.info[:normalised_scores] = normalised_scores  # Normalised scores
+    m.info[:tp]                = tp                 # True positive (by class)
+    m.info[:tn]                = tn                 # True negative (by class)
+    m.info[:fp]                = fp                 # False positive (by class)
+    m.info[:fn]                = fn                 # False negative (by class)
+    m.info[:precision]         = precision          # True class i over predicted class i (by class)
+    m.info[:recall]            = recall             # Predicted class i over true class i (by class)
+    m.info[:specificity]       = specificity        # Predicted not class i over true not class i (by class)
+    m.info[:f1score]           = f1score            # Harmonic mean of precision and recall
+    m.info[:mean_precision]    = mean_precision     # Mean by class, respectively unweighted and weighted by actual_count
+    m.info[:mean_recall]       = mean_recall        # Mean by class, respectively unweighted and weighted by actual_count
+    m.info[:mean_specificity]  = mean_specificity   # Mean by class, respectively unweighted and weighted by actual_count
+    m.info[:mean_f1score]      = mean_f1score       # Mean by class, respectively unweighted and weighted by actual_count
+
+    m.info[:categories]        = categories_applied
+    m.info[:fitted_records]    = sum(scores)
+    m.info[:n_categories]      = nCl
+    m.fitted = true
+    return cache ? m.cres : nothing
+
+end
+
+function show(io::IO, m::ConfusionMatrix)
+    m.opt.descr != "" && println(io,m.opt.descr)
+    if m.fitted == false
+        print(io,"A $(typeof(m)) BetaMLModel (unfitted)")
+    else
+        println(io,"A $(typeof(m)) BetaMLModel (fitted)")
+        res    = info(m)
+        labels = string.(res[:categories])
+        nCl    = length(labels)
+
+        println(io,"\n-----------------------------------------------------------------\n")
+        println(io, "*** CONFUSION MATRIX ***")
+        println(io,"")
+        println(io,"Scores actual (rows) vs predicted (columns):\n")
+        displayScores = vcat(permutedims(labels),res[:scores])
+        displayScores = hcat(vcat("Labels",labels),displayScores)
+        show(io, "text/plain", displayScores)
+        println(io,"")
+        println(io,"Normalised scores actual (rows) vs predicted (columns):\n")
+        displayScores = vcat(permutedims(labels),res[:normalised_scores])
+        displayScores = hcat(vcat("Labels",labels),displayScores)
+        show(io, "text/plain", displayScores)
+
+        println(io,"\n\n *** CONFUSION REPORT ***\n")
+        labelWidth =  max(8,   maximum(length.(labels))+1  )
+        println(io,"- Accuracy:               $(res[:accuracy])")
+        println(io,"- Misclassification rate: $(res[:misclassification])")
+        println(io,"- Number of classes:      $(nCl)")
+        println(io,"")
+        println(io,"  N ",rpad("Class",labelWidth),"precision   recall  specificity  f1score  actual_count  predicted_count")
+        println(io,"    ",rpad(" ",labelWidth), "              TPR       TNR                 support                  ")
+        println(io,"")
+        # https://discourse.julialang.org/t/printf-with-variable-format-string/3805/4
+        print_formatted(io, fmt, args...) = @eval @printf($io, $fmt, $(args...))
+        for i in 1:nCl
+            print_formatted(io, "%3d %-$(labelWidth)s %8.3f %8.3f %12.3f %8.3f %12i %15i\n", i, labels[i],  res[:precision][i], res[:recall][i], res[:specificity][i], res[:f1score][i], res[:actual_count][i], res[:predicted_count][i])
+        end
+        println(io,"")
+        print_formatted(io, "- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Simple   avg.",  res[:mean_precision][1], res[:mean_recall][1], res[:mean_specificity][1], res[:mean_f1score][1])
+        print_formatted(io, "- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Weigthed avg.",  res[:mean_precision][2], res[:mean_recall][2], res[:mean_specificity][2], res[:mean_f1score][2])
+        println("\n-----------------------------------------------------------------")
+        println("Output of `info(cm)`:")
+        for (k,v) in info(m)
+            print(io,"- ")
+            print(io,k)
+            print(io,":\t")
+            println(io,v)
+        end
+    end
+end
+
+
+
+
+# OLD START HERE ---------------------------------------------------------------
+"""
+    ConfMatrix
 
 
 Scores and measures resulting from a comparation between true and predicted categorical variables
 
-Use the function `ConfusionMatrix(ŷ,y;classes,labels,rng)` to build it and `report(cm::ConfusionMatrix;what)` to visualise it, or use the individual parts of interest, e.g. `display(cm.scores)`.
+Use the function `ConfMatrix(ŷ,y;classes,labels,rng)` to build it and `report(cm::ConfMatrix;what)` to visualise it, or use the individual parts of interest, e.g. `display(cm.scores)`.
 
 # Fields:
 - `labels`: Array of categorical labels
 - `accuracy`: Overall accuracy rate
 - `misclassification`: Overall misclassification rate
-- `actualCount`: Array of counts per lebel in the actual data
-- `predictedCount`: Array of counts per label in the predicted data
+- `actual_count`: Array of counts per lebel in the actual data
+- `predicted_count`: Array of counts per label in the predicted data
 - `scores`: Matrix actual (rows) vs predicted (columns)
-- `normalisedScores`: Normalised scores
+- `normalised_scores`: Normalised scores
 - `tp`: True positive (by class)
 - `tn`: True negative (by class)
 - `fp`: False positive (by class), aka "type I error" or "false allarm"
@@ -174,23 +457,23 @@ Use the function `ConfusionMatrix(ŷ,y;classes,labels,rng)` to build it and `re
 - `precision`: True class i over predicted class i (by class)
 - `recall`: Predicted class i over true class i (by class), aka "True Positive Rate (TPR)", "Sensitivity" or "Probability of detection"
 - `specificity`: Predicted not class i over true not class i (by class), aka "True Negative Rate (TNR)"
-- `f1Score`: Harmonic mean of precision and recall
-- `meanPrecision`: Mean by class, respectively unweighted and weighted by actualCount
-- `meanRecall`: Mean by class, respectively unweighted and weighted by actualCount
-- `meanSpecificity`: Mean by class, respectively unweighted and weighted by actualCount
-- `meanF1Score`: Mean by class, respectively unweighted and weighted by actualCount
+- `f1score`: Harmonic mean of precision and recall
+- `mean_precision`: Mean by class, respectively unweighted and weighted by actual_count
+- `mean_recall`: Mean by class, respectively unweighted and weighted by actual_count
+- `mean_specificity`: Mean by class, respectively unweighted and weighted by actual_count
+- `mean_f1score`: Mean by class, respectively unweighted and weighted by actual_count
 
 
 """
-struct ConfusionMatrix{T}
+struct ConfMatrix{T}
     classes::Vector{T}                      # Array of categorical labels
     labels::Vector{String}                  # String representation of the categories
     accuracy::Float64                       # Overall accuracy rate
     misclassification::Float64              # Overall misclassification rate
-    actualCount::Vector{Int64}              # Array of counts per lebel in the actual data
-    predictedCount::Vector{Int64}           # Array of counts per label in the predicted data
+    actual_count::Vector{Int64}             # Array of counts per lebel in the actual data
+    predicted_count::Vector{Int64}          # Array of counts per label in the predicted data
     scores::Array{Int64,2}                  # Matrix actual (rows) vs predicted (columns)
-    normalisedScores::Array{Float64,2}      # Normalised scores
+    normalised_scores::Array{Float64,2}     # Normalised scores
     tp::Vector{Int64}                       # True positive (by class)
     tn::Vector{Int64}                       # True negative (by class)
     fp::Vector{Int64}                       # False positive (by class)
@@ -198,11 +481,11 @@ struct ConfusionMatrix{T}
     precision::Vector{Float64}              # True class i over predicted class i (by class)
     recall::Vector{Float64}                 # Predicted class i over true class i (by class)
     specificity::Vector{Float64}            # Predicted not class i over true not class i (by class)
-    f1Score::Vector{Float64}                # Harmonic mean of precision and recall
-    meanPrecision::Tuple{Float64,Float64}   # Mean by class, respectively unweighted and weighted by actualCount
-    meanRecall::Tuple{Float64,Float64}      # Mean by class, respectively unweighted and weighted by actualCount
-    meanSpecificity::Tuple{Float64,Float64} # Mean by class, respectively unweighted and weighted by actualCount
-    meanF1Score::Tuple{Float64,Float64}     # Mean by class, respectively unweighted and weighted by actualCount
+    f1score::Vector{Float64}                # Harmonic mean of precision and recall
+    mean_precision::Tuple{Float64,Float64}   # Mean by class, respectively unweighted and weighted by actual_count
+    mean_recall::Tuple{Float64,Float64}      # Mean by class, respectively unweighted and weighted by actual_count
+    mean_specificity::Tuple{Float64,Float64} # Mean by class, respectively unweighted and weighted by actual_count
+    mean_f1score::Tuple{Float64,Float64}     # Mean by class, respectively unweighted and weighted by actual_count
 end
 
 # Resources concerning Confusion Matrices:
@@ -212,7 +495,7 @@ end
 # https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
 
 """
-    ConfusionMatrix(ŷ,y;classes,labels,rng)
+    ConfMatrix(ŷ,y;classes,labels,rng)
 
 Build a "confusion matrix" between predicted (columns) vs actual (rows) categorical values
 
@@ -223,20 +506,27 @@ Build a "confusion matrix" between predicted (columns) vs actual (rows) categori
 - `labels`: String representation of the classes [def: `string.(classes)`]
 - `rng`: Random number generator. Used only if `ŷ` is given in terms of a PMF and there are multi-modal values, as these are assigned randomply [def: `Random.GLOBAL_RNG`]
 
-# Return:
-- a `ConfusionMatrix` object
+# Return and example:
+- a `ConfMatrix` object to be printed e.g with `print` or plotted with `heatmap`:
+```
+julia> using BetaML, Plots
+julia> y = ["orange","apple","banana","orange","orange","banana"]
+julia> ŷ = ["orange","apple","apple","apple","orange","banana"]
+julia> cm = ConfMatrix(ŷ,y)
+
+```
 """
-function ConfusionMatrix(ŷ,y::AbstractArray{T};classes=unique(y),labels=string.(classes),rng=Random.GLOBAL_RNG) where {T}
+function ConfMatrix(ŷ,y::AbstractArray{T};classes=unique(y),labels=string.(classes),rng=Random.GLOBAL_RNG) where {T}
     nCl              = length(labels)
     ŷ                = typeof(ŷ) <: AbstractVector{T} ? ŷ : mode(ŷ,rng=rng) # get the mode if needed
     N                = length(y)
-    length(ŷ) == N || @error "ŷ and y must have the same length in ConfusionMatrix"
-    actualCount      = [get(classCountsWithLabels(y),i,0) for i in classes]   # TODO just use classCount
-    predictedCount   = [get( classCountsWithLabels(ŷ),i,0) for i in classes]  # TODO just use classCount
+    length(ŷ) == N || @error "ŷ and y must have the same length in ConfMatrix"
+    actual_count      = [get(classCountsWithLabels(y),i,0) for i in classes]   # TODO just use classCount
+    predicted_count   = [get( classCountsWithLabels(ŷ),i,0) for i in classes]  # TODO just use classCount
     scores           = zeros(Int64,(nCl,nCl))
-    normalisedScores = zeros(Float64,(nCl,nCl))
+    normalised_scores = zeros(Float64,(nCl,nCl))
     [scores[findfirst(x -> x == y[i],classes),findfirst(x -> x == ŷ[i],classes)] += 1 for i in 1:N]
-    [normalisedScores[r,:] = scores[r,:] ./ actualCount[r] for r in 1:nCl]
+    [normalised_scores[r,:] = scores[r,:] ./ actual_count[r] for r in 1:nCl]
     tp = [scores[i,i] for i in 1:nCl]
     tn = [sum(scores[r,c] for r in 1:nCl, c in 1:nCl if r != i && c != i)  for i in 1:nCl]
     fp = [sum(scores[r,c] for r in 1:nCl, c in 1:nCl if r != i && c == i)  for i in 1:nCl]
@@ -244,34 +534,38 @@ function ConfusionMatrix(ŷ,y::AbstractArray{T};classes=unique(y),labels=string
     precision         = tp ./ (tp .+ fp)
     recall            = tp ./ (tp .+ fn)
     specificity       = tn ./ (tn .+ fp)
-    #f1Score           = 2 .* (precision .* recall) ./ (precision .+ recall)
-    f1Score           = (2 .* tp) ./ (2 .* tp  .+ fp .+ fn )
-    meanPrecision     = (mean(precision), sum(precision .* actualCount) / sum(actualCount) )
-    meanRecall        = (mean(recall), sum(recall .* actualCount) / sum(actualCount) )
-    meanSpecificity   = (mean(specificity), sum(specificity .* actualCount) / sum(actualCount) )
-    meanF1Score       = (mean(f1Score), sum(f1Score .* actualCount) / sum(actualCount) )
+    #f1score           = 2 .* (precision .* recall) ./ (precision .+ recall)
+    f1score           = (2 .* tp) ./ (2 .* tp  .+ fp .+ fn )
+    mean_precision     = (mean(precision), sum(precision .* actual_count) / sum(actual_count) )
+    mean_recall        = (mean(recall), sum(recall .* actual_count) / sum(actual_count) )
+    mean_specificity   = (mean(specificity), sum(specificity .* actual_count) / sum(actual_count) )
+    mean_f1score       = (mean(f1score), sum(f1score .* actual_count) / sum(actual_count) )
     accuracy          = sum(tp)/N
     misclassification = 1-accuracy
-    return  ConfusionMatrix(classes,labels,accuracy,misclassification,actualCount,predictedCount,scores,normalisedScores,tp,tn,fp,fn,precision,recall,specificity,f1Score,meanPrecision,meanRecall,meanSpecificity,meanF1Score)
+    return  ConfMatrix(classes,labels,accuracy,misclassification,actual_count,predicted_count,scores,normalised_scores,tp,tn,fp,fn,precision,recall,specificity,f1score,mean_precision,mean_recall,mean_specificity,mean_f1score)
 end
+
+labels(cm::ConfMatrix) = cm.labels
+scores(cm::ConfMatrix) = cm.scores
+normalised_scores(cm::ConfMatrix) = cm.normalised_scores
 
 
 import Base.print, Base.println
 """
     print(cm,what)
 
-Print a `ConfusionMatrix` object
+Print a `ConfMatrix` object
 
-The `what` parameter is a string vector that can include "all", "scores", "normalisedScores" or "report" [def: `["all"]`]
+The `what` parameter is a string vector that can include "all", "scores", "normalised_scores" or "report" [def: `["all"]`]
 """
-function print(io::IO,cm::ConfusionMatrix{T},what="all") where T
+function print(io::IO,cm::ConfMatrix{T},what="all") where T
    if what == "all" || what == ["all"]
-       what = ["scores", "normalisedScores", "report" ]
+       what = ["scores", "normalised_scores", "report" ]
    end
    nCl = length(cm.labels)
 
    println("\n-----------------------------------------------------------------\n")
-   if( "scores" in what || "normalisedScores" in what)
+   if( "scores" in what || "normalised_scores" in what)
      println("*** CONFUSION MATRIX ***")
    end
    if "scores" in what
@@ -281,10 +575,10 @@ function print(io::IO,cm::ConfusionMatrix{T},what="all") where T
        displayScores = hcat(vcat("Labels",cm.labels),displayScores)
        show(stdout, "text/plain", displayScores)
    end
-   if "normalisedScores" in what
+   if "normalised_scores" in what
        println(io,"")
        println(io,"Normalised scores actual (rows) vs predicted (columns):\n")
-       displayScores = vcat(permutedims(cm.labels),cm.normalisedScores)
+       displayScores = vcat(permutedims(cm.labels),cm.normalised_scores)
        displayScores = hcat(vcat("Labels",cm.labels),displayScores)
        show(stdout, "text/plain", displayScores)
    end
@@ -295,36 +589,38 @@ function print(io::IO,cm::ConfusionMatrix{T},what="all") where T
      println("- Misclassification rate: $(cm.misclassification)")
      println("- Number of classes:      $(nCl)")
      println("")
-     println("  N ",rpad("Class",labelWidth),"precision   recall  specificity  f1Score  actualCount  predictedCount")
+     println("  N ",rpad("Class",labelWidth),"precision   recall  specificity  f1score  actual_count  predicted_count")
      println("    ",rpad(" ",labelWidth), "              TPR       TNR                 support                  ")
      println("")
      # https://discourse.julialang.org/t/printf-with-variable-format-string/3805/4
      print_formatted(fmt, args...) = @eval @printf($fmt, $(args...))
      for i in 1:nCl
-        print_formatted("%3d %-$(labelWidth)s %8.3f %8.3f %12.3f %8.3f %12i %15i\n", i, string(cm.labels[i]),  cm.precision[i], cm.recall[i], cm.specificity[i], cm.f1Score[i], cm.actualCount[i], cm.predictedCount[i])
+        print_formatted("%3d %-$(labelWidth)s %8.3f %8.3f %12.3f %8.3f %12i %15i\n", i, string(cm.labels[i]),  cm.precision[i], cm.recall[i], cm.specificity[i], cm.f1score[i], cm.actual_count[i], cm.predicted_count[i])
      end
      println("")
-     print_formatted("- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Simple   avg.",  cm.meanPrecision[1], cm.meanRecall[1], cm.meanSpecificity[1], cm.meanF1Score[1])
-     print_formatted("- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Weigthed avg.",  cm.meanPrecision[2], cm.meanRecall[2], cm.meanSpecificity[2], cm.meanF1Score[2])
+     print_formatted("- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Simple   avg.",  cm.mean_precision[1], cm.mean_recall[1], cm.mean_specificity[1], cm.mean_f1score[1])
+     print_formatted("- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Weigthed avg.",  cm.mean_precision[2], cm.mean_recall[2], cm.mean_specificity[2], cm.mean_f1score[2])
    end
    println("\n-----------------------------------------------------------------")
    return nothing
 end
-println(io::IO, cm::ConfusionMatrix{T}, what="all") where T = begin  print(cm,what);print("\n"); return nothing end
+println(io::IO, cm::ConfMatrix{T}, what="all") where T = begin  print(cm,what);print("\n"); return nothing end
+
+# OLD ConfMatrix ENDS here -----------------------------------------------------
 
 # ------------------------------------------------------------------------------
 # Regression tasks...
 
 # Used as neural network loss function
 """
-   squaredCost(ŷ,y)
+   squared_cost(ŷ,y)
 
 Compute the squared costs between a vector of prediction and one of observations as (1/2)*norm(y - ŷ)^2.
 
 Aside the 1/2 term, it correspond to the squared l-2 norm distance and when it is averaged on multiple datapoints corresponds to the Mean Squared Error ([MSE](https://en.wikipedia.org/wiki/Mean_squared_error)).
 It is mostly used for regression problems.
 """
-squaredCost(ŷ,y)   = (1/2)*norm(y - ŷ)^2
+squared_cost(ŷ,y)   = (1/2)*norm(y - ŷ)^2
 dSquaredCost(ŷ,y)  = ( ŷ - y)
 """
     mse(ŷ,y)

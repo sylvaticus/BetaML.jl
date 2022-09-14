@@ -23,8 +23,8 @@ struct SGD <: OptimisationAlgorithm
 end
 
 
-function singleUpdate!(θ,▽,optAlg::SGD;nEpoch,nBatch,nBatches,xbatch,ybatch)
-    η    = optAlg.η(nEpoch)*optAlg.λ
+function singleUpdate!(θ,▽,opt_alg::SGD;nEpoch,nBatch,nBatches,xbatch,ybatch)
+    η    = opt_alg.η(nEpoch)*opt_alg.λ
     #newθ = gradSub.(θ,gradMul.(▽,η))
     θ =  θ - ▽ .* η
     #newθ = gradientDescentSingleUpdate(θ,▽,η)
@@ -70,26 +70,26 @@ mutable struct ADAM <: OptimisationAlgorithm
 end
 
 """
-   initOptAlg!(optAlg::ADAM;θ,batchSize,x,y,rng)
+   initOptAlg!(opt_alg::ADAM;θ,batch_size,x,y,rng)
 
 Initialize the ADAM algorithm with the parameters m and v as zeros and check parameter bounds
 """
-function initOptAlg!(optAlg::ADAM;θ,batchSize,x,y,rng = Random.GLOBAL_RNG)
-    optAlg.m = θ .- θ # setting to zeros
-    optAlg.v = θ .- θ # setting to zeros
-    if optAlg.β₁ <= 0 || optAlg.β₁ >= 1 @error "The parameter β₁ must be ∈ [0,1]" end
-    if optAlg.β₂ <= 0 || optAlg.β₂ >= 1 @error "The parameter β₂ must be ∈ [0,1]" end
+function initOptAlg!(opt_alg::ADAM;θ,batch_size,x,y,rng = Random.GLOBAL_RNG)
+    opt_alg.m = θ .- θ # setting to zeros
+    opt_alg.v = θ .- θ # setting to zeros
+    if opt_alg.β₁ <= 0 || opt_alg.β₁ >= 1 @error "The parameter β₁ must be ∈ [0,1]" end
+    if opt_alg.β₂ <= 0 || opt_alg.β₂ >= 1 @error "The parameter β₂ must be ∈ [0,1]" end
 end
 
-function singleUpdate!(θ,▽,optAlg::ADAM;nEpoch,nBatch,nBatches,xbatch,ybatch)
-    β₁,β₂,ϵ  = optAlg.β₁, optAlg.β₂, optAlg.ϵ
-    η        = optAlg.η(nEpoch)*optAlg.λ
+function singleUpdate!(θ,▽,opt_alg::ADAM;nEpoch,nBatch,nBatches,xbatch,ybatch)
+    β₁,β₂,ϵ  = opt_alg.β₁, opt_alg.β₂, opt_alg.ϵ
+    η        = opt_alg.η(nEpoch)*opt_alg.λ
     t        = (nEpoch-1)*nBatches+nBatch
-    optAlg.m = @. β₁ * optAlg.m + (1-β₁) * ▽
-    optAlg.v = @. β₂ * optAlg.v + (1-β₂) * (▽*▽)
-    #optAlg.v = [β₂ .* optAlg.v.data[i] .+ (1-β₂) .* (▽.data[i] .* ▽.data[i]) for i in 1:size(optAlg.v.data)]
-    m̂        = @. optAlg.m /(1-β₁^t)
-    v̂        = @. optAlg.v /(1-β₂^t)
+    opt_alg.m = @. β₁ * opt_alg.m + (1-β₁) * ▽
+    opt_alg.v = @. β₂ * opt_alg.v + (1-β₂) * (▽*▽)
+    #opt_alg.v = [β₂ .* opt_alg.v.data[i] .+ (1-β₂) .* (▽.data[i] .* ▽.data[i]) for i in 1:size(opt_alg.v.data)]
+    m̂        = @. opt_alg.m /(1-β₁^t)
+    v̂        = @. opt_alg.v /(1-β₂^t)
     θ        = @. θ - (η * m̂) /(sqrt(v̂)+ϵ)
     return     (θ=θ,stop=false)
 end
@@ -104,7 +104,7 @@ struct DebugOptAlg <: OptimisationAlgorithm
     end
 end
 
-function singleUpdate!(θ,▽,optAlg::DebugOptAlg;nEpoch,nBatch,batchSize,ϵ_epoch,ϵ_epoch_l)
-    println(optAlg.dString)
+function singleUpdate!(θ,▽,opt_alg::DebugOptAlg;nEpoch,nBatch,batch_size,ϵ_epoch,ϵ_epoch_l)
+    println(opt_alg.dString)
     return (θ=θ,stop=false)
 end

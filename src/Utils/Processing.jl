@@ -222,9 +222,9 @@ $(FIELDS)
 Base.@kwdef mutable struct OneHotEncoderHyperParametersSet <: BetaMLHyperParametersSet
   "The categories to represent as columns. [def: `nothing`, i.e. unique training values]. Do not include `missing` in this list."  
   categories::Union{Vector,Nothing} = nothing
-  "How to handle categories not seens in training or not present in the provided `categories` array? \"error\" (default) rises an error, \"missing\" labels the whole output with missing values, \"infrequent\" adds a specific column for these categories in one-hot encoding or a single new category for ordinal one."
+  "How to handle categories not seen in training or not present in the provided `categories` array? \"error\" (default) rises an error, \"missing\" labels the whole output with missing values, \"infrequent\" adds a specific column for these categories in one-hot encoding or a single new category for ordinal one."
   handle_unknown::String = "error"
-  "Which value during inverse transformation to assign to the \"other\" category (i.e. categories not seen on training or not present in the provided `categories` array? [def: ` nothing`, i.e. typemax(Int64) for integer vectors and \"other\" for other types]. This setting is active only if `handle_unknown=\"infrequent\"` and in that case MUST be specified if the vector to one-hot encode is neither integer or strings"
+  "Which value during inverse transformation to assign to the \"other\" category (i.e. categories not seen on training or not present in the provided `categories` array? [def: ` nothing`, i.e. typemax(Int64) for integer vectors and \"other\" for other types]. This setting is active only if `handle_unknown=\"infrequent\"` and in that case it MUST be specified if the vector to one-hot encode is neither integer or strings"
   other_categories_name = nothing
 
 end
@@ -353,7 +353,6 @@ function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
             if isnothing(kidx)
                 if handle_unknown == "error"
                     error("Found a category ($(x[n])) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to swith it to either `missing` or `infrequent`.")
-                    continue
                 elseif handle_unknown == "missing"
                     outx[n,:] = fill(missing,K);
                     continue
@@ -461,7 +460,12 @@ function _inverse_predict(m,x,enctype::Symbol)
     end
     return outx
 end
-inverse_predict(m::OneHotEncoder,x)  = _inverse_predict(m,x,:onehot)
+inverse_predict(m::OneHotEncoder,x::AbstractMatrix{<:Union{Int64,Bool,Missing}})  = _inverse_predict(m,x,:onehot)
+function inverse_predict(m::OneHotEncoder,x::AbstractMatrix{<:Float64})  
+    x2 = fit!(OneHotEncoder(categories=1:size(x,2)),mode(x))
+    return inverse_predict(m,x2)
+end
+
 inverse_predict(m::OrdinalEncoder,x) = _inverse_predict(m,x,:ordinal)
 
 """
@@ -1076,9 +1080,9 @@ abstract type ParametersSet
 Base.@kwdef struct NNModelParametersSet <: ParametersSet
   neuronsRange::Vector{Int64}   = 6:4:12
   epochesRange::Vector{Int64}   = 200:100:300
-  batchSizeRange::Vector{Int64} = 4:2:6
+  batch_sizeRange::Vector{Int64} = 4:2:6
 end
-function tuneHyperParameters(model,Pset::ParameterSet,xtrain,ytrain;neuronsRange=6:4:12,epochesRange= 200:100:300:size(xtrain,2),batchSizeRange = 4:2:6,repetitions=5,rng=Random.GLOBAL_RNG) 
+function tuneHyperParameters(model,Pset::ParameterSet,xtrain,ytrain;neuronsRange=6:4:12,epochesRange= 200:100:300:size(xtrain,2),batch_sizeRange = 4:2:6,repetitions=5,rng=Random.GLOBAL_RNG) 
 
 =#
 

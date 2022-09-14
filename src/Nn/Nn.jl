@@ -36,11 +36,11 @@ You can alternativly implement your own layer defining a new type as subtype of 
 
 - `trainingInfo(nn)`: Default callback function during training
 - `train!(nn)`:  Training function
-- `singleUpdate!(θ,▽;optAlg)`: The parameter update made by the specific optimisation algorithm
+- `singleUpdate!(θ,▽;opt_alg)`: The parameter update made by the specific optimisation algorithm
 - `SGD`: The default optimisation algorithm
 - `ADAM`: A faster moment-based optimisation algorithm (added in v0.2.2)
 
-To define your own optimisation algorithm define a subtype of `OptimisationAlgorithm` and implement the function `singleUpdate!(θ,▽;optAlg)` and eventually `initOptAlg(⋅)` specific for it.
+To define your own optimisation algorithm define a subtype of `OptimisationAlgorithm` and implement the function `singleUpdate!(θ,▽;opt_alg)` and eventually `initOptAlg(⋅)` specific for it.
 
 # Model predictions and assessment:
 
@@ -532,14 +532,14 @@ abstract type OptimisationAlgorithm end
 include("Nn_default_optalgs.jl")
 
 """
-   trainingInfo(nn,x,y;n,batchSize,epochs,verbosity,nEpoch,nBatch)
+   trainingInfo(nn,x,y;n,batch_size,epochs,verbosity,nEpoch,nBatch)
 
 Default callback funtion to display information during training, depending on the verbosity level
 
 # Parameters:
 * `nn`: Worker network
-* `x`:  Batch input to the network (batchSize,d)
-* `y`:  Batch label input (batchSize,d)
+* `x`:  Batch input to the network (batch_size,d)
+* `y`:  Batch label input (batch_size,d)
 * `n`: Size of the full training set
 * `nBatches` : Number of baches per epoch
 * `epochs`: Number of epochs defined for the training
@@ -557,7 +557,7 @@ function trainingInfo(nn,x,y;n,nBatches,epochs,verbosity,nEpoch,nBatch)
 
    nMsgDict = Dict(LOW => 0, STD => 10,HIGH => 100, FULL => n)
    nMsgs = nMsgDict[verbosity]
-   batchSize = size(x,1)
+   batch_size = size(x,1)
 
    if verbosity == FULL || ( nBatch == nBatches && ( nEpoch == 1  || nEpoch % ceil(epochs/nMsgs) == 0))
 
@@ -568,7 +568,7 @@ function trainingInfo(nn,x,y;n,nBatches,epochs,verbosity,nEpoch,nBatch)
 end
 
 """
-   train!(nn,x,y;epochs,batchSize,sequential,optAlg,verbosity,cb)
+   train!(nn,x,y;epochs,batch_size,sequential,opt_alg,verbosity,cb)
 
 Train a neural network with the given x,y data
 
@@ -577,9 +577,9 @@ Train a neural network with the given x,y data
 * `x`:          Training input to the network (records x dimensions)
 * `y`:          Label input (records x dimensions)
 * `epochs`:     Number of passages over the training set [def: `100`]
-* `batchSize`:  Size of each individual batch [def: `min(size(x,1),32)`]
+* `batch_size`:  Size of each individual batch [def: `min(size(x,1),32)`]
 * `sequential`: Wether to run all data sequentially instead of random [def: `false`]
-* `optAlg`:     The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]
+* `opt_alg`:     The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]
 * `verbosity`:  A verbosity parameter for the trade off information / efficiency [def: `STD`]
 * `cb`:         A callback to provide information. [def: `trainingInfo`]
 * `rng`:        Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
@@ -601,16 +601,16 @@ Train a neural network with the given x,y data
 - The verbosity can be set to any of `NONE`,`LOW`,`STD`,`HIGH`,`FULL`.
 - The update is done computing the average gradient for each batch and then calling `singleUpdate!` to let the optimisation algorithm perform the parameters update
 """
-function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=false, verbosity::Verbosity=STD, cb=trainingInfo, optAlg::OptimisationAlgorithm=ADAM(),rng = Random.GLOBAL_RNG)#,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0optAlg::SD=SD())
+function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential=false, verbosity::Verbosity=STD, cb=trainingInfo, opt_alg::OptimisationAlgorithm=ADAM(),rng = Random.GLOBAL_RNG)#,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0opt_alg::SD=SD())
     if verbosity > STD
         @codeLocation
     end
     x = makeMatrix(x)
     y = makeMatrix(y)
     (n,d)     = size(x)
-    batchSize = min(size(x,1),batchSize)
+    batch_size = min(size(x,1),batch_size)
     if verbosity > NONE # Note that are two "Verbosity type" objects. To compare with numbers use Int(NONE) > 1
-        println("***\n*** Training $(nn.name) for $epochs epochs with algorithm $(typeof(optAlg)).")
+        println("***\n*** Training $(nn.name) for $epochs epochs with algorithm $(typeof(opt_alg)).")
     end
     ϵ_epoch_l = Inf
     θ_epoch_l = getParams(nn)
@@ -619,7 +619,7 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
     ϵ_epochs  = Float64[]
     θ_epochs  = []
 
-    initOptAlg!(optAlg::OptimisationAlgorithm;θ=getParams(nn),batchSize=batchSize,x=x,y=y)
+    initOptAlg!(opt_alg::OptimisationAlgorithm;θ=getParams(nn),batch_size=batch_size,x=x,y=y)
     if verbosity == NONE
         showTime = typemax(Float64)
     elseif verbosity <= LOW
@@ -633,7 +633,7 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
     end
     
     @showprogress showTime "Training the Neural Network..."    for t in 1:epochs
-       batches = batch(n,batchSize,sequential=sequential,rng=rng)
+       batches = batch(n,batch_size,sequential=sequential,rng=rng)
        nBatches = length(batches)
        if t == 1
            if (verbosity >= STD) push!(ϵ_epochs,ϵ_epoch); end
@@ -651,8 +651,8 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
            sumGradient = sum(gradients)
 
            ▽   = sumGradient / length(batch)
-           #▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batchSize]), batchSize)
-           res = singleUpdate!(θ,▽;nEpoch=t,nBatch=i,nBatches=nBatches,xbatch=xbatch,ybatch=ybatch,optAlg=optAlg)
+           #▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batch_size]), batch_size)
+           res = singleUpdate!(θ,▽;nEpoch=t,nBatch=i,nBatches=nBatches,xbatch=xbatch,ybatch=ybatch,opt_alg=opt_alg)
            setParams!(nn,res.θ)
            cbOut = cb(nn,xbatch,ybatch,n=d,nBatches=nBatches,epochs=epochs,verbosity=verbosity,nEpoch=t,nBatch=i)
            if(res.stop==true || cbOut==true)
@@ -682,7 +682,7 @@ function train!(nn::NN,x,y; epochs=100, batchSize=min(size(x,1),32), sequential=
 end
 
 """
-   singleUpdate!(θ,▽;nEpoch,nBatch,batchSize,xbatch,ybatch,optAlg)
+   singleUpdate!(θ,▽;nEpoch,nBatch,batch_size,xbatch,ybatch,opt_alg)
 
 Perform the parameters update based on the average batch gradient.
 
@@ -694,7 +694,7 @@ Perform the parameters update based on the average batch gradient.
 - `nBatches`:  Number of batches per epoch
 - `xbatch`:    Data associated to the current batch
 - `ybatch`:    Labels associated to the current batch
-- `optAlg`:    The Optimisation algorithm to use for the update
+- `opt_alg`:    The Optimisation algorithm to use for the update
 
 # Notes:
 - This function is overridden so that each optimisation algorithm implement their
@@ -703,23 +703,23 @@ own version
 to support the largest possible class of optimisation algorithms
 - Some optimisation algorithms may change their internal structure in this function
 """
-function singleUpdate!(θ,▽;nEpoch,nBatch,nBatches,xbatch,ybatch,optAlg::OptimisationAlgorithm)
-   return singleUpdate!(θ,▽,optAlg;nEpoch=nEpoch,nBatch=nBatch,nBatches=nBatches,xbatch=xbatch,ybatch=ybatch)
+function singleUpdate!(θ,▽;nEpoch,nBatch,nBatches,xbatch,ybatch,opt_alg::OptimisationAlgorithm)
+   return singleUpdate!(θ,▽,opt_alg;nEpoch=nEpoch,nBatch=nBatch,nBatches=nBatches,xbatch=xbatch,ybatch=ybatch)
 end
 
-function singleUpdate!(θ,▽,optAlg::OptimisationAlgorithm;nEpoch,nBatch,nBatches,xbatch,ybatch)
+function singleUpdate!(θ,▽,opt_alg::OptimisationAlgorithm;nEpoch,nBatch,nBatches,xbatch,ybatch)
     error("singleUpdate() not implemented for this optimisation algorithm")
 end
 
 """
-   initOptAlg!(optAlg;θ,batchSize,x,y)
+   initOptAlg!(opt_alg;θ,batch_size,x,y)
 
 Initialize the optimisation algorithm
 
 # Parameters:
-- `optAlg`:    The Optimisation algorithm to use
+- `opt_alg`:    The Optimisation algorithm to use
 - `θ`:         Current parameters
-- `batchSize`:    The size of the batch
+- `batch_size`:    The size of the batch
 - `x`:   The training (input) data
 - `y`:   The training "labels" to match
 * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
@@ -727,7 +727,7 @@ Initialize the optimisation algorithm
 # Notes:
 - Only a few optimizers need this function and consequently ovverride it. By default it does nothing, so if you want write your own optimizer and don't need to initialise it, you don't have to override this method
 """
-initOptAlg!(optAlg::OptimisationAlgorithm;θ,batchSize,x,y,rng = Random.GLOBAL_RNG) = nothing
+initOptAlg!(opt_alg::OptimisationAlgorithm;θ,batch_size,x,y,rng = Random.GLOBAL_RNG) = nothing
 
 #=
         if rShuffle
@@ -791,19 +791,19 @@ To know the available layers type `subtypes(AbstractLayer)`) and then type `?Lay
 Base.@kwdef mutable struct NeuralNetworkEstimatorHyperParametersSet <: BetaMLHyperParametersSet
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
-    """Loss (cost) function [def: `squaredCost`].
+    """Loss (cost) function [def: `squared_cost`].
     !!! warning
         If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
     """
-    loss::Union{Nothing,Function} = squaredCost
+    loss::Union{Nothing,Function} = squared_cost
     "Derivative of the loss function [def: `dSquaredCost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
     dloss::Union{Function,Nothing}  = dSquaredCost
     "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
     epochs::Int64 = 100
     "Size of each individual batch [def: `32`]"
-    batchSize::Int64 = 32
+    batch_size::Int64 = 32
     "The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]"
-    optAlg::OptimisationAlgorithm = ADAM()
+    opt_alg::OptimisationAlgorithm = ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool = true  
 end
@@ -882,8 +882,8 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
     loss        = m.hpar.loss
     dloss       = m.hpar.dloss
     epochs      = m.hpar.epochs
-    batchSize   = m.hpar.batchSize
-    optAlg      = m.hpar.optAlg
+    batch_size   = m.hpar.batch_size
+    opt_alg      = m.hpar.opt_alg
     shuffle     = m.hpar.shuffle
     cache       = m.opt.cache
     descr       = m.opt.descr
@@ -930,7 +930,7 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
     nnstruct = m.par.nnstruct
 
 
-    out = train!(nnstruct,X,Y; epochs=epochs, batchSize=batchSize, sequential=!shuffle, verbosity=verbosity, cb=cb, optAlg=optAlg,rng = rng)
+    out = train!(nnstruct,X,Y; epochs=epochs, batch_size=batch_size, sequential=!shuffle, verbosity=verbosity, cb=cb, opt_alg=opt_alg,rng = rng)
 
     m.info[:epochsRan]     += out.epochs
     append!(m.info[:lossPerEpoch],out.ϵ_epochs) 
@@ -970,7 +970,7 @@ function show(io::IO, m::NeuralNetworkEstimator)
         println(io,"Loss function:")
         println(io,m.hpar.loss)
         println(io,"Optimisation algorithm:")
-        println(io,m.hpar.optAlg)
+        println(io,m.hpar.opt_alg)
         println("Layers:")
         println("#\t # In \t\t # Out \t\t Type")
         for (i,l) in enumerate(m.hpar.layers)
@@ -982,15 +982,20 @@ function show(io::IO, m::NeuralNetworkEstimator)
         println(io,"Cost function:")
         println(io,m.hpar.loss)
         println(io,"Optimisation algorithm:")
-        println(io,m.hpar.optAlg)
+        println(io,m.hpar.opt_alg)
         println(io, "Layers:")
         println(io, "#\t # In \t\t  # Out \t\t  Type")
         for (i,l) in enumerate(m.par.nnstruct.layers)
           shapes = size(l)
           println(io, "$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
         end
-        println(io,"Info:")
-        println(io,m.info)
+        println("Output of `info(model)`:")
+        for (k,v) in info(m)
+            print(io,"- ")
+            print(io,k)
+            print(io,":\t")
+            println(io,v)
+        end
     end
 end
 

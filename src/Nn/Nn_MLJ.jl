@@ -29,19 +29,19 @@ $(FIELDS)
 Base.@kwdef mutable struct MultitargetNeuralNetworkRegressor <: MMI.Deterministic
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
-    """Loss (cost) function [def: `squaredCost`].
+    """Loss (cost) function [def: `squared_cost`].
     !!! warning
         If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
     """
-    loss::Union{Nothing,Function} = squaredCost
+    loss::Union{Nothing,Function} = squared_cost
     "Derivative of the loss function [def: `dSquaredCost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
     dloss::Union{Function,Nothing}  = dSquaredCost
     "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
     epochs::Int64 = 100
     "Size of each individual batch [def: `32`]"
-    batchSize::Int64 = 32
+    batch_size::Int64 = 32
     "The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]"
-    optAlg::OptimisationAlgorithm = ADAM()
+    opt_alg::OptimisationAlgorithm = ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool = true  
     "An optional title and/or description for this model"
@@ -64,7 +64,7 @@ function MMI.fit(m::MultitargetNeuralNetworkRegressor, verbosity, X, y)
     if !(verbosity == 0 || verbosity == 10 || verbosity == 20 || verbosity == 30 || verbosity == 40) 
         error("Wrong verbosity level. Verbosity must be either 0, 10, 20, 30 or 40.")
     end
-    mi = NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batchSize=m.batchSize, optAlg=m.optAlg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=Verbosity(verbosity))
+    mi = NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=Verbosity(verbosity))
     fit!(mi,x,y)
     fitresults = mi
     cache      = nothing
@@ -101,19 +101,19 @@ $(FIELDS)
 Base.@kwdef mutable struct NeuralNetworkClassifier <: MMI.Probabilistic
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers. The last \"softmax\" layer is automatically added."
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
-    """Loss (cost) function [def: `crossEntropy`].
+    """Loss (cost) function [def: `cross_entropy`].
     !!! warning
         If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
     """
-    loss::Union{Nothing,Function} = crossEntropy
+    loss::Union{Nothing,Function} = cross_entropy
     "Derivative of the loss function [def: `dCrossEntropy`, i.e. the derivative of the cross-entropy]. Use `nothing` for autodiff."
     dloss::Union{Function,Nothing}  = dCrossEntropy
     "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
     epochs::Int64 = 100
     "Size of each individual batch [def: `32`]"
-    batchSize::Int64 = 32
+    batch_size::Int64 = 32
     "The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]"
-    optAlg::OptimisationAlgorithm = ADAM()
+    opt_alg::OptimisationAlgorithm = ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool = true  
     "An optional title and/or description for this model"
@@ -164,7 +164,7 @@ function MMI.fit(m::NeuralNetworkClassifier, verbosity, X, y)
         layers = deepcopy(m.layers)
         push!(layers,VectorFunctionLayer(nDy,f=softmax))
     end
-    mi = NeuralNetworkEstimator(;layers=layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batchSize=m.batchSize, optAlg=m.optAlg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=Verbosity(verbosity))
+    mi = NeuralNetworkEstimator(;layers=layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=Verbosity(verbosity))
     fit!(mi,x,Y_oh)
     fitresults = (mi,ohmod)
     cache      = nothing

@@ -177,8 +177,14 @@ function show(io::IO, m::BetaMLModel)
    if m.fitted == false
       print(io,"A $(typeof(m)) BetaMLModel (unfitted)")
    else
-      println(io,"A $(typeof(m)) BetaMLModel (unfitted)")
-      print(io,m.info)
+      println(io,"A $(typeof(m)) BetaMLModel (fitted)")
+      println("Output of `info(model)`:")
+      for (k,v) in info(m)
+          print(io,"- ")
+          print(io,k)
+          print(io,":\t")
+          println(io,v)
+      end
    end
 end
 

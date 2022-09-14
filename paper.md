@@ -54,7 +54,7 @@ In `BetaML` we made the choice to allow the user to experiment with the hyper-pa
 using BetaML.Nn
 mynn   = buildNetwork([DenseLayer(nIn,nHidden),
                        DenseLayer(nHidden,nOut)],
-                       squaredCost)
+                       squared_cost)
 train!(mynn,xtrain,ytrain)
 ytrain_est = predict(mynn,xtrain)           
 ytest_est  = predict(mynn,xtest)
@@ -90,7 +90,7 @@ Concerning the fist category `Utils` provides "classical" activation functions (
 
 Often ML algorithms work better if the data is normalised or dimensions are reduced to those explaining the greatest extent of data variability. This is the purpose of the functions `scale` and `pca` respectively. `scale` scales the data to $\mu=0$ and $\sigma=1$, optionally skipping dimensions that don't need to be normalised (like categorical ones). The related function `getScaleFactors` saves the scaling factors so that inverse scaling (typically for the predictions of the ML algorithm) can be applied. `pca` performs Principal Component Analysis, where the user can specify either the number of dimensions to retain or the maximum approximation error that she/he is willing to accept, either _ex-ante_ or _ex-post_, after having analysed the distribution of the explained variance by number of dimensions. Other "general support" functions provided are `oneHotEncoder`, `batch`, `partition` and `crossValidation`.
 
-Concerning the last category, several functions are provided to assess the goodness of fit of a single datapoint or of the whole dataset, whether the output of the ML algorithm is in $R^n$ or categorical. Notably, `accuracy` provides categorical accuracy given a probabilistic prediction (as PMF) of a datapoint and `ConfusionMatrix` allows a detailed analysis of categorical predictions.
+Concerning the last category, several functions are provided to assess the goodness of fit of a single datapoint or of the whole dataset, whether the output of the ML algorithm is in $R^n$ or categorical. Notably, `accuracy` provides categorical accuracy given a probabilistic prediction (as PMF) of a datapoint and `ConfMatrix` allows a detailed analysis of categorical predictions.
 
 Finally, the Bayesian Information Criterion `bic` and Akaike Information Criterion `aic` functions can be used for regularisation.
 

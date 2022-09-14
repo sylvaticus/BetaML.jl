@@ -176,7 +176,7 @@ plot(1:K,[μsBICS' μsAICS'], labels=["BIC" "AIC"], title="Information criteria 
 
 # We see that following the "lowest AIC" rule we would indeed choose three classes, while following the "best AIC" criteria we would have choosen only two classes. This means that there is two classes that, concerning the floreal measures used in the database, are very similar, and opur models are unsure about them. Perhaps the biologists will end up one day with the conclusion that it is indeed only one specie :-).
 
-# We could study this issue more in detail by analysing the [`ConfusionMatrix`](@ref), but the one used in BetaML does not account for the ignoreLabels option (yet).
+# We could study this issue more in detail by analysing the [`ConfMatrix`](@ref), but the one used in BetaML does not account for the ignoreLabels option (yet).
 
 # ## Benchmarking computational efficiency
 
