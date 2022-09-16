@@ -65,11 +65,11 @@ xFull = predictMissing(x,rng=copy(FIXEDRNG)).X̂;
 
 # Further, some models don't work with categorical data as such, so we need to represent our `y` as a matrix with a separate column for each possible categorical value (the so called "one-hot" representation).
 # For example, within a three classes field, the individual value `2` (or `"Europe"` for what it matters) would be represented as the vector `[0 1 0]`, while `3` (or `"Japan"`) would become the vector `[0 0 1]`.
-# To encode as one-hot we use the function [`oneHotEncoder`](@ref) in [`BetaML.Utils`](@ref utils_module)
-y_oh  = oneHotEncoder(y);
+# To encode as one-hot we use the function [`onehotencoder`](@ref) in [`BetaML.Utils`](@ref utils_module)
+y_oh  = onehotencoder(y);
 
 # In supervised machine learning it is good practice to partition the available data in a _training_, _validation_, and _test_ subsets, where the first one is used to train the ML algorithm, the second one to train any eventual "hyper-parameters" of the algorithm and the _test_ subset is finally used to evaluate the quality of the algorithm.
-# Here, for brevity, we use only the _train_ and the _test_ subsets, implicitly assuming we already know the best hyper-parameters. Please refer to the [regression tutorial](@ref regression_tutorial) for examples of how to use the validation subset to train the hyper-parameters, or even better the [clustering tutorial](@ref clustering_tutorial) for an example of using the [`crossValidation`](@ref) function.
+# Here, for brevity, we use only the _train_ and the _test_ subsets, implicitly assuming we already know the best hyper-parameters. Please refer to the [regression tutorial](@ref regression_tutorial) for examples of how to use the validation subset to train the hyper-parameters, or even better the [clustering tutorial](@ref clustering_tutorial) for an example of using the [`cross_validation`](@ref) function.
 
 # We use then the [`partition`](@ref) function in [BetaML.Utils](@ref utils_module), where we can specify the different data to partition (each matrix or vector to partition must have the same number of observations) and the shares of observation that we want in each subset. Here we keep 80% of observations for training (`xtrain`, `xTrainFull` and `ytrain`) and we use 20% of them for testing (`xtest`, `xTestFull` and `ytest`):
 ((xtrain,xtest),(xtrainFull,xtestFull),(ytrain,ytest),(ytrain_oh,ytest_oh)) = partition([x,xFull,y,y_oh],[0.8,1-0.8],rng=copy(FIXEDRNG));
@@ -136,9 +136,9 @@ model = DecisionTree.build_forest(ytrain, xtrainFull,-1,30,rng=123)
 # ### Neural network
 
 # Neural networks (NN) can be very powerfull, but have two "inconvenients" compared with random forests: first, are a bit "picky". We need to do a bit of work to provide data in specific format. Note that this is _not_ feature engineering. One of the advantages on neural network is that for the most this is not needed for neural networks. However we still need to "clean" the data. One issue is that NN don't like missing data. So we need to provide them with the feature matrix "clean" of missing data. Secondly, they work only with numerical data. So we need to use the one-hot encoding we saw earlier.
-# Further, they work best if the features are scaled such that each feature has mean zero and standard deviation 1. We can achieve it with the function [`scale`](@ref) or, as in this case, [`getScaleFactors`](@ref).
+# Further, they work best if the features are scaled such that each feature has mean zero and standard deviation 1. We can achieve it with the function [`scale`](@ref) or, as in this case, [`get_scalefactors`](@ref).
 
-xScaleFactors   = getScaleFactors(xtrainFull)
+xScaleFactors   = get_scalefactors(xtrainFull)
 D               = size(xtrainFull,2)
 classes         = unique(y)
 nCl             = length(classes)
@@ -154,7 +154,7 @@ l2   = DenseLayer(ls,nCl,f=relu,rng=copy(FIXEDRNG))
 l3   = VectorFunctionLayer(nCl,f=softmax) ## Add a (parameterless) layer whose activation function (softMax in this case) is defined to all its nodes at once
 
 # Finally we _chain_ the layers and assign a loss function with [`buildNetwork`](@ref):
-mynn = buildNetwork([l1,l2,l3],squared_cost,name="Multinomial logistic regression Model Cars") ## Build the NN and use the squared cost (aka MSE) as error function (cross_entropy could also be used)
+mynn = buildNetwork([l1,l2,l3],squared_cost,name="Multinomial logistic regression Model Cars") ## Build the NN and use the squared cost (aka MSE) as error function (crossentropy could also be used)
 
 # Now we can train our network using the function [`train!`](@ref). It has many options, have a look at the documentation for all the possible arguments.
 # Note that we train the network based on the scaled feature matrix.

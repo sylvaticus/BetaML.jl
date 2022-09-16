@@ -35,11 +35,11 @@ describe(iris)
 # As we are using clustering algorithms, we are not actually using the labels to train the algorithms, we'll behave like we do not know them, we'll just let the algorithm "learn" fro mthe structure of the data itself. We'll however use it to judge the accuracy that they did reach.
 x       = Matrix{Float64}(iris[:,1:4]);
 yLabels = unique(iris[:,5]);
-# As the labels are expressed as strings, the first thing we do is encode them as integers for our analysis using the function [`integerEncoder`](@ref).
-y       = integerEncoder(iris[:,5],factors=yLabels);
+# As the labels are expressed as strings, the first thing we do is encode them as integers for our analysis using the function [`integerencoder`](@ref).
+y       = integerencoder(iris[:,5],factors=yLabels);
 
 # The dataset from RDatasets is ordered by species, so we need to shuffle it to avoid biases.
-# Shuffling happens by default in crossValidation, but we are keeping here a copy of the shuffled version for later.
+# Shuffling happens by default in cross_validation, but we are keeping here a copy of the shuffled version for later.
 # Note that the version of [`shuffle`](@ref) that is included in BetaML accepts several n-dimensional arrays and shuffle them (by default on rows, by we can specify the dimension) keeping the association  between the various arrays in the shuffled output.
 (xs,ys) = shuffle([x,y]);
 
@@ -57,54 +57,54 @@ y       = integerEncoder(iris[:,5],factors=yLabels);
 # As we are here, we also try different versions of the BetaML models, even if the default "versions" should be fine. For `kmeans` and `kmedoids` we will try different initialisation strategies ("gird", the default one, "random" and "shuffle"), while for the `gmm` model we'll choose different distributions of the Gaussain family (`SphericalGaussian` - where the variance is a scalar, `DiagonalGaussian` - with a vector variance, and `FullGaussian`, where the covariance is a matrix).
 
 # As the result would depend on stochasticity both in the data selected and in the random initialisation, we use a cross-validation approach to run our models several times (with different data) and then we average their results.
-# Cross-Validation in BetaML is very flexible and it is done using the [`crossValidation`](@ref) function.
-# crossValidation works by calling the function `f`, defined by the user, passing to it the tuple `trainData`, `valData` and `rng` and collecting the result of the function f. The specific method for which `trainData`, and `valData` are selected at each iteration depends on the specific `sampler`.
+# Cross-Validation in BetaML is very flexible and it is done using the [`cross_validation`](@ref) function.
+# cross_validation works by calling the function `f`, defined by the user, passing to it the tuple `trainData`, `valData` and `rng` and collecting the result of the function f. The specific method for which `trainData`, and `valData` are selected at each iteration depends on the specific `sampler`.
 # We start by selectign a k-fold sampler that split our data in 5 different parts, it uses 4 for training and 1 part (not used here) for validation. We run the simulations twice and, to be sure to have replicable results, we fix the random seed (at the whole crossValidaiton level, not on each iteration).
 sampler = KFold(nSplits=5,nRepeats=3,shuffle=true, rng=copy(FIXEDRNG))
 
-# We can now run the cross-validation with our models. Note that instead of defining the function `f` and then calling `crossValidation[f(trainData,testData,rng),[x,y],...)` we use the Julia `do` block syntax and we write directly the content of the `f` function in the `do` block.
-# Also, by default crossValidation already returns the mean and the standard deviation of the output of the user-provided `f` function (or the `do` block). However this requires that the `f` function return a single scalar. Here we are returning a vector of the accuracies of the different models (so we can run the cross-validation only once), and hence we indicate with `returnStatistics=false` to crossValidation not to attempt to generate statistics but rather report the whole output.
+# We can now run the cross-validation with our models. Note that instead of defining the function `f` and then calling `cross_validation[f(trainData,testData,rng),[x,y],...)` we use the Julia `do` block syntax and we write directly the content of the `f` function in the `do` block.
+# Also, by default cross_validation already returns the mean and the standard deviation of the output of the user-provided `f` function (or the `do` block). However this requires that the `f` function return a single scalar. Here we are returning a vector of the accuracies of the different models (so we can run the cross-validation only once), and hence we indicate with `returnStatistics=false` to cross_validation not to attempt to generate statistics but rather report the whole output.
 # We'll compute the statistics ex-post.
 
 # Inside the `do` block we do 4 things:
-# - we recover from `trainData` (a tuple, as we passed a tuple to `crossValidation` too) the `xtrain` features and `ytrain` labels;
+# - we recover from `trainData` (a tuple, as we passed a tuple to `cross_validation` too) the `xtrain` features and `ytrain` labels;
 # - we run the various clustering algorithms
-# - we use the real labels to compute the model accuracy. Note that the clustering algorithm know nothing about the specific label name or even their order. This is why [`accuracy`](@ref) has the parameter `ignoreLabels` to compute the accuracy oven any possible permutation of the classes found.
+# - we use the real labels to compute the model accuracy. Note that the clustering algorithm know nothing about the specific label name or even their order. This is why [`accuracy`](@ref) has the parameter `ignorelabels` to compute the accuracy oven any possible permutation of the classes found.
 # - we return the various models' accuracies
-cOut = crossValidation([x,y],sampler,returnStatistics=false) do trainData,testData,rng
+cOut = cross_validation([x,y],sampler,returnStatistics=false) do trainData,testData,rng
           ## For unsupervised learning we use only the train data.
           ## Also, we use the associated labels only to measure the performances
          (xtrain,ytrain)  = trainData;
          ## We run the clustering algorithm...
          clusteringOut     = kmeans(xtrain,3,rng=rng) ## init is grid by default
          ## ... and we compute the accuracy using the real labels
-         kMeansAccuracy    = accuracy(clusteringOut[1],ytrain,ignoreLabels=true)
+         kMeansAccuracy    = accuracy(clusteringOut[1],ytrain,ignorelabels=true)
          clusteringOut     = kmeans(xtrain,3,rng=rng,initialisation_strategy="random")
-         kMeansRAccuracy   = accuracy(clusteringOut[1],ytrain,ignoreLabels=true)
+         kMeansRAccuracy   = accuracy(clusteringOut[1],ytrain,ignorelabels=true)
          clusteringOut     = kmeans(xtrain,3,rng=rng,initialisation_strategy="shuffle")
-         kMeansSAccuracy   = accuracy(clusteringOut[1],ytrain,ignoreLabels=true)
+         kMeansSAccuracy   = accuracy(clusteringOut[1],ytrain,ignorelabels=true)
          clusteringOut     = kmedoids(xtrain,3,rng=rng)   ## init is grid by default
-         kMedoidsAccuracy  = accuracy(clusteringOut[1],ytrain,ignoreLabels=true)
+         kMedoidsAccuracy  = accuracy(clusteringOut[1],ytrain,ignorelabels=true)
          clusteringOut     = kmedoids(xtrain,3,rng=rng,initialisation_strategy="random")
-         kMedoidsRAccuracy = accuracy(clusteringOut[1],ytrain,ignoreLabels=true)
+         kMedoidsRAccuracy = accuracy(clusteringOut[1],ytrain,ignorelabels=true)
          clusteringOut     = kmedoids(xtrain,3,rng=rng,initialisation_strategy="shuffle")
-         kMedoidsSAccuracy = accuracy(clusteringOut[1],ytrain,ignoreLabels=true)
+         kMedoidsSAccuracy = accuracy(clusteringOut[1],ytrain,ignorelabels=true)
          clusteringOut     = gmm(xtrain,3,mixtures=[SphericalGaussian() for i in 1:3], verbosity=NONE, rng=rng)
-         gmmSpherAccuracy  = accuracy(clusteringOut.pₙₖ,ytrain,ignoreLabels=true, rng=rng)
+         gmmSpherAccuracy  = accuracy(clusteringOut.pₙₖ,ytrain,ignorelabels=true, rng=rng)
          clusteringOut     = gmm(xtrain,3,mixtures=[DiagonalGaussian() for i in 1:3], verbosity=NONE, rng=rng)
-         gmmDiagAccuracy   = accuracy(clusteringOut.pₙₖ,ytrain,ignoreLabels=true, rng=rng)
+         gmmDiagAccuracy   = accuracy(clusteringOut.pₙₖ,ytrain,ignorelabels=true, rng=rng)
          clusteringOut     = gmm(xtrain,3,mixtures=[FullGaussian() for i in 1:3], verbosity=NONE, rng=rng)
-         gmmFullAccuracy   = accuracy(clusteringOut.pₙₖ,ytrain,ignoreLabels=true, rng=rng)
+         gmmFullAccuracy   = accuracy(clusteringOut.pₙₖ,ytrain,ignorelabels=true, rng=rng)
          ## For comparision with Clustering.jl
          clusteringOut     = Clustering.kmeans(xtrain', 3)
-         kMeans2Accuracy   = accuracy(clusteringOut.assignments,ytrain,ignoreLabels=true)
+         kMeans2Accuracy   = accuracy(clusteringOut.assignments,ytrain,ignorelabels=true)
          ## For comparision with GaussianMistures.jl - sometimes GaussianMistures.jl em! fails with a PosDefException
          dGMM              = GaussianMixtures.GMM(3, xtrain; method=:kmeans, kind=:diag)
          GaussianMixtures.em!(dGMM, xtrain)
-         gmmDiag2Accuracy  = accuracy(GaussianMixtures.gmmposterior(dGMM, xtrain)[1],ytrain,ignoreLabels=true)
+         gmmDiag2Accuracy  = accuracy(GaussianMixtures.gmmposterior(dGMM, xtrain)[1],ytrain,ignorelabels=true)
          fGMM              = GaussianMixtures.GMM(3, xtrain; method=:kmeans, kind=:full)
          GaussianMixtures.em!(fGMM, xtrain)
-         gmmFull2Accuracy  = accuracy(GaussianMixtures.gmmposterior(fGMM, xtrain)[1],ytrain,ignoreLabels=true)
+         gmmFull2Accuracy  = accuracy(GaussianMixtures.gmmposterior(fGMM, xtrain)[1],ytrain,ignorelabels=true)
          ## Returning the accuracies
          return kMeansAccuracy,kMeansRAccuracy,kMeansSAccuracy,kMedoidsAccuracy,kMedoidsRAccuracy,kMedoidsSAccuracy,gmmSpherAccuracy,gmmDiagAccuracy,gmmFullAccuracy,kMeans2Accuracy,gmmDiag2Accuracy,gmmFull2Accuracy
  end
@@ -141,14 +141,14 @@ report = DataFrame(mName = modelLabels, avgAccuracy = dropdims(round.(μs',digit
 # BetaML provide by default in the gmm clustering outputs both the _Bayesian information criterion_  ([`BIC`](@ref bic)) and the _Akaike information criterion_  ([`AIC`](@ref aic)), where for both a lower value is better.
 
 # We can then run the model with different number of classes and see which one leads to the lower BIC or AIC.
-# We run hence `crossValidation` again with the `FullGaussian` gmm model
+# We run hence `cross_validation` again with the `FullGaussian` gmm model
 # Note that we use the BIC/AIC criteria here for establishing the "best" number of classes but we could have used it also to select the kind of Gaussain distribution to use. This is one example of hyper-parameter tuning that we developed more in detail (but without using cross-validation) in the [regression tutorial](@ref regression_tutorial).
 
 # Let's try up to 4 possible classes:
 
 K = 4
 sampler = KFold(nSplits=5,nRepeats=2,shuffle=true, rng=copy(FIXEDRNG))
-cOut = crossValidation([x,y],sampler,returnStatistics=false) do trainData,testData,rng
+cOut = cross_validation([x,y],sampler,returnStatistics=false) do trainData,testData,rng
     (xtrain,ytrain)  = trainData;
     clusteringOut  = [gmm(xtrain,k,mixtures=[FullGaussian() for i in 1:k], verbosity=NONE, rng=rng) for k in 1:K]
     BICS           = [clusteringOut[i].BIC for i in 1:K]
@@ -176,7 +176,7 @@ plot(1:K,[μsBICS' μsAICS'], labels=["BIC" "AIC"], title="Information criteria 
 
 # We see that following the "lowest AIC" rule we would indeed choose three classes, while following the "best AIC" criteria we would have choosen only two classes. This means that there is two classes that, concerning the floreal measures used in the database, are very similar, and opur models are unsure about them. Perhaps the biologists will end up one day with the conclusion that it is indeed only one specie :-).
 
-# We could study this issue more in detail by analysing the [`ConfMatrix`](@ref), but the one used in BetaML does not account for the ignoreLabels option (yet).
+# We could study this issue more in detail by analysing the [`ConfMatrix`](@ref), but the one used in BetaML does not account for the ignorelabels option (yet).
 
 # ## Benchmarking computational efficiency
 
