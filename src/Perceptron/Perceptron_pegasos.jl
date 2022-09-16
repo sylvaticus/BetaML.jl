@@ -122,10 +122,10 @@ julia> pegasos([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 """
 function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, shuffle=false, force_origin=false, rng = Random.GLOBAL_RNG)
 if nMsgs != 0
-  @codeLocation
+  @codelocation
   println("***\n*** Training pegasos for maximum $T iterations. Random shuffle: $shuffle")
 end
-x = makeMatrix(x)
+x = makematrix(x)
 (n,d) = size(x)
 bestϵ = Inf
 lastϵ = Inf

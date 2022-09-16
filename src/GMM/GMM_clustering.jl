@@ -86,7 +86,7 @@ julia> clusters = gmm([1 10.5;1.5 0; 1.8 8; 1.7 15; 3.2 40; 0 0; 3.3 38; 0 -2.3;
 function gmm(X,K;initial_probmixtures=Float64[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minimum_variance=0.05,minimum_covariance=0.0,initialisation_strategy="kmeans",maximum_iterations=typemax(Int64),rng = Random.GLOBAL_RNG)
 # TODO: benchmark with this one: https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-022-04740-9 
  if verbosity > STD
-     @codeLocation
+     @codelocation
  end
  # debug:
  #X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
@@ -94,7 +94,7 @@ function gmm(X,K;initial_probmixtures=Float64[],mixtures=[DiagonalGaussian() for
  #initial_probmixtures=nothing; tol=0.0001; msgStep=1; minimum_variance=0.25; initialisation_strategy="grid"
  #mixtures = [SphericalGaussian() for i in 1:K]
  # ---------
- X     = makeMatrix(X)
+ X     = makematrix(X)
  (N,D) = size(X)
  pₖ    = isempty(initial_probmixtures) ? fill(1/K,K) : copy(initial_probmixtures)
 
@@ -284,7 +284,7 @@ function fit!(m::GMMClusterer,x)
         gmmOut = gmm(x,K;initial_probmixtures=initial_probmixtures,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)
     end
     probRecords = gmmOut.pₙₖ
-    m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makeColVector(gmmOut.pₖ))
+    m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makecolvector(gmmOut.pₖ))
 
     m.cres = cache ? probRecords : nothing
     m.info[:error]          = gmmOut.ϵ
@@ -304,7 +304,7 @@ Predict the classes probabilities associated to new data assuming the mixtures c
 
 """
 function predict(m::GMMClusterer,X)
-    X = makeMatrix(X)
+    X = makematrix(X)
     mixtures = m.par.mixtures
     initial_probmixtures = m.par.initial_probmixtures
     probRecords, lL = estep(X,initial_probmixtures,mixtures)

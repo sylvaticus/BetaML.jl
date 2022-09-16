@@ -1,4 +1,5 @@
-# Part of submodule Utils of BetaML
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
+
 # Function of a single argument (including scalars and vectors), like activation functions but also gini, entropy,...)
 
 
@@ -27,14 +28,14 @@ dplu(x;α=0.1,c=one(x)) = ( ( x >= (α*(x+c)-c)  &&  x <= (α*(x+c)+c) ) ? one(x
 
 
 """
-    pool1d(x,poolSize=2;f=mean)
+    pool1d(x,poolsize=2;f=mean)
 
-Apply funtion `f` to a rolling poolSize contiguous (in 1d) neurons.
+Apply funtion `f` to a rolling poolsize contiguous (in 1d) neurons.
 
 Applicable to `VectorFunctionLayer`, e.g. `layer2  = VectorFunctionLayer(nₗ,f=(x->pool1d(x,4,f=mean))`
 **Attention**: to apply this funciton as activation function in a neural network you will need Julia version >= 1.6, otherwise you may experience a segmentation fault (see [this bug report](https://github.com/FluxML/Zygote.jl/issues/943))
 """
-pool1d(x,poolSize=3;f=mean) = [f(x[i:i+poolSize-1]) for i in 1:length(x)-poolSize+1] # we may try to use CartesianIndices/LinearIndices for a n-dimensional generalisation
+pool1d(x,poolsize=3;f=mean) = [f(x[i:i+poolsize-1]) for i in 1:length(x)-poolsize+1] # we may try to use CartesianIndices/LinearIndices for a n-dimensional generalisation
 
 
 #tanh(x) already in Julia base
@@ -49,7 +50,7 @@ softmax(x; β=one.(x)) = exp.((β .* x) .- lse(β .* x))  # efficient implementa
 softmax(x, β) = softmax(x, β=β)
 """ dsoftmax(x; β=1) \n\n Derivative of the softmax function \n\n https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/"""
 function dsoftmax(x; β=one(x[1]))
-    x = makeColVector(x)
+    x = makecolvector(x)
     d = length(x)
     out = zeros(d,d)
     y = softmax(x,β=β)
@@ -77,7 +78,7 @@ dmish(x) = x*(1 - tanh(log(exp(x) + 1))^2)*exp(x)/(exp(x) + 1) + tanh(log(exp(x)
 
 
 """
-   autoJacobian(f,x;nY)
+   autojacobian(f,x;nY)
 
 Evaluate the Jacobian using AD in the form of a (nY,nX) matrix of first derivatives
 
@@ -92,7 +93,7 @@ Evaluate the Jacobian using AD in the form of a (nY,nX) matrix of first derivati
 # Notes:
 - The `nY` parameter is optional. If provided it avoids having to compute `f(x)`
 """
-function autoJacobian(f,x;nY=length(f(x)))
+function autojacobian(f,x;nY=length(f(x)))
     x = convert(Array{Float64,1},x)
     #j = Array{Float64, 2}(undef, size(x,1), nY)
     #for i in 1:nY
@@ -119,7 +120,7 @@ See: https://en.wikipedia.org/wiki/Decision_tree_learning#Information_gain
 """
 function gini(x)
 
-    counts = classCounts(x)
+    counts = class_counts(x)
     N = size(x,1)
     impurity = 1.0
     for c in counts
@@ -128,7 +129,7 @@ function gini(x)
     end
     return impurity
   #=
-  counts = classCountsWithLabels(x)
+  counts = class_counts_with_labels(x)
   N = size(x,1)
   impurity = 1.0
   for k in keys(counts)
@@ -147,7 +148,7 @@ Calculate the entropy for a list of items (or rows).
 See: https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity
 """
 function entropy(x)
-    counts = classCounts(x)
+    counts = class_counts(x)
     N = size(x,1)
     entr = 0.0
     for c in counts
@@ -171,9 +172,9 @@ aic(lL,k)   = 2*k-2*lL
 # ------------------------------------------------------------------------------
 # Various kernel functions (e.g. for Perceptron)
 """Radial Kernel (aka _RBF kernel_) parametrised with γ=1/2. For other gammas γᵢ use
-`K = (x,y) -> radialKernel(x,y,γ=γᵢ)` as kernel function in the supporting algorithms"""
-radialKernel(x,y;γ=1/2) = exp(-γ*norm(x-y)^2)
+`K = (x,y) -> radial_kernel(x,y,γ=γᵢ)` as kernel function in the supporting algorithms"""
+radial_kernel(x,y;γ=1/2) = exp(-γ*norm(x-y)^2)
 """Polynomial kernel parametrised with `c=0` and `d=2` (i.e. a quadratic kernel).
-For other `cᵢ` and `dᵢ` use `K = (x,y) -> polynomialKernel(x,y,c=cᵢ,d=dᵢ)` as
+For other `cᵢ` and `dᵢ` use `K = (x,y) -> polynomial_kernel(x,y,c=cᵢ,d=dᵢ)` as
 kernel function in the supporting algorithms"""
-polynomialKernel(x,y;c=0,d=2) = (dot(x,y)+c)^d
+polynomial_kernel(x,y;c=0,d=2) = (dot(x,y)+c)^d

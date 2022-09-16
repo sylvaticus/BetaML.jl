@@ -8,47 +8,43 @@ Implement the functionality required to define an artificial Neural Network, tra
 
 Common type of layers and optimisation algorithms are already provided, but you can define your own ones subclassing respectively the `AbstractLayer` and `OptimisationAlgorithm` abstract types.
 
-The module provide the following type or functions. Use `?[type or function]` to access their full signature and detailed documentation:
+The module provide the following types or functions. Use `?[type or function]` to access their full signature and detailed documentation:
 
 # Model definition:
 
 - `DenseLayer`: Classical feed-forward layer with user-defined activation function
 - `DenseNoBiasLayer`: Classical layer without the bias parameter
 - `VectorFunctionLayer`: Parameterless layer whose activation function run over the ensable of its nodes rather than on each one individually
-- `buildNetwork`: Build the chained network and define a cost function
-- `getParams(nn)`: Retrieve current weigthts
-- `getGradient(nn)`: Retrieve the current gradient of the weights
-- `setParams!(nn)`: Update the weigths of the network
-- `show(nn)`: Print a representation of the Neural Network
+- `NeuralNetworkEstimator`: Build the chained network and define a cost function
+
 
 Each layer can use a default activation function, one of the functions provided in the `Utils` module (`relu`, `tanh`, `softmax`,...) or you can specify your own function. The derivative of the activation function can be optionally be provided, in such case training will be quicker, altought this difference tends to vanish with bigger datasets.
 You can alternativly implement your own layer defining a new type as subtype of the abstract type `AbstractLayer`. Each user-implemented layer must define the following methods:
 
 - A suitable constructor
 - `forward(layer,x)`
-- `backward(layer,x,nextGradient)`
-- `getParams(layer)`
-- `getGradient(layer,x,nextGradient)`
-- `setParams!(layer,w)`
+- `backward(layer,x,next_gradient)`
+- `get_params(layer)`
+- `get_gradient(layer,x,next_gradient)`
+- `set_params!(layer,w)`
 - `size(layer)`
 
-# Model training:
+# Model fitting:
 
-- `trainingInfo(nn)`: Default callback function during training
-- `train!(nn)`:  Training function
-- `singleUpdate!(θ,▽;opt_alg)`: The parameter update made by the specific optimisation algorithm
-- `SGD`: The default optimisation algorithm
-- `ADAM`: A faster moment-based optimisation algorithm (added in v0.2.2)
+- `fit!(nn,X,Y)`:  fitting function
+- `fitting_info(nn)`: Default callback function during fitting
+- `SGD`:  The classical optimisation algorithm
+- `ADAM`: A faster moment-based optimisation algorithm 
 
-To define your own optimisation algorithm define a subtype of `OptimisationAlgorithm` and implement the function `singleUpdate!(θ,▽;opt_alg)` and eventually `initOptAlg(⋅)` specific for it.
+To define your own optimisation algorithm define a subtype of `OptimisationAlgorithm` and implement the function `single_update!(θ,▽;opt_alg)` and eventually `init_optalg(⋅)` specific for it.
 
 # Model predictions and assessment:
 
-- `predict(nn)`: Return the output given the data
+- `predict(nn)` or `predict(nn,X)`: Return the output given the data
 - `loss(nn)`: Compute avg. network loss on a test set
-- `Utils.accuracy(ŷ,y)`: Categorical output accuracy
+- `accuracy(ŷ,y)`: Categorical output accuracy
 
-While high-level functions operating on the dataset expect it to be in the standard format (nRecords × nDimensions matrices) it is custom to represent the chain of a neural network as a flow of column vectors, so all low-level operations (operating on a single datapoint) expect both the input and the output as a column vector.
+While high-level functions operating on the dataset expect it to be in the standard format (n_records × n_dimensions matrices) it is customary to represent the chain of a neural network as a flow of column vectors, so all low-level operations (operating on a single datapoint) expect both the input and the output as a column vector.
 """
 module Nn
 
@@ -67,8 +63,8 @@ import Base: +, -, *, /, sum, sqrt
 import Base.show
 
 # module own functions
-export AbstractLayer, forward, backward, getParams, getNParams, getGradient, setParams!, size, NN,
-       buildNetwork, predict, loss, train!, getindex, initOptAlg!, singleUpdate!,
+export AbstractLayer, forward, backward, get_params, get_nparams, get_gradient, set_params!, size, NN,
+       buildNetwork, predict, loss, train!, getindex, init_optalg!, single_update!,
        DenseLayer, DenseNoBiasLayer, VectorFunctionLayer, ScalarFunctionLayer,
        Learnable,
        show
@@ -175,25 +171,25 @@ function forward(layer::AbstractLayer,x)
 end
 
 """
-    backward(layer,x,nextGradient)
+    backward(layer,x,next_gradient)
 
 Compute backpropagation for this layer
 
 # Parameters:
 * `layer`:        Worker layer
 * `x`:            Input to the layer
-* `nextGradient`: Derivative of the overal loss with respect to the input of the next layer (output of this layer)
+* `next_gradient`: Derivative of the overal loss with respect to the input of the next layer (output of this layer)
 
 # Return:
 * The evaluated gradient of the loss with respect to this layer inputs
 
 """
-function backward(layer::AbstractLayer,x,nextGradient)
-    error("Not implemented for this kind of layer. Please implement `backward(layer,x,nextGradient)`.")
+function backward(layer::AbstractLayer,x,next_gradient)
+    error("Not implemented for this kind of layer. Please implement `backward(layer,x,next_gradient)`.")
 end
 
 """
-    getParams(layer)
+    get_params(layer)
 
 Get the layers current value of its trainable parameters
 
@@ -201,31 +197,31 @@ Get the layers current value of its trainable parameters
 * `layer`:  Worker layer
 
 # Return:
-* The current value of the layer's trainable parameters as tuple of matrices. It is up to you to decide how to organise this tuple, as long you are consistent with the `getGradient()` and `setParams()` functions. Note that starting from BetaML 0.2.2 this tuple needs to be wrapped in its `Learnable` type.
+* The current value of the layer's trainable parameters as tuple of matrices. It is up to you to decide how to organise this tuple, as long you are consistent with the `get_gradient()` and `set_params()` functions. Note that starting from BetaML 0.2.2 this tuple needs to be wrapped in its `Learnable` type.
 """
-function getParams(layer::AbstractLayer)
-  error("Not implemented for this kind of layer. Please implement `getParams(layer)`.")
+function get_params(layer::AbstractLayer)
+  error("Not implemented for this kind of layer. Please implement `get_params(layer)`.")
 end
 
 """
-    getGradient(layer,x,nextGradient)
+    get_gradient(layer,x,next_gradient)
 
 Compute backpropagation for this layer
 
 # Parameters:
 * `layer`:        Worker layer
 * `x`:            Input to the layer
-* `nextGradient`: Derivative of the overaall loss with respect to the input of the next layer (output of this layer)
+* `next_gradient`: Derivative of the overaall loss with respect to the input of the next layer (output of this layer)
 
 # Return:
-* The evaluated gradient of the loss with respect to this layer's trainable parameters as tuple of matrices. It is up to you to decide how to organise this tuple, as long you are consistent with the `getParams()` and `setParams()` functions. Note that starting from BetaML 0.2.2 this tuple needs to be wrapped in its `Learnable` type.
+* The evaluated gradient of the loss with respect to this layer's trainable parameters as tuple of matrices. It is up to you to decide how to organise this tuple, as long you are consistent with the `get_params()` and `set_params()` functions. Note that starting from BetaML 0.2.2 this tuple needs to be wrapped in its `Learnable` type.
 """
-function getGradient(layer::AbstractLayer,x,nextGradient)
-    error("Not implemented for this kind of layer. Please implement `getGradient(layer,x,nextGradient)`.")
+function get_gradient(layer::AbstractLayer,x,next_gradient)
+    error("Not implemented for this kind of layer. Please implement `get_gradient(layer,x,next_gradient)`.")
   end
 
 """
-    setParams!(layer,w)
+    set_params!(layer,w)
 
 Set the trainable parameters of the layer with the given values
 
@@ -234,10 +230,10 @@ Set the trainable parameters of the layer with the given values
 * `w`:     The new parameters to set (Learnable)
 
 # Notes:
-*  The format of the tuple wrapped by Learnable must be consistent with those of the `getParams()` and `getGradient()` functions.
+*  The format of the tuple wrapped by Learnable must be consistent with those of the `get_params()` and `get_gradient()` functions.
 """
-function setParams!(layer::AbstractLayer,w)
-    error("Not implemented for this kind of layer. Please implement `setParams!(layer,w)`.")
+function set_params!(layer::AbstractLayer,w)
+    error("Not implemented for this kind of layer. Please implement `set_params!(layer,w)`.")
 end
 
 
@@ -253,14 +249,14 @@ function size(layer::AbstractLayer)
     error("Not implemented for this kind of layer. Please implement `size(layer)`.")
 end
 
-"""getNParams(layer)
+"""get_nparams(layer)
 
 Return the number of parameters of a layer.
 
-It doesn't need to be implemented by each layer type, as it uses getParams().
+It doesn't need to be implemented by each layer type, as it uses get_params().
 """
-function getNParams(layer::AbstractLayer)
-    pars = getParams(layer)
+function get_nparams(layer::AbstractLayer)
+    pars = get_params(layer)
     nP = 0
     for p in pars.data
         nP += *(size(p)...)
@@ -294,6 +290,10 @@ end
 
 Instantiate a new Feedforward Neural Network
 
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use the model [`NeuralNetworkEstimator`](@ref) instead. 
+
 Parameters:
 * `layers`: Array of layers objects
 * `cf`:     Cost function
@@ -319,7 +319,7 @@ Network predictions
 """
 #=
 function predict(nn::NN,x)
-    makeColVector(x)
+    makecolvector(x)
     values = x
     for l in nn.layers
         values = forward(l,values)
@@ -329,7 +329,7 @@ end
 =#
 
 function predict(nn::NN,x)
-    x = makeMatrix(x)
+    x = makematrix(x)
     # get the output dimensions
     n = size(x)[1]
     d = size(nn.layers[end])[2]
@@ -355,8 +355,8 @@ Compute avg. network loss on a test set (or a single (1 × d) data point)
 * `y`:   Label input (n) or (n x d)
 """
 function loss(nn::NN,x,y)
-    x = makeMatrix(x)
-    y = makeMatrix(y)
+    x = makematrix(x)
+    y = makematrix(y)
     (n,d) = size(x)
     #(nn.trained || n == 1) ? "" : @warn "Seems you are trying to test a neural network that has not been tested. Use first `train!(nn,x,y)`"
     ϵ = 0.0
@@ -368,7 +368,7 @@ function loss(nn::NN,x,y)
 end
 
 """
-   getParams(nn)
+   get_params(nn)
 
 Retrieve current weigthts
 
@@ -378,13 +378,13 @@ Retrieve current weigthts
 # Notes:
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
-@inline function getParams(nn::NN)
-  return [getParams(l) for l in nn.layers]
+@inline function get_params(nn::NN)
+  return [get_params(l) for l in nn.layers]
 end
 
 
 """
-   getGradient(nn,x,y)
+   get_gradient(nn,x,y)
 
 Retrieve the current gradient of the weigthts (i.e. derivative of the cost with respect to the weigths)
 
@@ -396,10 +396,10 @@ Retrieve the current gradient of the weigthts (i.e. derivative of the cost with 
 #Notes:
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
-function getGradient(nn::NN,x::Union{T,AbstractArray{T,1}},y::Union{T2,AbstractArray{T2,1}}) where { T <: Number, T2 <: Number}
+function get_gradient(nn::NN,x::Union{T,AbstractArray{T,1}},y::Union{T2,AbstractArray{T2,1}}) where { T <: Number, T2 <: Number}
 
-  x = makeColVector(x)
-  y = makeColVector(y)
+  x = makecolvector(x)
+  y = makecolvector(y)
 
   nLayers = length(nn.layers)
 
@@ -427,14 +427,14 @@ function getGradient(nn::NN,x::Union{T,AbstractArray{T,1}},y::Union{T2,AbstractA
   # Step 3: Computing gradient of weigths
   dWs = Array{Learnable,1}(undef,nLayers)
   @inbounds for lidx in 1:nLayers
-     dWs[lidx] = getGradient(nn.layers[lidx],forwardStack[lidx],backwardStack[lidx+1])
+     dWs[lidx] = get_gradient(nn.layers[lidx],forwardStack[lidx],backwardStack[lidx+1])
   end
 
   return dWs
 end
 
 """
-   getGradient(nn,xbatch,ybatch)
+   get_gradient(nn,xbatch,ybatch)
 
 Retrieve the current gradient of the weigthts (i.e. derivative of the cost with respect to the weigths)
 
@@ -446,24 +446,24 @@ Retrieve the current gradient of the weigthts (i.e. derivative of the cost with 
 #Notes:
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
-function getGradient(nn,xbatch::AbstractArray{T,2},ybatch::AbstractArray{T2,2}) where {T <: Number, T2 <: Number}
-    #return [getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:size(xbatch,1)]
-    bSize = size(xbatch,1)
-    gradients = Array{Vector{Learnable},1}(undef,bSize)
+function get_gradient(nn,xbatch::AbstractArray{T,2},ybatch::AbstractArray{T2,2}) where {T <: Number, T2 <: Number}
+    #return [get_gradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:size(xbatch,1)]
+    bsize = size(xbatch,1)
+    gradients = Array{Vector{Learnable},1}(undef,bsize)
     # Note: in Julia 1.6 somehow the multithreading is less efficient than in Julia 1.5
     # Using @inbounds @simd result faster than using 4 threads, so reverting to it.
     # But to keep following the evolution, as there seems to be some issues on performances
     # in Julia 1.6: https://discourse.julialang.org/t/drop-of-performances-with-julia-1-6-0-for-interpolationkernels/58085
     # Maybe when that's solved it will be again more convenient to use multi-threading
     #Threads.@threads
-    @inbounds  for j in 1:bSize # @simd
-       gradients[j] =  getGradient(nn,xbatch[j,:],ybatch[j,:])
+    @inbounds  for j in 1:bsize # @simd
+       gradients[j] =  get_gradient(nn,xbatch[j,:],ybatch[j,:])
     end
     return gradients
 end
 
 """
-   setParams!(nn,w)
+   set_params!(nn,w)
 
 Update weigths of the network
 
@@ -471,9 +471,9 @@ Update weigths of the network
 * `nn`: Worker network
 * `w`:  The new weights to set
 """
-function setParams!(nn::NN,w)
+function set_params!(nn::NN,w)
     for lidx in 1:length(nn.layers)
-        setParams!(nn.layers[lidx],w[lidx])
+        set_params!(nn.layers[lidx],w[lidx])
     end
 end
 
@@ -498,11 +498,11 @@ function show(nn::NN)
   end
 end
 
-"getNParams(nn) - Return the number of trainable parameters of the neural network."
-function getNParams(nn::NN)
+"get_nparams(nn) - Return the number of trainable parameters of the neural network."
+function get_nparams(nn::NN)
     nP = 0
     for l in nn.layers
-        nP += getNParams(l)
+        nP += get_nparams(l)
     end
     return nP
 end
@@ -532,7 +532,7 @@ abstract type OptimisationAlgorithm end
 include("Nn_default_optalgs.jl")
 
 """
-   trainingInfo(nn,x,y;n,batch_size,epochs,verbosity,nEpoch,nBatch)
+   fitting_info(nn,x,y;n,batch_size,epochs,verbosity,n_epoch,n_batch)
 
 Default callback funtion to display information during training, depending on the verbosity level
 
@@ -541,16 +541,16 @@ Default callback funtion to display information during training, depending on th
 * `x`:  Batch input to the network (batch_size,d)
 * `y`:  Batch label input (batch_size,d)
 * `n`: Size of the full training set
-* `nBatches` : Number of baches per epoch
+* `n_batches` : Number of baches per epoch
 * `epochs`: Number of epochs defined for the training
 * `verbosity`: Verbosity level defined for the training (NONE,LOW,STD,HIGH,FULL)
-* `nEpoch`: Counter of the current epoch
-* `nBatch`: Counter of the current batch
+* `n_epoch`: Counter of the current epoch
+* `n_batch`: Counter of the current batch
 
 #Notes:
 * Reporting of the error (loss of the network) is expensive. Use `verbosity=NONE` for better performances
 """
-function trainingInfo(nn,x,y;n,nBatches,epochs,verbosity,nEpoch,nBatch)
+function fitting_info(nn,x,y;n,n_batches,epochs,verbosity,n_epoch,n_batch)
    if verbosity == NONE
        return false # doesn't stop the training
    end
@@ -559,10 +559,10 @@ function trainingInfo(nn,x,y;n,nBatches,epochs,verbosity,nEpoch,nBatch)
    nMsgs = nMsgDict[verbosity]
    batch_size = size(x,1)
 
-   if verbosity == FULL || ( nBatch == nBatches && ( nEpoch == 1  || nEpoch % ceil(epochs/nMsgs) == 0))
+   if verbosity == FULL || ( n_batch == n_batches && ( n_epoch == 1  || n_epoch % ceil(epochs/nMsgs) == 0))
 
       ϵ = loss(nn,x,y)
-      println("Training.. \t avg ϵ on (Epoch $nEpoch Batch $nBatch): \t $(ϵ)")
+      println("Training.. \t avg ϵ on (Epoch $n_epoch Batch $n_batch): \t $(ϵ)")
    end
    return false
 end
@@ -571,6 +571,10 @@ end
    train!(nn,x,y;epochs,batch_size,sequential,opt_alg,verbosity,cb)
 
 Train a neural network with the given x,y data
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Use the model [`NeuralNetworkEstimator`](@ref) instead. 
 
 # Parameters:
 * `nn`:         Worker network
@@ -581,7 +585,7 @@ Train a neural network with the given x,y data
 * `sequential`: Wether to run all data sequentially instead of random [def: `false`]
 * `opt_alg`:     The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]
 * `verbosity`:  A verbosity parameter for the trade off information / efficiency [def: `STD`]
-* `cb`:         A callback to provide information. [def: `trainingInfo`]
+* `cb`:         A callback to provide information. [def: `fitting_info`]
 * `rng`:        Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Return:
@@ -595,31 +599,31 @@ Train a neural network with the given x,y data
     - `SGD`, the classical (Stochastic) Gradient Descent optimiser
     - `ADAM`,  an adaptive moment estimation optimiser
 - Look at the individual optimisation algorithm (`?[Name OF THE ALGORITHM]`) for info on its parameter, e.g. [`?SGD`](@ref SGD) for the Stochastic Gradient Descent.
-- You can implement your own optimisation algorithm using a subtype of `OptimisationAlgorithm` and implementing its constructor and the update function `singleUpdate!(⋅)` (type `?singleUpdate!` for details).
-- You can implement your own callback function, altought the one provided by default is already pretty generic (its output depends on the `verbosity` parameter). See [`trainingInfo`](@ref) for informations on the cb parameters.
-- Both the callback function and the [`singleUpdate!`](@ref) function of the optimisation algorithm can be used to stop the training algorithm, respectively returning `true` or `stop=true`.
+- You can implement your own optimisation algorithm using a subtype of `OptimisationAlgorithm` and implementing its constructor and the update function `single_update!(⋅)` (type `?single_update!` for details).
+- You can implement your own callback function, altought the one provided by default is already pretty generic (its output depends on the `verbosity` parameter). See [`fitting_info`](@ref) for informations on the cb parameters.
+- Both the callback function and the [`single_update!`](@ref) function of the optimisation algorithm can be used to stop the training algorithm, respectively returning `true` or `stop=true`.
 - The verbosity can be set to any of `NONE`,`LOW`,`STD`,`HIGH`,`FULL`.
-- The update is done computing the average gradient for each batch and then calling `singleUpdate!` to let the optimisation algorithm perform the parameters update
+- The update is done computing the average gradient for each batch and then calling `single_update!` to let the optimisation algorithm perform the parameters update
 """
-function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential=false, verbosity::Verbosity=STD, cb=trainingInfo, opt_alg::OptimisationAlgorithm=ADAM(),rng = Random.GLOBAL_RNG)#,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0opt_alg::SD=SD())
+function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential=false, verbosity::Verbosity=STD, cb=fitting_info, opt_alg::OptimisationAlgorithm=ADAM(),rng = Random.GLOBAL_RNG)#,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0opt_alg::SD=SD())
     if verbosity > STD
-        @codeLocation
+        @codelocation
     end
-    x = makeMatrix(x)
-    y = makeMatrix(y)
+    x = makematrix(x)
+    y = makematrix(y)
     (n,d)     = size(x)
     batch_size = min(size(x,1),batch_size)
     if verbosity > NONE # Note that are two "Verbosity type" objects. To compare with numbers use Int(NONE) > 1
         println("***\n*** Training $(nn.name) for $epochs epochs with algorithm $(typeof(opt_alg)).")
     end
     ϵ_epoch_l = Inf
-    θ_epoch_l = getParams(nn)
+    θ_epoch_l = get_params(nn)
     ϵ_epoch   = loss(nn,x,y)
-    θ_epoch   = getParams(nn)
+    θ_epoch   = get_params(nn)
     ϵ_epochs  = Float64[]
     θ_epochs  = []
 
-    initOptAlg!(opt_alg::OptimisationAlgorithm;θ=getParams(nn),batch_size=batch_size,x=x,y=y)
+    init_optalg!(opt_alg::OptimisationAlgorithm;θ=get_params(nn),batch_size=batch_size,x=x,y=y)
     if verbosity == NONE
         showTime = typemax(Float64)
     elseif verbosity <= LOW
@@ -634,7 +638,7 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
     
     @showprogress showTime "Training the Neural Network..."    for t in 1:epochs
        batches = batch(n,batch_size,sequential=sequential,rng=rng)
-       nBatches = length(batches)
+       n_batches = length(batches)
        if t == 1
            if (verbosity >= STD) push!(ϵ_epochs,ϵ_epoch); end
            if (verbosity > STD) push!(θ_epochs,θ_epoch); end
@@ -642,19 +646,19 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
        for (i,batch) in enumerate(batches)
            xbatch = x[batch, :]
            ybatch = y[batch, :]
-           θ   = getParams(nn)
+           θ   = get_params(nn)
            # remove @spawn and fetch (on next row) to get single thread code
            # note that there is no random number issue here..
-           #gradients   = @spawn getGradient(nn,xbatch,ybatch)
+           #gradients   = @spawn get_gradient(nn,xbatch,ybatch)
            #sumGradient = sum(fetch(gradients))
-           gradients   = getGradient(nn,xbatch,ybatch)
+           gradients   = get_gradient(nn,xbatch,ybatch)
            sumGradient = sum(gradients)
 
            ▽   = sumGradient / length(batch)
-           #▽   = gradDiv.(gradSum([getGradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batch_size]), batch_size)
-           res = singleUpdate!(θ,▽;nEpoch=t,nBatch=i,nBatches=nBatches,xbatch=xbatch,ybatch=ybatch,opt_alg=opt_alg)
-           setParams!(nn,res.θ)
-           cbOut = cb(nn,xbatch,ybatch,n=d,nBatches=nBatches,epochs=epochs,verbosity=verbosity,nEpoch=t,nBatch=i)
+           #▽   = gradDiv.(gradSum([get_gradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batch_size]), batch_size)
+           res = single_update!(θ,▽;n_epoch=t,n_batch=i,n_batches=n_batches,xbatch=xbatch,ybatch=ybatch,opt_alg=opt_alg)
+           set_params!(nn,res.θ)
+           cbOut = cb(nn,xbatch,ybatch,n=d,n_batches=n_batches,epochs=epochs,verbosity=verbosity,n_epoch=t,n_batch=i)
            if(res.stop==true || cbOut==true)
                nn.trained = true
                return (epochs=t,ϵ_epochs=ϵ_epochs,θ_epochs=θ_epochs)
@@ -667,7 +671,7 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
        end
        if (verbosity > STD)
            θ_epoch_l = θ_epoch
-           θ_epoch = getParams(nn)
+           θ_epoch = get_params(nn)
            push!(θ_epochs,θ_epoch); end
     end
 
@@ -682,16 +686,16 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
 end
 
 """
-   singleUpdate!(θ,▽;nEpoch,nBatch,batch_size,xbatch,ybatch,opt_alg)
+   single_update!(θ,▽;n_epoch,n_batch,batch_size,xbatch,ybatch,opt_alg)
 
 Perform the parameters update based on the average batch gradient.
 
 # Parameters:
 - `θ`:         Current parameters
 - `▽`:         Average gradient of the batch
-- `nEpoch`:    Count of current epoch
-- `nBatch`:    Count of current batch
-- `nBatches`:  Number of batches per epoch
+- `n_epoch`:    Count of current epoch
+- `n_batch`:    Count of current batch
+- `n_batches`:  Number of batches per epoch
 - `xbatch`:    Data associated to the current batch
 - `ybatch`:    Labels associated to the current batch
 - `opt_alg`:    The Optimisation algorithm to use for the update
@@ -703,16 +707,16 @@ own version
 to support the largest possible class of optimisation algorithms
 - Some optimisation algorithms may change their internal structure in this function
 """
-function singleUpdate!(θ,▽;nEpoch,nBatch,nBatches,xbatch,ybatch,opt_alg::OptimisationAlgorithm)
-   return singleUpdate!(θ,▽,opt_alg;nEpoch=nEpoch,nBatch=nBatch,nBatches=nBatches,xbatch=xbatch,ybatch=ybatch)
+function single_update!(θ,▽;n_epoch,n_batch,n_batches,xbatch,ybatch,opt_alg::OptimisationAlgorithm)
+   return single_update!(θ,▽,opt_alg;n_epoch=n_epoch,n_batch=n_batch,n_batches=n_batches,xbatch=xbatch,ybatch=ybatch)
 end
 
-function singleUpdate!(θ,▽,opt_alg::OptimisationAlgorithm;nEpoch,nBatch,nBatches,xbatch,ybatch)
+function single_update!(θ,▽,opt_alg::OptimisationAlgorithm;n_epoch,n_batch,n_batches,xbatch,ybatch)
     error("singleUpdate() not implemented for this optimisation algorithm")
 end
 
 """
-   initOptAlg!(opt_alg;θ,batch_size,x,y)
+   init_optalg!(opt_alg;θ,batch_size,x,y)
 
 Initialize the optimisation algorithm
 
@@ -727,7 +731,7 @@ Initialize the optimisation algorithm
 # Notes:
 - Only a few optimizers need this function and consequently ovverride it. By default it does nothing, so if you want write your own optimizer and don't need to initialise it, you don't have to override this method
 """
-initOptAlg!(opt_alg::OptimisationAlgorithm;θ,batch_size,x,y,rng = Random.GLOBAL_RNG) = nothing
+init_optalg!(opt_alg::OptimisationAlgorithm;θ,batch_size,x,y,rng = Random.GLOBAL_RNG) = nothing
 
 #=
         if rShuffle
@@ -742,10 +746,10 @@ initOptAlg!(opt_alg::OptimisationAlgorithm;θ,batch_size,x,y,rng = Random.GLOBAL
         for i in 1:size(x)[1]
             xᵢ = x[i,:]'
             yᵢ = y[i,:]'
-            W  = getParams(nn)
-            dW = getGradient(nn,xᵢ,yᵢ)
+            W  = get_params(nn)
+            dW = get_gradient(nn,xᵢ,yᵢ)
             newW = gradientDescentSingleUpdate(W,dW,ηₜ)
-            setParams!(nn,newW)
+            set_params!(nn,newW)
             ϵ += loss(nn,xᵢ,yᵢ)
         end
         if nMsgs != 0 && (t % ceil(maxEpochs/nMsgs) == 0 || t == 1 || t == maxEpochs)
@@ -823,8 +827,8 @@ Base.@kwdef mutable struct NeuralNetworkEstimatorOptionsSet
    "The verbosity level to be used in training or prediction (see [`Verbosity`](@ref)) [deafult: `STD`]
    "
    verbosity::Verbosity = STD
-   "A call back function to provide information during training [def: `trainingInfo`"
-   cb::Function=trainingInfo
+   "A call back function to provide information during training [def: `fitting_info`"
+   cb::Function=fitting_info
    "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
    "
    rng::AbstractRNG = Random.GLOBAL_RNG
@@ -938,7 +942,7 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
     m.info[:dimensions]    = nD
     m.info[:fitted_records] = nR
     m.info[:nLayers] = length(nnstruct.layers)
-    m.info[:nPar] = getNParams(m.par.nnstruct)
+    m.info[:nPar] = get_nparams(m.par.nnstruct)
    
     if cache
        out    = predict(nnstruct,X)

@@ -24,7 +24,7 @@ $(TYPEDFIELDS)
 mutable struct KMeans <: MMI.Unsupervised
     "Number of classes to discriminate the data [def: 3]"
     n_classes::Int64
-    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2²_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that, contrary to `KMedoids`, the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
+    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that, contrary to `KMedoids`, the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
     dist::Function
     """
     The computation method of the vector of the initial representatives.
@@ -65,7 +65,7 @@ Similar to K-Means, but the "representatives" (the cetroids) are guaranteed to b
  mutable struct KMedoids <: MMI.Unsupervised
     "Number of classes to discriminate the data [def: 3]"
     n_classes::Int64
-    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2²_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics."
+    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics."
     dist::Function
     """
     The computation method of the vector of the initial representatives.

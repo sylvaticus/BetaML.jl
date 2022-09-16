@@ -9,12 +9,12 @@
 import Base.reshape
 """ reshape(myNumber, dims..) - Reshape a number as a n dimensional Array """
 reshape(x::T, dims...) where {T <: Number} =   (x = [x]; reshape(x,dims) )
-makeColVector(x::T) where {T} =  [x]
-makeColVector(x::T) where {T <: AbstractArray} =  reshape(x,length(x))
-makeRowVector(x::T) where {T <: Number} = return [x]'
-makeRowVector(x::T) where {T <: AbstractArray} =  reshape(x,1,length(x))
+makecolvector(x::T) where {T} =  [x]
+makecolvector(x::T) where {T <: AbstractArray} =  reshape(x,length(x))
+makerowvector(x::T) where {T <: Number} = return [x]'
+makerowvector(x::T) where {T <: AbstractArray} =  reshape(x,1,length(x))
 """Transform an Array{T,1} in an Array{T,2} and leave unchanged Array{T,2}."""
-makeMatrix(x::AbstractArray) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
+makematrix(x::AbstractArray) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
 
 
 """Return wheather an array is sortable, i.e. has methos issort defined"""
@@ -25,14 +25,14 @@ allowmissing!(x::AbstractArray{T,N}) where {T,N}    = convert(Union{Array{T,N},M
 disallowmissing!(x::AbstractArray{T,N}) where {T,N} = convert(Array{nonmissingtype(T),N},x)
 
 """
-    getPermutations(v::AbstractArray{T,1};keepStructure=false)
+    getpermutations(v::AbstractArray{T,1};keepStructure=false)
 
 Return a vector of either (a) all possible permutations (uncollected) or (b) just those based on the unique values of the vector
 
 Useful to measure accuracy where you don't care about the actual name of the labels, like in unsupervised classifications (e.g. clustering)
 
 """
-function getPermutations(v::AbstractArray{T,1};keepStructure=false) where {T}
+function getpermutations(v::AbstractArray{T,1};keepStructure=false) where {T}
     if !keepStructure
         return Combinatorics.permutations(v)
     else
@@ -51,8 +51,8 @@ function getPermutations(v::AbstractArray{T,1};keepStructure=false) where {T}
 end
 
 
-""" singleUnique(x) Return the unique values of x whether x is an array of arrays, an array or a scalar"""
-function singleUnique(x::Union{T,AbstractArray{T}}) where {T <: Union{Any,AbstractArray{T2}} where T2 <: Any }
+""" singleunique(x) Return the unique values of x whether x is an array of arrays, an array or a scalar"""
+function singleunique(x::Union{T,AbstractArray{T}}) where {T <: Union{Any,AbstractArray{T2}} where T2 <: Any }
     if typeof(x) <: AbstractArray{T2} where {T2 <: AbstractArray}
         return unique(vcat(unique.(x)...))
     elseif typeof(x) <: AbstractArray{T2} where {T2}
@@ -62,8 +62,12 @@ function singleUnique(x::Union{T,AbstractArray{T}}) where {T <: Union{Any,Abstra
     end
 end
 
-function oneHotEncoderRow(x::Union{AbstractArray{T},T}; d=maximum(x), factors=1:d,count = false) where {T <: Integer}
-    x = makeColVector(x)
+"""
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model OneHotEncoder() instead.
+"""
+function onehotencoder_row(x::Union{AbstractArray{T},T}; d=maximum(x), factors=1:d,count = false) where {T <: Integer}
+    x = makecolvector(x)
     out = zeros(Int64,d)
     for j in x
         out[j] = count ? out[j] + 1 : 1
@@ -71,15 +75,22 @@ function oneHotEncoderRow(x::Union{AbstractArray{T},T}; d=maximum(x), factors=1:
     return out
 end
 
-function oneHotEncoderRow(x::Union{AbstractArray{T},T};factors=singleUnique(x),d=length(factors),count = false) where {T}
-    x = makeColVector(x)
-    return oneHotEncoderRow(integerEncoder(x;factors=factors),d=length(factors);count=count)
+"""
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model OneHotEncoder() instead.
+"""
+function onehotencoder_row(x::Union{AbstractArray{T},T};factors=singleunique(x),d=length(factors),count = false) where {T}
+    x = makecolvector(x)
+    return onehotencoder_row(integerencoder(x;factors=factors),d=length(factors);count=count)
 end
 
 """
-    oneHotEncoder(x;d,factors,count)
+    onehotencoder(x;d,factors,count)
 
 Encode arrays (or arrays of arrays) of categorical data as matrices of one column per factor.
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model OneHotEncoder() instead.
 
 The case of arrays of arrays is for when at each record you have more than one categorical output. You can then decide to encode just the presence of the factors or their counting
 
@@ -91,56 +102,58 @@ The case of arrays of arrays is for when at each record you have more than one c
 
 # Examples
 ```julia
-julia> oneHotEncoder(["a","c","c"],factors=["a","b","c","d"])
+julia> onehotencoder(["a","c","c"],factors=["a","b","c","d"])
 3×4 Matrix{Int64}:
  1  0  0  0
  0  0  1  0
  0  0  1  0
-julia> oneHotEncoder([2,4,4])
+julia> onehotencoder([2,4,4])
 3×4 Matrix{Int64}:
  0  1  0  0
  0  0  0  1
  0  0  0  1
- julia> oneHotEncoder([[2,2,1],[2,4,4]],count=true)
+ julia> onehotencoder([[2,2,1],[2,4,4]],count=true)
 2×4 Matrix{Int64}:
  1  2  0  0
  0  1  0  2
 ```
 """
-function oneHotEncoder(x::Union{T,AbstractVector{T}};factors=singleUnique(x),d=length(factors),count=false) where {T <: Union{Any,AbstractVector{T2}} where T2 <: Any  }
+function onehotencoder(x::Union{T,AbstractVector{T}};factors=singleunique(x),d=length(factors),count=false) where {T <: Union{Any,AbstractVector{T2}} where T2 <: Any  }
     if typeof(x) <: AbstractVector
         n  = length(x)
         out = zeros(Int64,n,d)
         for (i,x) in enumerate(x)
-          out[i,:] = oneHotEncoderRow(x;factors=factors,count = count)
+          out[i,:] = onehotencoder_row(x;factors=factors,count = count)
         end
         return out
     else
        out = zeros(Int64,1,d)
-       out[1,:] = oneHotEncoderRow(x;factors=factors,count = count)
+       out[1,:] = onehotencoder_row(x;factors=factors,count = count)
        return out
    end
 end
 
-function oneHotEncoder(Y::Union{Ti,AbstractVector{Ti}};d=maximum(maximum.(Y)),factors=1:d,count=false) where {Ti <: Union{Integer,AbstractVector{Ti2}} where Ti2 <: Integer  }
+function onehotencoder(Y::Union{Ti,AbstractVector{Ti}};d=maximum(maximum.(Y)),factors=1:d,count=false) where {Ti <: Union{Integer,AbstractVector{Ti2}} where Ti2 <: Integer  }
     n   = length(Y)
     if d < maximum(maximum.(Y))
         error("Trying to encode elements with indexes greater than the provided number of dimensions. Please increase d.")
     end
     out = zeros(Int64,n,d)
     for (i,y) in enumerate(Y)
-        out[i,:] = oneHotEncoderRow(y;d=d,factors=1:d,count = count)
+        out[i,:] = onehotencoder_row(y;d=d,factors=1:d,count = count)
     end
     return out
 end
 
 """
-    oneHotDecoder(x)
+    onehotdecoder(x)
 
-Given a matrix of one-hot encoded values (e.g. [0 1 0; 1 0 0]) returns a vector of the integer positions
-(e.g. [2,1]).
+Given a matrix of one-hot encoded values (e.g. [0 1 0; 1 0 0]) returns a vector of the integer positions (e.g. [2,1]).
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model OneHotEncoder() instead.
 """
-function oneHotDecoder(x)
+function onehotdecoder(x)
     function findfirst_custom(f,x)
         for (i,val) in pairs(x)
             if ismissing(val)
@@ -164,9 +177,12 @@ findfirst(el::T,cont::Array{T};returnTuple=true) where {T<:Union{AbstractString,
 findall(el::T, cont::Array{T};returnTuple=true) where {T} = ndims(cont) > 1 && returnTuple ? Tuple.(findall(x -> isequal(x,el),cont)) : findall(x -> isequal(x,el),cont)
 
 """
-    integerEncoder(x;factors=unique(x))
+    integerencoder(x;factors=unique(x))
 
 Encode an array of T to an array of integers using the their position in `factor` vector (default to the unique vector of the input array)
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model OrdinalEncoder() instead.
 
 # Parameters:
 - `x`: The vector to encode
@@ -177,18 +193,21 @@ Encode an array of T to an array of integers using the their position in `factor
 - Attention that while this function creates a ordered (and sortable) set, it is up to the user to be sure that this "property" is not indeed used in his code if the unencoded data is indeed unordered.
 # Example:
 ```
-julia> integerEncoder(["a","e","b","e"],factors=["a","b","c","d","e"]) # out: [1,5,2,5]
+julia> integerencoder(["a","e","b","e"],factors=["a","b","c","d","e"]) # out: [1,5,2,5]
 ```
 """
-function integerEncoder(x::AbstractVector;factors=Base.unique(x))
+function integerencoder(x::AbstractVector;factors=Base.unique(x))
     #return findfirst.(x,Ref(factors)) slower
     return  map(i -> findfirst(j -> j==i,factors) , x  )
 end
 
 """
-    integerDecoder(x,factors::AbstractVector{T};unique)
+    integerdecoder(x,factors::AbstractVector{T};unique)
 
 Decode an array of integers to an array of T corresponding to the elements of `factors`
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model OrdinalEncoder() instead.
 
 # Parameters:
 - `x`: The vector to decode
@@ -198,10 +217,10 @@ Decode an array of integers to an array of T corresponding to the elements of `f
 - A vector of length(x) elements corresponding to the (unique) `factors` elements at the position x
 # Example:
 ```
-julia> integerDecoder([1, 2, 2, 3, 2, 1],["aa","cc","bb"]) # out: ["aa","cc","cc","bb","cc","aa"]
+julia> integerdecoder([1, 2, 2, 3, 2, 1],["aa","cc","bb"]) # out: ["aa","cc","cc","bb","cc","aa"]
 ```
 """
-function integerDecoder(x,factors::AbstractVector{T};unique=true) where{T}
+function integerdecoder(x,factors::AbstractVector{T};unique=true) where{T}
     uniqueTarget =  unique ? factors :  Base.unique(factors)
     return map(i -> uniqueTarget[i], x )
 end
@@ -306,7 +325,7 @@ function OrdinalEncoder(;kwargs...)
 end
 
 function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
-    x     = makeColVector(x)
+    x     = makecolvector(x)
     N     = size(x,1)
     vtype = eltype(x) #    nonmissingtype(eltype(x))
 
@@ -377,7 +396,7 @@ fit!(m::OneHotEncoder,x)  = _fit!(m,x,:onehot)
 fit!(m::OrdinalEncoder,x) = _fit!(m,x,:ordinal)
 
 function _predict(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
-    x     = makeColVector(x)
+    x     = makecolvector(x)
     N     = size(x,1)
     vtype = eltype(x) #    nonmissingtype(eltype(x))
 
@@ -497,10 +516,10 @@ function partition(data::AbstractArray{T,1},parts::AbstractArray{Float64,1};shuf
         N = size(data[1],dims)
         all(size.(data,dims) .== N) || @error "All matrices passed to `partition` must have the same number of elements for the required dimension"
         ridx = shuffle ? Random.shuffle(rng,1:N) : collect(1:N)
-        return partition.(data,Ref(parts);shuffle=shuffle,dims=dims,fixedRIdx = ridx,copy=copy,rng=rng)
+        return partition.(data,Ref(parts);shuffle=shuffle,dims=dims,fixed_ridx = ridx,copy=copy,rng=rng)
 end
 
-function partition(data::AbstractArray{T,Ndims}, parts::AbstractArray{Float64,1};shuffle=true,dims=1,fixedRIdx=Int64[],copy=true,rng = Random.GLOBAL_RNG) where {T,Ndims}
+function partition(data::AbstractArray{T,Ndims}, parts::AbstractArray{Float64,1};shuffle=true,dims=1,fixed_ridx=Int64[],copy=true,rng = Random.GLOBAL_RNG) where {T,Ndims}
     # the individual vector/matrix
     N        = size(data,dims)
     nParts   = size(parts)
@@ -508,7 +527,7 @@ function partition(data::AbstractArray{T,Ndims}, parts::AbstractArray{Float64,1}
     if !(sum(parts) ≈ 1)
         @error "The sum of `parts` in `partition` should total to 1."
     end
-    ridx = fixedRIdx
+    ridx = fixed_ridx
     if (isempty(ridx))
        ridx = shuffle ? Random.shuffle(rng, 1:N) : collect(1:N)
     end
@@ -527,10 +546,13 @@ end
 
 
 """
-    getScaleFactors(x;skip)
+    get_scalefactors(x;skip)
 
 Return the scale factors (for each dimensions) in order to scale a matrix X (n,d) such that each dimension has mean 0 and variance 1.
 Note that missing values are skipped.
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model Scaler() instead.
 
 # Parameters
 - `x`: the (n × d) dimension matrix to scale on each dimension d
@@ -540,7 +562,7 @@ Note that missing values are skipped.
 - A touple whose first elmement is the shift and the second the multiplicative
 term to make the scale.
 """
-function getScaleFactors(x;skip=[])
+function get_scalefactors(x;skip=[])
     μ  = transpose([mean(skipmissing(x[:,c])) for c in 1:size(x,2)])
     σ² = transpose([var(skipmissing(x[:,c]),corrected=false ) for c in 1:size(x,2)])
     sfμ = - μ
@@ -553,9 +575,13 @@ function getScaleFactors(x;skip=[])
 end
 
 """
-    scale(x,scaleFactors;rev)
+    scale(x,scalefactors;rev)
 
-Perform a linear scaling of x using scaling factors `scaleFactors`.
+Perform a linear scaling of x using scaling factors `scalefactors`.
+
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model Scaler() instead.
+
 
 # Parameters
 - `x`: The (n × d) dimension matrix to scale on each dimension d
@@ -567,29 +593,29 @@ respectively [def: the scaling factors needed to scale x to mean 0 and variance 
 - The scaled matrix
 
 # Notes:
-- Also available [`scale!(x,scaleFactors)`](@ref) for in-place scaling
-- Retrieve the scale factors with the [`getScaleFactors()`](@ref) function
+- Also available [`scale!(x,scalefactors)`](@ref) for in-place scaling
+- Retrieve the scale factors with the [`get_scalefactors()`](@ref) function
 - Note that missing values are skipped
 """
-function scale(x,scaleFactors=(
+function scale(x,scalefactors=(
     -transpose([mean(skipmissing(x[:,c])) for c in 1:size(x,2)]),
     1 ./ sqrt.(transpose([var(skipmissing(x[:,c]),corrected=false ) for c in 1:size(x,2)]))
     ); rev=false )
     if (!rev)
-      y = (x .+ scaleFactors[1]) .* scaleFactors[2]
+      y = (x .+ scalefactors[1]) .* scalefactors[2]
     else
-      y = (x ./ scaleFactors[2]) .- scaleFactors[1]
+      y = (x ./ scalefactors[2]) .- scalefactors[1]
     end
     return y
 end
-function scale!(x,scaleFactors=(
+function scale!(x,scalefactors=(
     -transpose([mean(skipmissing(x[:,c])) for c in 1:size(x,2)]),
     1 ./ sqrt.(transpose([var(skipmissing(x[:,c]),corrected=false ) for c in 1:size(x,2)]))
     ); rev=false)
     if (!rev)
-        x .= (x .+ scaleFactors[1]) .* scaleFactors[2]
+        x .= (x .+ scalefactors[1]) .* scalefactors[2]
     else
-        x .= (x ./ scaleFactors[2]) .- scaleFactors[1]
+        x .= (x ./ scalefactors[2]) .- scalefactors[1]
     end
     return nothing
 end
@@ -821,6 +847,10 @@ pca(X;K,error)
 
 Perform Principal Component Analysis returning the matrix reprojected among the dimensions of maximum variance.
 
+!!! warning
+    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model PCA() instead.
+
+
 # Parameters:
 - `X` : The (N,D) data to reproject
 - `K` : The number of dimensions to maintain (with K<=D) [def: `nothing`]
@@ -1000,49 +1030,49 @@ end
 
 
 """
-    colsWithMissing(x)
+    cols_with_missing(x)
 
 Retuyrn an array with the ids of the columns where there is at least a missing value.
 """
-function colsWithMissing(x)
-    colsWithMissing = Int64[]
+function cols_with_missing(x)
+    cols_with_missing = Int64[]
     (N,D) = size(x)
     for d in 1:D
         for n in 1:N
             if ismissing(x[n,d])
-                push!(colsWithMissing,d)
+                push!(cols_with_missing,d)
                 break
             end
         end
     end
-    return colsWithMissing
+    return cols_with_missing
 end
 
 """
-    crossValidation(f,data,sampler;dims,verbosity,returnStatistics)
+    cross_validation(f,data,sampler;dims,verbosity,returnStatistics)
 
-Perform crossValidation according to `sampler` rule by calling the function f and collecting its output
+Perform cross_validation according to `sampler` rule by calling the function f and collecting its output
 
 # Parameters
 - `f`: The user-defined function that consume the specific train and validation data and return somehting (often the associated validation error). See later
 - `data`: A single n-dimenasional array or a vector of them (e.g. X,Y), depending on the tasks required by `f`.
 - sampler: An istance of a ` AbstractDataSampler`, defining the "rules" for sampling at each iteration. [def: `KFold(nSplits=5,nRepeats=1,shuffle=true,rng=Random.GLOBAL_RNG)` ]
-- `dims`: The dimension over performing the crossValidation i.e. the dimension containing the observations [def: `1`]
+- `dims`: The dimension over performing the cross_validation i.e. the dimension containing the observations [def: `1`]
 - `verbosity`: The verbosity to print information during each iteration (this can also be printed in the `f` function) [def: `STD`]
-- `returnStatistics`: Wheter crossValidation should return the statistics of the output of `f` (mean and standard deviation) or the whole outputs [def: `true`].
+- `returnStatistics`: Wheter cross_validation should return the statistics of the output of `f` (mean and standard deviation) or the whole outputs [def: `true`].
 
 # Notes
 
-crossValidation works by calling the function `f`, defined by the user, passing to it the tuple `trainData`, `valData` and `rng` and collecting the result of the function f. The specific method for which `trainData`, and `valData` are selected at each iteration depends on the specific `sampler`, whith a single 5 k-fold rule being the default.
+cross_validation works by calling the function `f`, defined by the user, passing to it the tuple `trainData`, `valData` and `rng` and collecting the result of the function f. The specific method for which `trainData`, and `valData` are selected at each iteration depends on the specific `sampler`, whith a single 5 k-fold rule being the default.
 
-This approach is very flexible because the specific model to employ or the metric to use is left within the user-provided function. The only thing that crossValidation does is provide the model defined in the function `f` with the opportune data (and the random number generator).
+This approach is very flexible because the specific model to employ or the metric to use is left within the user-provided function. The only thing that cross_validation does is provide the model defined in the function `f` with the opportune data (and the random number generator).
 
 **Input of the user-provided function**
-`trainData` and `valData` are both themselves tuples. In supervised models, crossValidations `data` should be a tuple of (X,Y) and `trainData` and `valData` will be equivalent to (xtrain, ytrain) and (xval, yval). In unsupervised models `data` is a single array, but the training and validation data should still need to be accessed as  `trainData[1]` and `valData[1]`.
+`trainData` and `valData` are both themselves tuples. In supervised models, cross_validations `data` should be a tuple of (X,Y) and `trainData` and `valData` will be equivalent to (xtrain, ytrain) and (xval, yval). In unsupervised models `data` is a single array, but the training and validation data should still need to be accessed as  `trainData[1]` and `valData[1]`.
 **Output of the user-provided function**
 The user-defined function can return whatever. However, if `returnStatistics` is left on its default `true` value the user-defined function must return a single scalar (e.g. some error measure) so that the mean and the standard deviation are returned.
 
-Note that `crossValidation` can beconveniently be employed using the `do` syntax, as Julia automatically rewrite `crossValidation(data,...) trainData,valData,rng  ...user defined body... end` as `crossValidation(f(trainData,valData,rng ), data,...)`
+Note that `cross_validation` can beconveniently be employed using the `do` syntax, as Julia automatically rewrite `cross_validation(data,...) trainData,valData,rng  ...user defined body... end` as `cross_validation(f(trainData,valData,rng ), data,...)`
 
 # Example
 
@@ -1050,18 +1080,18 @@ Note that `crossValidation` can beconveniently be employed using the `do` syntax
 julia> X = [11:19 21:29 31:39 41:49 51:59 61:69];
 julia> Y = [1:9;];
 julia> sampler = KFold(nSplits=3);
-julia> (μ,σ) = crossValidation([X,Y],sampler) do trainData,valData,rng
+julia> (μ,σ) = cross_validation([X,Y],sampler) do trainData,valData,rng
                  (xtrain,ytrain) = trainData; (xval,yval) = valData
                  trainedModel    = buildForest(xtrain,ytrain,30)
                  predictions     = predict(trainedModel,xval)
-                 ϵ               = meanRelError(predictions,yval,normRec=false)
+                 ϵ               = mean_relative_error(predictions,yval,normrec=false)
                  return ϵ
                end
 (0.3202242202242202, 0.04307662219315022)
 ```
 
 """
-function crossValidation(f,data,sampler=KFold(nSplits=5,nRepeats=1,shuffle=true,rng=Random.GLOBAL_RNG);dims=1,verbosity=STD, returnStatistics=true)
+function cross_validation(f,data,sampler=KFold(nSplits=5,nRepeats=1,shuffle=true,rng=Random.GLOBAL_RNG);dims=1,verbosity=STD, returnStatistics=true)
     iterResults = []
     for (i,iterData) in enumerate(SamplerWithData(sampler,data,dims))
        iterResult = f(iterData[1],iterData[2],sampler.rng)
@@ -1089,12 +1119,12 @@ function tuneHyperParameters(model,Pset::ParameterSet,xtrain,ytrain;neuronsRange
 
 
 """
-   classCountsWithLabels(x)
+   class_counts_with_labels(x)
 
 Return a dictionary that counts the number of each unique item (rows) in a dataset.
 
 """
-function classCountsWithLabels(x;classes=nothing)
+function class_counts_with_labels(x;classes=nothing)
     dims = ndims(x)
     if dims == 1
         T = eltype(x)
@@ -1122,18 +1152,18 @@ function classCountsWithLabels(x;classes=nothing)
 end
 
 """
-   classCounts(x;classes=nothing)
+   class_counts(x;classes=nothing)
 
 Return a (unsorted) vector with the counts of each unique item (element or rows) in a dataset.
 
 If order is important or not all classes are present in the data, a preset vectors of classes can be given in the parameter `classes`
 
 """
-function classCounts(x; classes=nothing)
+function class_counts(x; classes=nothing)
    if classes == nothing # order doesn't matter
-      return values(classCountsWithLabels(x;classes=classes))
+      return values(class_counts_with_labels(x;classes=classes))
    else
-       cWithLabels = classCountsWithLabels(x;classes=classes)
+       cWithLabels = class_counts_with_labels(x;classes=classes)
        return [cWithLabels[k] for k in classes]
    end
 end
@@ -1198,15 +1228,15 @@ end
 
 
 """
-   meanDicts(dicts)
+   mean_dicts(dicts)
 
 Compute the mean of the values of an array of dictionaries.
 
-Given `dicts` an array of dictionaries, `meanDicts` first compute the union of the keys and then average the values.
+Given `dicts` an array of dictionaries, `mean_dicts` first compute the union of the keys and then average the values.
 If the original valueas are probabilities (non-negative items summing to 1), the result is also a probability distribution.
 
 """
-function meanDicts(dicts; weights=ones(length(dicts)))
+function mean_dicts(dicts; weights=ones(length(dicts)))
     if length(dicts) == 1
         return dicts[1]
     end

@@ -111,10 +111,10 @@ xtest  = [ 3 7 2; 2 2 3; 3 2 2; 4 1 2; 4 3 2;]
 #xtest = xtrain
 ytt2    = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest))]
 ytest = [i > median(ytt2) ? 1 : -1 for i in ytt2]
-#out   = kernelPerceptron(xtrain, ytrain, K=polynomialKernel,rShuffle=true,nMsgs=100)
-#ŷtest = predict(xtest,out[1][1],out[1][2],out[1][3], K=polynomialKernel)
-out   = kernelPerceptronBinary(xtrain, ytrain, K=radialKernel,shuffle=false,nMsgs=0,α=ones(Int64,length(ytrain)))
-# the same: out   = kernelPerceptronBinary(xtrain, ytrain, K=radialKernel,shuffle=false,nMsgs=0)
+#out   = kernelPerceptron(xtrain, ytrain, K=polynomial_kernel,rShuffle=true,nMsgs=100)
+#ŷtest = predict(xtest,out[1][1],out[1][2],out[1][3], K=polynomial_kernel)
+out   = kernelPerceptronBinary(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0,α=ones(Int64,length(ytrain)))
+# the same: out   = kernelPerceptronBinary(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0)
 ŷtest = predict(xtest,out.x,out.y,out.α, K=out.K)
 ϵ = error(ytest, ŷtest)
 ŷtestExpected = [1,-1,-1,-1,-1]
@@ -123,7 +123,7 @@ ŷtestExpected = [1,-1,-1,-1,-1]
 @test any(ŷtestExpected == ŷtest )
 
 # Multiclass..
-outMultiClass   = kernelPerceptron(xtrain, ytrain, K=radialKernel,shuffle=false,nMsgs=0)
+outMultiClass   = kernelPerceptron(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0)
 ŷtest = predict(xtest,outMultiClass.x,outMultiClass.y,outMultiClass.α, outMultiClass.classes,K=outMultiClass.K)
 ϵ = error(ytest, mode(ŷtest))
 ŷtestExpected = [1,-1,-1,-1,-1]

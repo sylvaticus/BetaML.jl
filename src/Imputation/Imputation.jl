@@ -148,7 +148,7 @@ julia>  cFOut = predictMissing([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missi
 """
 function predictMissing(X,K=3;initial_probmixtures=[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minimum_variance=0.05,minimum_covariance=0.0,initialisation_strategy="kmeans",maximum_iterations=typemax(Int64),rng = Random.GLOBAL_RNG)
  if verbosity > STD
-     @codeLocation
+     @codelocation
  end
  emOut = gmm(X,K;initial_probmixtures=initial_probmixtures,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng=rng)
 
@@ -384,7 +384,7 @@ function fit!(m::GMMImputer,X)
     rng           = m.opt.rng
 
     if m.opt.verbosity > STD
-        @codeLocation
+        @codelocation
     end
     if m.fitted
         verbosity >= STD && @warn "Continuing training of a pre-fitted model"
@@ -402,7 +402,7 @@ function fit!(m::GMMImputer,X)
 
     n_imputed_values = nFill
 
-    m.par  = GMMImputerLearnableParameters(mixtures = emOut.mixtures, initial_probmixtures=makeColVector(emOut.pₖ), probRecords = emOut.pₙₖ)
+    m.par  = GMMImputerLearnableParameters(mixtures = emOut.mixtures, initial_probmixtures=makecolvector(emOut.pₖ), probRecords = emOut.pₙₖ)
 
     if cache
         X̂ = [XMask[n,d] ? X[n,d] : sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:K]) for n in 1:N, d in 1:D ]
@@ -428,7 +428,7 @@ Predict the missing data using the mixtures learned by fitting a [`GMMImputer`](
 """
 function predict(m::GMMImputer,X)
     m.fitted || error("Trying to predict from an untrained model")
-    X   = makeMatrix(X)
+    X   = makematrix(X)
     N,D = size(X)
     XMask = .! ismissing.(X)
     mixtures = m.par.mixtures
@@ -592,7 +592,7 @@ function fit!(m::RFImputer,X)
     for imputation in 1:multiple_imputations
         verbosity >= STD && println("** Processing imputation $imputation")
         Xout    = copy(X)
-        sortedDims     = reverse(sortperm(makeColVector(sum(missingMask,dims=1)))) # sorted from the dim with more missing values
+        sortedDims     = reverse(sortperm(makecolvector(sum(missingMask,dims=1)))) # sorted from the dim with more missing values
         oobErrorsImputation = fill(Inf,nC)
         for pass in 1:recursive_passages 
             m.opt.verbosity >= HIGH && println("- processing passage $pass")
@@ -849,7 +849,7 @@ function fit!(m::UniversalImputer,X)
     for imputation in 1:multiple_imputations
         verbosity >= STD && println("** Processing imputation $imputation")
         Xout    = copy(X)
-        sortedDims     = reverse(sortperm(makeColVector(sum(missingMask,dims=1)))) # sorted from the dim with more missing values
+        sortedDims     = reverse(sortperm(makecolvector(sum(missingMask,dims=1)))) # sorted from the dim with more missing values
         for pass in 1:recursive_passages 
             m.opt.verbosity >= HIGH && println("- processing passage $pass")
             if pass > 1

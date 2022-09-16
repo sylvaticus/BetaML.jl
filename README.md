@@ -83,7 +83,7 @@ y_oh     = fit!(ohmod,y)
 l1   = DenseLayer(4,10,f=relu) # The activation function is `ReLU`
 l2   = DenseLayer(10,3)        # The activation function is `identity` by default
 l3   = VectorFunctionLayer(3,f=softmax) # Add a (parameterless) layer whose activation function (`softmax` in this case) is defined to all its nodes at once
-mynn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=cross_entropy,descr="Multinomial logistic regression Model Sepal", batch_size=2, epochs=200) # Build the NN and use the cross-entropy as error function. 
+mynn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=crossentropy,descr="Multinomial logistic regression Model Sepal", batch_size=2, epochs=200) # Build the NN and use the cross-entropy as error function. 
 
 # Train the model (using the ADAM optimizer by default)
 res = fit!(mynn,fit!(Scaler(),xtrain),ytrain_oh) # Fit the model to the (scaled) data
@@ -96,7 +96,7 @@ test_accuracy  = accuracy(ŷtest,ytest)   # 0.96
 
 # Analyse model performances
 cm = ConfusionMatrix()
-fit!(cm,ŷtest,ytest)
+fit!(cm,ytest,ŷtest)
 print(cm)
 ```
 ```text
@@ -109,17 +109,17 @@ A ConfusionMatrix BetaMLModel (fitted)
 Scores actual (rows) vs predicted (columns):
 
 4×4 Matrix{Any}:
- "Labels"        "versicolor"   "virginica"   "setosa"
- "versicolor"  14              1             0
- "virginica"    0              8             0
- "setosa"       0              0             7
+ "Labels"       "virginica"    "versicolor"   "setosa"
+ "virginica"   8              1              0
+ "versicolor"  0             14              0
+ "setosa"      0              0              7
 Normalised scores actual (rows) vs predicted (columns):
 
 4×4 Matrix{Any}:
- "Labels"       "versicolor"   "virginica"   "setosa"
- "versicolor"  0.933333       0.0666667     0.0
- "virginica"   0.0            1.0           0.0
- "setosa"      0.0            0.0           1.0
+ "Labels"       "virginica"   "versicolor"   "setosa"
+ "virginica"   0.888889      0.111111       0.0
+ "versicolor"  0.0           1.0            0.0
+ "setosa"      0.0           0.0            1.0
 
  *** CONFUSION REPORT ***
 
@@ -130,14 +130,12 @@ Normalised scores actual (rows) vs predicted (columns):
   N Class      precision   recall  specificity  f1score  actual_count  predicted_count
                              TPR       TNR                 support                  
 
-  1 versicolor     1.000    0.933        1.000    0.966           15              14
-  2 virginica      0.889    1.000        0.955    0.941            8               9
+  1 virginica      1.000    0.889        1.000    0.941            9               8
+  2 versicolor     0.933    1.000        0.938    0.966           14              15
   3 setosa         1.000    1.000        1.000    1.000            7               7
 
-- Simple   avg.    0.963    0.978        0.985    0.969
-- Weigthed avg.    0.970    0.967        0.988    0.967
-
------------------------------------------------------------------
+- Simple   avg.    0.978    0.963        0.979    0.969
+- Weigthed avg.    0.969    0.967        0.971    0.966
 ```
 
 ```julia

@@ -11,7 +11,7 @@ l1_distance(x,y)     = sum(abs.(x-y))
 """Euclidean (L2) distance"""
 l2_distance(x,y)     = norm(x-y)
 """Squared Euclidean (L2) distance"""
-l2²_distance(x,y)    = norm(x-y)^2
+l2squared_distance(x,y)    = norm(x-y)^2
 """Cosine distance"""
 cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
 
@@ -25,21 +25,21 @@ cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
 
 # Used as neural network loss function
 """
-   cross_entropy(ŷ, y; weight)
+   crossentropy(ŷ, y; weight)
 
 Compute the (weighted) cross-entropy between the predicted and the sampled probability distributions.
 
 To be used in classification problems.
 
 """
-cross_entropy(ŷ, y; weight = ones(eltype(y),length(y)))  = -sum(y .* log.(ŷ .+ 1e-15) .* weight)
-dCrossEntropy(ŷ, y; weight = ones(eltype(y),length(y))) = - y .* weight ./ (ŷ .+ 1e-15)
+crossentropy(ŷ, y; weight = ones(eltype(y),length(y)))  = -sum(y .* log.(ŷ .+ 1e-15) .* weight)
+dcrossentropy(ŷ, y; weight = ones(eltype(y),length(y))) = - y .* weight ./ (ŷ .+ 1e-15)
 
 
-""" accuracy(ŷ,y;ignoreLabels=false) - Categorical accuracy between two vectors (T vs T). """
-function accuracy(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignoreLabels=false)  where {T}
+""" accuracy(ŷ,y;ignorelabels=false) - Categorical accuracy between two vectors (T vs T). """
+function accuracy(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignorelabels=false)  where {T}
     # See here for better performances: https://discourse.julialang.org/t/permutations-of-a-vector-that-retain-the-vector-structure/56790/7
-    if(!ignoreLabels)
+    if(!ignorelabels)
         return sum(ŷ .== y)/length(ŷ)
     else
         classes  = unique(y)
@@ -60,8 +60,8 @@ function accuracy(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignoreLabels=fa
     end
 end
 
-""" error(ŷ,y;ignoreLabels=false) - Categorical error (T vs T)"""
-error(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignoreLabels=false) where {T} = (1 - accuracy(ŷ,y;ignoreLabels=ignoreLabels) )
+""" error(ŷ,y;ignorelabels=false) - Categorical error (T vs T)"""
+error(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignorelabels=false) where {T} = (1 - accuracy(ŷ,y;ignorelabels=ignorelabels) )
 
 
 """
@@ -101,7 +101,7 @@ function accuracy(ŷ::Dict{T,Float64},y::T;tol=1,rng=Random.GLOBAL_RNG) where {
 end
 
 @doc raw"""
-   accuracy(ŷ,y;tol,ignoreLabels)
+   accuracy(ŷ,y;tol,ignorelabels)
 
 Categorical accuracy with probabilistic predictions of a dataset (PMF vs Int).
 
@@ -109,12 +109,12 @@ Categorical accuracy with probabilistic predictions of a dataset (PMF vs Int).
 - `ŷ`: An (N,K) matrix of probabilities that each ``\hat y_n`` record with ``n \in 1,....,N``  being of category ``k`` with $k \in 1,...,K$.
 - `y`: The N array with the correct category for each point $n$.
 - `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
-- `ignoreLabels`: Whether to ignore the specific label order in y. Useful for unsupervised learning algorithms where the specific label order don't make sense [def: false]
+- `ignorelabels`: Whether to ignore the specific label order in y. Useful for unsupervised learning algorithms where the specific label order don't make sense [def: false]
 
 """
-function accuracy(ŷ::Array{T,2},y::Array{Int64,1};tol=1,ignoreLabels=false,rng=Random.GLOBAL_RNG) where {T <: Number}
+function accuracy(ŷ::Array{T,2},y::Array{Int64,1};tol=1,ignorelabels=false,rng=Random.GLOBAL_RNG) where {T <: Number}
     (N,D) = size(ŷ)
-    pSet = ignoreLabels ? collect(permutations(1:D)) : [collect(1:D)]
+    pSet = ignorelabels ? collect(permutations(1:D)) : [collect(1:D)]
     bestAcc = -Inf
     for perm in pSet
         pŷ = hcat([ŷ[:,c] for c in perm]...)
@@ -521,8 +521,8 @@ function ConfMatrix(ŷ,y::AbstractArray{T};classes=unique(y),labels=string.(cla
     ŷ                = typeof(ŷ) <: AbstractVector{T} ? ŷ : mode(ŷ,rng=rng) # get the mode if needed
     N                = length(y)
     length(ŷ) == N || @error "ŷ and y must have the same length in ConfMatrix"
-    actual_count      = [get(classCountsWithLabels(y),i,0) for i in classes]   # TODO just use classCount
-    predicted_count   = [get( classCountsWithLabels(ŷ),i,0) for i in classes]  # TODO just use classCount
+    actual_count      = [get(class_counts_with_labels(y),i,0) for i in classes]   # TODO just use classCount
+    predicted_count   = [get( class_counts_with_labels(ŷ),i,0) for i in classes]  # TODO just use classCount
     scores           = zeros(Int64,(nCl,nCl))
     normalised_scores = zeros(Float64,(nCl,nCl))
     [scores[findfirst(x -> x == y[i],classes),findfirst(x -> x == ŷ[i],classes)] += 1 for i in 1:N]
@@ -631,31 +631,31 @@ Note that while the deviation is averaged by the length of `y` is is not scaled 
 mse(ŷ,y) = (sum((y-ŷ).^(2))/length(y))
 
 """
-  meanRelError(ŷ,y;normDim=true,normRec=true,p=1)
+  mean_relative_error(ŷ,y;normdim=true,normrec=true,p=1)
 
 Compute the mean relative error (l-1 based by default) between ŷ and y.
 
-There are many ways to compute a mean relative error. In particular, if normRec (normDim) is set to true, the records (dimensions) are normalised, in the sense that it doesn't matter if a record (dimension) is bigger or smaller than the others, the relative error is first computed for each record (dimension) and then it is averaged.
-With both `normDim` and `normRec` set to `false` the function returns the relative mean error; with both set to `true` (default) it returns the mean relative error (i.e. with p=1 the "[mean absolute percentage error (MAPE)](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)")
+There are many ways to compute a mean relative error. In particular, if normrec (normdim) is set to true, the records (dimensions) are normalised, in the sense that it doesn't matter if a record (dimension) is bigger or smaller than the others, the relative error is first computed for each record (dimension) and then it is averaged.
+With both `normdim` and `normrec` set to `false` the function returns the relative mean error; with both set to `true` (default) it returns the mean relative error (i.e. with p=1 the "[mean absolute percentage error (MAPE)](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)")
 The parameter `p` [def: `1`] controls the p-norm used to define the error.
 
 The _mean relative error_ enfatises the relativeness of the error, i.e. all observations and dimensions weigth the same, wether large or small. Conversly, in the _relative mean error_ the same relative error on larger observations (or dimensions) weights more.
 
-For example, given `y = [1,44,3]` and `ŷ = [2,45,2]`, the _mean relative error_ `meanRelError(ŷ,y)` is `0.452`, while the _relative mean error_ `meanRelError(ŷ,y, normRec=false)` is "only" `0.0625`.
+For example, given `y = [1,44,3]` and `ŷ = [2,45,2]`, the _mean relative error_ `mean_relative_error(ŷ,y)` is `0.452`, while the _relative mean error_ `mean_relative_error(ŷ,y, normrec=false)` is "only" `0.0625`.
 
 """
-function meanRelError(ŷ,y;normDim=true,normRec=true,p=1)
-    ŷ = makeMatrix(ŷ)
-    y = makeMatrix(y)
+function mean_relative_error(ŷ,y;normdim=true,normrec=true,p=1)
+    ŷ = makematrix(ŷ)
+    y = makematrix(y)
     (n,d) = size(y)
     #ϵ = abs.(ŷ-y) .^ p
-    if (!normDim && !normRec) # relative mean error
+    if (!normdim && !normrec) # relative mean error
         avgϵRel = (sum(abs.(ŷ-y).^p)^(1/p) / (n*d)) / (sum( abs.(y) .^p)^(1/p) / (n*d)) # (avg error) / (avg y)
         # avgϵRel = (norm((ŷ-y),p)/(n*d)) / (norm(y,p) / (n*d))
-    elseif (!normDim && normRec) # normalised by record (i.e. all records play the same weigth)
+    elseif (!normdim && normrec) # normalised by record (i.e. all records play the same weigth)
         avgϵRel_byRec = (sum(abs.(ŷ-y) .^ (1/p),dims=2).^(1/p) ./ d) ./   (sum(abs.(y) .^ (1/p) ,dims=2) ./d)
         avgϵRel = mean(avgϵRel_byRec)
-    elseif (normDim && !normRec) # normalised by dimensions (i.e.  all dimensions play the same weigth)
+    elseif (normdim && !normrec) # normalised by dimensions (i.e.  all dimensions play the same weigth)
         avgϵRel_byDim = (sum(abs.(ŷ-y) .^ (1/p),dims=1).^(1/p) ./ n) ./   (sum(abs.(y) .^ (1/p) ,dims=1) ./n)
         avgϵRel = mean(avgϵRel_byDim)
     else # mean relative error

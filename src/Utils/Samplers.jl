@@ -35,7 +35,7 @@ end
 """
    KFold(nSplits=5,nRepeats=1,shuffle=true,rng=Random.GLOBAL_RNG)
 
-Iterator for k-fold crossValidation strategy.
+Iterator for k-fold cross_validation strategy.
 
 """
 mutable struct KFold <: AbstractDataSampler
@@ -96,9 +96,9 @@ end
 # ------------------------------------------------------------------------------
 # Used for NN
 """
-  batch(n,bSize;sequential=false,rng)
+  batch(n,bsize;sequential=false,rng)
 
-Return a vector of `bSize` vectors of indeces from `1` to `n`.
+Return a vector of `bsize` vectors of indeces from `1` to `n`.
 Randomly unless the optional parameter `sequential` is used.
 
 # Example:
@@ -110,15 +110,15 @@ julia> Utils.batch(6,2,sequential=true)
  [5, 6]
  ```
 """
-function batch(n::Integer,bSize::Integer;sequential=false,rng = Random.GLOBAL_RNG)
+function batch(n::Integer,bsize::Integer;sequential=false,rng = Random.GLOBAL_RNG)
     ridx = sequential ? collect(1:n) : shuffle(rng,1:n)
-    if bSize > n
+    if bsize > n
         return [ridx]
     end
-    nBatches = Int64(floor(n/bSize))
+    n_batches = Int64(floor(n/bsize))
     batches = Array{Int64,1}[]
-    for b in 1:nBatches
-        push!(batches,ridx[b*bSize-bSize+1:b*bSize])
+    for b in 1:n_batches
+        push!(batches,ridx[b*bsize-bsize+1:b*bsize])
     end
     return batches
 end

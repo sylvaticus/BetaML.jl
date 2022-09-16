@@ -82,7 +82,7 @@ beginner. Quoting from the JOSS manuscript:
 
 2. "To help beginners, many parameters and functions have pretty
    longer but more explicit names than usual. For example the Dense
-   layer is a DenseLayer, the RBF kernel is radialKernel, etc."
+   layer is a DenseLayer, the RBF kernel is radial_kernel, etc."
 
 3. "While avoiding the problem of “reinventing the wheel”, the
    wrapping level unin- tentionally introduces some complications for

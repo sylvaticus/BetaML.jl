@@ -9,17 +9,17 @@
 
 
 """
-    generateParallelRngs(rng::AbstractRNG, n::Integer;reSeed=false)
+    generate_parallel_rngs(rng::AbstractRNG, n::Integer;reSeed=false)
 
 For multi-threaded models, return n independent random number generators (one per thread) to be used in threaded computations.
 
 Note that each ring is a _copy_ of the original random ring. This means that code that _use_ these RNGs will not change the original RNG state.
 
-Use it with `rngs = generateParallelRngs(rng,Threads.nthreads())` to have a separate rng per thread.
+Use it with `rngs = generate_parallel_rngs(rng,Threads.nthreads())` to have a separate rng per thread.
 By default the function doesn't re-seed the RNG, as you may want to have a loop index based re-seeding strategy rather than a threadid-based one (to guarantee the same result independently of the number of threads).
 If you prefer, you can instead re-seed the RNG here (using the parameter `reSeed=true`), such that each thread has a different seed. Be aware however that the stream  of number generated will depend from the number of threads at run time.
 """
-function generateParallelRngs(rng::AbstractRNG, n::Integer;reSeed=false)
+function generate_parallel_rngs(rng::AbstractRNG, n::Integer;reSeed=false)
     if reSeed
         seeds = [rand(rng,100:18446744073709551615) for i in 1:n] # some RNGs have issues with too small seed
         rngs  = [deepcopy(rng) for i in 1:n]

@@ -72,7 +72,7 @@ iris     = readdlm(joinpath(dirname(pathof(BetaML)),"..","test","data","iris.csv
 iris     = iris[shuffle(axes(iris, 1)), :] # Shuffle the records, as they aren't by default
 x        = convert(Array{Float64,2}, iris[:,1:4])
 y        = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iris[:, 5]) # Convert the target column to numbers
-y_oh     = oneHotEncoder(y) # Convert to One-hot representation (e.g. 2 => [0 1 0], 3 => [0 0 1])
+y_oh     = onehotencoder(y) # Convert to One-hot representation (e.g. 2 => [0 1 0], 3 => [0 0 1])
 
 # Split the data in training/testing sets
 ((xtrain,xtest),(ytrain,ytest),(ytrain_oh,ytest_oh)) = partition([x,y,y_oh],[0.8,0.2],shuffle=false)
@@ -133,9 +133,9 @@ diagBIC = [diagOut[v,cv].BIC for v in 1:length(minVarRange), cv in 1:1]
 fullBIC = [fullOut[v,cv].BIC for v in 1:length(minVarRange), cv in 1:length(minCovarRange)]
 
 # Compare the accuracy with true categories
-sphAcc  = [accuracy(sphOut[v,cv].pₙₖ,y,ignoreLabels=true) for v in 1:length(minVarRange), cv in 1:1]
-diagAcc = [accuracy(diagOut[v,cv].pₙₖ,y,ignoreLabels=true) for v in 1:length(minVarRange), cv in 1:1]
-fullAcc = [accuracy(fullOut[v,cv].pₙₖ,y,ignoreLabels=true) for v in 1:length(minVarRange), cv in 1:length(minCovarRange)]
+sphAcc  = [accuracy(sphOut[v,cv].pₙₖ,y,ignorelabels=true) for v in 1:length(minVarRange), cv in 1:1]
+diagAcc = [accuracy(diagOut[v,cv].pₙₖ,y,ignorelabels=true) for v in 1:length(minVarRange), cv in 1:1]
+fullAcc = [accuracy(fullOut[v,cv].pₙₖ,y,ignorelabels=true) for v in 1:length(minVarRange), cv in 1:length(minCovarRange)]
 
 plot(minVarRange,[sphBIC diagBIC fullBIC[:,1] fullBIC[:,15] fullBIC[:,30]], markershape=:circle, label=["sph" "diag" "full (cov=0)" "full (cov=0.7)" "full (cov=1.45)"], title="BIC", xlabel="minimum_variance")
 plot(minVarRange,[sphAcc diagAcc fullAcc[:,1] fullAcc[:,15] fullAcc[:,30]], markershape=:circle, label=["sph" "diag" "full (cov=0)" "full (cov=0.7)" "full (cov=1.45)"], title="Accuracies", xlabel="minimum_variance")

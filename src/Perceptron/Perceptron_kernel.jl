@@ -14,7 +14,7 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
 * `y`:        Associated labels of the training data
-* `K`:        Kernel function to employ. See `?radialKernel` or `?polynomialKernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]
+* `K`:        Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radial_kernel`](@ref)]
 * `T`:        Maximum number of iterations (aka "epochs") across the whole set (if the set is not fully classified earlier) [def: 100]
 * `α`:        Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`
 * `nMsg`:     Maximum number of messages to show if all iterations are done [def: `0`]
@@ -37,8 +37,8 @@ julia> model = kernelPerceptron([1.1 1.1; 5.3 4.2; 1.8 1.7; 7.5 5.2;], ["a","c",
 julia> ŷtest = Perceptron.predict([10 10; 2.2 2.5; 1 1],model.x,model.y,model.α, model.classes,K=model.K)
 ```
 """
-function kernelPerceptron(x, y; K=radialKernel, T=100, α=nothing, nMsgs=0, shuffle=false, rng = Random.GLOBAL_RNG)
- x         = makeMatrix(x)
+function kernelPerceptron(x, y; K=radial_kernel, T=100, α=nothing, nMsgs=0, shuffle=false, rng = Random.GLOBAL_RNG)
+ x         = makematrix(x)
  yclasses  = unique(y)
  nCl       = length(yclasses)
  nModels   = Int((nCl  * (nCl - 1)) / 2)
@@ -79,7 +79,7 @@ Train a binary kernel classifier "perceptron" algorithm based on x and y
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
 * `y`:        Associated labels of the training data, in the format of ⨦ 1
-* `K`:        Kernel function to employ. See `?radialKernel` or `?polynomialKernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]
+* `K`:        Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radial_kernel`](@ref)]
 * `T`:        Maximum number of iterations across the whole set (if the set is not fully classified earlier) [def: 1000]
 * `α`:        Initial distribution of the errors [def: `zeros(length(y))`]
 * `nMsg`:     Maximum number of messages to show if all iterations are done
@@ -103,12 +103,12 @@ Train a binary kernel classifier "perceptron" algorithm based on x and y
 julia> model = kernelPerceptronBinary([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 """
-function kernelPerceptronBinary(x, y; K=radialKernel, T=1000, α=zeros(Int64,length(y)), nMsgs=10, shuffle=false, rng = Random.GLOBAL_RNG)
+function kernelPerceptronBinary(x, y; K=radial_kernel, T=1000, α=zeros(Int64,length(y)), nMsgs=10, shuffle=false, rng = Random.GLOBAL_RNG)
  if nMsgs != 0
-     @codeLocation
+     @codelocation
      println("***\n*** Training kernel perceptron for maximum $T iterations. Random shuffle: $shuffle")
  end
- x = makeMatrix(x)
+ x = makematrix(x)
  α = deepcopy(α) # let's not modify the argument !
  (n,d) = size(x)
  bestϵ = Inf
@@ -171,7 +171,7 @@ Predict a binary label {-1,1} given the feature vector and the training data tog
 * `xtrain`: The feature vectors used for the training
 * `ytrain`: The labels of the training set
 * `α`:      The errors associated to each record
-* `K`:      The kernel function used for the training and to be used for the prediction [def: [`radialKernel`](@ref)]
+* `K`:      The kernel function used for the training and to be used for the prediction [def: [`radial_kernel`](@ref)]
 
 # Return :
 * `y`: Vector of the predicted labels
@@ -181,9 +181,9 @@ Predict a binary label {-1,1} given the feature vector and the training data tog
 julia> predict([1.1 2.1; 5.3 4.2; 1.8 1.7], [3.2,1.2])
 ```
 """
-function predict(x,xtrain,ytrain,α;K=radialKernel)
-    x = makeMatrix(x)
-    xtrain = makeMatrix(xtrain)
+function predict(x,xtrain,ytrain,α;K=radial_kernel)
+    x = makematrix(x)
+    xtrain = makematrix(xtrain)
     (n,d) = size(x)
     (ntrain,d2) = size(xtrain)
     if (d2 != d) error("xtrain and x must have the same dimensions."); end
@@ -215,7 +215,7 @@ function predict(x,xtrain,ytrain,α;K=radialKernel)
  * `ytrain`: A vector of the label vector used for training each of the one-vs-one class matches (i.e. `model.y`)
  * `α`:      A vector of the errors associated to each record (i.e. `model.α`)
  * `classes`: The overal classes encountered in training (i.e. `model.classes`)
- * `K`:      The kernel function used for the training and to be used for the prediction [def: [`radialKernel`](@ref)]
+ * `K`:      The kernel function used for the training and to be used for the prediction [def: [`radial_kernel`](@ref)]
 
  # Return :
  * `ŷ`: Vector of dictionaries `label=>probability` (warning: it isn't really a probability, it is just the standardized number of matches "won" by this class compared with the other classes)
@@ -229,7 +229,7 @@ function predict(x,xtrain,ytrain,α;K=radialKernel)
  julia> ŷtrain = Perceptron.predict([10 10; 2.2 2.5],model.x,model.y,model.α, model.classes,K=model.K)
  ```
  """
- function predict(x,xtrain,ytrain,α,classes::AbstractVector{Tcl};K=radialKernel) where {Tcl}
+ function predict(x,xtrain,ytrain,α,classes::AbstractVector{Tcl};K=radial_kernel) where {Tcl}
      (n,d)   = size(x)
      nCl     = length(classes)
      y       = Array{Dict{Tcl,Float64},1}(undef,n)
@@ -239,7 +239,7 @@ function predict(x,xtrain,ytrain,α;K=radialKernel)
      end
      nModels = Int((nCl  * (nCl - 1)) / 2)
      if !(nModels == length(xtrain) == length(ytrain) == length(α)) error("xtrain, ytrain or α have a length not compatible with the number of classes in this model."); end
-     x = makeMatrix(x)
+     x = makematrix(x)
      d2 = size(xtrain[1],2)
      if (d2 != d) error("xtrain and x must have the same dimensions."); end
      for i in 1:n
@@ -287,8 +287,8 @@ Hyperparameters for the [`KernelPerceptronClassifier`](@ref) model
 $(FIELDS)
 """
 Base.@kwdef mutable struct KernelPerceptronClassifierHyperParametersSet <: BetaMLHyperParametersSet
-    "Kernel function to employ. See `?radialKernel` or `?polynomialKernel` for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radialKernel`](@ref)]"
-    kernel::Function = radialKernel       
+    "Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel` for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radial_kernel`](@ref)]"
+    kernel::Function = radial_kernel       
     "Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`"
     initial_errors::Union{Nothing,Vector{Vector{Int64}}} = nothing
     "Maximum number of epochs, i.e. passages trough the whole training sample [def: `100`]"

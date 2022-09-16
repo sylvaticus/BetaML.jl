@@ -1,16 +1,4 @@
-
-
-"""
-  Utils.jl File
-
-Machine Learning shared utility functions (Module BetaML.Utils)
-
-`?BetaML.Utils` for documentation
-
-- Part of [BetaML](https://github.com/sylvaticus/BetaML.jl)
-- New to Julia? [A concise Julia tutorial](https://github.com/sylvaticus/juliatutorial) - [Julia Quick Syntax Reference book](https://julia-book.com)
-
-"""
+"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 
 """
@@ -22,14 +10,14 @@ For the complete list of functions provided see below. The main ones are:
 
 ## Helper functions for logging
 - Most BetAML functions accept a parameter `verbosity` that expect one of the element in the `Verbosity` enoum (`NONE`, `LOW`, `STD`, `HIGH` or `FULL`)
-- Writing complex code and need to find where something is executed ? Use the macro [`@codeLocation`](@ref)
+- Writing complex code and need to find where something is executed ? Use the macro [`@codelocation`](@ref)
 
 ## Stochasticity management
-- Utils provide [`FIXEDSEED`], [`FIXEDRNG`] and [`generateParallelRngs`](@ref). All stochastic functions accept a `rng` paraemter. See the "Getting started" section in the tutorial for details.
+- Utils provide [`FIXEDSEED`], [`FIXEDRNG`] and [`generate_parallel_rngs`](@ref). All stochastic functions accept a `rng` paraemter. See the "Getting started" section in the tutorial for details.
 
 ## Data processing
 - Various small and large utilities for helping processing the data, expecially before running a ML algorithm
-- Includes [`getPermutations`](@ref), [`oneHotEncoder`](@ref), [`integerEncoder`](@ref) (and [`integerDecoder`](@ref)), [`partition`](@ref), [`scale`](@ref) (and [`getScaleFactors`](@ref)), [`pca`](@ref), [`crossValidation`](@ref)
+- Includes [`getpermutations`](@ref), [`onehotencoder`](@ref), [`integerencoder`](@ref) (and [`integerdecoder`](@ref)), [`partition`](@ref), [`scale`](@ref) (and [`get_scalefactors`](@ref)), [`pca`](@ref), [`cross_validation`](@ref)
 
 ## Samplers
 - Utilities to sample from data (e.g. for neural network training or for cross-validation)
@@ -41,7 +29,7 @@ For the complete list of functions provided see below. The main ones are:
 
 ## Measures
 - Several functions of a pair of parameters (often `y` and `ŷ`) to measure the goodness of `ŷ`, the distance between the two elements of the pair, ...
-- Includes "classical" distance functions ([`l1_distance`](@ref), [`l2_distance`](@ref), [`l2²_distance`](@ref) [`cosine_distance`](@ref)), "cost" functions for continuous variables ([`squared_cost`](@ref), [`meanRelError`](@ref)) and comparision functions for multui-class variables ([`cross_entropy`](@ref), [`accuracy`](@ref), [`ConfMatrix`](@ref)).
+- Includes "classical" distance functions ([`l1_distance`](@ref), [`l2_distance`](@ref), [`l2squared_distance`](@ref) [`cosine_distance`](@ref)), "cost" functions for continuous variables ([`squared_cost`](@ref), [`mean_relative_error`](@ref)) and comparision functions for multui-class variables ([`crossentropy`](@ref), [`accuracy`](@ref), [`ConfMatrix`](@ref)).
 
 # Imputers
 - Imputers of missing values
@@ -55,21 +43,21 @@ using ForceImport
 @force using ..Api
 using ..Api
 
-export @codeLocation, generateParallelRngs,
-       reshape, makeColVector, makeRowVector, makeMatrix, issortable, getPermutations,
-       oneHotEncoder, oneHotDecoder, integerEncoder, integerDecoder, colsWithMissing, getScaleFactors, scale, scale!, batch, partition, shuffle, pca,
+export @codelocation, generate_parallel_rngs,
+       reshape, makecolvector, makerowvector, makematrix, issortable, getpermutations,
+       onehotencoder, onehotdecoder, integerencoder, integerdecoder, cols_with_missing, get_scalefactors, scale, scale!, batch, partition, shuffle, pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
-       autoJacobian,
-       squared_cost, dSquaredCost, mse, cross_entropy, dCrossEntropy, classCounts, classCountsWithLabels, meanDicts, mode, gini, entropy, variance,
-       error, accuracy, meanRelError,
+       autojacobian,
+       squared_cost, dSquaredCost, mse, crossentropy, dcrossentropy, class_counts, class_counts_with_labels, mean_dicts, mode, gini, entropy, variance,
+       error, accuracy, mean_relative_error,
        ConfusionMatrix, ConfusionMatrixHyperParametersSet,
        ConfMatrix, labels, scores, normalised_scores,
-       crossValidation, AbstractDataSampler, SamplerWithData, KFold,
-       l1_distance,l2_distance, l2²_distance, cosine_distance, lse, sterling,
+       cross_validation, AbstractDataSampler, SamplerWithData, KFold,
+       l1_distance,l2_distance, l2squared_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
-       radialKernel, polynomialKernel,
+       radial_kernel, polynomial_kernel,
        Scaler, MinMaxScaler, StandardScaler,
        ScalerHyperParametersSet, MinMaxScaler,StandardScaler,
        PCA, PCAHyperParametersSet,

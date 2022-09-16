@@ -6,12 +6,12 @@
 
 
 """
-    @codeLocation()
+    @codelocation()
 
 Helper macro to print during runtime an info message concerning the code being executed position
 
 """
-macro codeLocation()
+macro codelocation()
     return quote
         st = stacktrace(backtrace())
         myf = ""

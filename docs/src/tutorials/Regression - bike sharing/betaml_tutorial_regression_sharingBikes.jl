@@ -50,10 +50,10 @@ y    = data[:,16];
 
 # BetaML doesn't have a dedicated function for hyper-parameters optimisation, but it is easy to write some custom julia code, at least for a simple grid-based "search". Indeed one of the main reasons that a dedicated function exists in other Machine Learning libraries is that loops in other languages are slow, but this is not a problem in julia, so we can retain the flexibility to write the kind of hyper-parameter tuning that best fits our needs.
 
-# Below is an example of a possible such function. Note there are more "elegant" ways to code it, but this one does the job. In particular, for simplicity, this hyper-paramerter tuning function just run multiple repetitions. In real world it is better to use [cross-validation](@ref crossValidation) in the hyper-parameter tuning, expecially when the observations are small. The [Clustering tutorial](@ref clustering_tutorial) shows an example on how to use `crossValidation`.
+# Below is an example of a possible such function. Note there are more "elegant" ways to code it, but this one does the job. In particular, for simplicity, this hyper-paramerter tuning function just run multiple repetitions. In real world it is better to use [cross-validation](@ref cross_validation) in the hyper-parameter tuning, expecially when the observations are small. The [Clustering tutorial](@ref clustering_tutorial) shows an example on how to use `cross_validation`.
 
 # We will see the various functions inside `tuneHyperParameters()` in a moment. For now let's going just to observe that `tuneHyperParameters` just loops over all the possible hyper-parameters and selects the ones where the error between `xval` and `yval` is minimised. For the meaning of the various hyper-parameter, consult the documentation of the [`buildTree`](@ref) and [`buildForest`](@ref) functions.
-# The function uses multiple threads, so we calls `generateParallelRngs()` (in the `BetaML.Utils` submodule) to generate thread-safe random number generators and locks the comparision step.
+# The function uses multiple threads, so we calls `generate_parallel_rngs()` (in the `BetaML.Utils` submodule) to generate thread-safe random number generators and locks the comparision step.
 
 function tuneHyperParameters(model,xtrain,ytrain,xval,yval;max_depthRange=15:15,max_featuresRange=size(xtrain,2):size(xtrain,2),n_treesRange=20:20,βRange=0:0,min_recordsRange=2:2,repetitions=5,rng=Random.GLOBAL_RNG)
     ## We start with an infinitely high error
@@ -66,8 +66,8 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;max_depthRange=15:15,
     compLock        = ReentrantLock()
 
     ## Generate one random number generator per thread
-    masterSeed = rand(rng,100:9999999999999) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generateParallelRngs
-    rngs = generateParallelRngs(rng,Threads.nthreads())
+    masterSeed = rand(rng,100:9999999999999) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generate_parallel_rngs
+    rngs = generate_parallel_rngs(rng,Threads.nthreads())
 
     ## We loop over all possible hyperparameter combinations...
     parLengths = (length(max_depthRange),length(max_featuresRange),length(min_recordsRange),length(n_treesRange),length(βRange))
@@ -89,7 +89,7 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;max_depthRange=15:15,
               end
               ## Here we make prediciton with this trained model and we compute its error
               ŷval   = predict(myTrainedModel, xval,rng=tsrng)
-              rmeVal = meanRelError(ŷval,yval,normRec=false)
+              rmeVal = mean_relative_error(ŷval,yval,normrec=false)
               totAttemptError += rmeVal
            end
            avgAttemptedDepthError = totAttemptError / repetitions
@@ -139,7 +139,7 @@ ŷtrain = predict(myTree, xtrain);
 ŷval   = predict(myTree, xval);
 ŷtest  = predict(myTree, xtest);
 
-# We now compute the relative mean error for the training, the validation and the test set. The [`meanRelError`](@ref) is a very flexible error function. Without additional parameter, it computes, as the name says, the _mean relative error_, also known as the "mean absolute percentage error" ([MAPE](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)) between an estimated and a true vector.
+# We now compute the relative mean error for the training, the validation and the test set. The [`mean_relative_error`](@ref) is a very flexible error function. Without additional parameter, it computes, as the name says, the _mean relative error_, also known as the "mean absolute percentage error" ([MAPE](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)) between an estimated and a true vector.
 # However it can also compute the _relative mean error_ (as we do here), or use a p-norm higher than 1.
 # The _mean relative error_ enfatises the relativeness of the error, i.e. all observations and dimensions weigth the same, wether large or small. Conversly, in the _relative mean error_ the same relative error on larger observations (or dimensions) weights more.
 # In this exercise we use the later, as our data has clearly some outlier days with very small rents, and we care more of avoiding our customers finding empty bike racks than having unrented bikes on the rack. Targeting a low mean average error would push all our predicitons down to try accomodate the low-level predicitons (to avoid a large relative error), and that's not what we want.
@@ -150,14 +150,14 @@ ŷpref = [32,30,28,10,31,40];
 ŷbad  = [29,25,24,5,28,35];
 
 # Here ŷpref is an ipotetical output of a model that minimises the relative mean error, while ŷbad minimises the mean realative error.
-meanRelError.([ŷbad, ŷpref],[y,y],normRec=true) ## Mean relative error
+mean_relative_error.([ŷbad, ŷpref],[y,y],normrec=true) ## Mean relative error
 #-
-meanRelError.([ŷbad, ŷpref],[y,y],normRec=false) ## Relative mean error
+mean_relative_error.([ŷbad, ŷpref],[y,y],normrec=false) ## Relative mean error
 #-
 plot([y ŷbad ŷpref], colour=[:black :red :green], label=["obs" "bad est" "good est"])
 
 # We can then compute the relative mean error for the decision tree
-(rmeTrain, rmeVal, rmeTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
+(rmeTrain, rmeVal, rmeTest) = mean_relative_error.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normrec=false)
 #src (0.12659039939672598, 0.0937634812419113, 0.22233930540215602)
 #-
 @test rmeTest <= 0.24 #src
@@ -210,10 +210,10 @@ myForest = buildForest(xtrain,ytrain, bestn_trees, max_depth=bestmax_depth,max_f
 
 # Random forests support the so-called "out-of-bag" error, an estimation of the error that we would have when the model is applied on a testing sample.
 # However in this case the oob reported is much smaller than the testing error we will actually find. This is due to the fact that the division between training/validation and testing in this exercise is not random, but has a temporal basis. It seems that in this example the data in validation/testing follows a different pattern/variance than those in training (in probabilistic terms, the daily observations are not i.i.d.).
-oobError, trueTestMeanRelativeError  = myForest.oobError,meanRelError(ŷtest,ytest,normRec=true)
+oobError, trueTestMeanRelativeError  = myForest.oobError,mean_relative_error(ŷtest,ytest,normrec=true)
 #+
 (ŷtrain,ŷval,ŷtest)         = predict.([myForest], [xtrain,xval,xtest])
-(rmeTrain, rmeVal, rmeTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
+(rmeTrain, rmeVal, rmeTest) = mean_relative_error.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normrec=false)
 #src 0.06512088063750156, 0.09389025098838212, 0.22229683782214169
 @test rmeTest <= 0.23 #src
 
@@ -271,7 +271,7 @@ model = DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
 # ```
 # DecisionTrees.jl makes a good job in optimising the Random Forest algorithm, as it is over 3 times faster that BetaML.
 
-(rmeTrain, rmeVal, rmeTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
+(rmeTrain, rmeVal, rmeTest) = mean_relative_error.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normrec=false)
 #src 0.031235291992120055,0.17271800981298888,0.3141747075399198
 # However the error on the test set remains relativly high. The very low error level on the training set is a sign that it overspecialised on the training set, and we should have better ran a dedicated hyper-parameter tuning function for the model.
 
@@ -302,12 +302,12 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷvalfull[stc:endc] ŷtestful
 # In this layerwise computation, each unit in a particular layer takes input from _all_ the preceding layer units and it has its own parameters that are adjusted to perform the overall computation. The _training_ of the network consists in retrieving the coefficients that minimise a _loss_ function between the output of the model and the known data.
 # In particular, a _deep_ (feedforward) neural network refers to a neural network that contains not only the input and output layers, but also hidden layers in between.
 
-# Neural networks accept only numerical inputs. We hence need to convert all categorical data in numerical units. A common approach is to use the so-called "one-hot-encoding" where the catagorical values are converted into indicator variables (0/1), one for each possible value. This can be done in BetaML using the [`oneHotEncoder`](@ref) function:
-seasonDummies  = convert(Array{Float64,2},oneHotEncoder(data[:,:season]))
-weatherDummies = convert(Array{Float64,2},oneHotEncoder(data[:,:weathersit]))
-wdayDummies    = convert(Array{Float64,2},oneHotEncoder(data[:,:weekday] .+ 1 ))
+# Neural networks accept only numerical inputs. We hence need to convert all categorical data in numerical units. A common approach is to use the so-called "one-hot-encoding" where the catagorical values are converted into indicator variables (0/1), one for each possible value. This can be done in BetaML using the [`onehotencoder`](@ref) function:
+seasonDummies  = convert(Array{Float64,2},onehotencoder(data[:,:season]))
+weatherDummies = convert(Array{Float64,2},onehotencoder(data[:,:weathersit]))
+wdayDummies    = convert(Array{Float64,2},onehotencoder(data[:,:weekday] .+ 1 ))
 
-## We compose the feature matrix with the new dimensions obtained from the oneHotEncoder functions
+## We compose the feature matrix with the new dimensions obtained from the onehotencoder functions
 x = hcat(Matrix{Float64}(data[:,[:instant,:yr,:mnth,:holiday,:workingday,:temp,:atemp,:hum,:windspeed]]),
          seasonDummies,
          weatherDummies,
@@ -324,8 +324,8 @@ y = data[:,16];
 # Note that we can provide the function with different scale factors or specify the columns that shoudn't be scaled (e.g. those resulting from the one-hot encoding). Finally we can reverse the scaling (this is useful to retrieve the unscaled features from a model trained with scaled ones).
 
 colsNotToScale = [2;4;5;10:23]
-xScaleFactors   = getScaleFactors(xtrain,skip=colsNotToScale)
-yScaleFactors   = ([0],[0.001]) # getScaleFactors(ytrain) # This just divide by 1000. Using full scaling of Y we may get negative demand.
+xScaleFactors   = get_scalefactors(xtrain,skip=colsNotToScale)
+yScaleFactors   = ([0],[0.001]) # get_scalefactors(ytrain) # This just divide by 1000. Using full scaling of Y we may get negative demand.
 xtrainScaled    = scale(xtrain,xScaleFactors)
 xvalScaled      = scale(xval,xScaleFactors)
 xtestScaled     = scale(xtest,xScaleFactors)
@@ -339,7 +339,7 @@ D               = size(xtrain,2)
 # As we did above for decision trees and random forests, we select the best hyper-parameters by using the validation set.
 # We consider here two hyper-parameters, the first one (`hiddenLayerSizeRange`) concerns the structure of the neural network, and in particular the size (in nodes) of the hidden layer, the second one (`epochRange`) concerns the training itself, and in particular the number of so-called "epochs" (number of iterations trough the whole dataset) to train the model.
 
-# Again, we use here repetitions for simplicity, but a [cross-validation approach](@ref crossValidation) would have bee nmore appropriate:
+# Again, we use here repetitions for simplicity, but a [cross-validation approach](@ref cross_validation) would have bee nmore appropriate:
 
 function tuneHyperParameters(xtrain,ytrain,xval,yval;epochRange=50:50,hiddenLayerSizeRange=12:12,repetitions=5,rng=Random.GLOBAL_RNG)
     ## We start with an infinititly high error
@@ -349,8 +349,8 @@ function tuneHyperParameters(xtrain,ytrain,xval,yval;epochRange=50:50,hiddenLaye
     compLock        = ReentrantLock()
 
     ## Generate one random number generator per thread
-    masterSeed = rand(rng,100:9999999999999) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generateParallelRngs
-    rngs       = generateParallelRngs(rng,Threads.nthreads())
+    masterSeed = rand(rng,100:9999999999999) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generate_parallel_rngs
+    rngs       = generate_parallel_rngs(rng,Threads.nthreads())
 
     ## We loop over all possible hyperparameter combinations...
     parLengths = (length(epochRange),length(hiddenLayerSizeRange))
@@ -371,7 +371,7 @@ function tuneHyperParameters(xtrain,ytrain,xval,yval;epochRange=50:50,hiddenLaye
            ## Training it (default to ADAM)
            res  = train!(mynn,xtrain,ytrain,epochs=epoch,batch_size=8,opt_alg=ADAM(),verbosity=NONE, rng=tsrng) # Use opt_alg=SGD() to use Stochastic Gradient Descent
            ŷval = predict(mynn,xval)
-           rmeVal  = meanRelError(ŷval,yval,normRec=false)
+           rmeVal  = mean_relative_error(ŷval,yval,normrec=false)
            totAttemptError += rmeVal
        end
        avgRme = totAttemptError / repetitions
@@ -427,7 +427,7 @@ mynnManual = buildNetwork([
 
 # We can now train the neural network with the best hyper-parameters using the function [`train!`](@ref). Note the esclamation point. By convention in julia, functions that end with an exclamation mark modify some of their inputs, normally the first one.
 
-# Here `train!` has a question mark as indeed it modifies the neural network object, by updating its weights. If you want to keep a copy of the network before training (for example, if you want to train it in different independent ways), make a `deepcopy` of the `NN` object or first save its parameters with [`getParams`](@ref) and then re-apply the saved parameters with [`setParams!`](@ref).
+# Here `train!` has a question mark as indeed it modifies the neural network object, by updating its weights. If you want to keep a copy of the network before training (for example, if you want to train it in different independent ways), make a `deepcopy` of the `NN` object or first save its parameters with [`get_params`](@ref) and then re-apply the saved parameters with [`set_params!`](@ref).
 
 # Several optimisation algorithms are available, and each accepts different parameters, like the _learning rate_ for the Stochastic Gradient Descent algorithm ([`SGD`](@ref], used by default) or the exponential decay rates for the  moments estimates for the [`ADAM`](@ref ) algorithm (that we use here, with the default parameters).
 println("Final training of $bestEpoch epochs, with layer size $bestSize ...")
@@ -450,7 +450,7 @@ ŷval   = @pipe predict(mynn,xvalScaled)   |> scale(_, yScaleFactors,rev=true);
 ŷtest  = @pipe predict(mynn,xtestScaled)  |> scale(_ ,yScaleFactors,rev=true);
 
 #-
-(mreTrain, mreVal, mreTest) = meanRelError.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normRec=false)
+(mreTrain, mreVal, mreTest) = mean_relative_error.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normrec=false)
 #src 0.08839103036501561, 0.1482673840724729, 0.17613463255050987
 
 # The error is much lower. Let's plot our predictions:
@@ -512,7 +512,7 @@ ŷvalf   = @pipe Flux_nn(xvalScaled')'   |> scale(_,yScaleFactors,rev=true);
 ŷtestf  = @pipe Flux_nn(xtestScaled')'  |> scale(_,yScaleFactors,rev=true);
 
 # ..and we compute the mean relative errors..
-(mreTrain, mreVal, mreTest) = meanRelError.([ŷtrainf,ŷvalf,ŷtestf],[ytrain,yval,ytest],normRec=false)
+(mreTrain, mreVal, mreTest) = mean_relative_error.([ŷtrainf,ŷvalf,ŷtestf],[ytrain,yval,ytest],normrec=false)
 #src 0.09808947560569008, 0.13646196170811473,0.16181699665523128
 # .. finding an error not significantly different than the one obtained from BetaML.Nn.
 
@@ -562,7 +562,7 @@ ŷtrainGMM = @pipe predict(m,xtrainScaled) |> scale(_, yScaleFactors,rev=true);
 ŷvalGMM   = @pipe predict(m,xvalScaled)   |> scale(_, yScaleFactors,rev=true);
 ŷtestGMM  = @pipe predict(m,xtestScaled)  |> scale(_ ,yScaleFactors,rev=true);
 
-(mreTrainGMM, mreValGMM, mreTestGMM) = meanRelError.([ŷtrainGMM,ŷvalGMM,ŷtestGMM],[ytrain,yval,ytest],normRec=false)
+(mreTrainGMM, mreValGMM, mreTestGMM) = mean_relative_error.([ŷtrainGMM,ŷvalGMM,ŷtestGMM],[ytrain,yval,ytest],normrec=false)
 
 # Better (test MRE ≈ 0.25) can be obtained by using more mixtures, but at a much larger computational costs 
 
@@ -574,7 +574,7 @@ ŷtrainGMM = @pipe predict(m,xtrainScaled) |> scale(_, yScaleFactors,rev=true);
 ŷvalGMM   = @pipe predict(m,xvalScaled)   |> scale(_, yScaleFactors,rev=true);
 ŷtestGMM  = @pipe predict(m,xtestScaled)  |> scale(_ ,yScaleFactors,rev=true);
 
-(mreTrainGMM, mreValGMM, mreTestGMM) = meanRelError.([ŷtrainGMM,ŷvalGMM,ŷtestGMM],[ytrain,yval,ytest],normRec=false)
+(mreTrainGMM, mreValGMM, mreTestGMM) = mean_relative_error.([ŷtrainGMM,ŷvalGMM,ŷtestGMM],[ytrain,yval,ytest],normrec=false)
 
 
 # ## Summary

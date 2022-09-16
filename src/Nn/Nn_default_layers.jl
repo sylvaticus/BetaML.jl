@@ -80,33 +80,33 @@ function forward(layer::DenseLayer,x)
   return layer.f.(z)
 end
 
-function backward(layer::DenseLayer,x,nextGradient)
+function backward(layer::DenseLayer,x,next_gradient)
    z = _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) # layer.w * x + layer.wb # _zComp(layer,x) # @avx layer.w * x + layer.wb               # tested @avx
    if layer.df != nothing
-       dϵ_dz =  layer.df.(z) .* nextGradient # tested @avx
+       dϵ_dz =  layer.df.(z) .* next_gradient # tested @avx
     else
-       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
+       dϵ_dz = layer.f'.(z) .* next_gradient # using AD
     end
    dϵ_dI =  layer.w' * dϵ_dz # @avx
 end
 
-function getParams(layer::DenseLayer)
+function get_params(layer::DenseLayer)
   return Learnable((layer.w,layer.wb))
 end
 
-function getGradient(layer::DenseLayer,x,nextGradient)
+function get_gradient(layer::DenseLayer,x,next_gradient)
    z      =  _zComp(layer,x) #@avx layer.w * x + layer.wb #  _zComp(layer,x) #layer.w * x + layer.wb # @avx
    if layer.df != nothing
-       dϵ_dz = layer.df.(z) .* nextGradient
+       dϵ_dz = layer.df.(z) .* next_gradient
     else
-       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
+       dϵ_dz = layer.f'.(z) .* next_gradient # using AD
     end
    dϵ_dw  = dϵ_dz * x' # @avx
    dϵ_dwb = dϵ_dz
    return Learnable((dϵ_dw,dϵ_dwb))
 end
 
-function setParams!(layer::DenseLayer,w)
+function set_params!(layer::DenseLayer,w)
    layer.w  = w.data[1]
    layer.wb = w.data[2]
 end
@@ -177,32 +177,32 @@ function forward(layer::DenseNoBiasLayer,x)
   return layer.f.(z)
 end
 
-function backward(layer::DenseNoBiasLayer,x,nextGradient)
+function backward(layer::DenseNoBiasLayer,x,next_gradient)
    z = _zComp(layer,x)
    if layer.df != nothing
-       dϵ_dz = layer.df.(z) .* nextGradient
+       dϵ_dz = layer.df.(z) .* next_gradient
     else
-       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
+       dϵ_dz = layer.f'.(z) .* next_gradient # using AD
     end
    dϵ_dI = layer.w' * dϵ_dz
 end
 
-function getParams(layer::DenseNoBiasLayer)
+function get_params(layer::DenseNoBiasLayer)
   return Learnable((layer.w,))
 end
 
-function getGradient(layer::DenseNoBiasLayer,x,nextGradient)
+function get_gradient(layer::DenseNoBiasLayer,x,next_gradient)
    z      = _zComp(layer,x)
    if layer.df != nothing
-       dϵ_dz = layer.df.(z) .* nextGradient
+       dϵ_dz = layer.df.(z) .* next_gradient
     else
-       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
+       dϵ_dz = layer.f'.(z) .* next_gradient # using AD
     end
    dϵ_dw  =  dϵ_dz * x'
    return Learnable((dϵ_dw,))
 end
 
-function setParams!(layer::DenseNoBiasLayer,w)
+function set_params!(layer::DenseNoBiasLayer,w)
    layer.w = w.data[1]
 end
 
@@ -297,47 +297,47 @@ function forward(layer::VectorFunctionLayer{N},x) where {N}
   return N == 0 ? layer.f(x) : layer.f(x,layer.w)
 end
 
-function backward(layer::VectorFunctionLayer{N},x,nextGradient) where N
+function backward(layer::VectorFunctionLayer{N},x,next_gradient) where N
    if N == 0
       if layer.dfx != nothing
-         dϵ_dI = layer.dfx(x)' * nextGradient
+         dϵ_dI = layer.dfx(x)' * next_gradient
       else  # using AD
-         j = autoJacobian(layer.f,x; nY=layer.n)
-         dϵ_dI = j' * nextGradient
+         j = autojacobian(layer.f,x; nY=layer.n)
+         dϵ_dI = j' * next_gradient
       end
       return dϵ_dI
    else
       if layer.dfx != nothing
-         dϵ_dI = layer.dfx(x,layer.w)' * nextGradient
+         dϵ_dI = layer.dfx(x,layer.w)' * next_gradient
       else  # using AD
         tempfunction(x) = layer.f(x,layer.w)
         nYl = layer.n
-        j = autoJacobian(tempfunction,x; nY=nYl)
-        dϵ_dI = j' * nextGradient
+        j = autojacobian(tempfunction,x; nY=nYl)
+        dϵ_dI = j' * next_gradient
       end
      return dϵ_dI
    end
 end
 
-function getParams(layer::VectorFunctionLayer{N}) where {N}
+function get_params(layer::VectorFunctionLayer{N}) where {N}
    return N == 0 ? Learnable(()) : Learnable((layer.w,))
 end
 
-function getGradient(layer::VectorFunctionLayer{N},x,nextGradient) where {N}
+function get_gradient(layer::VectorFunctionLayer{N},x,next_gradient) where {N}
    if N == 0
      return Learnable(()) # parameterless layer
    else
       if layer.dfw != nothing
-         dϵ_dw = layer.dfw(x,layer.w)' * nextGradient
+         dϵ_dw = layer.dfw(x,layer.w)' * next_gradient
       else  # using AD
-        j = autoJacobian(wt -> layer.f(x,wt),layer.w; nY=layer.n)
-        dϵ_dw = j' * nextGradient
+        j = autojacobian(wt -> layer.f(x,wt),layer.w; nY=layer.n)
+        dϵ_dw = j' * next_gradient
       end
      return Learnable((dϵ_dw,))
    end
 end
 
-function setParams!(layer::VectorFunctionLayer{N},w) where {N}
+function set_params!(layer::VectorFunctionLayer{N},w) where {N}
    if N > 0
       layer.w = w.data[1]
    end
@@ -417,46 +417,46 @@ function forward(layer::ScalarFunctionLayer{N},x) where {N}
   return N == 0 ? layer.f.(x) : layer.f.(x,layer.w)
 end
 
-function backward(layer::ScalarFunctionLayer{N},x,nextGradient) where N
+function backward(layer::ScalarFunctionLayer{N},x,next_gradient) where N
    if N == 0
       if layer.dfx != nothing
-         dϵ_dI = layer.dfx.(x) .* nextGradient
+         dϵ_dI = layer.dfx.(x) .* next_gradient
       else  # using AD
-         dϵ_dI = layer.f'.(x) .* nextGradient
+         dϵ_dI = layer.f'.(x) .* next_gradient
       end
       return dϵ_dI
    else
       if layer.dfx != nothing
-         dϵ_dI = layer.dfx.(x,Ref(layer.w)) .* nextGradient
+         dϵ_dI = layer.dfx.(x,Ref(layer.w)) .* next_gradient
       else  # using AD
         #tempfunction(x) = layer.f.(x,Ref(layer.w))
         df_dx = [gradient(xt -> layer.f(xt,layer.w),xi)[1] for xi in x]  
-        dϵ_dI = df_dx .* nextGradient 
+        dϵ_dI = df_dx .* next_gradient 
       end
      return dϵ_dI
    end
 end
 
-function getParams(layer::ScalarFunctionLayer{N}) where {N}
+function get_params(layer::ScalarFunctionLayer{N}) where {N}
    return N == 0 ? Learnable(()) : Learnable((layer.w,))
 end
 
-function getGradient(layer::ScalarFunctionLayer{N},x,nextGradient) where {N}
+function get_gradient(layer::ScalarFunctionLayer{N},x,next_gradient) where {N}
    if N == 0
      return Learnable(()) # parameterless layer
    else
       if layer.dfw != nothing
-         dϵ_dw = [layer.dfw(xi,wj) for wj in layer.w, xi in x] * nextGradient
+         dϵ_dw = [layer.dfw(xi,wj) for wj in layer.w, xi in x] * next_gradient
       else  # using AD
         tempfunction(w) = [layer.f(xi,w) for xi in x]
-        j = autoJacobian(tempfunction,layer.w; nY=layer.n)
-        dϵ_dw = j' * nextGradient
+        j = autojacobian(tempfunction,layer.w; nY=layer.n)
+        dϵ_dw = j' * next_gradient
       end
      return Learnable((dϵ_dw,))
    end
 end
 
-function setParams!(layer::ScalarFunctionLayer{N},w) where {N}
+function set_params!(layer::ScalarFunctionLayer{N},w) where {N}
    if N > 0
       layer.w = w.data[1]
    end
@@ -546,33 +546,33 @@ function forward(layer::RNNLayer,x)
   return layer.f.(z)
 end
 
-function backward(layer::RNNLayer,x,nextGradient) #TODO
+function backward(layer::RNNLayer,x,next_gradient) #TODO
    z = _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) # layer.w * x + layer.wb # _zComp(layer,x) # @avx layer.w * x + layer.wb               # tested @avx
    if layer.df != nothing
-       dϵ_dz =  layer.df.(z) .* nextGradient # tested @avx
+       dϵ_dz =  layer.df.(z) .* next_gradient # tested @avx
     else
-       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
+       dϵ_dz = layer.f'.(z) .* next_gradient # using AD
     end
    dϵ_dI =  layer.w' * dϵ_dz # @avx
 end
 
-function getParams(layer::RNNLayer)
+function get_params(layer::RNNLayer)
   return Learnable((layer.wb,layer.wx,layer.ws))
 end
 
-function getGradient(layer::RNNLayer,x,nextGradient) #TODO
+function get_gradient(layer::RNNLayer,x,next_gradient) #TODO
    z      =  _zComp(layer,x) #@avx layer.w * x + layer.wb #  _zComp(layer,x) #layer.w * x + layer.wb # @avx
    if layer.df != nothing
-       dϵ_dz = layer.df.(z) .* nextGradient
+       dϵ_dz = layer.df.(z) .* next_gradient
     else
-       dϵ_dz = layer.f'.(z) .* nextGradient # using AD
+       dϵ_dz = layer.f'.(z) .* next_gradient # using AD
     end
    dϵ_dw  = dϵ_dz * x' # @avx
    dϵ_dwb = dϵ_dz
    return Learnable((dϵ_dw,dϵ_dwb))
 end
 
-function setParams!(layer::RNNLayer,w)
+function set_params!(layer::RNNLayer,w)
    layer.wb = w.data[1]
    layer.wx = w.data[2]
    layer.ws = w.data[3]

@@ -10,37 +10,37 @@ TESTRNG = FIXEDRNG # This could change...
 println("*** Testing individual utility functions (module `Utils`)...")
 
 # ==================================
-# TEST 1: oneHotEncoder
-println("Going through Test1 (oneHotEncoder)...")
+# TEST 1: onehotencoder
+println("Going through Test1 (onehotencoder)...")
 
 a = [[1,3,4],[1,4,2,2,3],[2,3]]
 b = [2,1,5,2,1]
 c = 2
-ae = oneHotEncoder(a;d=5,count=true)
-be = oneHotEncoder(b;d=6,count=true)
-ce = oneHotEncoder(c;d=6)
+ae = onehotencoder(a;d=5,count=true)
+be = onehotencoder(b;d=6,count=true)
+ce = onehotencoder(c;d=6)
 @test sum(ae*be*ce') == 4
 
 a = [["aa","ee","dd","aa"],["aa","dd","bb","bb","dd"],["bb","ee"]]
 b = ["a","d","b","b","d"]
 c = "dd"
-ae = oneHotEncoder(a,factors=["aa","bb","cc","dd","ee","ff"],count=true)
-be = oneHotEncoder(b,factors=["a","b","c","d","e","f"],count=true)
-ce = oneHotEncoder(c,factors=["aa","bb","cc","dd","ee","ff"],count=false)
+ae = onehotencoder(a,factors=["aa","bb","cc","dd","ee","ff"],count=true)
+be = onehotencoder(b,factors=["a","b","c","d","e","f"],count=true)
+ce = onehotencoder(c,factors=["aa","bb","cc","dd","ee","ff"],count=false)
 @test sum(ae * be') + ce[1,2] == 15
 
-ae = oneHotEncoder(a,count=true)
-be = oneHotEncoder(b,count=false)
-ce = oneHotEncoder(c,count=true)
+ae = onehotencoder(a,count=true)
+be = onehotencoder(b,count=false)
+ce = onehotencoder(c,count=true)
 @test sum(ae)+sum(size(be))+sum(ce) == 20
 
-@test BetaML.Utils.singleUnique([[1,2,3],[7,8],[5]]) == [1,2,3,7,8,5]
-@test BetaML.Utils.singleUnique([1,4,5,4]) == [1,4,5]
-@test BetaML.Utils.singleUnique("aaa") == ["aaa"]
+@test BetaML.Utils.singleunique([[1,2,3],[7,8],[5]]) == [1,2,3,7,8,5]
+@test BetaML.Utils.singleunique([1,4,5,4]) == [1,4,5]
+@test BetaML.Utils.singleunique("aaa") == ["aaa"]
 
-@test BetaML.Utils.oneHotEncoderRow(4,d=5) == [0,0,0,1,0]
-@test BetaML.Utils.oneHotEncoderRow("b",factors=["a","b","c"]) == [0,1,0]
-@test BetaML.Utils.oneHotEncoderRow(["b","c","c"],factors=["a","b","c"],count=true) == [0,1,2]
+@test BetaML.Utils.onehotencoder_row(4,d=5) == [0,0,0,1,0]
+@test BetaML.Utils.onehotencoder_row("b",factors=["a","b","c"]) == [0,1,0]
+@test BetaML.Utils.onehotencoder_row(["b","c","c"],factors=["a","b","c"],count=true) == [0,1,2]
 
 
 m  = OneHotEncoder()
@@ -76,7 +76,7 @@ x2 = inverse_predict(m,ŷ)
 
 # ==================================
 # NEW TEST
-println("Testing findFirst/ findall / integerEncoder / integerDecoder...")
+println("Testing findFirst/ findall / integerencoder / integerdecoder...")
 
 a = ["aa","cc","cc","bb","cc","aa"]
 A = [3 2 1; 2 3 1; 1 2 3]
@@ -87,9 +87,9 @@ A = [3 2 1; 2 3 1; 1 2 3]
 @test findfirst(2,A;returnTuple=false) == CartesianIndex(2,1)
 
 factors =  ["aa","bb","cc"]
-encoded  = integerEncoder(a,factors=factors)
+encoded  = integerencoder(a,factors=factors)
 @test encoded == [1,3,3,2,3,1]
-decoded  = integerDecoder(encoded,factors)
+decoded  = integerdecoder(encoded,factors)
 @test a == decoded
 
 
@@ -108,41 +108,41 @@ println("** Going through Test2 (softmax and other activation functions)...")
       softplus(1) == 1.3132616875182228 && mish(1) == 0.8650983882673103 && dmish(1) == 1.0490362200997922
 
 # ==================================
-# TEST 3: autoJacobian
-println("** Going through Test3 (autoJacobian)...")
+# TEST 3: autojacobian
+println("** Going through Test3 (autojacobian)...")
 @test isapprox(softmax([2,3,4],β=0.1),[0.3006096053557272,0.3322249935333472,0.36716540111092544])
 
-#import BetaML.Utils: autoJacobian
-@test autoJacobian(x -> (x[1]*2,x[2]*x[3]),[1,2,3]) == [2.0 0.0 0.0; 0.0 3.0 2.0]
+#import BetaML.Utils: autojacobian
+@test autojacobian(x -> (x[1]*2,x[2]*x[3]),[1,2,3]) == [2.0 0.0 0.0; 0.0 3.0 2.0]
 
 b = softmax([2,3,4],β=1/2)
 c = softmax([2,3.0000001,4],β=1/2)
 # Skipping this test as gives problems in CI for Julia < 1.6
-#autoGrad = autoJacobian(x->softmax(x,β=1/2),[2,3,4])
+#autoGrad = autojacobian(x->softmax(x,β=1/2),[2,3,4])
 realG2 = [(c[1]-b[1])*10000000,(c[2]-b[2])*10000000,(c[3]-b[3])*10000000]
 #@test isapprox(autoGrad[:,2],realG2,atol=0.000001)
 manualGrad = dsoftmax([2,3,4],β=1/2)
 @test isapprox(manualGrad[:,2],realG2,atol=0.000001)
 
 # Manual way is hundred of times faster
-#@benchmark autoJacobian(softMax2,[2,3,4])
+#@benchmark autojacobian(softMax2,[2,3,4])
 #@benchmark dSoftMax([2,3,4],β=1/2)
 
 # ==================================
 # New test
 println("** Testing cross-entropy...")
-or = cross_entropy([0.8,0.001,0.001],[1.0,0,0],weight = [2,1,1])
+or = crossentropy([0.8,0.001,0.001],[1.0,0,0],weight = [2,1,1])
 @test or ≈ 0.4462871026284194
-d = dCrossEntropy([0.8,0.001,0.001],[1.0,0,0],weight = [2,1,1])
+d = dcrossentropy([0.8,0.001,0.001],[1.0,0,0],weight = [2,1,1])
 δ = 0.001
-dest = cross_entropy([0.8+δ,0.101,0.001],[1.0,0,0],weight = [2,1,1])
+dest = crossentropy([0.8+δ,0.101,0.001],[1.0,0,0],weight = [2,1,1])
 @test isapprox(dest-or, d[1]*δ,atol=0.0001)
 
 # ==================================
 # New test
 println("** Testing permutations...")
 y = ["a","a","a","b","b","c","c","c"]
-yp = getPermutations(y,keepStructure=true)
+yp = getpermutations(y,keepStructure=true)
 ypExpected = [
   ["a", "a", "a", "b", "b", "c", "c", "c"],
   ["a", "a", "a", "c", "c", "b", "b", "b"],
@@ -162,7 +162,7 @@ y = ["a","a","a","b","b","c","c","c"]
 ŷ = ["b","b","a","c","c","a","a","c"]
 
 accuracyConsideringClassLabels = accuracy(ŷ,y) # 2 out of 8
-accuracyConsideringAnyClassLabel = accuracy(ŷ,y,ignoreLabels=true) # 6 out of 8
+accuracyConsideringAnyClassLabel = accuracy(ŷ,y,ignorelabels=true) # 6 out of 8
 
 @test accuracyConsideringClassLabels == 2/8
 @test accuracyConsideringAnyClassLabel == 6/8
@@ -172,7 +172,7 @@ y = CategoricalArray(y)
 ŷ = CategoricalArray(ŷ)
 
 accuracyConsideringClassLabels = accuracy(ŷ,y) # 2 out of 8
-accuracyConsideringAnyClassLabel = accuracy(ŷ,y,ignoreLabels=true) # 6 out of 8
+accuracyConsideringAnyClassLabel = accuracy(ŷ,y,ignorelabels=true) # 6 out of 8
 
 @test accuracyConsideringClassLabels == 2/8
 @test accuracyConsideringAnyClassLabel == 6/8
@@ -184,7 +184,7 @@ y = [3,3]
 x = [0.3 0.2 0.5; 0.5 0.25 0.25; 0.1 0.1 0.9]
 y = [1, 3, 1]
 @test accuracy(x,y) == 0.0
-@test accuracy(x,y, ignoreLabels=true) == 1.0
+@test accuracy(x,y, ignorelabels=true) == 1.0
 
 
 yest = [0 0.12; 0 0.9]
@@ -200,14 +200,14 @@ println("** Going through testing scaling...")
 
 skip = [1,4,5]
 x = [1.1 4.1 8.1 3 8; 2 4 9 7 2; 7 2 9 3 1]
-scaleFactors = getScaleFactors(x,skip=skip)
-y  = scale(x,scaleFactors)
+scalefactors = get_scalefactors(x,skip=skip)
+y  = scale(x,scalefactors)
 y2 = scale(x)
 x2 = copy(x)
 scale!(x2)
 @test y2 == x2
 @test all((sum(mean(y,dims=1)), sum(var(y,corrected=false,dims=1)) ) .≈ (11.366666666666667, 21.846666666666668))
-x3 = scale(y,scaleFactors,rev=true)
+x3 = scale(y,scalefactors,rev=true)
 @test x3 == x
 
 x = [1.1 4.1 8.1 missing 8; 2 4 9 7 2; 7 2 9 3 1]
@@ -248,7 +248,7 @@ println("** Testing batch()...")
 
 # ==================================
 # New test
-println("** Testing meanRelError()...")
+println("** Testing mean_relative_error()...")
 
 ŷ = [22 142 328; 3 9 31; 5 10 32; 3 10 36]
 y = [20 140 330; 1 11 33; 3 8 30; 5 12 38]
@@ -258,19 +258,19 @@ p=2
 # case 1 - average of the relative error (records and dimensions normalised)
 avgϵRel = sum(abs.((ŷ-y)./ y).^p)^(1/p)/(n*d)
 #avgϵRel = (norm((ŷ-y)./ y,p)/(n*d))
-meanRelError(ŷ,y,normDim=true,normRec=true,p=p) == avgϵRel
+mean_relative_error(ŷ,y,normdim=true,normrec=true,p=p) == avgϵRel
 # case 2 - normalised by dimensions (i.e.  all dimensions play the same)
 avgϵRel_byDim = (sum(abs.(ŷ-y) .^ (1/p),dims=1).^(1/p) ./ n) ./   (sum(abs.(y) .^ (1/p) ,dims=1) ./n)
 avgϵRel = mean(avgϵRel_byDim)
-@test meanRelError(ŷ,y,normDim=true,normRec=false,p=p) == avgϵRel
+@test mean_relative_error(ŷ,y,normdim=true,normrec=false,p=p) == avgϵRel
 # case 3
 avgϵRel_byRec = (sum(abs.(ŷ-y) .^ (1/p),dims=2).^(1/p) ./ d) ./   (sum(abs.(y) .^ (1/p) ,dims=2) ./d)
 avgϵRel = mean(avgϵRel_byRec)
-@test meanRelError(ŷ,y,normDim=false,normRec=true,p=p) == avgϵRel
+@test mean_relative_error(ŷ,y,normdim=false,normrec=true,p=p) == avgϵRel
 # case 4 - average error relativized
 avgϵRel = (sum(abs.(ŷ-y).^p)^(1/p) / (n*d)) / (sum( abs.(y) .^p)^(1/p) / (n*d))
 #avgϵRel = (norm((ŷ-y),p)/(n*d)) / (norm(y,p) / (n*d))
-@test meanRelError(ŷ,y,normDim=false,normRec=false,p=p) == avgϵRel
+@test mean_relative_error(ŷ,y,normdim=false,normrec=false,p=p) == avgϵRel
 
 
 # ==================================
@@ -380,8 +380,8 @@ res = info(cm)
 y = [0,1,2,2,0]
 ŷ = [0,0,2,1,0]
 labels = ["Class 0", "Class 1 with an extra long name super long", "Class 2"]
-#y = integerDecoder(y .+ 1,labels)
-#ŷ = integerDecoder(ŷ .+ 1,labels)
+#y = integerdecoder(y .+ 1,labels)
+#ŷ = integerdecoder(ŷ .+ 1,labels)
 cm = ConfMatrix(ŷ,y,labels=labels)
 
 @test cm.precision ≈ [0.6666666666666666, 0.0, 1.0]
@@ -494,12 +494,12 @@ redirect_stdout(original_stdout)
 close(wr)
 # ==================================
 # New test
-println("** Testing classCounts()...")
+println("** Testing class_counts()...")
 
-@test classCountsWithLabels(["a","b","a","c","d"]) == Dict("a"=>2,"b"=>1,"c"=>1,"d"=>1)
-@test classCountsWithLabels(['a' 'b'; 'a' 'c';'a' 'b']) == Dict(['a', 'b'] => 2,['a', 'c'] => 1)
-@test classCounts(["a","b","a","c","d"],classes=["a","b","c","d","e"]) == [2,1,1,1,0]
-@test collect(classCounts(['a' 'b'; 'a' 'c';'a' 'b'])) in [[2,1],[1,2]] # Order doesn't matter
+@test class_counts_with_labels(["a","b","a","c","d"]) == Dict("a"=>2,"b"=>1,"c"=>1,"d"=>1)
+@test class_counts_with_labels(['a' 'b'; 'a' 'c';'a' 'b']) == Dict(['a', 'b'] => 2,['a', 'c'] => 1)
+@test class_counts(["a","b","a","c","d"],classes=["a","b","c","d","e"]) == [2,1,1,1,0]
+@test collect(class_counts(['a' 'b'; 'a' 'c';'a' 'b'])) in [[2,1],[1,2]] # Order doesn't matter
 
 
 # ==================================
@@ -531,22 +531,22 @@ println("** Testing entropy()...")
 
 # ==================================
 # New test
-println("** Testing meanDicts()...")
+println("** Testing mean_dicts()...")
 
 a = Dict('a'=> 0.2,'b'=>0.3,'c'=>0.5)
 b = Dict('a'=> 0.3,'b'=>0.1,'d'=>0.6)
 c = Dict('b'=>0.6,'e'=>0.4)
 d = Dict('a'=>1)
 dicts = [a,b,c,d]
-@test meanDicts(dicts) == Dict('a' => 0.375,'c' => 0.125,'d' => 0.15,'e' => 0.1,'b' => 0.25)
-@test meanDicts(dicts,weights=[1,1,97,1]) == Dict('a' => 0.015, 'b' => 0.586, 'c' => 0.005, 'd' =>0.006, 'e' =>0.388)
+@test mean_dicts(dicts) == Dict('a' => 0.375,'c' => 0.125,'d' => 0.15,'e' => 0.1,'b' => 0.25)
+@test mean_dicts(dicts,weights=[1,1,97,1]) == Dict('a' => 0.015, 'b' => 0.586, 'c' => 0.005, 'd' =>0.006, 'e' =>0.388)
 
 a = Dict(1=> 0.1,2=>0.4,3=>0.5)
 b = Dict(4=> 0.3,1=>0.1,2=>0.6)
 c = Dict(5=>0.6,4=>0.4)
 d = Dict(2=>1)
 dicts = [a,b,c,d]
-@test meanDicts(dicts)  == Dict(4 => 0.175, 2 => 0.5, 3 => 0.125, 5 => 0.15, 1 => 0.05)
+@test mean_dicts(dicts)  == Dict(4 => 0.175, 2 => 0.5, 3 => 0.125, 5 => 0.15, 1 => 0.05)
 
 # ==================================
 # New test
@@ -554,7 +554,7 @@ println("** Testing partition()...")
 
 m1 = [1:10 11:20 31:40]
 m2 = convert(Array{Float64,2},[41:50 51:60])
-m3 = makeMatrix(collect(61:70))
+m3 = makematrix(collect(61:70))
 m4 = collect(71:80)
 parts = [0.33,0.27,0.4]
 out = partition([m1,m2,m3,m4],parts,shuffle=true,rng=copy(TESTRNG))
@@ -606,16 +606,16 @@ for (i,d) in enumerate(sampleIterator)
 end
 
 
-println("** Testing crossValidation...")
+println("** Testing cross_validation...")
 
 X = [11:19 21:29 31:39 41:49 51:59 61:69]
 Y = [1:9;]
 sampler = KFold(nSplits=3,nRepeats=1,shuffle=true,rng=copy(TESTRNG))
-(μ,σ) = crossValidation([X,Y],sampler) do trainData,valData,rng
+(μ,σ) = cross_validation([X,Y],sampler) do trainData,valData,rng
         (xtrain,ytrain) = trainData; (xval,yval) = valData
         trainedModel = buildForest(xtrain,ytrain,30,rng=rng)
         predictions = predict(trainedModel,xval,rng=rng)
-        ϵ = meanRelError(predictions,yval,normRec=false)
+        ϵ = mean_relative_error(predictions,yval,normrec=false)
         return ϵ
     end
 
@@ -668,15 +668,15 @@ return out
 
 # ==================================
 # New test
-println("** Testing generateParallelRngs()...")
+println("** Testing generate_parallel_rngs()...")
 x = rand(copy(TESTRNG),100)
 
 function innerFunction(bootstrappedx; rng=Random.GLOBAL_RNG)
      sum(bootstrappedx .* rand(rng) ./ 0.5)
 end
 function outerFunction(x;rng = Random.GLOBAL_RNG)
-    masterSeed = rand(rng,100:9999999999999) # important: with some RNG it is important to do this before the generateParallelRngs to guarantee independance from number of threads
-    rngs       = generateParallelRngs(rng,Threads.nthreads()) # make new copy instances
+    masterSeed = rand(rng,100:9999999999999) # important: with some RNG it is important to do this before the generate_parallel_rngs to guarantee independance from number of threads
+    rngs       = generate_parallel_rngs(rng,Threads.nthreads()) # make new copy instances
     results    = Array{Float64,1}(undef,30)
     Threads.@threads for i in 1:30
         tsrng = rngs[Threads.threadid()]    # Thread safe random number generator: one RNG per thread
@@ -717,11 +717,11 @@ b = outerFunction(x,rng=copy(TESTRNG))
 # New test
 println("** Testing pool1d()...")
 x = [1,2,3,4,5,6]
-poolSize = 3
+poolsize = 3
 
-out = pool1d(x,poolSize)
+out = pool1d(x,poolsize)
 @test out == [2.0,3.0,4.0,5.0]
-out = pool1d(x,poolSize;f=maximum)
+out = pool1d(x,poolsize;f=maximum)
 @test out == [3,4,5,6]
 
 #=

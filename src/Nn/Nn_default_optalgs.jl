@@ -23,8 +23,8 @@ struct SGD <: OptimisationAlgorithm
 end
 
 
-function singleUpdate!(θ,▽,opt_alg::SGD;nEpoch,nBatch,nBatches,xbatch,ybatch)
-    η    = opt_alg.η(nEpoch)*opt_alg.λ
+function single_update!(θ,▽,opt_alg::SGD;n_epoch,n_batch,n_batches,xbatch,ybatch)
+    η    = opt_alg.η(n_epoch)*opt_alg.λ
     #newθ = gradSub.(θ,gradMul.(▽,η))
     θ =  θ - ▽ .* η
     #newθ = gradientDescentSingleUpdate(θ,▽,η)
@@ -70,21 +70,21 @@ mutable struct ADAM <: OptimisationAlgorithm
 end
 
 """
-   initOptAlg!(opt_alg::ADAM;θ,batch_size,x,y,rng)
+   init_optalg!(opt_alg::ADAM;θ,batch_size,x,y,rng)
 
 Initialize the ADAM algorithm with the parameters m and v as zeros and check parameter bounds
 """
-function initOptAlg!(opt_alg::ADAM;θ,batch_size,x,y,rng = Random.GLOBAL_RNG)
+function init_optalg!(opt_alg::ADAM;θ,batch_size,x,y,rng = Random.GLOBAL_RNG)
     opt_alg.m = θ .- θ # setting to zeros
     opt_alg.v = θ .- θ # setting to zeros
     if opt_alg.β₁ <= 0 || opt_alg.β₁ >= 1 @error "The parameter β₁ must be ∈ [0,1]" end
     if opt_alg.β₂ <= 0 || opt_alg.β₂ >= 1 @error "The parameter β₂ must be ∈ [0,1]" end
 end
 
-function singleUpdate!(θ,▽,opt_alg::ADAM;nEpoch,nBatch,nBatches,xbatch,ybatch)
+function single_update!(θ,▽,opt_alg::ADAM;n_epoch,n_batch,n_batches,xbatch,ybatch)
     β₁,β₂,ϵ  = opt_alg.β₁, opt_alg.β₂, opt_alg.ϵ
-    η        = opt_alg.η(nEpoch)*opt_alg.λ
-    t        = (nEpoch-1)*nBatches+nBatch
+    η        = opt_alg.η(n_epoch)*opt_alg.λ
+    t        = (n_epoch-1)*n_batches+n_batch
     opt_alg.m = @. β₁ * opt_alg.m + (1-β₁) * ▽
     opt_alg.v = @. β₂ * opt_alg.v + (1-β₂) * (▽*▽)
     #opt_alg.v = [β₂ .* opt_alg.v.data[i] .+ (1-β₂) .* (▽.data[i] .* ▽.data[i]) for i in 1:size(opt_alg.v.data)]
@@ -104,7 +104,7 @@ struct DebugOptAlg <: OptimisationAlgorithm
     end
 end
 
-function singleUpdate!(θ,▽,opt_alg::DebugOptAlg;nEpoch,nBatch,batch_size,ϵ_epoch,ϵ_epoch_l)
+function single_update!(θ,▽,opt_alg::DebugOptAlg;n_epoch,n_batch,batch_size,ϵ_epoch,ϵ_epoch_l)
     println(opt_alg.dString)
     return (θ=θ,stop=false)
 end

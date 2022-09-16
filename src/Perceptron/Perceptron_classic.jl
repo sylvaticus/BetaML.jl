@@ -121,10 +121,10 @@ julia> model = perceptronBinary([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 """
 function perceptronBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=10, shuffle=false, force_origin=false, rng = Random.GLOBAL_RNG)
 if nMsgs != 0
-   @codeLocation
+   @codelocation
    println("***\n*** Training perceptron for maximum $T iterations. Random shuffle: $shuffle")
 end
-x = makeMatrix(x)
+x = makematrix(x)
 (n,d) = size(x)
 bestϵ = Inf
 lastϵ = Inf
@@ -186,8 +186,8 @@ julia> predict([1.1 2.1; 5.3 4.2; 1.8 1.7], [3.2,1.2])
 ```
 """
 function predict(x,θ,θ₀=0.0)
-    x = makeMatrix(x)
-    θ = makeColVector(θ)
+    x = makematrix(x)
+    θ = makecolvector(θ)
     (n,d) = size(x)
     d2 = length(θ)
     if (d2 != d) error("x and θ must have the same dimensions."); end

@@ -25,6 +25,9 @@ This strategy (`GMMRegressor1`) works by fitting the EM algorithm on the feature
 Once the data has been probabilistically assigned to the various classes, a mean value of fitting values Y is computed for each cluster (using the probabilities as weigths).
 At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm to obtain the probabilistic assignment of each record to the various mixtures. Then these probabilities are multiplied to the mixture averages for the Y dimensions learned at training time to obtain the predicted value(s) for each record. 
 
+# Notes:
+- the predicted values are always a matrix, even when a single variable is predicted (use `dropdims(ŷ,dims=2)` to get a single vector).
+
 """
 mutable struct GMMRegressor1 <: BetaMLUnsupervisedModel
     hpar::GMMHyperParametersSet
@@ -69,8 +72,8 @@ Fit the [`GMMRegressor1`](@ref) model to data
 """
 function fit!(m::GMMRegressor1,x,y)
 
-    x = makeMatrix(x)
-    y = makeMatrix(y)
+    x = makematrix(x)
+    y = makematrix(y)
 
     # Parameter alias..
     K             = m.hpar.n_classes
@@ -97,7 +100,7 @@ function fit!(m::GMMRegressor1,x,y)
     ysum           = probRecords' * y
     ymean          = vcat(transpose([ysum[r,:] / sumProbrecords[1,r] for r in 1:size(ysum,1)])...)
 
-    m.par  = GMMRegressor1LearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makeColVector(gmmOut.pₖ), meanYByMixture = ymean)
+    m.par  = GMMRegressor1LearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makecolvector(gmmOut.pₖ), meanYByMixture = ymean)
     m.cres = cache ? probRecords  * ymean : nothing
 
 
@@ -118,7 +121,7 @@ Predict the classes probabilities associated to new data assuming the mixtures a
 
 """
 function predict(m::GMMRegressor1,X)
-    X    = makeMatrix(X)
+    X    = makematrix(X)
     N,DX = size(X)
     mixtures = m.par.mixtures
     yByMixture = m.par.meanYByMixture
@@ -206,9 +209,9 @@ Fit the [`GMMRegressor2`](@ref) model to data
 """
 function fit!(m::GMMRegressor2,x,y)
 
-    x = makeMatrix(x)
+    x = makematrix(x)
     N,DX = size(x)
-    y = makeMatrix(y)
+    y = makematrix(y)
     x = hcat(x,y)
     DFull = size(x,2)
     # Parameter alias..
@@ -231,7 +234,7 @@ function fit!(m::GMMRegressor2,x,y)
         gmmOut = gmm(x,K;initial_probmixtures=initial_probmixtures,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)
     end
     probRecords = gmmOut.pₙₖ
-    m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makeColVector(gmmOut.pₖ))
+    m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makecolvector(gmmOut.pₖ))
     m.cres = cache ?  probRecords  * [gmmOut.mixtures[k].μ[d] for k in 1:K, d in DX+1:DFull]  : nothing
 
     m.info[:error]          = gmmOut.ϵ
@@ -250,7 +253,7 @@ $(TYPEDSIGNATURES)
 Predict the classes probabilities associated to new data assuming the mixtures computed fitting a [`GMMRegressor2`](@ref) model on a merged X and Y matrix
 """
 function predict(m::GMMRegressor2,X)
-    X    = makeMatrix(X)
+    X    = makematrix(X)
     allowmissing!(X)
     N,DX = size(X)
     mixtures = m.par.mixtures

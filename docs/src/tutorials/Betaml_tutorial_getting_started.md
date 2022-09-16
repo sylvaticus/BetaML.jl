@@ -130,7 +130,7 @@ We can now "import" the BetaML julia package (in julia a "Package" is basically 
 
 ```{r}
 > julia_eval("using BetaML")
-> yencoded <- julia_call("integerEncoder",y)
+> yencoded <- julia_call("integerencoder",y)
 > ids      <- julia_call("shuffle",1:length(y))
 > Xs       <- X[ids,]
 > ys       <- yencoded[ids]

@@ -39,7 +39,7 @@ mutable struct KernelPerceptron <: MMI.Probabilistic
      rng::AbstractRNG
 end
 KernelPerceptron(;
-    K=radialKernel,
+    K=radial_kernel,
     maxEpochs=100,
     initialα = nothing,
     shuffle=false,

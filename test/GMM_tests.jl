@@ -94,9 +94,9 @@ ŷtrain  = predict(m, xtrain)
 ŷtrain2 = predict(m)
 @test isapprox(ŷtrain,ŷtrain2,atol=0.00001) # not the same as the predict(m,xtrain) goes trough a further estep
 ŷtest = predict(m, xtest)
-mreTrain = meanRelError(ŷtrain,ytrain)
+mreTrain = mean_relative_error(ŷtrain,ytrain)
 @test mreTrain <= 0.08
-mreTest  = meanRelError(ŷtest,ytest)
+mreTest  = mean_relative_error(ŷtest,ytest)
 @test mreTest <= 0.35
 
 # testing it with multidimensional Y
@@ -105,7 +105,7 @@ fit!(m,xtrain,ytrain2d)
 ŷtrain2d = predict(m, xtrain)
 ŷtrain2db = predict(m)
 @test isapprox(ŷtrain2d,ŷtrain2db,atol=0.00001) # not the same as the predict(m,xtrain) goes trough a further estep
-mreTrain2d = meanRelError(ŷtrain2d,ytrain2d)
+mreTrain2d = mean_relative_error(ŷtrain2d,ytrain2d)
 @test mreTrain2d <= 0.08
 
 # Testing GMM Regressor 2
@@ -116,9 +116,9 @@ ŷtrain = predict(m, xtrain)
 ŷtrain2 = predict(m)
 @test isapprox(ŷtrain,ŷtrain2,atol=0.01) # not the same as the predict(m,xtrain) goes trough a further estep
 ŷtest = predict(m, xtest)
-mreTrain = meanRelError(ŷtrain,ytrain)
+mreTrain = mean_relative_error(ŷtrain,ytrain)
 @test mreTrain <= 0.08
-mreTest  = meanRelError(ŷtest,ytest)
+mreTest  = mean_relative_error(ŷtest,ytest)
 @test mreTest <= 0.35
 
 # testing it with multidimensional Y
@@ -127,11 +127,11 @@ fit!(m,xtrain,ytrain2d)
 ŷtrain2d = predict(m, xtrain)
 ŷtrain2db = predict(m)
 @test isapprox(ŷtrain2d,ŷtrain2db,atol=0.01) # not the same as the predict(m,xtrain) goes trough a further estep
-mreTrain2d = meanRelError(ŷtrain2d,ytrain2d)
+mreTrain2d = mean_relative_error(ŷtrain2d,ytrain2d)
 @test mreTrain2d <= 0.08
 fit!(m,xtrain,ytrain2d) # re-fit
 ŷtrain2d = predict(m, xtrain)
-mreTrain2d = meanRelError(ŷtrain2d,ytrain2d)
+mreTrain2d = mean_relative_error(ŷtrain2d,ytrain2d)
 @test mreTrain2d <= 0.08
 
 
@@ -156,4 +156,5 @@ model_gmmr                      = GaussianMixtureRegressor(n_classes=20,rng=copy
 regressor_gmmr                  = Mlj.machine(model_gmmr, X, y)
 (fitresult_gmmr, cache, report) = Mlj.fit(model_gmmr, 0, X, y)
 yhat_gmmr                       = Mlj.predict(model_gmmr, fitresult_gmmr, X)
-@test meanRelError(yhat_gmmr[:,1],y) < 0.3
+@test mean_relative_error(yhat_gmmr[:,1],y) < 0.3
+

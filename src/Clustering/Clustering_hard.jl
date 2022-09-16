@@ -25,7 +25,7 @@ julia> initial_representatives = init_representatives([1 10.5;1.5 10.8; 1.8 8; 1
 ```
 """
 function init_representatives(X,n_classes;initialisation_strategy="grid",initial_representatives=nothing,rng = Random.GLOBAL_RNG)
-  X  = makeMatrix(X)
+  X  = makematrix(X)
   (N,D) = size(X)
   K = n_classes
   # Random choice of initial representative vectors (any point, not just in X!)
@@ -47,7 +47,7 @@ function init_representatives(X,n_classes;initialisation_strategy="grid",initial
       end
   elseif initialisation_strategy == "given"
       if isnothing(initial_representatives) error("With the `given` strategy you need to provide the initial set of representatives in the initial_representatives parameter.") end
-      initial_representatives = makeMatrix(initial_representatives)
+      initial_representatives = makematrix(initial_representatives)
       Z = initial_representatives
   elseif initialisation_strategy == "shuffle"
       zIdx = shuffle(rng,1:size(X)[1])[1:K]
@@ -117,7 +117,7 @@ Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 * The `dist` parameter can be:
   * Any user defined function accepting two vectors and returning a scalar
   * An anonymous function with the same characteristics (e.g. `dist = (x,y) -> norm(x-y)^2`)
-  * One of the above predefined distances: `l1_distance`, `l2_distance`, `l2²_distance`, `cosine_distance`
+  * One of the above predefined distances: `l1_distance`, `l2_distance`, `l2squared_distance`, `cosine_distance`
 
 # Example:
 ```julia
@@ -125,7 +125,7 @@ julia> (clIdx,Z) = kmeans([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 3
 ```
 """
 function kmeans(X,K;dist=(x,y) -> norm(x-y),initialisation_strategy="grid",initial_representatives=nothing,verbosity=STD,rng = Random.GLOBAL_RNG)
-  X     = makeMatrix(X)
+  X     = makematrix(X)
   (N,D) = size(X)
   # Random choice of initial representative vectors (any point, not just in X!)
   minX  = minimum(X,dims=1)
@@ -204,7 +204,7 @@ Compute K-Medoids algorithm to identify K clusters of X using distance definitio
 * The `dist` parameter can be:
 * Any user defined function accepting two vectors and returning a scalar
 * An anonymous function with the same characteristics (e.g. `dist = (x,y) -> norm(x-y)^2`)
-* One of the above predefined distances: `l1_distance`, `l2_distance`, `l2²_distance`, `cosine_distance`
+* One of the above predefined distances: `l1_distance`, `l2_distance`, `l2squared_distance`, `cosine_distance`
 
 # Example:
 ```julia
@@ -212,7 +212,7 @@ julia> (clIdx,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3
 ```
 """
 function kmedoids(X,K;dist=(x,y) -> norm(x-y),initialisation_strategy="grid",initial_representatives=nothing, verbosity=STD, rng = Random.GLOBAL_RNG)
-  X  = makeMatrix(X)
+  X  = makematrix(X)
   (n,d) = size(X)
   # Random choice of initial representative vectors
   initial_representatives = init_representatives(X,K,initialisation_strategy=initialisation_strategy,initial_representatives=initial_representatives,rng=rng)
@@ -252,7 +252,7 @@ $(TYPEDFIELDS)
 Base.@kwdef mutable struct KMeansMedoidsHyperParametersSet <: BetaMLHyperParametersSet
     "Number of classes to discriminate the data [def: 3]"
     n_classes::Int64                  = 3
-    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2²_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
+    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
     dist::Function                    = (x,y) -> norm(x-y)
     """
     The computation method of the vector of the initial representatives.
@@ -426,7 +426,7 @@ Assign the class of new data using the representatives learned by fitting a [`KM
 
 """
 function predict(m::Union{KMeansClusterer,KMedoidsClusterer},X)
-    X               = makeMatrix(X)
+    X               = makematrix(X)
     representatives = m.par.representatives
     classes = classAssignation(X,representatives,m.hpar.dist)
     return classes

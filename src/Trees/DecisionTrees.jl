@@ -41,7 +41,7 @@ struct Leaf{Ty} <: AbstractLeaf
             rawPredictions = y
             predictions    = mean(rawPredictions)
         else
-            rawPredictions = classCountsWithLabels(y)
+            rawPredictions = class_counts_with_labels(y)
             total = sum(values(rawPredictions))
             predictions = Dict{Ty,Float64}()
             [predictions[k] = rawPredictions[k] / total for k in keys(rawPredictions)]
@@ -358,7 +358,7 @@ function buildTree(x, y::AbstractArray{Ty,1}; max_depth = size(x,1), min_gain=0.
         y = string.(y)
     end
 
-    if(mCols == nothing) mCols = colsWithMissing(x) end
+    if(mCols == nothing) mCols = cols_with_missing(x) end
 
 
     nodes = TempNode[]
@@ -503,7 +503,7 @@ For each record of the dataset, recursivelly traverse the tree to find the predi
 If the labels the tree has been fitted with are numeric, the prediction is also numeric.
 If the labels were categorical, the prediction is a dictionary with the probabilities of each item.
 
-In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
+In the first case (numerical predictions) use `mean_relative_error(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 """
 function predict(tree::Union{DecisionNode{Tx}, Leaf{Ty}}, x; rng = Random.GLOBAL_RNG) where {Tx,Ty}
     predictions = predictSingle.(Ref(tree),eachrow(x),rng=rng)

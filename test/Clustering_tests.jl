@@ -73,7 +73,7 @@ modelMachine                   = Mlj.machine(model, X)
 (fitResults, cache, report)    = Mlj.fit(model, 0, X)
 distances                      = Mlj.transform(model,fitResults,X)
 yhat                           = Mlj.predict(model, fitResults, X)
-acc = BetaML.accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
+acc = BetaML.accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignorelabels=true)
 @test acc > 0.8
 
 model                          = KMedoids(rng=copy(TESTRNG))
@@ -81,5 +81,5 @@ modelMachine                   = Mlj.machine(model, X)
 (fitResults, cache, report)    = Mlj.fit(model, 0, X)
 distances                      = Mlj.transform(model,fitResults,X)
 yhat                           = Mlj.predict(model, fitResults, X)
-acc = BetaML.accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignoreLabels=true)
+acc = BetaML.accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignorelabels=true)
 @test acc > 0.8

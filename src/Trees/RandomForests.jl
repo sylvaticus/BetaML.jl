@@ -143,8 +143,8 @@ function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1
     jobIsRegression = (force_classification || !(eltype(y) <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     (N,D) = size(x)
 
-    masterSeed = rand(rng,100:9999999999999) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generateParallelRngs
-    rngs = generateParallelRngs(rng,Threads.nthreads())
+    masterSeed = rand(rng,100:9999999999999) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generate_parallel_rngs
+    rngs = generate_parallel_rngs(rng,Threads.nthreads())
 
     #for i in 1:n_trees # for easier debugging/profiling...
     Threads.@threads for i in 1:n_trees
@@ -237,7 +237,7 @@ function predictSingle(forest::Forest{Ty}, x; rng = Random.GLOBAL_RNG) where {Ty
     predictions  = predictSingle.(trees,Ref(x),rng=rng)
     if eltype(predictions) <: AbstractDict   # categorical
         #weights = 1 .- treesErrors # back to the accuracy
-        return meanDicts(predictions,weights=weights)
+        return mean_dicts(predictions,weights=weights)
     else
         #weights = exp.( - treesErrors)
         return dot(predictions,weights)/sum(weights)
@@ -258,7 +258,7 @@ For each record of the dataset and each tree of the "forest", recursivelly trave
 If the labels the tree has been trained with are numeric, the prediction is also numeric (the mean of the different trees predictions, in turn the mean of the labels of the training records ended in that leaf node).
 If the labels were categorical, the prediction is a dictionary with the probabilities of each item and in such case the probabilities of the different trees are averaged to compose the forest predictions. This is a bit different than most other implementations where the mode instead is reported.
 
-In the first case (numerical predictions) use `meanRelError(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
+In the first case (numerical predictions) use `mean_relative_error(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 """
 function predict(forest::Forest{Ty}, x;rng = Random.GLOBAL_RNG) where {Ty}
     predictions = predictSingle.(Ref(forest),eachrow(x),rng=rng)
@@ -296,7 +296,7 @@ function updateTreesWeights!(forest::Forest{Ty},x,y;β=50,rng = Random.GLOBAL_RN
         if length(yoob) > 0
             ŷ = predict(tree,x[notSampledByTree[i],:],rng=rng)
             if jobIsRegression
-                push!(weights,exp(- β*meanRelError(ŷ,yoob)))
+                push!(weights,exp(- β*mean_relative_error(ŷ,yoob)))
             else
                 push!(weights,accuracy(ŷ,yoob)*β)
             end
@@ -347,7 +347,7 @@ function oobError(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
         ŷ[n] = ŷi
     end
     if jobIsRegression
-        return meanRelError(ŷ[nMask],y[nMask],normDim=false,normRec=false)
+        return mean_relative_error(ŷ[nMask],y[nMask],normdim=false,normrec=false)
     else
         return error(ŷ[nMask],y[nMask])
     end

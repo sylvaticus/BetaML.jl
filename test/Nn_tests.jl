@@ -62,22 +62,22 @@ dϵ_do1 = backward(l2,o1,dϵ_do2) # here takes long as needs Zygote
 dϵ_dX = backward(l1,x,dϵ_do1)
 @test dϵ_dX ≈ [-0.23691761847142412, 0.0]
 #@code_warntype backward(l1,x,dϵ_do1)
-l1w = getParams(l1)
+l1w = get_params(l1)
 #@code_warntype
-l2w = getParams(l2)
+l2w = get_params(l2)
 #@code_warntype
-w = getParams(mynn)
-#@code_warntype getParams(mynn)
+w = get_params(mynn)
+#@code_warntype get_params(mynn)
 #typeof(w)2-element Vector{Float64}:
 origW = deepcopy(w)
-l2dw = getGradient(l2,o1,dϵ_do2)
+l2dw = get_gradient(l2,o1,dϵ_do2)
 @test length(l2dw.data) == 0
-#@code_warntype getGradient(l2,o1,dϵ_do2)
-l1dw = getGradient(l1,x,dϵ_do1)
+#@code_warntype get_gradient(l2,o1,dϵ_do2)
+l1dw = get_gradient(l1,x,dϵ_do1)
 @test l1dw.data[1] ≈ [-0.023691761847142414 -0.23691761847142412; 0.023691761847142414 0.23691761847142412]
 #@code_warntype
-dw = getGradient(mynn,x,y)
-#@code_warntype getGradient(mynn,x,y)
+dw = get_gradient(mynn,x,y)
+#@code_warntype get_gradient(mynn,x,y)
 y_deltax1 = predict(mynn,[x[1]+0.001 x[2]])[1,:]
 #@code_warntype Nn.predict(mynn,[x[1]+0.001 x[2]])[1,:]
 lossDeltax1 = loss(mynn,[x[1]+0.001 x[2]],y')
@@ -87,7 +87,7 @@ deltaloss = dot(dϵ_dX,[0.001,0])
 @test isapprox(lossDeltax1-lossOrig,deltaloss,atol=0.0000001)
 l1wNew = l1w
 l1wNew.data[1][1,1] += 0.001
-setParams!(l1,l1wNew)
+set_params!(l1,l1wNew)
 lossDelPar = loss(mynn,x',y')
 #@code_warntype
 deltaLossPar = 0.001*l1dw.data[1][1,1]
@@ -99,19 +99,19 @@ lossDelPar - lossOrig
 w = w - dw * η
 #@code_warntype gradSub.(w, gradMul.(dw,η))
 #@code_warntype
-setParams!(mynn,w)
+set_params!(mynn,w)
 loss2 = loss(mynn,x',y')
 #@code_warntype
 @test loss2 < lossOrig
 for i in 1:10000
-    local w  = getParams(mynn)
-    local dw = getGradient(mynn,x,y)
+    local w  = get_params(mynn)
+    local dw = get_gradient(mynn,x,y)
     w  = w - dw * η
-    setParams!(mynn,w)
+    set_params!(mynn,w)
 end
 lossFinal = loss(mynn,x',y')
 @test predict(mynn,x')[1,1]>0.96
-setParams!(mynn,origW)
+set_params!(mynn,origW)
 train!(mynn,x',y',epochs=10000,batch_size=1,sequential=true,verbosity=NONE,opt_alg=SGD(η=t->η,λ=1),rng=copy(TESTRNG))
 #@code_warntype train!(mynn,x',y',epochs=10000,batch_size=1,sequential=true,verbosity=NONE,opt_alg=SGD(η=t->η,λ=1))
 lossTraining = loss(mynn,x',y')
@@ -119,7 +119,7 @@ lossTraining = loss(mynn,x',y')
 @test isapprox(lossFinal,lossTraining,atol=0.00001)
 
 li   = DenseLayer(2,2,w=[2 1;1 1],f=identity,rng=copy(TESTRNG))
-@test getNParams(li) == 6
+@test get_nparams(li) == 6
 
 # ==================================
 # NEW Test
@@ -185,15 +185,15 @@ ŷtestExpected = [0.4676699631752518,0.3448383593117405,0.4500863419692639,9.90
 ŷtrain = dropdims(predict(mynn,xtrain),dims=2)
 ŷtest = dropdims(predict(mynn,xtest),dims=2)
 @test any(isapprox(ŷtest,ŷtestExpected))
-mreTrain = meanRelError(ŷtrain,ytrain)
+mreTrain = mean_relative_error(ŷtrain,ytrain)
 @test mreTrain <= 0.06
-mreTest  = meanRelError(ŷtest,ytest)
+mreTest  = mean_relative_error(ŷtest,ytest)
 @test mreTest <= 0.05
 
 m = NeuralNetworkEstimator(rng=copy(TESTRNG),verbosity=NONE)
 fit!(m,xtrain,ytrain)
 ŷtrain2 =  dropdims(predict(m),dims=2)
-mreTrain = meanRelError(ŷtrain,ytrain)
+mreTrain = mean_relative_error(ŷtrain,ytrain)
 @test mreTrain <= 0.06
 
 
@@ -219,7 +219,7 @@ CSV.write(joinpath(@__DIR__,"data","iris_shuffled.csv"),iris)
 iris     = readdlm(joinpath(@__DIR__,"data","iris_shuffled.csv"),',',skipstart=1)
 x = convert(Array{Float64,2}, iris[:,1:4])
 y = map(x->Dict("setosa" => 1, "versicolor" => 2, "virginica" =>3)[x],iris[:, 5])
-y_oh = oneHotEncoder(y)
+y_oh = onehotencoder(y)
 
 ntrain = Int64(round(size(x,1)*0.8))
 xtrain = x[1:ntrain,:]
@@ -312,7 +312,7 @@ if VERSION >= v"1.6"
     mynn     = buildNetwork([l1,l2,l3],squared_cost,name="Regression with a pooled layer")
     train!(mynn,x,y,epochs=50,verbosity=NONE,rng=copy(TESTRNG))
     ŷ        = predict(mynn,x)
-    mreTrain = meanRelError(ŷ,y,normRec=false)
+    mreTrain = mean_relative_error(ŷ,y,normrec=false)
     @test mreTrain  < 0.14
 end
 
@@ -327,7 +327,7 @@ model                          = MultitargetNeuralNetworkRegressor(rng=copy(TEST
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = dropdims(Mlj.predict(model, fitresult, X),dims=2)
-@test meanRelError(yhat,y) < 0.2
+@test mean_relative_error(yhat,y) < 0.2
 
 X, y                           = Mlj.@load_iris
 model                          = NeuralNetworkClassifier(rng=copy(TESTRNG))

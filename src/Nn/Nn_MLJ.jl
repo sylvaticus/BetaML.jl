@@ -46,8 +46,8 @@ Base.@kwdef mutable struct MultitargetNeuralNetworkRegressor <: MMI.Deterministi
     shuffle::Bool = true  
     "An optional title and/or description for this model"
     descr::String = "" 
-    "A call back function to provide information during training [def: `trainingInfo`"
-    cb::Function=trainingInfo
+    "A call back function to provide information during training [def: `fitting_info`"
+    cb::Function=fitting_info
     "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
     "
     rng::AbstractRNG = Random.GLOBAL_RNG
@@ -101,13 +101,13 @@ $(FIELDS)
 Base.@kwdef mutable struct NeuralNetworkClassifier <: MMI.Probabilistic
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers. The last \"softmax\" layer is automatically added."
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
-    """Loss (cost) function [def: `cross_entropy`].
+    """Loss (cost) function [def: `crossentropy`].
     !!! warning
         If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
     """
-    loss::Union{Nothing,Function} = cross_entropy
-    "Derivative of the loss function [def: `dCrossEntropy`, i.e. the derivative of the cross-entropy]. Use `nothing` for autodiff."
-    dloss::Union{Function,Nothing}  = dCrossEntropy
+    loss::Union{Nothing,Function} = crossentropy
+    "Derivative of the loss function [def: `dcrossentropy`, i.e. the derivative of the cross-entropy]. Use `nothing` for autodiff."
+    dloss::Union{Function,Nothing}  = dcrossentropy
     "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
     epochs::Int64 = 100
     "Size of each individual batch [def: `32`]"
@@ -118,8 +118,8 @@ Base.@kwdef mutable struct NeuralNetworkClassifier <: MMI.Probabilistic
     shuffle::Bool = true  
     "An optional title and/or description for this model"
     descr::String = "" 
-    "A call back function to provide information during training [def: `trainingInfo`"
-    cb::Function=trainingInfo
+    "A call back function to provide information during training [def: `fitting_info`"
+    cb::Function=fitting_info
     "The categories to represent as columns. [def: `nothing`, i.e. unique training values]."  
     categories::Union{Vector,Nothing} = nothing
     "How to handle categories not seens in training or not present in the provided `categories` array? \"error\" (default) rises an error, \"infrequent\" adds a specific column for these categories."
