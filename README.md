@@ -45,15 +45,15 @@ Currently the following models are available:
 Theoretical notes describing many of these algorithms are at the companion repository https://github.com/sylvaticus/MITx_6.86x.
 
 All models are implemented entirely in Julia and are hosted in the repository itself (i.e. they are not wrapper to third-party models).
-If your favorite option or model is missing, you can try implement it yourself and [open a pull request](https://github.com/sylvaticus/BetaML.jl/pulls) to share it (see the section [Contribute](#contribute) below) or request its implementation ([open an issue](https://github.com/sylvaticus/BetaML.jl/issues)). Thanks to its JIT compiler, Julia is indeed in the sweetpoint where we can easily write models in a high-level language and still having them running efficiently. 
+If your favorite option or model is missing, you can try implement it yourself and [open a pull request](https://github.com/sylvaticus/BetaML.jl/pulls) to share it (see the section [Contribute](#contribute) below) or request its implementation ([open an issue](https://github.com/sylvaticus/BetaML.jl/issues)). Thanks to its JIT compiler, Julia is indeed in the sweet spot where we can easily write models in a high-level language and still having them running efficiently. 
 
 ## Documentation
 
-Please refer to the package documentation ([stable](https://sylvaticus.github.io/BetaML.jl/stable) | [dev](https://sylvaticus.github.io/BetaML.jl/dev)) or use the Julia inline package system (just press the question mark `?` and then, on the special help prompt `help?>`, type the module or function name). The package documentation is made of two distinct parts. The first one is an extensively commented tutorial that covers most of the library, the second one is the reference manual covering the library's API.
+Please refer to the [package documentation](https://sylvaticus.github.io/BetaML.jl/stable) or use the Julia inline package system (just press the question mark `?` and then, on the special help prompt `help?>`, type the module or function name). The package documentation is made of two distinct parts. The first one is an extensively commented tutorial that covers most of the library, the second one is the reference manual covering the library's API.
 
 If you are looking for an introductory material on Julia, have a look on the book "[Julia Quick Syntax Reference](https://www.julia-book.com/)"(Apress,2019) or the online course "[Scientific Programming and Machine Learning in Julia](https://sylvaticus.github.io/SPMLJ/stable/).
 
-While implemented in Julia, this package can be easily used in R or Python employing [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) or [PyJulia](https://github.com/JuliaPy/pyjulia) respectively, see the documentation tutorial on the "Getting started" section.
+While implemented in Julia, this package can be easily used in R or Python employing [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) or [PyJulia](https://github.com/JuliaPy/pyjulia) respectively, see [the relevant section](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#using_betaml_from_other_languages) in the documentation.
 
 ### Examples
 
@@ -152,8 +152,7 @@ Further examples, with more models and more advanced techniques in order to impr
 
 ## Limitations and alternative packages
 
-The focus of the library is skewed toward user-friendliness rather than computational efficiency. While the code is (relatively) easy to read, it is not heavily optimised.
-Currently all models operate on the CPU and with data that fits in memory.
+The focus of the library is skewed toward user-friendliness rather than computational efficiency. While the code is (relatively) easy to read, it is not heavily optimised, and currently all models operate on the CPU and only with data that fits in the pc's memory.
 For very large data we suggest specialised packages. See the list below.
 
 Category         | Packages

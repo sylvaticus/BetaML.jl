@@ -61,33 +61,4 @@ Hyperparameters, options and learned parameters can be retrieved with the functi
 Some models allow an inverse transformation, that using the parameters learned at trainign time (e.g. the scale factors) perform an inverse tranformation of new data to the space of the training data (e.g. the unscaled space). Use `inverse_predict(mod,xnew)`.
 
 
-# Available models
 
-Currently the following models are available:
-
-| BetaML name | MLJ Interface | Typology* |
-| ----------- | ------------- | -------- |
-| PerceptronClassifier | LinearPerceptron | _Supervised regressor_ | 
-| KernelPerceptronClassifier  | KernelPerceptron | _Supervised regressor_ | 
-| PegasosClassifier | Pegasos | _Supervised classifier_ |
-| DecisionTreeEstimator | DecisionTreeClassifier, DecisionTreeRegressor | _Supervised regressor and classifier_ |
-| RandomForestEstimator |  RandomForestClassifier, RandomForestRegressor | _Supervised regressor and classifier_ |
-| NeuralNetworkEstimator | MultitargetNeuralNetworkRegressor, NeuralNetworkClassifier | _Supervised regressor and classifier_ |
-| GMMRegressor1 | | _Supervised regressor_ | 
-| GMMRegressor2 | GaussianMixtureRegressor | _Supervised regressor_ | 
-| KMeansClusterer | KMeans | _Unsupervised hard clusterer_ |
-| KMedoidsClusterer | KMedoids | _Unsupervised hard clusterer_ |
-| GMMClusterer | GaussianMixtureClusterer | _Unsupervised soft clusterer_ |
-| FeatureBasedImputer | SimpleImputer | _Unsupervised missing data imputer_ |
-| GMMImputer | GaussianMixtureImputer | _Unsupervised missing data imputer_ |
-| RFImputer | RandomForestImputer | _Unsupervised missing data imputer_ |
-| UniversalImputer | GeneralImputer | _Unsupervised missing data imputer_ |
-| MinMaxScaler | | _Data transformer_ |
-| StandardScaler | | _Data transformer_ |
-| Scaler |  | _Data transformer_ |
-| PCA |  | _Data transformer_ |
-| OneHotEncoder |  | _Data transformer_ |
-| OrdinalEncoder |  | _Data transformer_ |
-| ConfusionMatrix | | _Predictions assessment_ |
-
-\* There is no formal distinction in BetaML between a transformer, or also a prediction assessment model, and a unsupervised model. They are all treated as unsupervised models that given some data they lern how to return some useful information, wheter a class grouping, a specific tranformation or a quality evaluation..
