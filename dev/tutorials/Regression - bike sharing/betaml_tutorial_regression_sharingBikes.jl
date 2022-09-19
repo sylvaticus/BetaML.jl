@@ -3,7 +3,7 @@
 #
 # Data origin:
 # - original full dataset (by hour, not used here): [https://archive.ics.uci.edu/ml/datasets/Bike+Sharing+Dataset](https://archive.ics.uci.edu/ml/datasets/Bike+Sharing+Dataset)
-# - simplified dataset (by day, with some simple scaling): [https://www.hds.utc.fr/~tdenoeux/dokuwiki/en/aec]( https://www.hds.utc.fr/~tdenoeux/dokuwiki/en/aec)
+# - simplified dataset (by day, with some simple scaling): [https://www.hds.utc.fr/~tdenoeux/dokuwiki/en/aec](https://www.hds.utc.fr/~tdenoeux/dokuwiki/en/aec)
 # - description: [https://www.hds.utc.fr/~tdenoeux/dokuwiki/_media/en/exam_2019_ace_.pdf](https://www.hds.utc.fr/~tdenoeux/dokuwiki/_media/en/exam_2019_ace_.pdf)
 # - data: [https://www.hds.utc.fr/~tdenoeux/dokuwiki/_media/en/bike_sharing_day.csv.zip](https://www.hds.utc.fr/~tdenoeux/dokuwiki/_media/en/bike_sharing_day.csv.zip)
 
@@ -50,7 +50,7 @@ y    = data[:,16];
 
 # BetaML doesn't have a dedicated function for hyper-parameters optimisation, but it is easy to write some custom julia code, at least for a simple grid-based "search". Indeed one of the main reasons that a dedicated function exists in other Machine Learning libraries is that loops in other languages are slow, but this is not a problem in julia, so we can retain the flexibility to write the kind of hyper-parameter tuning that best fits our needs.
 
-# Below is an example of a possible such function. Note there are more "elegant" ways to code it, but this one does the job. In particular, for simplicity, this hyper-paramerter tuning function just run multiple repetitions. In real world it is better to use [cross-validation](@ref cross_validation) in the hyper-parameter tuning, expecially when the observations are small. The [Clustering tutorial](@ref clustering_tutorial) shows an example on how to use `cross_validation`.
+# Below is an example of a possible such function. Note there are more "elegant" ways to code it, but this one does the job. In particular, for simplicity, this hyper-paramerter tuning function just run multiple repetitions. In real world it is better to use [cross-validation](../../Utils.html#BetaML.Utils.cross_validation) in the hyper-parameter tuning, expecially when the observations are small. The [Clustering tutorial](@ref clustering_tutorial) shows an example on how to use `cross_validation`.
 
 # We will see the various functions inside `tuneHyperParameters()` in a moment. For now let's going just to observe that `tuneHyperParameters` just loops over all the possible hyper-parameters and selects the ones where the error between `xval` and `yval` is minimised. For the meaning of the various hyper-parameter, consult the documentation of the [`buildTree`](@ref) and [`buildForest`](@ref) functions.
 # The function uses multiple threads, so we calls `generate_parallel_rngs()` (in the `BetaML.Utils` submodule) to generate thread-safe random number generators and locks the comparision step.
@@ -339,7 +339,7 @@ D               = size(xtrain,2)
 # As we did above for decision trees and random forests, we select the best hyper-parameters by using the validation set.
 # We consider here two hyper-parameters, the first one (`hiddenLayerSizeRange`) concerns the structure of the neural network, and in particular the size (in nodes) of the hidden layer, the second one (`epochRange`) concerns the training itself, and in particular the number of so-called "epochs" (number of iterations trough the whole dataset) to train the model.
 
-# Again, we use here repetitions for simplicity, but a [cross-validation approach](@ref cross_validation) would have bee nmore appropriate:
+# Again, we use here repetitions for simplicity, but a [cross-validation approach](../../Utils.html#BetaML.Utils.cross_validation) would have bee nmore appropriate:
 
 function tuneHyperParameters(xtrain,ytrain,xval,yval;epochRange=50:50,hiddenLayerSizeRange=12:12,repetitions=5,rng=Random.GLOBAL_RNG)
     ## We start with an infinititly high error
@@ -429,7 +429,7 @@ mynnManual = buildNetwork([
 
 # Here `train!` has a question mark as indeed it modifies the neural network object, by updating its weights. If you want to keep a copy of the network before training (for example, if you want to train it in different independent ways), make a `deepcopy` of the `NN` object or first save its parameters with [`get_params`](@ref) and then re-apply the saved parameters with [`set_params!`](@ref).
 
-# Several optimisation algorithms are available, and each accepts different parameters, like the _learning rate_ for the Stochastic Gradient Descent algorithm ([`SGD`](@ref], used by default) or the exponential decay rates for the  moments estimates for the [`ADAM`](@ref ) algorithm (that we use here, with the default parameters).
+# Several optimisation algorithms are available, and each accepts different parameters, like the _learning rate_ for the Stochastic Gradient Descent algorithm ([`SGD`](@ref), used by default) or the exponential decay rates for the  moments estimates for the [`ADAM`](@ref) algorithm (that we use here, with the default parameters).
 println("Final training of $bestEpoch epochs, with layer size $bestSize ...")
 res  = train!(mynn,xtrainScaled,ytrainScaled,epochs=bestEpoch,batch_size=8,opt_alg=ADAM(),rng=copy(FIXEDRNG)) ## Use opt_alg=SGD() to use Stochastic Gradient Descent
 
