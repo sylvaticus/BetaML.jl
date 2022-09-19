@@ -161,7 +161,7 @@ A multi-dimensional, missing data friendly non-linear regressor based on Generat
 
 The training data is used to fit a probabilistic model with latent mixtures (Gaussian distributions with different covariances are already implemented) and then predictions of new data is obtained by fitting the new data to the mixtures.
 
-For hyperparameters see [`GMMHyperParametersSet`](@ref) and [`GMMClusterOptionsSet`](@ref).
+For hyperparameters see [`GMMHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).
 
 Thsi strategy (`GMMRegressor2`) works by training the EM algorithm on a combined (hcat) matrix of X and Y.
 At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm (and using missing values for the dimensions belonging to Y) to obtain the probabilistic assignment of each record to the various mixtures. Then these probabilities are multiplied to the mixture averages for the Y dimensions to obtain the predicted value(s) for each record. 

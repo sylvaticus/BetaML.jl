@@ -67,10 +67,10 @@ export AbstractLayer, forward, backward, get_params, get_nparams, get_gradient, 
        buildNetwork, predict, loss, train!, getindex, init_optalg!, single_update!,
        DenseLayer, DenseNoBiasLayer, VectorFunctionLayer, ScalarFunctionLayer,
        Learnable,
-       show
+       show, fitting_info
 
 export NeuralNetworkEstimator
-export NeuralNetworkEstimatorHyperParametersSet, NeuralNetworkEstimatorOptionsSet
+export NNHyperParametersSet, NeuralNetworkEstimatorOptionsSet
 
 # for working on gradient as e.g [([1.0 2.0; 3.0 4.0], [1.0,2.0,3.0]),([1.0,2.0,3.0],1.0)]
 """
@@ -792,7 +792,7 @@ $(FIELDS)
 To know the available layers type `subtypes(AbstractLayer)`) and then type `?LayerName` for information on how to use each layer.
 
 """
-Base.@kwdef mutable struct NeuralNetworkEstimatorHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct NNHyperParametersSet <: BetaMLHyperParametersSet
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
     """Loss (cost) function [def: `squared_cost`].
@@ -844,7 +844,7 @@ end
 
 A "feedforward" neural network (supervised).
 
-For the parameters see [`NeuralNetworkEstimatorLearnableParameters`](@ref).
+For the parameters see [`NNHyperParametersSet`](@ref).
 
 ## Notes:
 - data must be numerical
@@ -853,7 +853,7 @@ For the parameters see [`NeuralNetworkEstimatorLearnableParameters`](@ref).
   - For classification tasks the columns should be interpreted as the probabilities for each categories
 """
 mutable struct NeuralNetworkEstimator <: BetaMLSupervisedModel
-    hpar::NeuralNetworkEstimatorHyperParametersSet
+    hpar::NNHyperParametersSet
     opt::NeuralNetworkEstimatorOptionsSet
     par::Union{Nothing,NeuralNetworkEstimatorLearnableParameters}
     cres::Union{Nothing,AbstractArray}
@@ -862,7 +862,7 @@ mutable struct NeuralNetworkEstimator <: BetaMLSupervisedModel
 end
 
 function NeuralNetworkEstimator(;kwargs...)
-    m              = NeuralNetworkEstimator(NeuralNetworkEstimatorHyperParametersSet(),NeuralNetworkEstimatorOptionsSet(),NeuralNetworkEstimatorLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m              = NeuralNetworkEstimator(NNHyperParametersSet(),NeuralNetworkEstimatorOptionsSet(),NeuralNetworkEstimatorLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false

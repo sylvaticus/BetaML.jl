@@ -173,7 +173,7 @@ However the default Julia RNG guarantee to provide the same flow of random numbe
 - `myAlgorithm(;rng=FIXEDRNG)`               : always produce the same sequence of results on each run of the script ("pulling" from the same rng object on different calls)
 - `myAlgorithm(;rng=StableRNG(SOMEINTEGER))` : always produce the same result (new rng object on each call)
 
-In particular, use `rng=StableRNG(FIXEDSEED)` or `rng=copy(FIXEDRNG)` with [`FIXEDSEED`](@ref])  to retrieve the exact output as in the documentation or in the unit tests.
+In particular, use `rng=StableRNG(FIXEDSEED)` or `rng=copy(FIXEDRNG)` with [`FIXEDSEED`](@ref)  to retrieve the exact output as in the documentation or in the unit tests.
 
 
 Most of the stochasticity appears in _training_ a model. However in few cases (e.g. decision trees with missing values) some stochasticity appears also in _predicting_ new data using a trained model. In such cases the model doesn't restrict the random seed, so that you can choose at _predict_ time to use a fixed or a variable random seed.

@@ -5,7 +5,7 @@ Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT.
 """
     Clustering module (WIP)
 
-(Hard) Clustering algorithms
+(Hard) Clustering algorithms 
 
 Provide hard clustering methods using K-means and k-medoids. Please see also the [`GMM`](@ref) module for GMM-based soft clustering (i.e. where a probability distribution to be part of the various classes is assigned to each record instead of a single class), missing values imputation / collaborative filtering / reccomendation systems using clustering methods as backend.
 

@@ -341,7 +341,7 @@ The given tree is then returned.
 - `min_gain`: The minimum information gain to allow for a node's partition [def: `0`]
 - `min_records`:  The minimum number of records a node must holds to consider for a partition of it [def: `2`]
 - `max_features`: The maximum number of (random) features to consider at each partitioning [def: `D`, i.e. look at all features]
-- `splitting_criterion`: Either `gini`, `entropy` or `variance` (see [`infoGain`](@ref) ) [def: `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]
+- `splitting_criterion`: Either `gini`, `entropy` or `variance`[def: `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]
 - `force_classification`: Whether to force a classification task even if the labels are numerical (typically when labels are integers encoding some feature rather than representing a real cardinal measure) [def: `false`]
 - `rng`: Random Number Generator ((see [`FIXEDSEED`](@ref))) [deafult: `Random.GLOBAL_RNG`]
 

@@ -121,7 +121,7 @@ See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with
 - `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 # Output:
-- The function returns a Forest object (see [`Forest`](@ref)).
+- The function returns a Forest object.
 - The forest weights default to array of ones if `β ≤ 0` and the oob error to `+Inf` if `oob` == `false`.
 
 # Notes :

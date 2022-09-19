@@ -22,7 +22,7 @@ Provided imputers:
 - [`FeatureBasedImputer`](@ref): Impute data using the feature (column) mean, optionally normalised by l-norms of the records (rows) (fastest)
 - [`GMMImputer`](@ref): Impute data using a Generative (Gaussian) Mixture Model (good trade off)
 - [`RFImputer`](@ref): Impute missing data using Random Forests, with optional replicable multiple imputations (most accurate).
-- [`GenericImputer`](@ref): Impute missing data using a vector (one per column) of arbitrary learning models (classifiers/regressors) that implement `m = Model([options])`, `fit!(m,X,Y)` and `predict(m,X)`.
+- [`UniversalImputer`](@ref): Impute missing data using a vector (one per column) of arbitrary learning models (classifiers/regressors) that implement `m = Model([options])`, `fit!(m,X,Y)` and `predict(m,X)`.
 
 
 Imputations for all these models can be optained by running `mod = ImputatorModel([options])`, `fit!(mod,X)`. The data with the missing values imputed can then be obtained with `predict(mod)`. Use`info(m::Imputer)` to retrieve further information concerning the imputation.
@@ -321,7 +321,7 @@ $(TYPEDEF)
 
 Missing data imputer that uses a Generative (Gaussian) Mixture Model.
 
-For the parameters (`n_classes`,`mixtures`,..) see  [`GMMImputerLearnableParameters`](@ref).
+For the parameters (`n_classes`,`mixtures`,..) see  [`GMMHyperParametersSet`](@ref).
 
 # Limitations:
 - data must be numerical

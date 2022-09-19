@@ -1,17 +1,17 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 """
-    GMM module
+    GMM module 
 
 Generative (Gaussian) Mixed Model learners (supervised/unsupervised)
 
 Provides clustering and regressors using  (Generative) Gaussiam Mixture Model (probabilistic).
 
-Collaborative filtering / missing values imputation / reccomendation systems based on GMM is available in the [`Imputation`](@ref) module.
+Collaborative filtering / missing values imputation / reccomendation systems based on GMM is available in the [`Imputation`](@ref BetaML.Imputation) module.
 
 The module provides the following models. Use `?[model]` to access their documentation:
 
-- [`GMMClusterMode`](@ref): soft-clustering using GMM
+- [`GMMClusterer`](@ref): soft-clustering using GMM
 - [`GMMRegressor1`](@ref): regressor using GMM as back-end (first algorithm)
 - [`GMMRegressor1`](@ref): regressor using GMM as back-end (second algorithm)
 

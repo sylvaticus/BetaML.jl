@@ -31,9 +31,6 @@ For the complete list of functions provided see below. The main ones are:
 - Several functions of a pair of parameters (often `y` and `ŷ`) to measure the goodness of `ŷ`, the distance between the two elements of the pair, ...
 - Includes "classical" distance functions ([`l1_distance`](@ref), [`l2_distance`](@ref), [`l2squared_distance`](@ref) [`cosine_distance`](@ref)), "cost" functions for continuous variables ([`squared_cost`](@ref), [`mean_relative_error`](@ref)) and comparision functions for multui-class variables ([`crossentropy`](@ref), [`accuracy`](@ref), [`ConfMatrix`](@ref)).
 
-# Imputers
-- Imputers of missing values
-
 """
 module Utils
 

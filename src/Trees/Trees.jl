@@ -10,7 +10,7 @@ Both Decision Trees and Random Forests can be used for regression or classificat
 
 Please be aware that, differently from most other implementations, the Random Forest algorithm collects and averages the probabilities from the trees, rather than just repording the mode, i.e. no information is lost and the output of the forest classifier is still a PMF.
 
-To retrieve the prediction with the highest probability use [`mode`](@ref) over the prediciton returned by the model. Most error/accuracy measures in the [`Util`](@ref) BetaML module works diretly with this format.
+To retrieve the prediction with the highest probability use [`mode`](@ref) over the prediciton returned by the model. Most error/accuracy measures in the [`Utils`](@ref) BetaML module works diretly with this format.
 
 Missing data and trully unordered types are supported on the features, both on training and on prediction.
 

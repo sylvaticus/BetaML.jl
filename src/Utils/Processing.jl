@@ -593,7 +593,7 @@ respectively [def: the scaling factors needed to scale x to mean 0 and variance 
 - The scaled matrix
 
 # Notes:
-- Also available [`scale!(x,scalefactors)`](@ref) for in-place scaling
+- Also available `scale!(x,scalefactors)` for in-place scaling
 - Retrieve the scale factors with the [`get_scalefactors()`](@ref) function
 - Note that missing values are skipped
 """
@@ -763,7 +763,7 @@ $(TYPEDEF)
 
 Scale the data according to the specific chosen method (def: `StandardScaler`) 
 
-For the parameters see [`ScalerHyperParametersSet`](@ref) and [`BetaMLDefaultOptionSet`](@ref) 
+For the parameters see [`ScalerHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref) 
 
 ```
 julia>m = Scaler(MinMaxScaler(inputRange=(x->minimum(x)*0.8,maximum),outputRange=(0,256)),skip=[3,7,8])
@@ -946,11 +946,11 @@ Perform a Principal Component Analysis, a dimensionality reduction tecnique empl
 
 PCA returns the matrix reprojected among the dimensions of maximum variance.
 
-For the parameters see [`PCAHyperParametersSet`](@ref) and [`BetaMLDefaultOptionSet`](@ref) 
+For the parameters see [`PCAHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref) 
 
 ## Notes:
 - PCA doesn't automatically scale the data. It is suggested to apply the `Scaler` model before running it. 
-- missing data are not supported. Impute them first, see the [`Imputation`](@ref) module.
+- missing data are not supported. Impute them first, see the [`Imputation`](Imputation.html) module.
 """
 mutable struct PCA <: BetaMLUnsupervisedModel
     hpar::PCAHyperParametersSet
