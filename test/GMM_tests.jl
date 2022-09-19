@@ -156,5 +156,12 @@ model_gmmr                      = GaussianMixtureRegressor(n_classes=20,rng=copy
 regressor_gmmr                  = Mlj.machine(model_gmmr, X, y)
 (fitresult_gmmr, cache, report) = Mlj.fit(model_gmmr, 0, X, y)
 yhat_gmmr                       = Mlj.predict(model_gmmr, fitresult_gmmr, X)
-@test mean_relative_error(yhat_gmmr[:,1],y) < 0.3
+@test mean_relative_error(yhat_gmmr,y) < 0.3
+
+ydouble = hcat(y,y)
+model_gmmr2                      = MultitargetGaussianMixtureRegressor(n_classes=20,rng=copy(TESTRNG))
+regressor_gmmr2                  = Mlj.machine(model_gmmr2, X, ydouble)
+(fitresult_gmmr2, cache, report) = Mlj.fit(model_gmmr2, 0, X, ydouble)
+yhat_gmmr2                       = Mlj.predict(model_gmmr2, fitresult_gmmr2, X)
+@test mean_relative_error(yhat_gmmr2,ydouble) < 0.3
 

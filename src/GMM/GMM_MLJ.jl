@@ -5,7 +5,7 @@
 import MLJModelInterface       # It seems that having done this in the top module is not enought
 const MMI = MLJModelInterface  # We need to repeat it here
 
-export  GaussianMixtureClusterer, GaussianMixtureRegressor
+export  GaussianMixtureClusterer, GaussianMixtureRegressor, MultitargetGaussianMixtureRegressor
 
 # ------------------------------------------------------------------------------
 # Model Structure declarations..
@@ -64,6 +64,8 @@ $(TYPEDEF)
 
 A non-linear regressor derived from fitting the data on a probabilistic model (Gaussian Mixture Model). Relatively fast.
 
+This is the single-target version of the model. If you want to predict several labels (y) at once, use the MLJ model [`MultitargetGaussianMixtureRegressor`](@ref).
+
 # Hyperparameters:
 $(TYPEDFIELDS)
 """
@@ -108,6 +110,56 @@ GaussianMixtureRegressor(;
     rng           = Random.GLOBAL_RNG
    ) = GaussianMixtureRegressor(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,rng)
 
+"""
+$(TYPEDEF)
+
+A non-linear regressor derived from fitting the data on a probabilistic model (Gaussian Mixture Model). Relatively fast.
+
+This is the multi-target version of the model. If you want to predict a single label (y), use the MLJ model [`GaussianMixtureRegressor`](@ref).
+
+# Hyperparameters:
+$(TYPEDFIELDS)
+"""
+mutable struct MultitargetGaussianMixtureRegressor <: MMI.Deterministic
+    "Number of mixtures (latent classes) to consider [def: 3]"
+    n_classes::Int64 
+    "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
+    initial_probmixtures::Vector{Float64}
+    """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
+    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to "given"`
+    [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
+    mixtures::Vector{AbstractMixture}
+    "Tolerance to stop the algorithm [default: 10^(-6)]"
+    tol::Float64
+    "Minimum variance for the mixtures [default: 0.05]"
+    minimum_variance::Float64
+    "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minimum_variance (see notes)."
+    minimum_covariance::Float64
+    """
+    The computation method of the vector of the initial mixtures.
+    One of the following:
+    - "grid": using a grid approach
+    - "given": using the mixture provided in the fully qualified `mixtures` parameter
+    - "kmeans": use first kmeans (itself initialised with a "grid" strategy) to set the initial mixture centers [default]
+    Note that currently "random" and "shuffle" initialisations are not supported in gmm-based algorithms.
+    """
+    initialisation_strategy::String
+    "Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]"
+    maximum_iterations::Int64
+    "Random Number Generator [deafult: `Random.GLOBAL_RNG`]"
+    rng::AbstractRNG
+end
+MultitargetGaussianMixtureRegressor(;
+    n_classes      = 3,
+    initial_probmixtures  = [],
+    mixtures      = [DiagonalGaussian() for i in 1:n_classes],
+    tol           = 10^(-6),
+    minimum_variance   = 0.05,
+    minimum_covariance = 0.0,
+    initialisation_strategy  = "kmeans",
+    maximum_iterations       = typemax(Int64),
+    rng           = Random.GLOBAL_RNG
+) = MultitargetGaussianMixtureRegressor(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,rng)
 
 # ------------------------------------------------------------------------------
 # Fit functions...
@@ -137,6 +189,42 @@ MMI.fitted_params(model::GaussianMixtureClusterer, fitresult) = (weights=fitesul
 
 function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
     x  = MMI.matrix(X) # convert table to matrix
+    println(ndims(y))
+    ndims(y) < 2 || error("Trying to fit `GaussianMixtureRegressor` with a multidimensional target. Use `MultitargetGaussianMixtureRegressor` instead.")
+    #=
+    if typeof(y) <: AbstractMatrix
+        y  = MMI.matrix(y)
+    end
+    
+    if m.mixtures == :diag_gaussian
+        mixtures = [DiagonalGaussian() for i in 1:m.n_classes]
+    elseif m.mixtures == :full_gaussian
+        mixtures = [FullGaussian() for i in 1:m.n_classes]
+    elseif m.mixtures == :spherical_gaussian
+        mixtures = [SphericalGaussian() for i in 1:m.n_classes]
+    else
+        error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
+    end
+    =#
+    mixtures = m.mixtures
+    betamod = GMMRegressor2(
+        n_classes     = m.n_classes,
+        initial_probmixtures = m.initial_probmixtures,
+        mixtures     = mixtures,
+        tol          = m.tol,
+        minimum_variance  = m.minimum_variance,
+        initialisation_strategy = m.initialisation_strategy,
+        maximum_iterations      = m.maximum_iterations,
+        verbosity    = NONE,
+        rng          = m.rng
+    )
+    fit!(betamod,x,y)
+    cache      = nothing
+    return (betamod, cache, info(betamod))
+end
+function MMI.fit(m::MultitargetGaussianMixtureRegressor, verbosity, X, y)
+    x  = MMI.matrix(X) # convert table to matrix
+    ndims(y) >= 2 || @warn "Trying to fit `MultitargetGaussianMixtureRegressor` with a single-dimensional target. You may want to consider `GaussianMixtureRegressor` instead."
     #=
     if typeof(y) <: AbstractMatrix
         y  = MMI.matrix(y)
@@ -170,7 +258,6 @@ function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
 end
 
 
-
 # ------------------------------------------------------------------------------
 # Predict functions...
 
@@ -189,9 +276,13 @@ end
 function MMI.predict(m::GaussianMixtureRegressor, fitResults, X)
     x               = MMI.matrix(X) # convert table to matrix
     betamod         = fitResults
+    return dropdims(predict(betamod,x),dims=2)
+end
+function MMI.predict(m::MultitargetGaussianMixtureRegressor, fitResults, X)
+    x               = MMI.matrix(X) # convert table to matrix
+    betamod         = fitResults
     return predict(betamod,x)
 end
-
 
 
 # ------------------------------------------------------------------------------
@@ -212,5 +303,10 @@ MMI.metadata_model(GaussianMixtureRegressor,
     target_scitype   = AbstractVector{<: MMI.Continuous},           # for a supervised model, what target?
     supports_weights = false,                                       # does the model support sample weights?
 	load_path        = "BetaML.GMM.GaussianMixtureRegressor"
-    )
-
+)
+MMI.metadata_model(MultitargetGaussianMixtureRegressor,
+    input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Infinite}),
+    target_scitype   = AbstractMatrix{<: MMI.Continuous},           # for a supervised model, what target?
+    supports_weights = false,                                       # does the model support sample weights?
+	load_path        = "BetaML.GMM.GaussianMixtureRegressor"
+)

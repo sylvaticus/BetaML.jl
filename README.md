@@ -16,7 +16,7 @@ The **Beta Machine Learning Toolkit** is a package including many algorithms and
 
 Currently the following models are available:
 
-| BetaML name | MLJ Interface | Typology |
+| BetaML name | MLJ Interface | Category |
 | ----------- | ------------- | -------- |
 | PerceptronClassifier | LinearPerceptron | _Supervised regressor_ | 
 | KernelPerceptronClassifier  | KernelPerceptron | _Supervised regressor_ | 
@@ -25,7 +25,7 @@ Currently the following models are available:
 | RandomForestEstimator |  RandomForestClassifier, RandomForestRegressor | _Supervised regressor and classifier_ |
 | NeuralNetworkEstimator | MultitargetNeuralNetworkRegressor, NeuralNetworkClassifier | _Supervised regressor and classifier_ |
 | GMMRegressor1 | | _Supervised regressor_ | 
-| GMMRegressor2 | GaussianMixtureRegressor | _Supervised regressor_ | 
+| GMMRegressor2 | GaussianMixtureRegressor, MultitargetGaussianMixtureRegressor | _Supervised regressor_ | 
 | KMeansClusterer | KMeans | _Unsupervised hard clusterer_ |
 | KMedoidsClusterer | KMedoids | _Unsupervised hard clusterer_ |
 | GMMClusterer | GaussianMixtureClusterer | _Unsupervised soft clusterer_ |
