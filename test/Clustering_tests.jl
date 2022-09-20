@@ -28,7 +28,7 @@ X = [1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4]
 @test clIdxKMeans == [2, 2, 2, 2, 3, 3, 3, 1, 1]
 #@test (clIdx,Z) .== ([2, 2, 2, 2, 3, 3, 3, 1, 1], [5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664])
 m = KMeansClusterer(n_classes=3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG), descr="First test k-means model")
-fit!(m,X)
+fit_ex(m,X)
 classes = predict(m)
 @test clIdxKMeans == classes
 X2 = [1.5 11; 3 40; 3 40; 5 -2]
@@ -37,7 +37,7 @@ classes2 = predict(m,X2)
 fit!(m,X2)
 classes3 = predict(m)
 @test classes3 == [2,3,3,1]
-reset!(m)
+reset_ex(m)
 fit!(m,X)
 classes = predict(m)
 @test clIdxKMeans == classes

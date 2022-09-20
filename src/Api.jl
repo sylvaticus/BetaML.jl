@@ -26,7 +26,7 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        FIXEDSEED, FIXEDRNG,
        BetaMLModel, BetaMLSupervisedModel, BetaMLUnsupervisedModel,
        BetaMLOptionsSet, BetaMLDefaultOptionsSet, BetaMLHyperParametersSet, BetaMLLearnableParametersSet,
-       predict, inverse_predict, fit!, info, reset!, parameters,hyperparameters, options,
+       predict, inverse_predict, fit!, fit_ex, info, reset!, reset_ex, parameters,hyperparameters, options,
        model_save, model_load
 
 
@@ -111,10 +111,15 @@ Each specific model implements its own version of `fit!(m,X,[Y])`, but the usage
 
 # Notes:
 - For online algorithms, i.e. models that support updating of the learned parameters with new data, `fit!` can be repeated as new data arrive, altought not all algorithms guarantee that training each record at the time is equivalent to train all the records at once.
-- If the model has been trained while having the `cache` option set on `true` (by default) `fit!` returns `ŷ` instead of `nothing` effectively making it behave like a _fit-and-transform_ function. 
+- If the model has been trained while having the `cache` option set on `true` (by default) `fit!` returns `ŷ` instead of `nothing` effectively making it behave like a _fit-and-transform_ function.
+- In Python and other languages that don't allow the exclamation mark within the function name, use `fit_ex(⋅)` instead of `fit!(⋅)`
 
 """ 
-fit!(::BetaMLModel,X)  = nothing
+fit!(::BetaMLModel,args...;kargs...)  = nothing
+
+fit_ex(m::BetaMLModel,args...;kargs...) = fit!(m,args...;kargs...) # version for Python interface that doesn't like the exclamation mark
+
+
 
 """
     predict(m::BetaMLModel,[X])
@@ -155,6 +160,9 @@ end
     reset!(m::BetaMLModel)
 
 Reset the parameters of a trained model.
+
+Notes:
+- In Python and other languages that don't allow the exclamation mark within the function name, use `reset_ex(⋅)` instead of `reset!(⋅)`
 """ 
 function reset!(m::BetaMLModel)
    m.par     = nothing
@@ -163,6 +171,9 @@ function reset!(m::BetaMLModel)
    m.fitted  = false 
    return nothing
 end
+
+reset_ex(m::BetaMLModel,args...;kargs...) = reset!(m,args...;kargs...) # version for Python interface that doesn't like the exclamation mark
+
 
 function show(io::IO, ::MIME"text/plain", m::BetaMLModel)
    if m.fitted == false

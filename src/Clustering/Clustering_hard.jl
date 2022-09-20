@@ -262,7 +262,7 @@ Base.@kwdef mutable struct KMeansMedoidsHyperParametersSet <: BetaMLHyperParamet
     - "shuffle": selecting randomly within the available points
     - "given": using a provided set of initial representatives provided in the `initial_representatives` parameter
     """
-    initialisation_strategy::String              = "Grid"
+    initialisation_strategy::String              = "grid"
     "Provided (K x D) matrix of initial representatives (useful only with `initialisation_strategy=\"given\"`) [default: `nothing`]"
     initial_representatives::Union{Nothing,Matrix{Float64}} = nothing
 end

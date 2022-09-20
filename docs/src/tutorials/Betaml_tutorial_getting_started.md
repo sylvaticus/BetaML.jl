@@ -4,23 +4,21 @@
 
 This "tutorial" part of the documentation presents a step-by-step guide to the main algorithms and utility functions provided by BetaML and comparisons with the leading packages in each field.
 Aside this page, the tutorial is divided in the following sections:
--  [Regression tutorial](@ref regression_tutorial) - Arguments: _Decision trees, Random forests, neural networks, hyper-parameter tuning, continuous error measures_
--  [Classification tutorial](@ref classification_tutorial) - Arguments: _Decision trees and random forests, neural networks (softmax), pre-processing workflow, confusion matrix_
--  [Clustering tutorial](@ref clustering_tutorial) - Arguments: _k-means, kmedoids, generative (gaussian) mixture models (gmm), cross-validation_
+-  [Regression tutorial](@ref regression_tutorial) - Topics: _Decision trees, Random forests, neural networks, hyper-parameter tuning, continuous error measures_
+-  [Classification tutorial](@ref classification_tutorial) - Topics: _Decision trees and random forests, neural networks (softmax), pre-processing workflow, confusion matrix_
+-  [Clustering tutorial](@ref clustering_tutorial) - Topics: _k-means, kmedoids, generative (gaussian) mixture models (gmm), cross-validation_
 
-Detailed information on the algorithms can be instead found in the API (Reference manual) of the individual modules. The following modules are currently implemented: [Perceptron](@ref perceptron_module) (linear and kernel-based classifiers), [Trees](@ref trees_module) (Decision Trees and Random Forests), [Nn](@ref nn_module) (Neural Networks), [Clustering](@ref clustering_module) (Kmean, Kmenoids, Expectation-Maximisation, Missing value imputation, ...) and [Utils](@ref utils_module).
+Detailed usage instructions on each algorithm can be found on each model struct (listed [here](@ref models_list)), while theoretical notes describing most of them can be found at the companion repository [https://github.com/sylvaticus/MITx_6.86x](https://github.com/sylvaticus/MITx_6.86x).
 
-Finally, theoretical notes describing most of these algorithms can be found at the companion repository [https://github.com/sylvaticus/MITx_6.86x](https://github.com/sylvaticus/MITx_6.86x).
-
-The overall "philosophy" of BetaML is to support simple machine learning tasks easily and make complex tasks possible. An the most basic level, the majority of  algorithms have default parameters suitable for a basic analysis. A great level of flexibility can be already achieved by just employing the full set of model parameters, for example changing the distance function in `kmedoids` to `l1_distance` (aka "Manhattan distance").
+The overall "philosophy" of BetaML is to support simple machine learning tasks easily and make complex tasks possible. An the most basic level, the majority of  algorithms have default parameters suitable for a basic analysis. A great level of flexibility can be already achieved by just employing the full set of model parameters, for example changing the distance function in `KMedoidsClusterer` to `l1_distance` (aka "Manhattan distance").
 Finally, the greatest flexibility can be obtained by customising BetaML and writing, for example, its own neural network layer type (by subclassing `AbstractLayer`), its own sampler (by subclassing `AbstractDataSampler`) or its own mixture component (by subclassing `AbstractMixture`),
-In such a case, while not required by any means, please consider to give it back to the community and open a pull request to integrate your types in BetaML.
+In such a cases, while not required by any means, please consider to give it back to the community and open a pull request to integrate your work in BetaML.
 
-If you are looking for an introductory book on Julia, you could have a look on "[Julia Quick Syntax Reference](https://www.julia-book.com/)" (Apress,2019).
+If you are looking for an introductory book on Julia, you could consider "[Julia Quick Syntax Reference](https://www.julia-book.com/)" (Apress,2019) or the online course "[Introduction to Scientific Programming and Machine Learning with Julia](https://sylvaticus.github.io/SPMLJ/stable/)".
 
 A few miscellaneous notes:
-- Functions and type names use the so-called "CamelCase" convention, where the words are separated by a capital letter rather than `_`;
-- While some functions provide a `dims` parameter, most BetaML algorithms expect the input data layout with observations organised by rows and fields/features by columns. Almost everywhere we call `N` the number of observations/records, and `D` the number of dimensions;
+- Type names use the so-called "CamelCase" convention, where the words are separated by a capital letter rather than `_` ,while function names use lower letters only, with words eventually separated (but only when really neeed for readibility) by an `_`;
+- While some functions provide a `dims` parameter, most BetaML algorithms expect the input data layout with observations organised by rows and fields/features by columns. Almost everywhere in the code and documentation we refer with `N` the number of observations/records, `D` the number of dimensions and `K` the number of classes/categories;
 - While some algorithms accept as input DataFrames, the usage of standard arrays is encourages (if the data is passed to the function as dataframe, it may be converted to standard arrays somewhere inside inner loops, leading to great inefficiencies).
 
 
@@ -70,19 +68,19 @@ For the data, let's load it "Python side":
 ```python
 >>> from sklearn import datasets
 >>> iris = datasets.load_iris()
->>> X = iris.data[:, :4]
->>> y = iris.target + 1 # Julia arrays start from 1 not 0
+>>> X    = iris.data[:, :4]
+>>> y    = iris.target + 1 # Julia arrays start from 1 not 0
 ```
 Note that `X` and `y` are Numpy arrays.
 
 We can now call BetaML functions as we would do for any other Python library functions. In particular, we can pass to the functions (and retrieve) complex data types without worrying too much about the conversion between Python and Julia types, as these are converted automatically:
 
 ```python
- >>> (Xs,ys) = BetaML.shuffle([X,y]) # X and y are first converted to julia arrays and then the returned julia arrays are converted back to python Numpy arrays
- >>> cOut    = BetaML.kmeans(Xs,3)
- >>> y_hat   = cOut[0]
- >>> acc     = BetaML.accuracy(y_hat,ys)
- >>> acc
+>>> (Xs,ys) = BetaML.shuffle([X,y]) # X and y are first converted to julia arrays and then the returned julia arrays are converted back to python Numpy arrays
+>>> m       = BetaML.KMeansClusterer(n_classes=3)
+>>> yhat    = BetaML.fit_ex(m,Xs) # Python doesn't allow exclamation marks in function names, so we use `fit_ex(⋅)` instead of `fit!(⋅)`
+>>> acc     = BetaML.accuracy(yhat,ys,ignorelabels=True)
+>>> acc
  0.8933333333333333
 ```
 
@@ -96,6 +94,12 @@ Note: If we are using the `jl.eval()` interface, the objects we use must be alre
 0.7199999999999999
 ```
 
+Another alternative is to "eval" only the function name and pass the (python) objects in the function call:
+
+```python
+>>> jl.eval('BetaML.gini')(X_python)
+0.7199999999999999
+```
 
 ### Use BetaML in R
 
