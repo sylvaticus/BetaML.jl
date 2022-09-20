@@ -44,7 +44,7 @@ We can now open a Python terminal and, to obtain an interface to Julia, just run
 >>> julia.install() # Only once to set-up in julia the julia packages required by PyJulia
 >>> jl = julia.Julia(compiled_modules=False)
 ```
-If we have multiple Julia versions, we can specify the one to use in Python passing `julia="/path/to/julia/binary/executable"` (e.g. `julia = "/home/myUser/lib/julia-1.1.0/bin/julia"`) to the `install()` function.
+If we have multiple Julia versions, we can specify the one to use in Python passing `julia="/path/to/julia/binary/executable"` (e.g. `julia = "/home/myUser/lib/julia-1.8.0/bin/julia"`) to the `install()` function.
 
 The `compiled_module=False` in the Julia constructor is a workaround to the common situation when the Python interpreter is statically linked to `libpython`, but it will slow down the interactive experience, as it will disable Julia packages pre-compilation, and every time we will use a module for the first time, this will need to be compiled first.
 Other, more efficient but also more complicate, workarounds are given in the package documentation, under the https://pyjulia.readthedocs.io/en/stable/troubleshooting.html[Troubleshooting section].
@@ -120,8 +120,9 @@ As in Python, let's start from the data loaded from R and do some work with them
 
 ```{r}
 > library(datasets)
-> X <- as.matrix(sapply(iris[,1:4], as.numeric))
-> y <- sapply(iris[,5], as.integer)
+> X     <- as.matrix(sapply(iris[,1:4], as.numeric))
+> y     <- sapply(iris[,5], as.integer)
+> xsize <- dim(X)
 ```
 
 Let's install BetaML. As we did in Python, we can install a Julia package from Julia itself or from within R:
@@ -134,13 +135,12 @@ We can now "import" the BetaML julia package (in julia a "Package" is basically 
 
 ```{r}
 > julia_eval("using BetaML")
-> yencoded <- julia_call("integerencoder",y)
-> ids      <- julia_call("shuffle",1:length(y))
-> Xs       <- X[ids,]
-> ys       <- yencoded[ids]
-> cOut     <- julia_call("kmeans",Xs,3L)    # kmeans expects K to be an integer
-> y_hat    <- sapply(cOut[1],as.integer)[,] # We need a vector, not a matrix
-> acc      <- julia_call("accuracy",y_hat,ys)
+> shuffled <- julia_call("shuffle",list(X,y))
+> Xs       <- matrix(sapply(shuffled[1],as.numeric), nrow=xsize[1])
+> ys       <- as.vector(sapply(shuffled[2], as.integer))
+> m        <- julia_eval('KMeansClusterer(n_classes=3)')
+> yhat     <- julia_call("fit_ex",m,Xs)
+> acc      <- julia_call("accuracy",yhat,ys)
 > acc
 [1] 0.8933333
 ```
@@ -149,11 +149,12 @@ As alternative, we can embed Julia code directly in R using the `julia_eval()` f
 
 ```{r}
 kMeansR  <- julia_eval('
-    function accFromKmeans(x,k,y_true)
-      cOut = kmeans(x,Int(k))
-      acc = accuracy(cOut[1],y_true)
-      return acc
-    end
+  function accFromKmeans(x,k,y)
+    m    = KMeansClusterer(n_classes=Int(k))
+    yhat = fit!(m,x)
+    acc  = accuracy(yhat,y,ignorelabels=true)
+    return acc
+  end
 ')
 ```
 
@@ -174,8 +175,8 @@ If we want to obtain reproductible results we can fix the seed at the very begin
 However the default Julia RNG guarantee to provide the same flow of random numbers, conditional to the seed, only within minor versions of Julia. If we want to "guarantee" reproducibility of the results with different versions of Julia, or "fix" only some parts of our script, we can call the individual functions passing [`FIXEDRNG`](@ref), an instance of `StableRNG(FIXEDSEED)` provided by `BetaML`, to the `rng` parameter. Use it with:
 
 
-- `myAlgorithm(;rng=FIXEDRNG)`               : always produce the same sequence of results on each run of the script ("pulling" from the same rng object on different calls)
-- `myAlgorithm(;rng=StableRNG(SOMEINTEGER))` : always produce the same result (new rng object on each call)
+- `MyModel(;rng=FIXEDRNG)`               : always produce the same sequence of results on each run of the script ("pulling" from the same rng object on different calls)
+- `MyModel(;rng=StableRNG(SOMEINTEGER))` : always produce the same result (new identical rng object on each call)
 
 In particular, use `rng=StableRNG(FIXEDSEED)` or `rng=copy(FIXEDRNG)` with [`FIXEDSEED`](@ref)  to retrieve the exact output as in the documentation or in the unit tests.
 
