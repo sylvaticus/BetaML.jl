@@ -224,7 +224,7 @@ function MMI.predict(model::Union{DecisionTreeClassifier,RandomForestClassifier}
     # where the rows are the PMF of each record
     for n in 1:nRecords
         for (c,cl) in enumerate(classes)
-            predMatrix[n,c] = get(treePredictions[n],cl,0.0)
+            predMatrix[n,c] = get(treePredictions[n],string(cl),0.0)
         end
     end
     predictions = MMI.UnivariateFinite(classes, predMatrix)
