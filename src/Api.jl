@@ -37,6 +37,7 @@ abstract type BetaMLUnsupervisedModel <: BetaMLModel end
 abstract type BetaMLOptionsSet end
 abstract type BetaMLHyperParametersSet end
 abstract type BetaMLLearnableParametersSet end
+abstract type AutoTuneMethod end
 
 
 """
@@ -96,6 +97,7 @@ Base.@kwdef mutable struct BetaMLDefaultOptionsSet
    descr::String = "" 
    "The verbosity level to be used in training or prediction (see [`?Verbosity`](@ref Verbosity)) [deafult: `STD`]
    "
+   autotune::Union{Nothing,AutoTuneMethod} = nothing
    verbosity::Verbosity = STD
    "Random Number Generator (see [`?FIXEDSEED`](@ref FIXEDSEED)) [deafult: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG = Random.GLOBAL_RNG
@@ -171,7 +173,6 @@ function reset!(m::BetaMLModel)
    m.fitted  = false 
    return nothing
 end
-
 reset_ex(m::BetaMLModel,args...;kargs...) = reset!(m,args...;kargs...) # version for Python interface that doesn't like the exclamation mark
 
 

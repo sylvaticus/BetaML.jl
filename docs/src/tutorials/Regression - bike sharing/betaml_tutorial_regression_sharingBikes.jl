@@ -9,7 +9,8 @@
 
 # Note that even if we are estimating a time serie, we are not using here a recurrent neural network as we assume the temporal dependence to be negligible (i.e. $Y_t = f(X_t)$ alone).
 
-# !!! warning As the above example is automatically executed by GitHub on every code update, it uses parameters (epoch numbers, parameter space of hyperparameter validation, number of trees,...) that minimise the computation. In real case you will want to use better but more computationally intensive ones. For the same reason benchmarks codes are commented and the pre-run output reported rather than actually being executed.
+# !!! warning
+#     As the above example is automatically run by GitHub on every code update, it uses parameters (epoch numbers, parameter space of hyperparameter validation, number of trees,...) that minimise the computation. In real world, you will want to use better but more computationally intensive parameters. For the same reason benchmarks codes are commented and the pre-run output reported rather than actually being executed.
 
 # ## Library and data loading
 
@@ -66,7 +67,7 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;max_depthRange=15:15,
     compLock        = ReentrantLock()
 
     ## Generate one random number generator per thread
-    masterSeed = rand(rng,100:9999999999999) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generate_parallel_rngs
+    masterSeed = rand(rng,100:typemax(Int64)) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generate_parallel_rngs
     rngs = generate_parallel_rngs(rng,Threads.nthreads())
 
     ## We loop over all possible hyperparameter combinations...
@@ -81,14 +82,16 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;max_depthRange=15:15,
            ## We run several repetitions with the same hyperparameter combination to account for stochasticity...
            for r in 1:repetitions
               if model == "DecisionTree"
-                 ## Here we train the Decition Tree model
-                 myTrainedModel = buildTree(xtrain,ytrain, max_depth=max_depth,max_features=max_features,min_records=min_records,rng=tsrng)
+                 ## Here we define a Decision Tree model
+                 m = DecisionTreeEstimator(max_depth=max_depth,max_features=max_features,min_records=min_records,rng=tsrng)
               else
-                 ## Here we train the Random Forest model
-                 myTrainedModel = buildForest(xtrain,ytrain,n_trees,max_depth=max_depth,max_features=max_features,min_records=min_records,β=β,rng=tsrng)
+                 ## Here we define a Random Forest model
+                 m = RandomForestEstimator(n_trees=n_trees,max_depth=max_depth,max_features=max_features,min_records=min_records,beta=β,rng=tsrng)
               end
+              ## Here we fit the model
+              fit!(m,xtrain,ytrain)
               ## Here we make prediciton with this trained model and we compute its error
-              ŷval   = predict(myTrainedModel, xval,rng=tsrng)
+              ŷval   = predict(m, xval)
               rmeVal = mean_relative_error(ŷval,yval,normrec=false)
               totAttemptError += rmeVal
            end

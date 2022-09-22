@@ -4,7 +4,7 @@
 # Various helper/ utility functions concerning stochastiticy management
 
 
- #StableRNG(FIXEDSEED) Random.default_rng() #MersenneTwister(FIXEDSEED)
+#StableRNG(FIXEDSEED) Random.default_rng() #MersenneTwister(FIXEDSEED)
 #const FIXEDRNG  = MersenneTwister(FIXEDSEED) #StableRNG(FIXEDSEED) Random.default_rng()
 
 

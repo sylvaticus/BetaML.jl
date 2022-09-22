@@ -1114,6 +1114,8 @@ Base.@kwdef struct NNModelParametersSet <: ParametersSet
 end
 function tuneHyperParameters(model,Pset::ParameterSet,xtrain,ytrain;neuronsRange=6:4:12,epochesRange= 200:100:300:size(xtrain,2),batch_sizeRange = 4:2:6,repetitions=5,rng=Random.GLOBAL_RNG) 
 
+function htune(f,model::DataType,rng,data,nthreads=1,method=CartesianGrid();kwargs...) # or dict
+passed to f: istantiatedmodel, data, rng, cache opt iterationindex    
 =#
 
 

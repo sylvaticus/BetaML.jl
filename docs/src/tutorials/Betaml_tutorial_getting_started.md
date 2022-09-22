@@ -140,7 +140,7 @@ We can now "import" the BetaML julia package (in julia a "Package" is basically 
 > ys       <- as.vector(sapply(shuffled[2], as.integer))
 > m        <- julia_eval('KMeansClusterer(n_classes=3)')
 > yhat     <- julia_call("fit_ex",m,Xs)
-> acc      <- julia_call("accuracy",yhat,ys)
+> acc      <- julia_call("accuracy",yhat,ys,ignorelabels=TRUE)
 > acc
 [1] 0.8933333
 ```
@@ -163,7 +163,7 @@ We can then call the above function in R in one of the following three ways:
 2. `julia_assign("Xs_julia", Xs); julia_assign("ys_julia", ys); julia_eval("accFromKmeans(Xs_julia,3,ys_julia)")`
 3. `julia_call("accFromKmeans",Xs,3,ys)`.
 
-While other "convenience" functions are provided by the package, using  `julia_call` or `julia_assign` followed by `julia_eval` should suffix to accomplish any task we may need with BetaML.
+While other "convenience" functions are provided by the package, using  `julia_call`, or `julia_assign` followed by `julia_eval`, should suffix to use `BetaML` from R.
 
 ## [Dealing with stochasticity](@id dealing_with_stochasticity)
 
@@ -180,5 +180,6 @@ However the default Julia RNG guarantee to provide the same flow of random numbe
 
 In particular, use `rng=StableRNG(FIXEDSEED)` or `rng=copy(FIXEDRNG)` with [`FIXEDSEED`](@ref)  to retrieve the exact output as in the documentation or in the unit tests.
 
-
 Most of the stochasticity appears in _training_ a model. However in few cases (e.g. decision trees with missing values) some stochasticity appears also in _predicting_ new data using a trained model. In such cases the model doesn't restrict the random seed, so that you can choose at _predict_ time to use a fixed or a variable random seed.
+
+Finally, if you plan to use multiple threads and want to provide a reproducible output independent to the number of threads used, have a look at [`generate_parallel_rngs`](@ref).

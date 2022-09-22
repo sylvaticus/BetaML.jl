@@ -55,6 +55,7 @@ Base.@kwdef mutable struct RFHyperParametersSet <: BetaMLHyperParametersSet
     beta::Float64                               = 0.0
     "Wheter to compute the _Out-Of-Bag_ error, an estimation of the validation error (the mismatching error for classification and the relative mean error for regression jobs)."
     oob::Bool                                   = false
+    hpranges::Dict{String,Vector}               = Dict{"n_trees" => [10, 20, 30, 40], "max_depth" =>[5,10,nothing], min_gain=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30],"beta"=>[0,0.01,0.1]}
 end
 
 """

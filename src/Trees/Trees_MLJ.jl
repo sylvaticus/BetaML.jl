@@ -216,7 +216,6 @@ function MMI.predict(model::Union{DecisionTreeClassifier,RandomForestClassifier}
     a_target_element = fitresult[2]
     decode           = MMI.decoder(a_target_element)
     classes          = MMI.classes(a_target_element)
-    #println(typeof(classes))
     nLevels          = length(classes)
     nRecords         = MMI.nrows(Xnew)
     treePredictions  = Trees.predict(fittedModel, MMI.matrix(Xnew),rng=model.rng)
@@ -228,8 +227,6 @@ function MMI.predict(model::Union{DecisionTreeClassifier,RandomForestClassifier}
             predMatrix[n,c] = get(treePredictions[n],cl,0.0)
         end
     end
-    #predictions = [MMI.UnivariateFinite(classes, predMatrix[i,:])
-    #               for i in 1:nRecords]
     predictions = MMI.UnivariateFinite(classes, predMatrix)
     return predictions
 end
