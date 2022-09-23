@@ -267,6 +267,12 @@ Base.@kwdef mutable struct PerceptronClassifierHyperParametersSet <: BetaMLHyper
     force_origin::Bool = false
     " Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]"
     return_mean_hyperplane::Bool=false
+    """
+    The method - and its parameters - to employ for hyperparameters autotuning.
+    See [`GridTuneSearch`](@ref) for the default (grid) method.
+    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
+    """
+    tunemethod::AutoTuneMethod                  = GridTuneSearch(hpranges=Dict("epochs" =>[50,100,1000,10000], "shuffle"=>[true,false], "force_origin"=>[true,false],"return_mean_hyperplane"=>[true,false]),)
 end
 
 Base.@kwdef mutable struct PerceptronClassifierLearnableParameters <: BetaMLLearnableParametersSet
@@ -320,6 +326,7 @@ Fit the [`PerceptronClassifier`](@ref) model to data
 """
 function fit!(m::PerceptronClassifier,X,Y)
     
+    m.fitted! && autotune!(m,(X,Y))
 
     # Parameter alias..
     initial_parameters             = m.hpar.initial_parameters

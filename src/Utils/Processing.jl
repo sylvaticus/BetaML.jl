@@ -1103,22 +1103,118 @@ function cross_validation(f,data,sampler=KFold(nSplits=5,nRepeats=1,shuffle=true
     if returnStatistics  return (mean(iterResults),std(iterResults)) else return iterResults end
 end
 
-#= TODO
-abstract type ParametersSet
+"""
+$(TYPEDEF)
 
-        
-Base.@kwdef struct NNModelParametersSet <: ParametersSet
-  neuronsRange::Vector{Int64}   = 6:4:12
-  epochesRange::Vector{Int64}   = 200:100:300
-  batch_sizeRange::Vector{Int64} = 4:2:6
+Simple grid method for hyper-parameters validation of supervised models.
+
+All parameters are tested using cross-validation and then the "best" combination is used. 
+
+# Notes:
+- the default loss is suitable for 1-dimensional output supervised models
+
+## Parameters:
+$(TYPEDFIELDS)
+"""
+Base.@kwdef mutable struct GridTuneSearch <: AutoTuneMethod
+    "Loss function to use. [def: average l2 norm]"
+    loss::Function = (y,ŷ) -> norm(y-ŷ)/size(y,1)
+    "Share of the (data) resources to use for the autotuning [def: 0.1]. With `res_share=1` all the dataset is used for autotuning, it can be very time consuming!"
+    res_share::Float64 = 0.1
+    "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values)."
+    hpranges::Dict{String,Any} = Dict{String,Any}()
+    "Number of parts to use in cross-validation for each possible hyperparameter combination"
+    nsplits::Int64 = 5
+    "NOT YET IMPLEMENTED - Use multithreads in the search for the best hyperparameters [def: `false`]"
+    use_multithreads::Bool = false
 end
-function tuneHyperParameters(model,Pset::ParameterSet,xtrain,ytrain;neuronsRange=6:4:12,epochesRange= 200:100:300:size(xtrain,2),batch_sizeRange = 4:2:6,repetitions=5,rng=Random.GLOBAL_RNG) 
 
-function htune(f,model::DataType,rng,data,nthreads=1,method=CartesianGrid();kwargs...) # or dict
-passed to f: istantiatedmodel, data, rng, cache opt iterationindex    
-=#
+"Transform a Dict(parameters => possible range) in a vector of Dict(parameters=>parvalues)"
+function _hpranges_2_candidates(hpranges)
+    parLengths = Int64[]
+    for (k,v) in hpranges
+        push!(parLengths,length(v))
+    end
+    candidates = Dict{String,Any}[]
+    for ij in CartesianIndices(Tuple(parLengths)) 
+        thishpars = Dict{String,Any}()
+        i = 1
+        for (k,v) in hpranges
+            thishpars[k] = hpranges[k][Tuple(ij)[i]]
+            i += 1
+        end
+        #thishpars = NamedTuple{Tuple(keys(thishpars))}(values(thishpars)) # dict to namedtouple, also  ntuple = (; dict...)
+        push!(candidates,thishpars)
+    end
+    return candidates
+end
 
+"""
+$(TYPEDSIGNATURES)
 
+Experimental hyperparameter autotuning
+
+"""
+function tune!(m,method::GridTuneSearch,data)
+    options(m).verbosity >= STD && println("Starting hp autotuning (could take a while..)")
+    options(m).verbosity >= HIGH && println(method)   
+    hpranges   = method.hpranges
+    candidates = _hpranges_2_candidates(hpranges)
+    #println(candidates)
+    rng             = options(m).rng
+    best_candidate  = Dict()
+    lowest_loss     = Inf
+    (xsampled, _), (ysampled, _) = partition([data...],[method.res_share,1-method.res_share],rng=rng, copy=true)
+    
+    #if eltype(data) <: AbstractArray # data has multiple arrays, like X,Y
+    #    sampleddata = (collect([subs[i][1] for i in 1:length(subs)])...,)
+    #else # data is a single matrix/tensor
+    #    sampleddata = collect(subs[1])
+    #end
+    
+    sampler = KFold(nSplits=method.nsplits,rng=rng)
+    for candidate in candidates
+        options(m).verbosity == FULL && println("Testing candidate $candidate")
+        mc = deepcopy(m)
+        mc.opt.autotune = false
+        mc.opt.verbosity = NONE
+        sethp!(mc,candidate)       
+        (μ,σ) = cross_validation([xsampled,ysampled],sampler) do trainData,valData,rng
+                 (xtrain,ytrain) = trainData; (xval,yval) = valData
+                 fit!(mc,xtrain,ytrain)
+                 predictions     = predict(mc,xval)
+                 ϵ               = method.loss(yval,predictions) 
+                 reset!(mc)
+                 return ismissing(ϵ) ? Inf : ϵ 
+               end
+        if μ < lowest_loss
+            lowest_loss = μ
+            best_candidate = candidate
+        end
+    end
+    sethp!(m,best_candidate) 
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Experimental hyperparameter autotuning
+
+"""
+function autotune!(m,data) # or autotune!(m,data) ???
+    if !(options(m).autotune)
+        return m
+    end
+    tune!(m,hyperparameters(m).tunemethod,data)
+    # make initial vector of NamedTuple(par1=1,par2=2) (or dict) and initia lloss for each set to infty
+    # send this vector, the epoch number and the data to define_next_search(::searchMethod,hpresults,epoch,data)
+    # this return the new hpcombinations to search, the data to use for it and the sample method ? the number of k in cross validation ?
+    # but how to define_next_search know which parameters are a resource ?
+    # for now we don't 
+    # if there is a single parameter combination left we return /modify the model with that hyperparameters combination
+
+    return nothing
+end
 
 """
    class_counts_with_labels(x)

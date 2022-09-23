@@ -47,6 +47,14 @@ y    = data[:,16];
 ((xtrain,xval,xtest),(ytrain,yval,ytest)) = partition([x,y],[0.75,0.125,1-0.75-0.125],shuffle=false)
 (ntrain, nval, ntest) = size.([ytrain,yval,ytest],1)
 
+# NEW! With the new autotune functionality on:
+((xtrain2,xtest2),(ytrain2,ytest2)) = partition([x,y],[0.75,0.25,],shuffle=false)
+m = DecisionTreeEstimator(tunemethod=GridTuneSearch(hpranges=Dict("max_depth"=>4:6,"max_features" =>10:13, "min_records"=>3:6), res_share= 0.2) , autotune=true, rng=copy(FIXEDRNG))
+ŷtrain = fit!(m,xtrain2,ytrain2)
+ŷtest  = predict(m,xtest2) 
+mean_relative_error(ŷtest,ytest2,normrec=false) # 0.158
+
+
 # We can now "tune" our model so-called hyper-parameters, i.e. choose the best exogenous parameters of our algorithm, where "best" refers to some minimisation of a "loss" function between the true and the predicted values. We compute this loss function on a specific subset of data, that we call the "validation" subset (`xval` and `yval`).
 
 # BetaML doesn't have a dedicated function for hyper-parameters optimisation, but it is easy to write some custom julia code, at least for a simple grid-based "search". Indeed one of the main reasons that a dedicated function exists in other Machine Learning libraries is that loops in other languages are slow, but this is not a problem in julia, so we can retain the flexibility to write the kind of hyper-parameter tuning that best fits our needs.

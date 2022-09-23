@@ -26,7 +26,8 @@ export Verbosity, NONE, LOW, STD, HIGH, FULL,
        FIXEDSEED, FIXEDRNG,
        BetaMLModel, BetaMLSupervisedModel, BetaMLUnsupervisedModel,
        BetaMLOptionsSet, BetaMLDefaultOptionsSet, BetaMLHyperParametersSet, BetaMLLearnableParametersSet,
-       predict, inverse_predict, fit!, fit_ex, info, reset!, reset_ex, parameters,hyperparameters, options,
+       AutoTuneMethod,
+       predict, inverse_predict, fit!, fit_ex, info, reset!, reset_ex, parameters,hyperparameters, options, sethp!,
        model_save, model_load
 
 
@@ -95,9 +96,10 @@ Base.@kwdef mutable struct BetaMLDefaultOptionsSet
    cache::Bool = true
    "An optional title and/or description for this model"
    descr::String = "" 
+   "Experimantal option for hyper-parameters autotuning [def: `false`, i.e. not autotuning performed]"
+   autotune::Bool = false
    "The verbosity level to be used in training or prediction (see [`?Verbosity`](@ref Verbosity)) [deafult: `STD`]
    "
-   autotune::Union{Nothing,AutoTuneMethod} = nothing
    verbosity::Verbosity = STD
    "Random Number Generator (see [`?FIXEDSEED`](@ref FIXEDSEED)) [deafult: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG = Random.GLOBAL_RNG
@@ -222,6 +224,19 @@ Returns the hyperparameters of a BetaML model. See also [`?options`](@ref option
 
 """ 
 hyperparameters(m::BetaMLModel) = m.hpar
+
+"""
+$(TYPEDSIGNATURES)
+
+Set the hyperparameters of model `m` as specified in the `hp` dictionary.
+""" 
+function sethp!(m::BetaMLModel,hp::Dict)
+    hpobj = hyperparameters(m)
+    for (k,v) in hp
+        setproperty!(hpobj,Symbol(k),v)
+    end
+end
+
 """
     options(m::BetaMLModel)
 

@@ -183,3 +183,7 @@ In particular, use `rng=StableRNG(FIXEDSEED)` or `rng=copy(FIXEDRNG)` with [`FIX
 Most of the stochasticity appears in _training_ a model. However in few cases (e.g. decision trees with missing values) some stochasticity appears also in _predicting_ new data using a trained model. In such cases the model doesn't restrict the random seed, so that you can choose at _predict_ time to use a fixed or a variable random seed.
 
 Finally, if you plan to use multiple threads and want to provide a reproducible output independent to the number of threads used, have a look at [`generate_parallel_rngs`](@ref).
+
+## Saving trained models
+
+Please see [`model_save`](@ref) to learn how to save a trained model on disk and [`model_load`](@ref) for how to retrieve it.

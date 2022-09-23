@@ -810,8 +810,15 @@ Base.@kwdef mutable struct NNHyperParametersSet <: BetaMLHyperParametersSet
     opt_alg::OptimisationAlgorithm = ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool = true  
+    """
+    The method - and its parameters - to employ for hyperparameters autotuning.
+    See [`GridTuneSearch`](@ref) for the default (grid) method.
+    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
+    """
+    tunemethod::AutoTuneMethod                  = GridTuneSearch(hpranges = Dict("epochs"=>[50,100,150],"batch_size"=>[2,4,8,16,32],"opt_alg"=>[SGD(λ=2),SGD(λ=1),SGD(λ=3),ADAM(λ=0.5),ADAM(λ=1),ADAM(λ=0.25)], "shuffle"=>[false,true]))
 end
-"""
+
+""" 
 NeuralNetworkEstimatorOptionsSet
 
 A struct defining the options used by the Feedforward neural network model
@@ -880,6 +887,7 @@ end
 
 function fit!(m::NeuralNetworkEstimator,X,Y)
     
+    m.fitted! && autotune!(m,(X,Y))
 
     # Parameter alias..
     layers      = m.hpar.layers

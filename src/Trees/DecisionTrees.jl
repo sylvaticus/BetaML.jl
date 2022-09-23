@@ -112,6 +112,12 @@ Base.@kwdef mutable struct DTHyperParametersSet <: BetaMLHyperParametersSet
     force_classification::Bool                   = false
     "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `nothing`, i.e. `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]. Either `gini`, `entropy`, `variance` or a custom function. It can also be an anonymous function."
     splitting_criterion::Union{Nothing,Function} = nothing
+    """
+    The method - and its parameters - to employ for hyperparameters autotuning.
+    See [`GridTuneSearch`](@ref) for the default (grid) method.
+    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
+    """
+    tunemethod::AutoTuneMethod                  = GridTuneSearch(hpranges=Dict("max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30]),)
 end
 
 
@@ -428,6 +434,8 @@ function fit!(m::DecisionTreeEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
 
     if m.fitted
         @warn "This model has already been fitted (trained) and it doesn't support multiple fitting. This fitting will override the previous one(s)"
+    else
+        autotune!(m,(x,y))
     end
 
     # Setting default parameters that depends from the data...

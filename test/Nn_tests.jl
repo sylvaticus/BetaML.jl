@@ -1,7 +1,7 @@
 using Test
 using DelimitedFiles, LinearAlgebra, Statistics #, MLDatasets
 
-using StableRNGs
+#using StableRNGs
 #rng = StableRNG(123)
 using BetaML
 import MLJBase

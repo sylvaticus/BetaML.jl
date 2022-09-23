@@ -199,6 +199,13 @@ Base.@kwdef mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
     initialisation_strategy::String              = "kmeans"
     "Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]"
     maximum_iterations::Int64                    = typemax(Int64)
+    """
+    The method - and its parameters - to employ for hyperparameters autotuning.
+    See [`GridTuneSearch`](@ref) for the default (grid) method (suitable for the GMM-based regressors)
+    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
+    We can't use `mixtures` as it depends (its vector size) from an other hhyperparametern n_classes.
+    """
+    tunemethod::AutoTuneMethod                  = GridTuneSearch(hpranges=Dict("n_classes" =>[2,3,4,5], "initialisation_strategy"=>["grid,","kmeans"]))
 end
 
 

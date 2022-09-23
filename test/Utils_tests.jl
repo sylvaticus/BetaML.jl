@@ -621,6 +621,23 @@ sampler = KFold(nSplits=3,nRepeats=1,shuffle=true,rng=copy(TESTRNG))
 
 @test (μ,σ) == (0.3202242202242202, 0.04307662219315022)
 
+println("** Testing autotuning...")
+
+let
+    X = [11:99 99:-1:11]
+    y = collect(111:199)
+    m = DecisionTreeEstimator(verbosity=NONE,rng=copy(TESTRNG),autotune=true)
+    hyperparameters(m).tunemethod.res_share=0.8
+    fit!(m,X,y)
+    opthp = hyperparameters(m)
+    println("Test...")
+    println(opthp)
+    dump(opthp)
+    @test ((opthp.max_depth == 10) && (opthp.min_gain==0.0) && (opthp.min_records==2) && (opthp.max_features==5))
+    ŷ = predict(m,X)
+    @test mean_relative_error(ŷ,y,normrec=false) ≈ 0.0023196810438564698
+end 
+
 
 # ==================================
 # New test
