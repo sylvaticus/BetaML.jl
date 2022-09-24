@@ -836,6 +836,8 @@ Base.@kwdef mutable struct NeuralNetworkEstimatorOptionsSet
    verbosity::Verbosity = STD
    "A call back function to provide information during training [def: `fitting_info`"
    cb::Function=fitting_info
+   "0ption for hyper-parameters autotuning [def: `false`, i.e. not autotuning performed]. If activated, autotuning is performed on the first `fit!()` call. Controll auto-tuning trough the option `tunemethod` (see the model hyper-parameters)"
+   autotune::Bool = false
    "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
    "
    rng::AbstractRNG = Random.GLOBAL_RNG
@@ -887,7 +889,7 @@ end
 
 function fit!(m::NeuralNetworkEstimator,X,Y)
     
-    m.fitted! && autotune!(m,(X,Y))
+    (m.fitted) || autotune!(m,(X,Y))
 
     # Parameter alias..
     layers      = m.hpar.layers

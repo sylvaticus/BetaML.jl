@@ -326,7 +326,7 @@ Fit the [`PerceptronClassifier`](@ref) model to data
 """
 function fit!(m::PerceptronClassifier,X,Y)
     
-    m.fitted! && autotune!(m,(X,Y))
+    m.fitted || autotune!(m,(X,Y))
 
     # Parameter alias..
     initial_parameters             = m.hpar.initial_parameters

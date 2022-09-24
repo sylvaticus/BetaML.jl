@@ -356,7 +356,7 @@ Fit a [`KernelPerceptronClassifier`](@ref) model.
 """
 function fit!(m::KernelPerceptronClassifier,X,Y)
     
-    m.fitted! && autotune!(m,(X,Y))
+    m.fitted || autotune!(m,(X,Y))
 
     # Parameter alias..
     kernel          = m.hpar.kernel

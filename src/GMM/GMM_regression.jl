@@ -72,7 +72,7 @@ Fit the [`GMMRegressor1`](@ref) model to data
 """
 function fit!(m::GMMRegressor1,x,y)
 
-    m.fitted! && autotune!(m,(x,y))
+    m.fitted || autotune!(m,(x,y))
     
     x = makematrix(x)
     y = makematrix(y)

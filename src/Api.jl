@@ -96,7 +96,7 @@ Base.@kwdef mutable struct BetaMLDefaultOptionsSet
    cache::Bool = true
    "An optional title and/or description for this model"
    descr::String = "" 
-   "Experimantal option for hyper-parameters autotuning [def: `false`, i.e. not autotuning performed]"
+   "0ption for hyper-parameters autotuning [def: `false`, i.e. not autotuning performed]. If activated, autotuning is performed on the first `fit!()` call. Controll auto-tuning trough the option `tunemethod` (see the model hyper-parameters)"
    autotune::Bool = false
    "The verbosity level to be used in training or prediction (see [`?Verbosity`](@ref Verbosity)) [deafult: `STD`]
    "

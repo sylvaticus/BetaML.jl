@@ -1142,7 +1142,7 @@ Base.@kwdef mutable struct GridSearch <: AutoTuneMethod
     res_share::Float64 = 0.1
     "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values). The number of points you provide for a given parameter can be interpreted as proportional to the prior you have on the importance of that parameter for the algorithm quality."
     hpranges::Dict{String,Any} = Dict{String,Any}()
-    "NOT YET IMPLEMENTED - Use multithreads in the search for the best hyperparameters [def: `false`]"
+    "Use multithreads in the search for the best hyperparameters [def: `false`]"
     use_multithreads::Bool = false
 end
 
@@ -1169,7 +1169,7 @@ Base.@kwdef mutable struct SuccessiveHalvingSearch <: AutoTuneMethod
     res_shares::Vector{Float64} = [0.05, 0.2, 0.3]
     "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values). The number of points you provide for a given parameter can be interpreted as proportional to the prior you have on the importance of that parameter for the algorithm quality."
     hpranges::Dict{String,Any} = Dict{String,Any}()
-    "NOT YET IMPLEMENTED - Use multiple threads in the search for the best hyperparameters [def: `false`]"
+    "Use multiple threads in the search for the best hyperparameters [def: `false`]"
     use_multithread::Bool = false
 end
 
@@ -1245,7 +1245,7 @@ function tune!(m,method::SuccessiveHalvingSearch,data)
     hpranges   = method.hpranges
     res_shares = method.res_shares
     rng             = options(m).rng
-    use_multithreads  = method.use_multithreads 
+    use_multithreads  = method.use_multithread
     epochs          = length(res_shares)
     candidates = _hpranges_2_candidates(hpranges)
     ncandidates = length(candidates)
@@ -1256,7 +1256,7 @@ function tune!(m,method::SuccessiveHalvingSearch,data)
         epochdata = (collect([esubs[i][1] for i in 1:length(esubs)])...,)
         ncandidates_thisepoch = Int(round(ncandidates/shrinkfactor^(e-1)))
         ncandidates_tokeep = Int(round(ncandidates/shrinkfactor^e))
-        options(m).verbosity >= HIGHL && println("(e $e) N candidates to retain: $ncandidates_tokeep")
+        options(m).verbosity >= HIGH && println("(e $e) N candidates to retain: $ncandidates_tokeep")
         scores = Vector{Tuple{Float64,Dict}}(undef,ncandidates_thisepoch)
         masterSeed = rand(rng,100:typemax(Int64))
         rngs       = generate_parallel_rngs(rng,Threads.nthreads()) 

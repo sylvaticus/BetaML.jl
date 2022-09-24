@@ -197,7 +197,7 @@ Base.@kwdef mutable struct PegasosClassifierHyperParametersSet <: BetaMLHyperPar
     See [`SuccessiveHalvingSearch`](@ref) for the default method.
     To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
-    tunemethod::AutoTuneMethod                  = GSuccessiveHalvingSearch(hpranges=Dict("learning_rate" =>[(epoch -> 1/sqrt(epoch)),(epoch -> 1/epoch),(epoch -> 1)], "learning_rate_multiplicative" => [0.1,0.5,1,2], "epochs" =>[50,100,1000,10000], "shuffle"=>[true,false], "force_origin"=>[true,false],"return_mean_hyperplane"=>[true,false]),use_multithread=true)
+    tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("learning_rate" =>[(epoch -> 1/sqrt(epoch)),(epoch -> 1/epoch),(epoch -> 1)], "learning_rate_multiplicative" => [0.1,0.5,1,2], "epochs" =>[50,100,1000,10000], "shuffle"=>[true,false], "force_origin"=>[true,false],"return_mean_hyperplane"=>[true,false]),use_multithread=true)
 end
 
 Base.@kwdef mutable struct PegasosClassifierLearnableParameters <: BetaMLLearnableParametersSet
@@ -247,7 +247,7 @@ Fit a [`PegasosClassifier`](@ref) model.
 """
 function fit!(m::PegasosClassifier,X,Y)
     
-    m.fitted! && autotune!(m,(X,Y))
+    m.fitted || autotune!(m,(X,Y))
 
     # Parameter alias..
     learning_rate               = m.hpar.learning_rate
