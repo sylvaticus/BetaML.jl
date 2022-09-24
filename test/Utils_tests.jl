@@ -577,7 +577,7 @@ out = partition(ms,[0.7,0.3],dims=1,rng=copy(TESTRNG))
 # New test
 println("** Testing KFold sampler with a single X matrix...")
 data           = [11:13 21:23 31:33 41:43 51:53 61:63]
-sampleIterator = SamplerWithData(KFold(nSplits=3,nRepeats=1,shuffle=true,rng=copy(TESTRNG)),data,2)
+sampleIterator = SamplerWithData(KFold(nsplits=3,nrepeats=1,shuffle=true,rng=copy(TESTRNG)),data,2)
 for (i,d) in enumerate(sampleIterator)
     if i == 1
         @test d[1][1] == [51 61 21 41; 52 62 22 42; 53 63 23 43] && d[2][1] == [31 11; 32 12; 33 13]
@@ -592,7 +592,7 @@ end
 
 println("** Testing KFold sampler with multiple matrices...")
 data           = [[11:16 string.([21:26;])],[31:36;]]
-sampleIterator = SamplerWithData(KFold(nSplits=3,nRepeats=2,shuffle=false,rng=copy(TESTRNG)),data,1)
+sampleIterator = SamplerWithData(KFold(nsplits=3,nrepeats=2,shuffle=false,rng=copy(TESTRNG)),data,1)
 for (i,d) in enumerate(sampleIterator)
     local xtrain, ytrain, xval, yval
     (xtrain,ytrain),(xval,yval) = d
@@ -610,7 +610,7 @@ println("** Testing cross_validation...")
 
 X = [11:19 21:29 31:39 41:49 51:59 61:69]
 Y = [1:9;]
-sampler = KFold(nSplits=3,nRepeats=1,shuffle=true,rng=copy(TESTRNG))
+sampler = KFold(nsplits=3,nrepeats=1,shuffle=true,rng=copy(TESTRNG))
 (μ,σ) = cross_validation([X,Y],sampler) do trainData,valData,rng
         (xtrain,ytrain) = trainData; (xval,yval) = valData
         trainedModel = buildForest(xtrain,ytrain,30,rng=rng)
@@ -623,20 +623,34 @@ sampler = KFold(nSplits=3,nRepeats=1,shuffle=true,rng=copy(TESTRNG))
 
 println("** Testing autotuning...")
 
-let
-    X = [11:99 99:-1:11]
-    y = collect(111:199)
-    m = DecisionTreeEstimator(verbosity=NONE,rng=copy(TESTRNG),autotune=true)
-    hyperparameters(m).tunemethod.res_share=0.8
-    fit!(m,X,y)
-    opthp = hyperparameters(m)
-    println("Test...")
-    println(opthp)
-    dump(opthp)
-    @test ((opthp.max_depth == 10) && (opthp.min_gain==0.0) && (opthp.min_records==2) && (opthp.max_features==5))
-    ŷ = predict(m,X)
-    @test mean_relative_error(ŷ,y,normrec=false) ≈ 0.0023196810438564698
-end 
+X = [11:99 99:-1:11]
+y = collect(111:199)
+tunemethod = GridSearch(hpranges=Dict("max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30]))
+m = DecisionTreeEstimator(verbosity=NONE,rng=copy(TESTRNG),autotune=true,tunemethod=tunemethod)
+hyperparameters(m).tunemethod.res_share=0.8
+fit!(m,X,y)
+opthp = hyperparameters(m)
+#println("Test...")
+#println(opthp)
+#dump(opthp)
+@test ((opthp.max_depth == 10) && (opthp.min_gain==0.0) && (opthp.min_records==2) && (opthp.max_features==5))
+ŷ = predict(m,X)
+@test mean_relative_error(ŷ,y,normrec=false) ≈ 0.0023196810438564698
+
+X = [11:99 99:-1:11]
+y = collect(111:199)
+tunemethod = SuccessiveHalvingSearch(hpranges=Dict("max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30]))
+m = DecisionTreeEstimator(verbosity=NONE,rng=copy(TESTRNG),autotune=true,tunemethod=tunemethod)
+hyperparameters(m).tunemethod.res_shares=[0.3,0.6,0.8]
+fit!(m,X,y)
+opthp = hyperparameters(m)
+#println("Test...")
+#println(opthp)
+#dump(opthp)
+@test ((opthp.max_depth == 10) && (opthp.min_gain==0.5) && (opthp.min_records==2) && (opthp.max_features==nothing))
+ŷ = predict(m,X)
+@test mean_relative_error(ŷ,y,normrec=false) ≈ 0.0023196810438564698
+
 
 
 # ==================================

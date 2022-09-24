@@ -18,7 +18,7 @@ For the complete list of functions provided see below. The main ones are:
 ## Data processing
 - Various small and large utilities for helping processing the data, expecially before running a ML algorithm
 - Includes [`getpermutations`](@ref), [`onehotencoder`](@ref), [`integerencoder`](@ref) (and [`integerdecoder`](@ref)), [`partition`](@ref), [`scale`](@ref) (and [`get_scalefactors`](@ref)), [`pca`](@ref), [`cross_validation`](@ref).
-- Auto-tuning of hyperparameters is implemented in the supported models by specifying `autotune=true` and optionally overriding the `tunemethod` parameters (e.g. for different hyperparameters ranges or different resources available for the tuning). Autotuning is then implemented in the (first) `fit!` call. Provided autotuning methods:  [`GridTuneSearch`](@ref)
+- Auto-tuning of hyperparameters is implemented in the supported models by specifying `autotune=true` and optionally overriding the `tunemethod` parameters (e.g. for different hyperparameters ranges or different resources available for the tuning). Autotuning is then implemented in the (first) `fit!` call. Provided autotuning methods:  [`GridSearch`](@ref)
 
 ## Samplers
 - Utilities to sample from data (e.g. for neural network training or for cross-validation)
@@ -53,7 +53,7 @@ export @codelocation, generate_parallel_rngs,
        ConfusionMatrix, ConfusionMatrixHyperParametersSet,
        ConfMatrix, labels, scores, normalised_scores,
        cross_validation, AbstractDataSampler, SamplerWithData, KFold,
-       autotune!, GridTuneSearch,
+       autotune!, GridSearch, SuccessiveHalvingSearch, l2loss_by_cv,
        l1_distance,l2_distance, l2squared_distance, cosine_distance, lse, sterling,
        #normalFixedSd, logNormalFixedSd,
        radial_kernel, polynomial_kernel,

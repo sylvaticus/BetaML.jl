@@ -42,18 +42,26 @@ plot(data.cnt, title="Daily bike sharing rents (2Y)", label=nothing)
 x    = Matrix{Float64}(data[:,[:instant,:season,:yr,:mnth,:holiday,:weekday,:workingday,:weathersit,:temp,:atemp,:hum,:windspeed]])
 y    = data[:,16];
 
-# We can now split the dataset between the data we will use for training the algorithm (`xtrain`/`ytrain`), those for selecting the hyperparameters (`xval`/`yval`) and finally those for testing the quality of the algoritm with the optimal hyperparameters (`xtest`/`ytest`). We use the `partition` function specifying the share we want to use for these three different subsets, here 75%, 12.5% and 12.5 respectively. As our data represents indeed a time serie, we want our model to be able to predict _future_ demand of bike sharing from _past_, observed rented bikes, so we do not shuffle the datasets as it would be the default.
+# !!! Tip 
+#     Starting v0.8 BetaML has a function to automatically select the "best" hyperparameters and this tutorial has been updated. Still it is a good exercise t osee how to manually use cross-validation or even custom sampling to achieve model selection. Consult [the version of this tutorial for BetaML <= 0.6](/BetaML.jl/v0.7/tutorials/Regression - bike sharing/betaml_tutorial_regression_sharingBikes.html) for his tutorial for that.
 
-((xtrain,xval,xtest),(ytrain,yval,ytest)) = partition([x,y],[0.75,0.125,1-0.75-0.125],shuffle=false)
-(ntrain, nval, ntest) = size.([ytrain,yval,ytest],1)
+# We can now split the dataset between the data that we will use for training the algorithm and selecting the hyperparameters (`xtrain`/`ytrain`) and those for testing the quality of the algoritm with the optimal hyperparameters (`xtest`/`ytest`). We use the `partition` function specifying the share we want to use for these two different subsets, here 80%, and 20% respectively. As our data represents indeed a time serie, we want our model to be able to predict _future_ demand of bike sharing from _past_, observed rented bikes, so we do not shuffle the datasets as it would be the default.
+
+((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.8,1-0.8],shuffle=false)
+(ntrain, ntest) = size.([ytrain,ytest],1)
 
 # NEW! With the new autotune functionality on:
 ((xtrain2,xtest2),(ytrain2,ytest2)) = partition([x,y],[0.75,0.25,],shuffle=false)
-m = DecisionTreeEstimator(tunemethod=GridTuneSearch(hpranges=Dict("max_depth"=>4:6,"max_features" =>10:13, "min_records"=>3:6), res_share= 0.2) , autotune=true, rng=copy(FIXEDRNG))
+tunemethod = SuccessiveHalvingSearch(hpranges=Dict("max_depth"=>4:6,"max_features" =>10:13, "min_records"=>3:6), res_shares=[0.1,0.2,0.3])
+tunemethod = GridSearch(hpranges=Dict("max_depth"=>4:6,"max_features" =>10:13, "min_records"=>3:6), res_share=0.2)
+m = DecisionTreeEstimator(tunemethod=tunemethod, autotune=true, rng=copy(FIXEDRNG))
+m = DecisionTreeEstimator(autotune=true, rng=copy(FIXEDRNG), verbosity=FULL)
 ŷtrain = fit!(m,xtrain2,ytrain2)
 ŷtest  = predict(m,xtest2) 
-mean_relative_error(ŷtest,ytest2,normrec=false) # 0.158
+mean_relative_error(ŷtest,ytest2,normrec=false) # 0.151
 
+@time autotune!(m,[xtrain2,ytrain2])
+a=1
 
 # We can now "tune" our model so-called hyper-parameters, i.e. choose the best exogenous parameters of our algorithm, where "best" refers to some minimisation of a "loss" function between the true and the predicted values. We compute this loss function on a specific subset of data, that we call the "validation" subset (`xval` and `yval`).
 
@@ -211,6 +219,16 @@ println("RF: $bestRme $bestmin_records $bestn_trees $bestβ") #src
 #src  bestn_trees=80; bestmin_records=5; bestβ=100
 #src bestn_trees=60; bestmin_records=5; bestβ=200
 myForest = buildForest(xtrain,ytrain, bestn_trees, max_depth=bestmax_depth,max_features=bestmax_features,min_records=bestmin_records,β=bestβ,oob=true,rng=copy(FIXEDRNG));
+
+
+xtrain,ytrain
+
+m = RandomForestEstimator(rng=copy(FIXEDRNG),autotune=true)
+ŷtrain = fit!(m,xtrain2,ytrain2)
+ŷtest  = predict(m,xtest2)
+mer_train = mean_relative_error(ŷtrain,ytrain2,normrec=false)
+mer_test = mean_relative_error(ŷtest,ytest2,normrec=false)
+
 
 # Let's now benchmark the training of the BetaML Random Forest model
 # @btime buildForest(xtrain,ytrain, bestn_trees, max_depth=bestmax_depth,max_features=bestmax_features,min_records=bestmin_records,β=bestβ,oob=true,rng=copy(FIXEDRNG));

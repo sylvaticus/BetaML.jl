@@ -1056,7 +1056,7 @@ Perform cross_validation according to `sampler` rule by calling the function f a
 # Parameters
 - `f`: The user-defined function that consume the specific train and validation data and return somehting (often the associated validation error). See later
 - `data`: A single n-dimenasional array or a vector of them (e.g. X,Y), depending on the tasks required by `f`.
-- sampler: An istance of a ` AbstractDataSampler`, defining the "rules" for sampling at each iteration. [def: `KFold(nSplits=5,nRepeats=1,shuffle=true,rng=Random.GLOBAL_RNG)` ]
+- sampler: An istance of a ` AbstractDataSampler`, defining the "rules" for sampling at each iteration. [def: `KFold(nsplits=5,nrepeats=1,shuffle=true,rng=Random.GLOBAL_RNG)` ]
 - `dims`: The dimension over performing the cross_validation i.e. the dimension containing the observations [def: `1`]
 - `verbosity`: The verbosity to print information during each iteration (this can also be printed in the `f` function) [def: `STD`]
 - `returnStatistics`: Wheter cross_validation should return the statistics of the output of `f` (mean and standard deviation) or the whole outputs [def: `true`].
@@ -1079,7 +1079,7 @@ Note that `cross_validation` can beconveniently be employed using the `do` synta
 ```
 julia> X = [11:19 21:29 31:39 41:49 51:59 61:69];
 julia> Y = [1:9;];
-julia> sampler = KFold(nSplits=3);
+julia> sampler = KFold(nsplits=3);
 julia> (μ,σ) = cross_validation([X,Y],sampler) do trainData,valData,rng
                  (xtrain,ytrain) = trainData; (xval,yval) = valData
                  trainedModel    = buildForest(xtrain,ytrain,30)
@@ -1091,7 +1091,7 @@ julia> (μ,σ) = cross_validation([X,Y],sampler) do trainData,valData,rng
 ```
 
 """
-function cross_validation(f,data,sampler=KFold(nSplits=5,nRepeats=1,shuffle=true,rng=Random.GLOBAL_RNG);dims=1,verbosity=STD, returnStatistics=true)
+function cross_validation(f,data,sampler=KFold(nsplits=5,nrepeats=1,shuffle=true,rng=Random.GLOBAL_RNG);dims=1,verbosity=STD, returnStatistics=true)
     iterResults = []
     for (i,iterData) in enumerate(SamplerWithData(sampler,data,dims))
        iterResult = f(iterData[1],iterData[2],sampler.rng)
@@ -1106,6 +1106,25 @@ end
 """
 $(TYPEDEF)
 
+Compute the loss of a given model over a given dataset running cross-validation
+"""
+function l2loss_by_cv(m,data;nsplits=5,rng=Random.GLOBAL_RNG)
+    x,y = data[1],data[2]
+    sampler = KFold(nsplits=nsplits,rng=rng)
+    (μ,σ) = cross_validation([x,y],sampler) do trainData,valData,rng
+        (xtrain,ytrain) = trainData; (xval,yval) = valData
+        fit!(m,xtrain,ytrain)
+        predictions     = predict(m,xval)
+        ϵ               = norm(yval-predictions)/size(yval,1) 
+        reset!(m)
+        return ismissing(ϵ) ? Inf : ϵ 
+      end
+    return μ
+end    
+
+"""
+$(TYPEDEF)
+
 Simple grid method for hyper-parameters validation of supervised models.
 
 All parameters are tested using cross-validation and then the "best" combination is used. 
@@ -1116,17 +1135,41 @@ All parameters are tested using cross-validation and then the "best" combination
 ## Parameters:
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct GridTuneSearch <: AutoTuneMethod
-    "Loss function to use. [def: average l2 norm]"
-    loss::Function = (y,ŷ) -> norm(y-ŷ)/size(y,1)
+Base.@kwdef mutable struct GridSearch <: AutoTuneMethod
+    "Loss function to use. [def: [`l2loss_by_cv`](@ref)`]. Any function that takes a model, data (a vector of arrays, even if we work only with X) and (using the `rng` keyword) a RNG and return a scalar loss."
+    loss::Function = l2loss_by_cv
     "Share of the (data) resources to use for the autotuning [def: 0.1]. With `res_share=1` all the dataset is used for autotuning, it can be very time consuming!"
     res_share::Float64 = 0.1
     "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values)."
     hpranges::Dict{String,Any} = Dict{String,Any}()
-    "Number of parts to use in cross-validation for each possible hyperparameter combination"
-    nsplits::Int64 = 5
     "NOT YET IMPLEMENTED - Use multithreads in the search for the best hyperparameters [def: `false`]"
     use_multithreads::Bool = false
+end
+
+
+
+"""
+$(TYPEDEF)
+
+Hyper-parameters validation of supervised models that search the parameters space trouth successive halving
+
+All parameters are tested using cross-validation and then the "best" combination is used. 
+
+# Notes:
+- the default loss is suitable for 1-dimensional output supervised models
+
+## Parameters:
+$(TYPEDFIELDS)
+"""
+Base.@kwdef mutable struct SuccessiveHalvingSearch <: AutoTuneMethod
+    "Loss function to use. [def: average l2 norm]"
+    loss::Function = l2loss_by_cv
+    "Share of the (data) resources to use for the autotuning [def: 0.1]. With `res_share=1` all the dataset is used for autotuning, it can be very time consuming!"
+    res_shares::Vector{Float64} = [0.05, 0.2, 0.3]
+    "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values)."
+    hpranges::Dict{String,Any} = Dict{String,Any}()
+    "NOT YET IMPLEMENTED - Use multiple threads in the search for the best hyperparameters [def: `false`]"
+    use_multithread::Bool = false
 end
 
 "Transform a Dict(parameters => possible range) in a vector of Dict(parameters=>parvalues)"
@@ -1152,41 +1195,32 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Experimental hyperparameter autotuning
+Hyperparameter autotuning using the [`GridSearch`](@ref) method.
 
 """
-function tune!(m,method::GridTuneSearch,data)
+function tune!(m,method::GridSearch,data)
     options(m).verbosity >= STD && println("Starting hp autotuning (could take a while..)")
     options(m).verbosity >= HIGH && println(method)   
     hpranges   = method.hpranges
     candidates = _hpranges_2_candidates(hpranges)
-    #println(candidates)
     rng             = options(m).rng
     best_candidate  = Dict()
     lowest_loss     = Inf
-    (xsampled, _), (ysampled, _) = partition([data...],[method.res_share,1-method.res_share],rng=rng, copy=true)
-    
+    subs = partition([data...],[method.res_share,1-method.res_share],rng=rng, copy=true)
     #if eltype(data) <: AbstractArray # data has multiple arrays, like X,Y
-    #    sampleddata = (collect([subs[i][1] for i in 1:length(subs)])...,)
+        sampleddata = (collect([subs[i][1] for i in 1:length(subs)])...,)
     #else # data is a single matrix/tensor
-    #    sampleddata = collect(subs[1])
+    #    sampleddata = (collect(subs[1]),)
     #end
     
-    sampler = KFold(nSplits=method.nsplits,rng=rng)
     for candidate in candidates
         options(m).verbosity == FULL && println("Testing candidate $candidate")
         mc = deepcopy(m)
         mc.opt.autotune = false
         mc.opt.verbosity = NONE
-        sethp!(mc,candidate)       
-        (μ,σ) = cross_validation([xsampled,ysampled],sampler) do trainData,valData,rng
-                 (xtrain,ytrain) = trainData; (xval,yval) = valData
-                 fit!(mc,xtrain,ytrain)
-                 predictions     = predict(mc,xval)
-                 ϵ               = method.loss(yval,predictions) 
-                 reset!(mc)
-                 return ismissing(ϵ) ? Inf : ϵ 
-               end
+        sethp!(mc,candidate) 
+        μ =  method.loss(mc,sampleddata;rng=rng)   
+        options(m).verbosity == FULL && println(" -- predicted loss: $μ")   
         if μ < lowest_loss
             lowest_loss = μ
             best_candidate = candidate
@@ -1198,12 +1232,71 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Hyperparameter autotuning using the [`SuccessiveHalvingSearch`](@ref) method.
+
+"""
+function tune!(m,method::SuccessiveHalvingSearch,data)
+    options(m).verbosity >= STD && println("Starting hp autotuning (could take a while..)")
+    options(m).verbosity >= HIGH && println(method)   
+    hpranges   = method.hpranges
+    res_shares = method.res_shares
+    rng             = options(m).rng
+    best_candidate  = Dict()
+    lowest_loss     = Inf
+    epochs          = length(res_shares)
+    candidates = _hpranges_2_candidates(hpranges)
+    ncandidates = length(candidates)
+    shrinkfactor = ncandidates^(1/epochs)
+
+    for e in 1:epochs
+        esubs = partition([data...],[res_shares[e],1-res_shares[e]],copy=false,rng=rng)
+        epochdata = (collect([esubs[i][1] for i in 1:length(esubs)])...,)
+        ncandidates_thisepoch = Int(round(ncandidates/shrinkfactor^(e-1)))
+        ncandidates_tokeep = Int(round(ncandidates/shrinkfactor^e))
+        scores = Vector{Tuple{Float64,Dict}}(undef,ncandidates_thisepoch)
+        for (c,candidate) in enumerate(candidates)
+            options(m).verbosity == FULL && println("(e $e) Testing candidate $candidate")
+            mc = deepcopy(m)
+            mc.opt.autotune = false
+            mc.opt.verbosity = NONE
+            sethp!(mc,candidate) 
+            μ =  method.loss(mc,epochdata;rng=rng)   
+            options(m).verbosity == FULL && println(" -- predicted loss: $μ")   
+            scores[c] = (μ,candidate)
+        end
+        sort!(scores,by=first)
+        options(m).verbosity == FULL && println("(e $e) Scores: \n $scores")
+        candidates = [scores[i][2] for i in 1:ncandidates_tokeep]     
+    end
+    length(candidates) == 1 || error("Here we should have a single candidate remained!")
+    sethp!(m,candidates[1]) 
+end
+#=
+n= 7621
+cuts = lenght(data_ratio) # 3
+ncandidates = lenght(candidates) # 1300
+
+First passage: 1300 candidates on 381 records
+Second passage: best 1300/x candidates (119) on 762 records
+
+Third passage: best 1300/x^2 candidates (11) on 1524 records
+
+Final: best candidate 1300/x^3 =1
+=#
+
+"""
+$(TYPEDSIGNATURES)
+
 Experimental hyperparameter autotuning
 
 """
 function autotune!(m,data) # or autotune!(m,data) ???
     if !(options(m).autotune)
         return m
+    end
+    # let's sure data is always a tuple of arrays, even for unsupervised models
+    if !(eltype(data) <: AbstractArray) # data is a single array
+        data = (data,)
     end
     tune!(m,hyperparameters(m).tunemethod,data)
     # make initial vector of NamedTuple(par1=1,par2=2) (or dict) and initia lloss for each set to infty

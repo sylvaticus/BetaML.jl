@@ -57,10 +57,10 @@ Base.@kwdef mutable struct RFHyperParametersSet <: BetaMLHyperParametersSet
     oob::Bool                                   = false
     """
     The method - and its parameters - to employ for hyperparameters autotuning.
-    See [`GridTuneSearch`](@ref) for the default (grid) method.
+    See [`SuccessiveHalvingSearch`](@ref) for the default method.
     To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
-    tunemethod::AutoTuneMethod                  = GridTuneSearch(hpranges=Dict("n_trees" => [10, 20, 30, 40], "max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30],"beta"=>[0,0.01,0.1]),)
+    tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("n_trees" => [10, 20, 30, 40], "max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30],"beta"=>[0,0.01,0.1]),use_multithread=false) # RF are already MT
 end
 
 """

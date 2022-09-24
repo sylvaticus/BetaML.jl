@@ -60,7 +60,7 @@ y       = integerencoder(iris[:,5],factors=yLabels);
 # Cross-Validation in BetaML is very flexible and it is done using the [`cross_validation`](@ref) function.
 # cross_validation works by calling the function `f`, defined by the user, passing to it the tuple `trainData`, `valData` and `rng` and collecting the result of the function f. The specific method for which `trainData`, and `valData` are selected at each iteration depends on the specific `sampler`.
 # We start by selectign a k-fold sampler that split our data in 5 different parts, it uses 4 for training and 1 part (not used here) for validation. We run the simulations twice and, to be sure to have replicable results, we fix the random seed (at the whole crossValidaiton level, not on each iteration).
-sampler = KFold(nSplits=5,nRepeats=3,shuffle=true, rng=copy(FIXEDRNG))
+sampler = KFold(nsplits=5,nrepeats=3,shuffle=true, rng=copy(FIXEDRNG))
 
 # We can now run the cross-validation with our models. Note that instead of defining the function `f` and then calling `cross_validation[f(trainData,testData,rng),[x,y],...)` we use the Julia `do` block syntax and we write directly the content of the `f` function in the `do` block.
 # Also, by default cross_validation already returns the mean and the standard deviation of the output of the user-provided `f` function (or the `do` block). However this requires that the `f` function return a single scalar. Here we are returning a vector of the accuracies of the different models (so we can run the cross-validation only once), and hence we indicate with `returnStatistics=false` to cross_validation not to attempt to generate statistics but rather report the whole output.
@@ -147,7 +147,7 @@ report = DataFrame(mName = modelLabels, avgAccuracy = dropdims(round.(μs',digit
 # Let's try up to 4 possible classes:
 
 K = 4
-sampler = KFold(nSplits=5,nRepeats=2,shuffle=true, rng=copy(FIXEDRNG))
+sampler = KFold(nsplits=5,nrepeats=2,shuffle=true, rng=copy(FIXEDRNG))
 cOut = cross_validation([x,y],sampler,returnStatistics=false) do trainData,testData,rng
     (xtrain,ytrain)  = trainData;
     clusteringOut  = [gmm(xtrain,k,mixtures=[FullGaussian() for i in 1:k], verbosity=NONE, rng=rng) for k in 1:K]

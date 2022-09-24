@@ -33,25 +33,25 @@ while next !== nothing
 end
 =#
 """
-   KFold(nSplits=5,nRepeats=1,shuffle=true,rng=Random.GLOBAL_RNG)
+   KFold(nsplits=5,nrepeats=1,shuffle=true,rng=Random.GLOBAL_RNG)
 
 Iterator for k-fold cross_validation strategy.
 
 """
 mutable struct KFold <: AbstractDataSampler
-    nSplits::Int64
-    nRepeats::Int64
+    nsplits::Int64
+    nrepeats::Int64
     shuffle::Bool
     rng::AbstractRNG
-    function KFold(;nSplits=5,nRepeats=1,shuffle=true,rng=Random.GLOBAL_RNG)
-        return new(nSplits,nRepeats,shuffle,rng)
+    function KFold(;nsplits=5,nrepeats=1,shuffle=true,rng=Random.GLOBAL_RNG)
+        return new(nsplits,nrepeats,shuffle,rng)
     end
 end
 
 # Implementation of the Julia iteration  API for SamplerWithData{KFold}
 function iterate(iter::SamplerWithData{KFold})
      # First iteration, I need to create the subsamples
-     K    = iter.sampler.nSplits
+     K    = iter.sampler.nsplits
      D    = iter.dims
      if eltype(iter.data) <: AbstractArray # data has multiple arrays, like X,Y
        subs = collect(zip(partition(iter.data,fill(1/K,K),shuffle=iter.sampler.shuffle,dims=D,rng=iter.sampler.rng,copy=false)...))
@@ -65,9 +65,9 @@ end
 
 function iterate(iter::SamplerWithData{KFold},state)
      # Further iteration, I need to create the subsamples only if it is a new interaction
-     K    = iter.sampler.nSplits
+     K    = iter.sampler.nsplits
      D    = iter.dims
-     nRep = iter.sampler.nRepeats
+     nRep = iter.sampler.nrepeats
      subs    = state[1]
      counter = state[2]
      counter <= (K * nRep) || return nothing  # If we are done all the splits by the repetitions we are done
