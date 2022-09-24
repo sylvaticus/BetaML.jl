@@ -60,13 +60,14 @@ export @codelocation, generate_parallel_rngs,
        Scaler, MinMaxScaler, StandardScaler,
        ScalerHyperParametersSet, MinMaxScaler,StandardScaler,
        PCA, PCAHyperParametersSet,
-       OneHotEncoder, OrdinalEncoder, OneHotEncoderHyperParametersSet
+       OneHotEncoder, OrdinalEncoder, OneHotEncoderHyperParametersSet,
+       @threadsif
 
 # Various functions that we add a method to
 import Base.print, Base.println, Base.findfirst, Base.findall, Base.error, Random.shuffle, Base.show
 
 
-#include("Miscelanneous.jl")
+include("Miscellaneous.jl")
 include("Logging_utils.jl")
 include("Processing.jl")
 include("Stochasticity.jl")

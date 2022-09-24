@@ -706,7 +706,7 @@ function innerFunction(bootstrappedx; rng=Random.GLOBAL_RNG)
      sum(bootstrappedx .* rand(rng) ./ 0.5)
 end
 function outerFunction(x;rng = Random.GLOBAL_RNG)
-    masterSeed = rand(rng,100:9999999999999) # important: with some RNG it is important to do this before the generate_parallel_rngs to guarantee independance from number of threads
+    masterSeed = rand(rng,100:typemax(Int64)) # important: with some RNG it is important to do this before the generate_parallel_rngs to guarantee independance from number of threads
     rngs       = generate_parallel_rngs(rng,Threads.nthreads()) # make new copy instances
     results    = Array{Float64,1}(undef,30)
     Threads.@threads for i in 1:30

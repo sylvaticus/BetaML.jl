@@ -1205,22 +1205,25 @@ function tune!(m,method::GridSearch,data)
     hpranges   = method.hpranges
     candidates = _hpranges_2_candidates(hpranges)
     rng             = options(m).rng
+    use_multithreads  = method.use_multithreads 
     best_candidate  = Dict()
     lowest_loss     = Inf
     subs = partition([data...],[method.res_share,1-method.res_share],rng=rng, copy=true)
     #if eltype(data) <: AbstractArray # data has multiple arrays, like X,Y
-        sampleddata = (collect([subs[i][1] for i in 1:length(subs)])...,)
+    sampleddata = (collect([subs[i][1] for i in 1:length(subs)])...,)
     #else # data is a single matrix/tensor
     #    sampleddata = (collect(subs[1]),)
     #end
-    
-    for candidate in candidates
+    masterSeed = rand(rng,100:typemax(Int64))
+    rngs       = generate_parallel_rngs(rng,Threads.nthreads()) 
+    @threadsif use_multithreads for candidate in candidates
+        tsrng = rngs[Threads.threadid()] 
         options(m).verbosity == FULL && println("Testing candidate $candidate")
         mc = deepcopy(m)
         mc.opt.autotune = false
         mc.opt.verbosity = NONE
         sethp!(mc,candidate) 
-        μ =  method.loss(mc,sampleddata;rng=rng)   
+        μ =  method.loss(mc,sampleddata;rng=tsrng)   
         options(m).verbosity == FULL && println(" -- predicted loss: $μ")   
         if μ < lowest_loss
             lowest_loss = μ
@@ -1242,8 +1245,7 @@ function tune!(m,method::SuccessiveHalvingSearch,data)
     hpranges   = method.hpranges
     res_shares = method.res_shares
     rng             = options(m).rng
-    best_candidate  = Dict()
-    lowest_loss     = Inf
+    use_multithreads  = method.use_multithreads 
     epochs          = length(res_shares)
     candidates = _hpranges_2_candidates(hpranges)
     ncandidates = length(candidates)
@@ -1254,14 +1256,18 @@ function tune!(m,method::SuccessiveHalvingSearch,data)
         epochdata = (collect([esubs[i][1] for i in 1:length(esubs)])...,)
         ncandidates_thisepoch = Int(round(ncandidates/shrinkfactor^(e-1)))
         ncandidates_tokeep = Int(round(ncandidates/shrinkfactor^e))
+        options(m).verbosity >= HIGHL && println("(e $e) N candidates to retain: $ncandidates_tokeep")
         scores = Vector{Tuple{Float64,Dict}}(undef,ncandidates_thisepoch)
-        for (c,candidate) in enumerate(candidates)
+        masterSeed = rand(rng,100:typemax(Int64))
+        rngs       = generate_parallel_rngs(rng,Threads.nthreads()) 
+        @threadsif use_multithreads for (c,candidate) in enumerate(candidates)
+            tsrng = rngs[Threads.threadid()]
             options(m).verbosity == FULL && println("(e $e) Testing candidate $candidate")
             mc = deepcopy(m)
             mc.opt.autotune = false
             mc.opt.verbosity = NONE
             sethp!(mc,candidate) 
-            μ =  method.loss(mc,epochdata;rng=rng)   
+            μ =  method.loss(mc,epochdata;rng=tsrng)   
             options(m).verbosity == FULL && println(" -- predicted loss: $μ")   
             scores[c] = (μ,candidate)
         end
