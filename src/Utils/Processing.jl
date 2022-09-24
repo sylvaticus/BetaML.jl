@@ -1140,7 +1140,7 @@ Base.@kwdef mutable struct GridSearch <: AutoTuneMethod
     loss::Function = l2loss_by_cv
     "Share of the (data) resources to use for the autotuning [def: 0.1]. With `res_share=1` all the dataset is used for autotuning, it can be very time consuming!"
     res_share::Float64 = 0.1
-    "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values)."
+    "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values). The number of points you provide for a given parameter can be interpreted as proportional to the prior you have on the importance of that parameter for the algorithm quality."
     hpranges::Dict{String,Any} = Dict{String,Any}()
     "NOT YET IMPLEMENTED - Use multithreads in the search for the best hyperparameters [def: `false`]"
     use_multithreads::Bool = false
@@ -1153,20 +1153,21 @@ $(TYPEDEF)
 
 Hyper-parameters validation of supervised models that search the parameters space trouth successive halving
 
-All parameters are tested using cross-validation and then the "best" combination is used. 
+All parameters are tested on a small sub-sample, then the "best" combinations are kept for a second round that use more samples and so on untill only one hyperparameter combination is left.
 
 # Notes:
-- the default loss is suitable for 1-dimensional output supervised models
+- the default loss is suitable for 1-dimensional output supervised models, and applies itself cross-validation. Any function that accepts a model, some data and return a scalar loss can be used
+- the rate at which the potential candidate combinations of hyperparameters shrink is controlled by the number of data shares defined in `res_shared` (i.e. the epochs): more epochs are choosen, lower the "shrink" coefficient
 
 ## Parameters:
 $(TYPEDFIELDS)
 """
 Base.@kwdef mutable struct SuccessiveHalvingSearch <: AutoTuneMethod
-    "Loss function to use. [def: average l2 norm]"
+    "Loss function to use. [def: [`l2loss_by_cv`](@ref)`]. Any function that takes a model, data (a vector of arrays, even if we work only with X) and (using the `rng` keyword) a RNG and return a scalar loss."
     loss::Function = l2loss_by_cv
-    "Share of the (data) resources to use for the autotuning [def: 0.1]. With `res_share=1` all the dataset is used for autotuning, it can be very time consuming!"
+    "Shares of the (data) resources to use for the autotuning in the successive iterations [def: `[0.05, 0.2, 0.3]`]. With `res_share=1` all the dataset is used for autotuning, it can be very time consuming!"
     res_shares::Vector{Float64} = [0.05, 0.2, 0.3]
-    "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values)."
+    "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values). The number of points you provide for a given parameter can be interpreted as proportional to the prior you have on the importance of that parameter for the algorithm quality."
     hpranges::Dict{String,Any} = Dict{String,Any}()
     "NOT YET IMPLEMENTED - Use multiple threads in the search for the best hyperparameters [def: `false`]"
     use_multithread::Bool = false
@@ -1271,23 +1272,11 @@ function tune!(m,method::SuccessiveHalvingSearch,data)
     length(candidates) == 1 || error("Here we should have a single candidate remained!")
     sethp!(m,candidates[1]) 
 end
-#=
-n= 7621
-cuts = lenght(data_ratio) # 3
-ncandidates = lenght(candidates) # 1300
-
-First passage: 1300 candidates on 381 records
-Second passage: best 1300/x candidates (119) on 762 records
-
-Third passage: best 1300/x^2 candidates (11) on 1524 records
-
-Final: best candidate 1300/x^3 =1
-=#
 
 """
 $(TYPEDSIGNATURES)
 
-Experimental hyperparameter autotuning
+Hyperparameter autotuning.
 
 """
 function autotune!(m,data) # or autotune!(m,data) ???
@@ -1299,13 +1288,6 @@ function autotune!(m,data) # or autotune!(m,data) ???
         data = (data,)
     end
     tune!(m,hyperparameters(m).tunemethod,data)
-    # make initial vector of NamedTuple(par1=1,par2=2) (or dict) and initia lloss for each set to infty
-    # send this vector, the epoch number and the data to define_next_search(::searchMethod,hpresults,epoch,data)
-    # this return the new hpcombinations to search, the data to use for it and the sample method ? the number of k in cross validation ?
-    # but how to define_next_search know which parameters are a resource ?
-    # for now we don't 
-    # if there is a single parameter combination left we return /modify the model with that hyperparameters combination
-
     return nothing
 end
 

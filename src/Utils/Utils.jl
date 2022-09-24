@@ -18,7 +18,7 @@ For the complete list of functions provided see below. The main ones are:
 ## Data processing
 - Various small and large utilities for helping processing the data, expecially before running a ML algorithm
 - Includes [`getpermutations`](@ref), [`onehotencoder`](@ref), [`integerencoder`](@ref) (and [`integerdecoder`](@ref)), [`partition`](@ref), [`scale`](@ref) (and [`get_scalefactors`](@ref)), [`pca`](@ref), [`cross_validation`](@ref).
-- Auto-tuning of hyperparameters is implemented in the supported models by specifying `autotune=true` and optionally overriding the `tunemethod` parameters (e.g. for different hyperparameters ranges or different resources available for the tuning). Autotuning is then implemented in the (first) `fit!` call. Provided autotuning methods:  [`GridSearch`](@ref)
+- Auto-tuning of hyperparameters is implemented in the supported models by specifying `autotune=true` and optionally overriding the `tunemethod` parameters (e.g. for different hyperparameters ranges or different resources available for the tuning). Autotuning is then implemented in the (first) `fit!` call. Provided autotuning methods:  [`SuccessiveHalvingSearch`](@ref) (default), [`GridSearch`](@ref)
 
 ## Samplers
 - Utilities to sample from data (e.g. for neural network training or for cross-validation)
