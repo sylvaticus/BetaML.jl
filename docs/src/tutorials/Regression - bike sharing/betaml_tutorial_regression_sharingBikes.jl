@@ -42,9 +42,11 @@ plot(data.cnt, title="Daily bike sharing rents (2Y)", label=nothing)
 x    = Matrix{Float64}(data[:,[:instant,:season,:yr,:mnth,:holiday,:weekday,:workingday,:weathersit,:temp,:atemp,:hum,:windspeed]])
 y    = data[:,16];
 
+# ### Model selection
 # !!! Tip 
 #     Starting v0.8 BetaML has a function to automatically select the "best" hyperparameters and this tutorial has been updated. Still it is a good exercise t osee how to manually use cross-validation or even custom sampling to achieve model selection. Consult [the version of this tutorial for BetaML <= 0.6](/BetaML.jl/v0.7/tutorials/Regression - bike sharing/betaml_tutorial_regression_sharingBikes.html) for his tutorial for that.
 
+# BetaML has perhaps wht is the simplest to use method for finding the model hyperparametrs.. Indeed, in most cases it ise ought to pass the attribute `autotune=true` on the model constructor and hyperparameters search willbe automatically performed on the first `fit!` call
 # We can now split the dataset between the data that we will use for training the algorithm and selecting the hyperparameters (`xtrain`/`ytrain`) and those for testing the quality of the algoritm with the optimal hyperparameters (`xtest`/`ytest`). We use the `partition` function specifying the share we want to use for these two different subsets, here 80%, and 20% respectively. As our data represents indeed a time serie, we want our model to be able to predict _future_ demand of bike sharing from _past_, observed rented bikes, so we do not shuffle the datasets as it would be the default.
 
 ((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.8,1-0.8],shuffle=false)
