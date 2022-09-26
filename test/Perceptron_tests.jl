@@ -238,21 +238,21 @@ ytest = y[ntrain+1:end]
 
 model = perceptron(xtrain,ytrain)
 ŷtrain = predict(xtrain,model.θ,model.θ₀,model.classes)
-@test accuracy(mode(ŷtrain),ytrain) >= 0.79
+@test accuracy(ytrain,mode(ŷtrain)) >= 0.79
 ŷtest = predict(xtest,model.θ,model.θ₀,model.classes)
-@test accuracy(mode(ŷtest),ytest)  >= 0.9
+@test accuracy(ytest,mode(ŷtest))  >= 0.9
 
 model = kernelPerceptron(xtrain,ytrain)
 ŷtrain = predict(xtrain,model.x,model.y,model.α,model.classes)
-@test accuracy(mode(ŷtrain),ytrain) >= 0.9
+@test accuracy(ytrain,mode(ŷtrain)) >= 0.9
 ŷtest = predict(xtest,model.x,model.y,model.α,model.classes)
-@test accuracy(mode(ŷtest),ytest)  >= 0.9
+@test accuracy(ytest,mode(ŷtest))  >= 0.9
 
 model = pegasos(xtrain,ytrain)
 ŷtrain = predict(xtrain,model.θ,model.θ₀,model.classes)
-@test accuracy(mode(ŷtrain),ytrain) >= 0.64
+@test accuracy(ytrain,mode(ŷtrain)) >= 0.64
 ŷtest = predict(xtest,model.θ,model.θ₀,model.classes)
-@test accuracy(mode(ŷtest),ytest)  >= 0.76
+@test accuracy(ytest,mode(ŷtest))  >= 0.76
 
 # ==================================
 # NEW TEST

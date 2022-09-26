@@ -94,9 +94,9 @@ ŷtrain  = predict(m, xtrain)
 ŷtrain2 = predict(m)
 @test isapprox(ŷtrain,ŷtrain2,atol=0.00001) # not the same as the predict(m,xtrain) goes trough a further estep
 ŷtest = predict(m, xtest)
-mreTrain = mean_relative_error(ŷtrain,ytrain)
+mreTrain = relative_mean_error(ytrain,ŷtrain,normrec=true)
 @test mreTrain <= 0.08
-mreTest  = mean_relative_error(ŷtest,ytest)
+mreTest  = relative_mean_error(ytest,ŷtest,normrec=true)
 @test mreTest <= 0.35
 
 # testing it with multidimensional Y
@@ -105,7 +105,7 @@ fit!(m,xtrain,ytrain2d)
 ŷtrain2d = predict(m, xtrain)
 ŷtrain2db = predict(m)
 @test isapprox(ŷtrain2d,ŷtrain2db,atol=0.00001) # not the same as the predict(m,xtrain) goes trough a further estep
-mreTrain2d = mean_relative_error(ŷtrain2d,ytrain2d)
+mreTrain2d = relative_mean_error(ytrain2d,ŷtrain2d,normrec=true)
 @test mreTrain2d <= 0.08
 
 # Testing GMM Regressor 2
@@ -116,9 +116,9 @@ ŷtrain = predict(m, xtrain)
 ŷtrain2 = predict(m)
 @test isapprox(ŷtrain,ŷtrain2,atol=0.01) # not the same as the predict(m,xtrain) goes trough a further estep
 ŷtest = predict(m, xtest)
-mreTrain = mean_relative_error(ŷtrain,ytrain)
+mreTrain = relative_mean_error(ytrain,ŷtrain,normrec=true)
 @test mreTrain <= 0.08
-mreTest  = mean_relative_error(ŷtest,ytest)
+mreTest  = relative_mean_error(ytest,ŷtest,normrec=true)
 @test mreTest <= 0.35
 
 # testing it with multidimensional Y
@@ -127,11 +127,11 @@ fit!(m,xtrain,ytrain2d)
 ŷtrain2d = predict(m, xtrain)
 ŷtrain2db = predict(m)
 @test isapprox(ŷtrain2d,ŷtrain2db,atol=0.01) # not the same as the predict(m,xtrain) goes trough a further estep
-mreTrain2d = mean_relative_error(ŷtrain2d,ytrain2d)
+mreTrain2d = relative_mean_error(ytrain2d,ŷtrain2d,normrec=true)
 @test mreTrain2d <= 0.08
 fit!(m,xtrain,ytrain2d) # re-fit
 ŷtrain2d = predict(m, xtrain)
-mreTrain2d = mean_relative_error(ŷtrain2d,ytrain2d)
+mreTrain2d = relative_mean_error(ytrain2d,ŷtrain2d,normrec=true)
 @test mreTrain2d <= 0.08
 
 
@@ -156,12 +156,12 @@ model_gmmr                      = GaussianMixtureRegressor(n_classes=20,rng=copy
 regressor_gmmr                  = Mlj.machine(model_gmmr, X, y)
 (fitresult_gmmr, cache, report) = Mlj.fit(model_gmmr, 0, X, y)
 yhat_gmmr                       = Mlj.predict(model_gmmr, fitresult_gmmr, X)
-@test mean_relative_error(yhat_gmmr,y) < 0.3
+@test relative_mean_error(y,yhat_gmmr,normrec=true) < 0.3
 
 ydouble = hcat(y,y)
 model_gmmr2                      = MultitargetGaussianMixtureRegressor(n_classes=20,rng=copy(TESTRNG))
 regressor_gmmr2                  = Mlj.machine(model_gmmr2, X, ydouble)
 (fitresult_gmmr2, cache, report) = Mlj.fit(model_gmmr2, 0, X, ydouble)
 yhat_gmmr2                       = Mlj.predict(model_gmmr2, fitresult_gmmr2, X)
-@test mean_relative_error(yhat_gmmr2,ydouble) < 0.3
+@test relative_mean_error(ydouble,yhat_gmmr2,normrec=true) < 0.3
 

@@ -511,7 +511,7 @@ For each record of the dataset, recursivelly traverse the tree to find the predi
 If the labels the tree has been fitted with are numeric, the prediction is also numeric.
 If the labels were categorical, the prediction is a dictionary with the probabilities of each item.
 
-In the first case (numerical predictions) use `mean_relative_error(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
+In the first case (numerical predictions) use `relative_mean_error(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 """
 function predict(tree::Union{DecisionNode{Tx}, Leaf{Ty}}, x; rng = Random.GLOBAL_RNG) where {Tx,Ty}
     predictions = predictSingle.(Ref(tree),eachrow(x),rng=rng)

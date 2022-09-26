@@ -48,12 +48,12 @@ o2 = forward(l2,o1)
 orig = predict(mynn,x')[1,:]
 @test orig == o2
 #@code_warntype Nn.predict(mynn,x')[1,:]
-ϵ = squared_cost(o2,y)
+ϵ = squared_cost(y,o2)
 #@code_warntype  squared_cost(o2,y)
 lossOrig = loss(mynn,x',y')
 @test ϵ == lossOrig
 #@code_warntype  loss(mynn,x',y')
-dϵ_do2 = dSquaredCost(o2,y)
+dϵ_do2 = dSquaredCost(y,o2)
 @test dϵ_do2 == [-0.4750208125210601,0.47502081252106]
 #@code_warntype dSquaredCost(o2,y)
 dϵ_do1 = backward(l2,o1,dϵ_do2) # here takes long as needs Zygote
@@ -185,15 +185,15 @@ ŷtestExpected = [0.4676699631752518,0.3448383593117405,0.4500863419692639,9.90
 ŷtrain = dropdims(predict(mynn,xtrain),dims=2)
 ŷtest = dropdims(predict(mynn,xtest),dims=2)
 @test any(isapprox(ŷtest,ŷtestExpected))
-mreTrain = mean_relative_error(ŷtrain,ytrain)
+mreTrain = relative_mean_error(ytrain,ŷtrain,normrec=true)
 @test mreTrain <= 0.06
-mreTest  = mean_relative_error(ŷtest,ytest)
+mreTest  = relative_mean_error(ytest,ŷtest,normrec=true)
 @test mreTest <= 0.05
 
 m = NeuralNetworkEstimator(rng=copy(TESTRNG),verbosity=NONE)
 fit!(m,xtrain,ytrain)
 ŷtrain2 =  dropdims(predict(m),dims=2)
-mreTrain = mean_relative_error(ŷtrain,ytrain)
+mreTrain = relative_mean_error(ytrain,ŷtrain,normrec=true)
 @test mreTrain <= 0.06
 
 
@@ -241,8 +241,8 @@ mynn = buildNetwork([l1,l2,l3],squared_cost,name="Multinomial logistic regressio
 train!(mynn,xtrain,ytrain_oh,epochs=254,batch_size=8,sequential=true,verbosity=NONE,opt_alg=SGD(η=t->0.001,λ=1),rng=copy(TESTRNG))
 ŷtrain = predict(mynn,xtrain)
 ŷtest  = predict(mynn,xtest)
-trainAccuracy = accuracy(ŷtrain,ytrain,tol=1)
-testAccuracy  = accuracy(ŷtest,ytest,tol=1)
+trainAccuracy = accuracy(ytrain,ŷtrain,tol=1)
+testAccuracy  = accuracy(ytest,ŷtest,tol=1)
 @test testAccuracy >= 0.8 # set to random initialisation/training to have much better accuracy
 
 # With ADAM
@@ -253,8 +253,8 @@ mynn = buildNetwork(deepcopy([l1,l2,l3]),squared_cost,name="Multinomial logistic
 train!(mynn,xtrain,ytrain_oh,epochs=10,batch_size=8,sequential=true,verbosity=NONE,opt_alg=ADAM(η=t -> 1/(1+t), λ=0.5),rng=copy(TESTRNG))
 ŷtrain = predict(mynn,xtrain)
 ŷtest  = predict(mynn,xtest)
-trainAccuracy = accuracy(ŷtrain,ytrain,tol=1)
-testAccuracy  = accuracy(ŷtest,ytest,tol=1)
+trainAccuracy = accuracy(ytrain,ŷtrain,tol=1)
+testAccuracy  = accuracy(ytest,ŷtest,tol=1)
 @test testAccuracy >= 1
 
 m = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=squared_cost,dloss=nothing,batch_size=8,shuffle=false,epochs=10,verbosity=NONE,opt_alg=ADAM(η=t -> 1/(1+t), λ=0.5),rng=copy(TESTRNG),descr="Iris classification")
@@ -270,13 +270,13 @@ m.hpar.epochs = 5
 fit!(m,xtrain,ytrain_oh)
 #fit!(m,xtrain,ytrain_oh)
 ŷtrain4 =  predict(m)
-acc = accuracy(ŷtrain4,ytrain,tol=1)
+acc = accuracy(ytrain,ŷtrain4,tol=1)
 @test acc >= 0.95
 
 m = NeuralNetworkEstimator(rng=copy(TESTRNG),verbosity=NONE)
 fit!(m,xtrain,ytrain_oh)
 ŷtrain5 = predict(m)
-acc = accuracy(ŷtrain5,ytrain,tol=1, rng=copy(TESTRNG))
+acc = accuracy(ytrain,ŷtrain5,tol=1, rng=copy(TESTRNG))
 @test acc >= 0.9
 
 #=
@@ -312,8 +312,8 @@ if VERSION >= v"1.6"
     mynn     = buildNetwork([l1,l2,l3],squared_cost,name="Regression with a pooled layer")
     train!(mynn,x,y,epochs=50,verbosity=NONE,rng=copy(TESTRNG))
     ŷ        = predict(mynn,x)
-    mreTrain = mean_relative_error(ŷ,y,normrec=false)
-    @test mreTrain  < 0.14
+    rmeTrain = relative_mean_error(y,ŷ,normrec=false)
+    @test rmeTrain  < 0.14
 end
 
 
@@ -327,7 +327,7 @@ model                          = MultitargetNeuralNetworkRegressor(rng=copy(TEST
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = dropdims(Mlj.predict(model, fitresult, X),dims=2)
-@test mean_relative_error(yhat,y) < 0.2
+@test relative_mean_error(y,yhat,normrec=true) < 0.2
 
 X, y                           = Mlj.@load_iris
 model                          = NeuralNetworkClassifier(rng=copy(TESTRNG))

@@ -104,8 +104,9 @@ y_oh     = fit!(ohmod,y)
 # Define the Artificial Neural Network model
 l1   = DenseLayer(4,10,f=relu) # The activation function is `ReLU`
 l2   = DenseLayer(10,3)        # The activation function is `identity` by default
-l3   = VectorFunctionLayer(3,f=softmax) # Add a (parameterless) layer whose activation function (`softmax` in this case) is defined to all its nodes at once
-mynn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=crossentropy,descr="Multinomial logistic regression Model Sepal", batch_size=2, epochs=200) # Build the NN and use the cross-entropy as error function. 
+l3   = VectorFunctionLayer(3,f=softmax) # Add a (parameterless  include("Imputation_tests.jl")) layer whose activation function (`softmax` in this case) is defined to all its nodes at once
+mynn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=crossentropy,descr="Multinomial logistic regression Model Sepal", batch_size=2, epochs=200) # Build the NN and use the cross-entropy as error function.
+# Alternatively, swith to hyperparameters auto-tuning with `autotune=true` instead of specify `batch_size` and `epoch` manually
 
 # Train the model (using the ADAM optimizer by default)
 res = fit!(mynn,fit!(Scaler(),xtrain),ytrain_oh) # Fit the model to the (scaled) data
@@ -195,14 +196,14 @@ X = Matrix(data[:,2:8]) # cylinders, displacement, horsepower, weight, accelerat
 y = data[:,1]           # miles per gallon
 (xtrain,xtest),(ytrain,ytest) = partition([X,y],[0.8,0.2])
 
-# Mode ldefinition, training and prediction
-m      = RandomForestEstimator(max_depth=10)
+# Model definition, hyper-parameters auto-tuning, training and prediction
+m      = RandomForestEstimator(autotune=true)
 ŷtrain = fit!(m,xtrain,ytrain) # shortcut for `fit!(m,xtrain,ytrain); ŷtrain = predict(x,xtrain)`
 ŷtest  = predict(m,xtest)
 
 # Prediction assessment
-relative_mean_error_train = mean_relative_error(ŷtrain,ytrain,normrec=false) # 0.0402
-relative_mean_error_test  = mean_relative_error(ŷtest,ytest,normrec=false)    # 0.0699
+relative_mean_error_train = relative_mean_error(ytrain,ŷtrain) # 0.039
+relative_mean_error_test  = relative_mean_error(ytest,ŷtest)   # 0.076
 scatter(ytest,ŷtest,xlabel="Actual",ylabel="Estimated",label=nothing,title="Est vs. obs MPG (test set)")
 ```
 

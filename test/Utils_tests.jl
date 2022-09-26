@@ -143,11 +143,11 @@ manualGrad = dsoftmax([2,3,4],β=1/2)
 # ==================================
 # New test
 println("** Testing cross-entropy...")
-or = crossentropy([0.8,0.001,0.001],[1.0,0,0],weight = [2,1,1])
+or = crossentropy([1.0,0,0],[0.8,0.001,0.001],weight = [2,1,1])
 @test or ≈ 0.4462871026284194
-d = dcrossentropy([0.8,0.001,0.001],[1.0,0,0],weight = [2,1,1])
+d = dcrossentropy([1.0,0,0],[0.8,0.001,0.001],weight = [2,1,1])
 δ = 0.001
-dest = crossentropy([0.8+δ,0.101,0.001],[1.0,0,0],weight = [2,1,1])
+dest = crossentropy([1.0,0,0],[0.8+δ,0.101,0.001],weight = [2,1,1])
 @test isapprox(dest-or, d[1]*δ,atol=0.0001)
 
 # ==================================
@@ -173,8 +173,8 @@ println("** Going through testing accuracy...")
 y = ["a","a","a","b","b","c","c","c"]
 ŷ = ["b","b","a","c","c","a","a","c"]
 
-accuracyConsideringClassLabels = accuracy(ŷ,y) # 2 out of 8
-accuracyConsideringAnyClassLabel = accuracy(ŷ,y,ignorelabels=true) # 6 out of 8
+accuracyConsideringClassLabels = accuracy(y,ŷ) # 2 out of 8
+accuracyConsideringAnyClassLabel = accuracy(y,ŷ,ignorelabels=true) # 6 out of 8
 
 @test accuracyConsideringClassLabels == 2/8
 @test accuracyConsideringAnyClassLabel == 6/8
@@ -183,8 +183,8 @@ accuracyConsideringAnyClassLabel = accuracy(ŷ,y,ignorelabels=true) # 6 out of 
 y = CategoricalArray(y)
 ŷ = CategoricalArray(ŷ)
 
-accuracyConsideringClassLabels = accuracy(ŷ,y) # 2 out of 8
-accuracyConsideringAnyClassLabel = accuracy(ŷ,y,ignorelabels=true) # 6 out of 8
+accuracyConsideringClassLabels = accuracy(y,ŷ) # 2 out of 8
+accuracyConsideringAnyClassLabel = accuracy(y,ŷ,ignorelabels=true) # 6 out of 8
 
 @test accuracyConsideringClassLabels == 2/8
 @test accuracyConsideringAnyClassLabel == 6/8
@@ -192,19 +192,19 @@ accuracyConsideringAnyClassLabel = accuracy(ŷ,y,ignorelabels=true) # 6 out of 
 x = [0.01 0.02 0.1 0.05 0.2 0.1  0.05 0.27  0.2;
      0.05 0.01 0.2 0.02 0.1 0.27 0.1  0.05  0.2]
 y = [3,3]
-@test [accuracy(x,y,tol=i) for i in 1:10] == [0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+@test [accuracy(y,x,tol=i) for i in 1:10] == [0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 x = [0.3 0.2 0.5; 0.5 0.25 0.25; 0.1 0.1 0.9]
 y = [1, 3, 1]
-@test accuracy(x,y) == 0.0
-@test accuracy(x,y, ignorelabels=true) == 1.0
+@test accuracy(y,x) == 0.0
+@test accuracy(y,x, ignorelabels=true) == 1.0
 
 
 yest = [0 0.12; 0 0.9]
 y    = [1,2]
-accuracy(yest,y)
+accuracy(y,yest)
 yest = [0.0  0.0  0.0;0.0  0.0  0.0;0.0  0.0  0.706138]
 y    = [2,2,1]
-accuracy(yest,y)
+accuracy(y,yest)
 
 # ==================================
 # New test
@@ -260,7 +260,7 @@ println("** Testing batch()...")
 
 # ==================================
 # New test
-println("** Testing mean_relative_error()...")
+println("** Testing relative_mean_error()...")
 
 ŷ = [22 142 328; 3 9 31; 5 10 32; 3 10 36]
 y = [20 140 330; 1 11 33; 3 8 30; 5 12 38]
@@ -270,19 +270,19 @@ p=2
 # case 1 - average of the relative error (records and dimensions normalised)
 avgϵRel = sum(abs.((ŷ-y)./ y).^p)^(1/p)/(n*d)
 #avgϵRel = (norm((ŷ-y)./ y,p)/(n*d))
-mean_relative_error(ŷ,y,normdim=true,normrec=true,p=p) == avgϵRel
+relative_mean_error(y,ŷ,normdim=true,normrec=true,p=p) == avgϵRel
 # case 2 - normalised by dimensions (i.e.  all dimensions play the same)
 avgϵRel_byDim = (sum(abs.(ŷ-y) .^ (1/p),dims=1).^(1/p) ./ n) ./   (sum(abs.(y) .^ (1/p) ,dims=1) ./n)
 avgϵRel = mean(avgϵRel_byDim)
-@test mean_relative_error(ŷ,y,normdim=true,normrec=false,p=p) == avgϵRel
+@test relative_mean_error(y,ŷ,normdim=true,normrec=false,p=p) == avgϵRel
 # case 3
 avgϵRel_byRec = (sum(abs.(ŷ-y) .^ (1/p),dims=2).^(1/p) ./ d) ./   (sum(abs.(y) .^ (1/p) ,dims=2) ./d)
 avgϵRel = mean(avgϵRel_byRec)
-@test mean_relative_error(ŷ,y,normdim=false,normrec=true,p=p) == avgϵRel
+@test relative_mean_error(y,ŷ,normdim=false,normrec=true,p=p) == avgϵRel
 # case 4 - average error relativized
 avgϵRel = (sum(abs.(ŷ-y).^p)^(1/p) / (n*d)) / (sum( abs.(y) .^p)^(1/p) / (n*d))
 #avgϵRel = (norm((ŷ-y),p)/(n*d)) / (norm(y,p) / (n*d))
-@test mean_relative_error(ŷ,y,normdim=false,normrec=false,p=p) == avgϵRel
+@test relative_mean_error(y,ŷ,normdim=false,normrec=false,p=p) == avgϵRel
 
 
 # ==================================
@@ -317,12 +317,12 @@ println("** Testing accuracy() on probs given in a dictionary...")
 
 ŷ = Dict("Lemon" => 0.33, "Apple" => 0.2, "Grape" => 0.47)
 y = "Lemon"
-@test accuracy(ŷ,y) == 0
-@test accuracy(ŷ,y,tol=2) == 1
+@test accuracy(y,ŷ) == 0
+@test accuracy(y,ŷ,tol=2) == 1
 y = "Grape"
-@test accuracy(ŷ,y) == 1
+@test accuracy(y,ŷ) == 1
 y = "Something else"
-@test accuracy(ŷ,y) == 0
+@test accuracy(y,ŷ) == 0
 
 ŷ1 = Dict("Lemon" => 0.6, "Apple" => 0.4)
 ŷ2 = Dict("Lemon" => 0.33, "Apple" => 0.2, "Grape" => 0.47)
@@ -330,8 +330,8 @@ ŷ3 = Dict("Lemon" => 0.2, "Apple" => 0.5, "Grape" => 0.3)
 ŷ4 = Dict("Apple" => 0.2, "Grape" => 0.8)
 ŷ = [ŷ1,ŷ2,ŷ3,ŷ4]
 y = ["Lemon","Lemon","Apple","Lemon"]
-@test accuracy(ŷ,y) == 0.5
-@test accuracy(ŷ,y,tol=2) == 0.75
+@test accuracy(y,ŷ) == 0.5
+@test accuracy(y,ŷ,tol=2) == 0.75
 
 # ==================================
 # New test
@@ -354,7 +354,7 @@ mode(y,rng=copy(TESTRNG)) == [4,3]
 # ==================================
 # New test
 println("** Testing ConfMatrix()...")
-cm = ConfMatrix(ŷ,["Lemon","Lemon","Apple","Grape","Lemon"],rng=copy(FIXEDRNG))
+cm = ConfMatrix(["Lemon","Lemon","Apple","Grape","Lemon"],ŷ,rng=copy(FIXEDRNG))
 @test cm.scores == [2 0 1; 0 1 0; 0 0 1]
 @test cm.tp == [2,1,1] && cm.tn == [2,4,3] && cm.fp == [0,0,1] && cm.fn == [1, 0, 0]
 
@@ -394,7 +394,7 @@ ŷ = [0,0,2,1,0]
 labels = ["Class 0", "Class 1 with an extra long name super long", "Class 2"]
 #y = integerdecoder(y .+ 1,labels)
 #ŷ = integerdecoder(ŷ .+ 1,labels)
-cm = ConfMatrix(ŷ,y,labels=labels)
+cm = ConfMatrix(y,ŷ,labels=labels)
 
 @test cm.precision ≈ [0.6666666666666666, 0.0, 1.0]
 @test cm.recall ≈ [1.0, 0.0, 0.5]
@@ -425,79 +425,6 @@ res = info(cm)
 @test res[:accuracy] == 0.6
 @test res[:misclassification] == 0.4
 
-
-
-# If I want to actually test the print content...
-#=
-@testset "Testing cm printing" begin
-    original_stdout = stdout
-    (rd, wr) = redirect_stdout()
-    BetaML.Utils.print(cm,["report"])
-    redirect_stdout(original_stdout)
-    close(wr)
-    s = read(rd,String)
-    @test s == """\n-----------------------------------------------------------------
-
-
-    *** CONFUSION REPORT ***
-   
-   - Accuracy:               0.6
-   - Misclassification rate: 0.4
-   - Number of classes:      3
-   
-     N Class                                      precision   recall  specificity  f1score  actual_count  predicted_count
-                                                                TPR       TNR                 support                  
-   
-     1 Class 0                                        0.667    1.000        0.667    0.800            2               3
-     2 Class 1 with an extra long name super long     0.000    0.000        0.750    0.000            1               1
-     3 Class 2                                        1.000    0.500        1.000    0.667            2               1
-   
-   - Simple   avg.                                    0.556    0.500        0.806    0.489
-   - Weigthed avg.                                    0.667    0.600        0.817    0.587
-   
-   -----------------------------------------------------------------\n"""
-   (rd, wr) = redirect_stdout()
-   BetaML.Utils.println(cm)
-   redirect_stdout(original_stdout)
-   close(wr)
-   s = read(rd,String)
-   @test s == """\n-----------------------------------------------------------------
-
-   *** CONFUSION MATRIX ***
-   
-   Scores actual (rows) vs predicted (columns):
-   
-   4×4 Matrix{Any}:
-    "Labels"                                       "Class 0"   "Class 1 with an extra long name super long"   "Class 2"
-    "Class 0"                                     2           0                                              0
-    "Class 1 with an extra long name super long"  1           0                                              0
-    "Class 2"                                     0           1                                              1
-   Normalised scores actual (rows) vs predicted (columns):
-   
-   4×4 Matrix{Any}:
-    "Labels"                                       "Class 0"   "Class 1 with an extra long name super long"   "Class 2"
-    "Class 0"                                     1.0         0.0                                            0.0
-    "Class 1 with an extra long name super long"  1.0         0.0                                            0.0
-    "Class 2"                                     0.0         0.5                                            0.5
-    *** CONFUSION REPORT ***
-   
-   - Accuracy:               0.6
-   - Misclassification rate: 0.4
-   - Number of classes:      3
-   
-     N Class                                      precision   recall  specificity  f1score  actual_count  predicted_count
-                                                                TPR       TNR                 support                  
-   
-     1 Class 0                                        0.667    1.000        0.667    0.800            2               3
-     2 Class 1 with an extra long name super long     0.000    0.000        0.750    0.000            1               1
-     3 Class 2                                        1.000    0.500        1.000    0.667            2               1
-   
-   - Simple   avg.                                    0.556    0.500        0.806    0.489
-   - Weigthed avg.                                    0.667    0.600        0.817    0.587
-   
-   -----------------------------------------------------------------\n\n"""
-end
-=#
 original_stdout = stdout
 (rd, wr) = redirect_stdout()
 @test BetaML.Utils.print(cm,["report"]) == nothing
@@ -627,7 +554,7 @@ sampler = KFold(nsplits=3,nrepeats=1,shuffle=true,rng=copy(TESTRNG))
         (xtrain,ytrain) = trainData; (xval,yval) = valData
         trainedModel = buildForest(xtrain,ytrain,30,rng=rng)
         predictions = predict(trainedModel,xval,rng=rng)
-        ϵ = mean_relative_error(predictions,yval,normrec=false)
+        ϵ = relative_mean_error(yval,predictions,normrec=false)
         return ϵ
     end
 
@@ -647,8 +574,8 @@ opthp = hyperparameters(m)
 #dump(opthp)
 #@test ((opthp.max_depth == 10) && (opthp.min_gain==0.0) && (opthp.min_records==2) && (opthp.max_features==5))
 ŷ = predict(m,X)
-mean_relative_error(ŷ,y,normrec=false)
-@test mean_relative_error(ŷ,y,normrec=false) <= 0.005 # ≈ 0.0023196810438564698
+relative_mean_error(y,ŷ,normrec=false)
+@test relative_mean_error(y,ŷ,normrec=false) <= 0.005 # ≈ 0.0023196810438564698
 
 X = [11:99 99:-1:11]
 y = collect(111:199)
@@ -662,7 +589,7 @@ opthp = hyperparameters(m)
 #dump(opthp)
 #@test ((opthp.max_depth == 10) && (opthp.min_gain==0.5) && (opthp.min_records==2) && (opthp.max_features==nothing))
 ŷ = predict(m,X) 
-@test mean_relative_error(ŷ,y,normrec=false) <= 0.002 # ≈ 0.0023196810438564698
+@test relative_mean_error(y,ŷ,normrec=false) <= 0.002 # ≈ 0.0023196810438564698
 
 
 

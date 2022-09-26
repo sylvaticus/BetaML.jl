@@ -25,19 +25,19 @@ cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
 
 # Used as neural network loss function
 """
-   crossentropy(ŷ, y; weight)
+   crossentropy(y,ŷ; weight)
 
 Compute the (weighted) cross-entropy between the predicted and the sampled probability distributions.
 
 To be used in classification problems.
 
 """
-crossentropy(ŷ, y; weight = ones(eltype(y),length(y)))  = -sum(y .* log.(ŷ .+ 1e-15) .* weight)
-dcrossentropy(ŷ, y; weight = ones(eltype(y),length(y))) = - y .* weight ./ (ŷ .+ 1e-15)
+crossentropy(y,ŷ ; weight = ones(eltype(y),length(y)))  = -sum(y .* log.(ŷ .+ 1e-15) .* weight)
+dcrossentropy(y,ŷ; weight = ones(eltype(y),length(y))) = - y .* weight ./ (ŷ .+ 1e-15)
 
 
 """ accuracy(ŷ,y;ignorelabels=false) - Categorical accuracy between two vectors (T vs T). """
-function accuracy(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignorelabels=false)  where {T}
+function accuracy(y::AbstractArray{T,1},ŷ::AbstractArray{T,1}; ignorelabels=false)  where {T}
     # See here for better performances: https://discourse.julialang.org/t/permutations-of-a-vector-that-retain-the-vector-structure/56790/7
     if(!ignorelabels)
         return sum(ŷ .== y)/length(ŷ)
@@ -60,17 +60,17 @@ function accuracy(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignorelabels=fa
     end
 end
 
-""" error(ŷ,y;ignorelabels=false) - Categorical error (T vs T)"""
-error(ŷ::AbstractArray{T,1},y::AbstractArray{T,1}; ignorelabels=false) where {T} = (1 - accuracy(ŷ,y;ignorelabels=ignorelabels) )
+""" error(y,ŷ;ignorelabels=false) - Categorical error (T vs T)"""
+error(y::AbstractArray{T,1},ŷ::AbstractArray{T,1}; ignorelabels=false) where {T} = (1 - accuracy(y,ŷ;ignorelabels=ignorelabels) )
 
 
 """
-    accuracy(ŷ,y;tol)
+    accuracy(y,ŷ;tol)
 Categorical accuracy with probabilistic prediction of a single datapoint (PMF vs Int).
 
 Use the parameter tol [def: `1`] to determine the tollerance of the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values.
 """
-function accuracy(ŷ::Array{T,1},y_pos::Int64;tol=1,rng=Random.GLOBAL_RNG) where {T <: Number}
+function accuracy(y_pos::Int64,ŷ::Array{T,1};tol=1,rng=Random.GLOBAL_RNG) where {T <: Number}
     #if  length(Set(ŷ) == 1                         # all classes the same prob
     #    return rand(rng) < (1 / length(y)) ? 1 : 0 # If all values have the same prob, it returns 1 with prob 1/n_classes
     #end
@@ -84,7 +84,7 @@ function accuracy(ŷ::Array{T,1},y_pos::Int64;tol=1,rng=Random.GLOBAL_RNG) wher
 end
 
 """
-    accuracy(ŷ,y;tol)
+    accuracy(y,ŷ;tol)
 
 Categorical accuracy with probabilistic prediction of a single datapoint given in terms of a dictionary of probabilities (Dict{T,Float64} vs T).
 
@@ -92,7 +92,7 @@ Categorical accuracy with probabilistic prediction of a single datapoint given i
 - `ŷ`: The returned probability mass function in terms of a Dictionary(Item1 => Prob1, Item2 => Prob2, ...)
 - `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
 """
-function accuracy(ŷ::Dict{T,Float64},y::T;tol=1,rng=Random.GLOBAL_RNG) where {T}
+function accuracy(y::T,ŷ::Dict{T,Float64};tol=1,rng=Random.GLOBAL_RNG) where {T}
     if !(y in keys(ŷ)) return 0 end
     tol > 1 || return (mode(ŷ;rng=rng) == y) ? 1 : 0 # if tol is one we delegate the choice of a single prediction to mode, that handles multimodal pmfs
     sIdx  = sortperm(collect(values(ŷ)))[end:-1:1]            # sort by decreasing values of the dictionary values
@@ -101,24 +101,24 @@ function accuracy(ŷ::Dict{T,Float64},y::T;tol=1,rng=Random.GLOBAL_RNG) where {
 end
 
 @doc raw"""
-   accuracy(ŷ,y;tol,ignorelabels)
+   accuracy(y,ŷ;tol,ignorelabels)
 
 Categorical accuracy with probabilistic predictions of a dataset (PMF vs Int).
 
 # Parameters:
-- `ŷ`: An (N,K) matrix of probabilities that each ``\hat y_n`` record with ``n \in 1,....,N``  being of category ``k`` with $k \in 1,...,K$.
 - `y`: The N array with the correct category for each point $n$.
+- `ŷ`: An (N,K) matrix of probabilities that each ``\hat y_n`` record with ``n \in 1,....,N``  being of category ``k`` with $k \in 1,...,K$.
 - `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
 - `ignorelabels`: Whether to ignore the specific label order in y. Useful for unsupervised learning algorithms where the specific label order don't make sense [def: false]
 
 """
-function accuracy(ŷ::Array{T,2},y::Array{Int64,1};tol=1,ignorelabels=false,rng=Random.GLOBAL_RNG) where {T <: Number}
+function accuracy(y::Array{Int64,1},ŷ::Array{T,2};tol=1,ignorelabels=false,rng=Random.GLOBAL_RNG) where {T <: Number}
     (N,D) = size(ŷ)
     pSet = ignorelabels ? collect(permutations(1:D)) : [collect(1:D)]
     bestAcc = -Inf
     for perm in pSet
         pŷ = hcat([ŷ[:,c] for c in perm]...)
-        acc = sum([accuracy(pŷ[i,:],y[i];tol=tol,rng=rng) for i in 1:N])/N
+        acc = sum([accuracy(y[i],pŷ[i,:];tol=tol,rng=rng) for i in 1:N])/N
         if acc > bestAcc
             bestAcc = acc
         end
@@ -127,7 +127,7 @@ function accuracy(ŷ::Array{T,2},y::Array{Int64,1};tol=1,ignorelabels=false,rng
 end
 
 @doc raw"""
-   accuracy(ŷ,y;tol)
+   accuracy(y,ŷ;tol)
 
 Categorical accuracy with probabilistic predictions of a dataset given in terms of a dictionary of probabilities (Dict{T,Float64} vs T).
 
@@ -137,9 +137,9 @@ Categorical accuracy with probabilistic predictions of a dataset given in terms 
 - `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
 
 """
-function accuracy(ŷ::Array{Dict{T,Float64},1},y::Array{T,1};tol=1,rng=Random.GLOBAL_RNG) where {T}
+function accuracy(y::Array{T,1},ŷ::Array{Dict{T,Float64},1};tol=1,rng=Random.GLOBAL_RNG) where {T}
     N = size(ŷ,1)
-    acc = sum([accuracy(ŷ[i],y[i];tol=tol,rng=rng) for i in 1:N])/N
+    acc = sum([accuracy(y[i],ŷ[i];tol=tol,rng=rng) for i in 1:N])/N
     return acc
 end
 
@@ -170,16 +170,12 @@ function l2loss_by_cv(m,data;nsplits=5,rng=Random.GLOBAL_RNG)
     return μ
 end 
 
-
-
-
-
-""" error(ŷ,y) - Categorical error with probabilistic prediction of a single datapoint (PMF vs Int). """
-error(ŷ::Array{T,1},y::Int64;tol=1) where {T <: Number} = 1 - accuracy(ŷ,y;tol=tol)
-""" error(ŷ,y) - Categorical error with probabilistic predictions of a dataset (PMF vs Int). """
-error(ŷ::Array{T,2},y::Array{Int64,1};tol=1) where {T <: Number} = 1 - accuracy(ŷ,y;tol=tol)
-""" error(ŷ,y) - Categorical error with with probabilistic predictions of a dataset given in terms of a dictionary of probabilities (Dict{T,Float64} vs T). """
-error(ŷ::Array{Dict{T,Float64},1},y::Array{T,1};tol=1) where {T} = 1 - accuracy(ŷ,y;tol=tol)
+""" error(y,ŷ) - Categorical error with probabilistic prediction of a single datapoint (Int vs PMF). """
+error(y::Int64,ŷ::Array{T,1};tol=1) where {T <: Number} = 1 - accuracy(y,ŷ;tol=tol)
+""" error(y,ŷ) - Categorical error with probabilistic predictions of a dataset (Int vs PMF). """
+error(y::Array{Int64,1},ŷ::Array{T,2};tol=1) where {T <: Number} = 1 - accuracy(y,ŷ;tol=tol)
+""" error(y,ŷ) - Categorical error with with probabilistic predictions of a dataset given in terms of a dictionary of probabilities (T vs Dict{T,Float64}). """
+error(y::Array{T,1},ŷ::Array{Dict{T,Float64},1};tol=1) where {T} = 1 - accuracy(y,ŷ;tol=tol)
 
 """
 $(TYPEDEF)
@@ -525,13 +521,13 @@ end
 # https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
 
 """
-    ConfMatrix(ŷ,y;classes,labels,rng)
+    ConfMatrix(y,ŷ;classes,labels,rng)
 
-Build a "confusion matrix" between predicted (columns) vs actual (rows) categorical values
+Build a "confusion matrix" between actual (rows) vs predicted (columns) categorical values
 
 # Parameters:
-- `ŷ`: Vector of predicted categorical data
 - `y`: Vector of actual categorical data
+- `ŷ`: Vector of predicted categorical data
 - `classes`: The full set of possible classes (useful to give a specicif order or if not al lclasses are represented in `y`) [def: `unique(y)` ]
 - `labels`: String representation of the classes [def: `string.(classes)`]
 - `rng`: Random number generator. Used only if `ŷ` is given in terms of a PMF and there are multi-modal values, as these are assigned randomply [def: `Random.GLOBAL_RNG`]
@@ -542,11 +538,11 @@ Build a "confusion matrix" between predicted (columns) vs actual (rows) categori
 julia> using BetaML, Plots
 julia> y = ["orange","apple","banana","orange","orange","banana"]
 julia> ŷ = ["orange","apple","apple","apple","orange","banana"]
-julia> cm = ConfMatrix(ŷ,y)
+julia> cm = ConfMatrix(y,ŷ)
 
 ```
 """
-function ConfMatrix(ŷ,y::AbstractArray{T};classes=unique(y),labels=string.(classes),rng=Random.GLOBAL_RNG) where {T}
+function ConfMatrix(y::AbstractArray{T},ŷ;classes=unique(y),labels=string.(classes),rng=Random.GLOBAL_RNG) where {T}
     nCl              = length(labels)
     ŷ                = typeof(ŷ) <: AbstractVector{T} ? ŷ : mode(ŷ,rng=rng) # get the mode if needed
     N                = length(y)
@@ -643,38 +639,38 @@ println(io::IO, cm::ConfMatrix{T}, what="all") where T = begin  print(cm,what);p
 
 # Used as neural network loss function
 """
-   squared_cost(ŷ,y)
+   squared_cost(y,ŷ)
 
-Compute the squared costs between a vector of prediction and one of observations as (1/2)*norm(y - ŷ)^2.
+Compute the squared costs between a vector of observations and one of prediction as (1/2)*norm(y - ŷ)^2.
 
 Aside the 1/2 term, it correspond to the squared l-2 norm distance and when it is averaged on multiple datapoints corresponds to the Mean Squared Error ([MSE](https://en.wikipedia.org/wiki/Mean_squared_error)).
 It is mostly used for regression problems.
 """
-squared_cost(ŷ,y)   = (1/2)*norm(y - ŷ)^2
-dSquaredCost(ŷ,y)  = ( ŷ - y)
+squared_cost(y,ŷ)   = (1/2)*norm(y - ŷ)^2
+dSquaredCost(y,ŷ)  = ( ŷ - y)
 """
-    mse(ŷ,y)
+    mse(y,ŷ)
 
-Compute the mean squared error (MSE) (aka mean squared deviation - MSD) between two vectors ŷ and y.
+Compute the mean squared error (MSE) (aka mean squared deviation - MSD) between two vectors y and ŷ.
 Note that while the deviation is averaged by the length of `y` is is not scaled to give it a relative meaning.
 """
-mse(ŷ,y) = (sum((y-ŷ).^(2))/length(y))
+mse(y,ŷ) = (sum((y-ŷ).^(2))/length(y))
 
 """
-  mean_relative_error(ŷ,y;normdim=true,normrec=true,p=1)
+  relative_mean_error(y, ŷ;normdim=false,normrec=false,p=1)
 
-Compute the mean relative error (l-1 based by default) between ŷ and y.
+Compute the relative mean error (l-1 based by default) between y and ŷ.
 
-There are many ways to compute a mean relative error. In particular, if normrec (normdim) is set to true, the records (dimensions) are normalised, in the sense that it doesn't matter if a record (dimension) is bigger or smaller than the others, the relative error is first computed for each record (dimension) and then it is averaged.
-With both `normdim` and `normrec` set to `false` the function returns the relative mean error; with both set to `true` (default) it returns the mean relative error (i.e. with p=1 the "[mean absolute percentage error (MAPE)](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)")
+There are many ways to compute a relative mean error. In particular, if normrec (normdim) is set to true, the records (dimensions) are normalised, in the sense that it doesn't matter if a record (dimension) is bigger or smaller than the others, the relative error is first computed for each record (dimension) and then it is averaged.
+With both `normdim` and `normrec` set to `false` (default) the function returns the relative mean error; with both set to `true` it returns the mean relative error (i.e. with p=1 the "[mean absolute percentage error (MAPE)](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)")
 The parameter `p` [def: `1`] controls the p-norm used to define the error.
 
 The _mean relative error_ enfatises the relativeness of the error, i.e. all observations and dimensions weigth the same, wether large or small. Conversly, in the _relative mean error_ the same relative error on larger observations (or dimensions) weights more.
 
-For example, given `y = [1,44,3]` and `ŷ = [2,45,2]`, the _mean relative error_ `mean_relative_error(ŷ,y)` is `0.452`, while the _relative mean error_ `mean_relative_error(ŷ,y, normrec=false)` is "only" `0.0625`.
+For example, given `y = [1,44,3]` and `ŷ = [2,45,2]`, the _mean relative error_ `mean_relative_error(y,ŷ,normrec=true)` is `0.452`, while the _relative mean error_ `relative_mean_error(y,ŷ, normrec=false)` is "only" `0.0625`.
 
 """
-function mean_relative_error(ŷ,y;normdim=true,normrec=true,p=1)
+function relative_mean_error(y,ŷ;normdim=false,normrec=false,p=1)
     ŷ = makematrix(ŷ)
     y = makematrix(y)
     (n,d) = size(y)

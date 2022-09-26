@@ -362,7 +362,7 @@ function loss(nn::NN,x,y)
     ϵ = 0.0
     for i in 1:n
         ŷ = predict(nn,x[i,:]')[1,:]
-        ϵ += nn.cf(ŷ,y[i,:])
+        ϵ += nn.cf(y[i,:],ŷ)
     end
     return ϵ/n
 end
@@ -414,9 +414,9 @@ function get_gradient(nn::NN,x::Union{T,AbstractArray{T,1}},y::Union{T2,Abstract
   # Step 2: Backpropagation pass
   backwardStack = Vector{Vector{Float64}}(undef,nLayers+1)
   if nn.dcf != nothing
-    backwardStack[end] = nn.dcf(forwardStack[end],y) # adding dϵ_dHatY
+    backwardStack[end] = nn.dcf(y,forwardStack[end]) # adding dϵ_dHatY
   else
-    backwardStack[end] = gradient(nn.cf,forwardStack[end],y)[1] # using AD from Zygote
+    backwardStack[end] = gradient(nn.cf,y,forwardStack[end])[2] # using AD from Zygote
   end
   @inbounds for lidx in nLayers:-1:1
      l = nn.layers[lidx]

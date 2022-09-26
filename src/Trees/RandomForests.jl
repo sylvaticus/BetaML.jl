@@ -266,7 +266,7 @@ For each record of the dataset and each tree of the "forest", recursivelly trave
 If the labels the tree has been trained with are numeric, the prediction is also numeric (the mean of the different trees predictions, in turn the mean of the labels of the training records ended in that leaf node).
 If the labels were categorical, the prediction is a dictionary with the probabilities of each item and in such case the probabilities of the different trees are averaged to compose the forest predictions. This is a bit different than most other implementations where the mode instead is reported.
 
-In the first case (numerical predictions) use `mean_relative_error(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
+In the first case (numerical predictions) use `relative_mean_error(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 """
 function predict(forest::Forest{Ty}, x;rng = Random.GLOBAL_RNG) where {Ty}
     predictions = predictSingle.(Ref(forest),eachrow(x),rng=rng)
@@ -304,9 +304,9 @@ function updateTreesWeights!(forest::Forest{Ty},x,y;β=50,rng = Random.GLOBAL_RN
         if length(yoob) > 0
             ŷ = predict(tree,x[notSampledByTree[i],:],rng=rng)
             if jobIsRegression
-                push!(weights,exp(- β*mean_relative_error(ŷ,yoob)))
+                push!(weights,exp(- β*relative_mean_error(yoob,ŷ)))
             else
-                push!(weights,accuracy(ŷ,yoob)*β)
+                push!(weights,accuracy(yoob,ŷ)*β)
             end
         else  # there has been no data that has not being used for this tree, because by a (rare!) chance all the sampled data for this tree was on a different row
             push!(weights,forest.weights[i])
@@ -355,9 +355,9 @@ function oobError(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
         ŷ[n] = ŷi
     end
     if jobIsRegression
-        return mean_relative_error(ŷ[nMask],y[nMask],normdim=false,normrec=false)
+        return relative_mean_error(y[nMask],ŷ[nMask],normdim=false,normrec=false)
     else
-        return error(ŷ[nMask],y[nMask])
+        return error(y[nMask],ŷ[nMask])
     end
 end
 

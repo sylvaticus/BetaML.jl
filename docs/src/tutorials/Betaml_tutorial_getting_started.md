@@ -16,10 +16,11 @@ In such a cases, while not required by any means, please consider to give it bac
 
 If you are looking for an introductory book on Julia, you could consider "[Julia Quick Syntax Reference](https://www.julia-book.com/)" (Apress,2019) or the online course "[Introduction to Scientific Programming and Machine Learning with Julia](https://sylvaticus.github.io/SPMLJ/stable/)".
 
-A few miscellaneous notes:
+A few conventions applied across the library:
 - Type names use the so-called "CamelCase" convention, where the words are separated by a capital letter rather than `_` ,while function names use lower letters only, with words eventually separated (but only when really neeed for readibility) by an `_`;
 - While some functions provide a `dims` parameter, most BetaML algorithms expect the input data layout with observations organised by rows and fields/features by columns. Almost everywhere in the code and documentation we refer with `N` the number of observations/records, `D` the number of dimensions and `K` the number of classes/categories;
-- While some algorithms accept as input DataFrames, the usage of standard arrays is encourages (if the data is passed to the function as dataframe, it may be converted to standard arrays somewhere inside inner loops, leading to great inefficiencies).
+- While some algorithms accept as input DataFrames, the usage of standard arrays is encourages (if the data is passed to the function as dataframe, it may be converted to standard arrays somewhere inside inner loops, leading to great inefficiencies)
+- The accuracy/error/loss measures expect the ground true `y` and then the estimated `ŷ` (in this order)
 
 
 ## [Using BetaML from other programming languages](@id using_betaml_from_other_languages)

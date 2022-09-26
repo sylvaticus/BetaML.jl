@@ -10,6 +10,7 @@ The Style guide should follow the official Julia Style Guide: https://docs.julia
 - Each file name should start with a capital letter, no spaces allowed (and each file content should start with: `"Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."`)
 - Type names use the so-called "CamelCase" convention, where the words are separated by a capital letter rather than `_` ,while function names use lower letters only, with words eventually separated (but only when really neeed for readibility) by an `_`;
 - In the code and documentation we refer with `N` the number of observations/records, `D` the number of dimensions and `K` the number of classes/categories;
+- Error/accuracy/loss functions want firt `y` and then `ŷ`
 
 ## Docstrings
 

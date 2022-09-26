@@ -34,7 +34,7 @@ ŷtrain  = predict(myTree, xtrain,rng=copy(TESTRNG))
 ŷtrain2 = predict(m,xtrain)
 ŷtrain3 = predict(m) # using cached elements
 
-@test accuracy(ŷtrain,ytrain,rng=copy(TESTRNG)) >= 0.8
+@test accuracy(ytrain,ŷtrain,rng=copy(TESTRNG)) >= 0.8
 @test ŷtrain == ŷtrain2 ==  ŷtrain3
 
 
@@ -57,7 +57,7 @@ ytest  = ["Apple","Apple","Grape","Grape","Lemon"]
 ŷtest  = predict(myTree, xtest,rng=copy(TESTRNG))
 ŷtest2 = predict(m, xtest)
 
-@test accuracy(ŷtest,ytest,rng=copy(TESTRNG)) >= 0.8
+@test accuracy(ytest,ŷtest,rng=copy(TESTRNG)) >= 0.8
 @test ŷtest == ŷtest2
 
 @test info(m) == Dict(:jobIsRegression => 0,:max_depth => 3, :dimensions => 2, :fitted_records => 5, :avgDepth => 2.6666666666666665)
@@ -87,9 +87,9 @@ ytest = y[ntrain+1:end]
 
 myTree = buildTree(xtrain,ytrain, splitting_criterion=entropy,rng=copy(TESTRNG))
 ŷtrain = predict(myTree, xtrain,rng=copy(TESTRNG))
-@test accuracy(ŷtrain,ytrain,rng=copy(TESTRNG)) >= 0.98
+@test accuracy(ytrain,ŷtrain,rng=copy(TESTRNG)) >= 0.98
 ŷtest = predict(myTree, xtest,rng=copy(TESTRNG))
-@test accuracy(ŷtest,ytest,rng=copy(TESTRNG))  >= 0.95
+@test accuracy(ytest,ŷtest,rng=copy(TESTRNG))  >= 0.95
 
 # ==================================
 # NEW TEST
@@ -105,9 +105,9 @@ ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest
 myTree = buildTree(xtrain,ytrain, min_gain=0.001, min_records=2, max_depth=3,rng=copy(TESTRNG))
 ŷtrain = predict(myTree, xtrain,rng=copy(TESTRNG))
 ŷtest = predict(myTree, xtest,rng=copy(TESTRNG))
-mreTrain = mean_relative_error(ŷtrain,ytrain)
+mreTrain = relative_mean_error(ytrain,ŷtrain,normrec=true)
 @test mreTrain <= 0.06
-mreTest  = mean_relative_error(ŷtest,ytest)
+mreTest  = relative_mean_error(ytest,ŷtest,normrec=true)
 @test mreTest <= 0.3
 m = DecisionTreeEstimator(min_gain=0.001,min_records=2,max_depth=3,rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
@@ -134,14 +134,14 @@ trees = myForest.trees
 treesWeights = myForest.weights
 oobError = myForest.oobError
 ŷtrain = predict(myForest, xtrain,rng=copy(TESTRNG))
-@test accuracy(ŷtrain,ytrain,rng=copy(TESTRNG)) >= 0.96
+@test accuracy(ytrain,ŷtrain,rng=copy(TESTRNG)) >= 0.96
 ŷtest = predict(myForest, xtest,rng=copy(TESTRNG))
-@test accuracy(ŷtest,ytest,rng=copy(TESTRNG))  >= 0.96
+@test accuracy(ytest,ŷtest,rng=copy(TESTRNG))  >= 0.96
 updateTreesWeights!(myForest,xtrain,ytrain;β=1,rng=copy(TESTRNG))
 ŷtrain2 = predict(myForest, xtrain,rng=copy(TESTRNG))
-@test accuracy(ŷtrain2,ytrain,rng=copy(TESTRNG)) >= 0.98
+@test accuracy(ytrain,ŷtrain2,rng=copy(TESTRNG)) >= 0.98
 ŷtest2 = predict(myForest, xtest,rng=copy(TESTRNG))
-@test accuracy(ŷtest2,ytest,rng=copy(TESTRNG))  >= 0.96
+@test accuracy(ytest,ŷtest2,rng=copy(TESTRNG))  >= 0.96
 @test oobError <= 0.1
 
 m = RandomForestEstimator(max_depth=20,oob=true,beta=0,rng=copy(TESTRNG))
@@ -203,17 +203,17 @@ treesWeights     = myForest.weights
 
 ŷtrain           = predict(myForest, xtrain,rng=copy(TESTRNG))
 ŷtest            = predict(myForest, xtest,rng=copy(TESTRNG))
-mreTrain         = mean_relative_error(ŷtrain,ytrain)
+mreTrain         = relative_mean_error(ytrain,ŷtrain,normrec=true)
 @test mreTrain <= 0.08
-mreTest  = mean_relative_error(ŷtest,ytest)
+mreTest  = relative_mean_error(ytest,ŷtest,normrec=true)
 @test mreTest <= 0.4
 
 updateTreesWeights!(myForest,xtrain,ytrain;β=50)
 ŷtrain2 = predict(myForest, xtrain,rng=copy(TESTRNG))
 ŷtest2 = predict(myForest, xtest,rng=copy(TESTRNG))
-mreTrain = mean_relative_error(ŷtrain2,ytrain)
+mreTrain = relative_mean_error(ytrain,ŷtrain2,normrec=true)
 @test mreTrain <= 0.08
-mreTest  = mean_relative_error(ŷtest2,ytest)
+mreTest  = relative_mean_error(ytest,ŷtest2,normrec=true)
 @test mreTest <= 0.4
 
 # ==================================
@@ -230,8 +230,8 @@ myForest = buildForest(xtrain,ytrain,oob=true,rng=copy(TESTRNG)) # TO.DO solved 
 oobError = myForest.oobError
 ŷtrain = predict(myForest,xtrain,rng=copy(TESTRNG))
 ŷtest = predict(myForest,xtest,rng=copy(TESTRNG))
-mreTrain = mean_relative_error(ŷtrain,ytrain)
-mreTest  = mean_relative_error(ŷtest,ytest)
+mreTrain = relative_mean_error(ytrain,ŷtrain,normrec=true)
+mreTest  = relative_mean_error(ytest,ŷtest,normrec=true)
 
 xtrain[3,3] = missing
 xtest[3,2] = missing
@@ -239,8 +239,8 @@ myForest = buildForest(xtrain,ytrain,oob=true,β=1,rng=copy(TESTRNG))
 oobError = myForest.oobError
 ŷtrain = predict(myForest,xtrain,rng=copy(TESTRNG))
 ŷtest = predict(myForest,xtest,rng=copy(TESTRNG))
-mreTrain2 = mean_relative_error(ŷtrain,ytrain)
-mreTest2  = mean_relative_error(ŷtest,ytest)
+mreTrain2 = relative_mean_error(ytrain,ŷtrain,normrec=true)
+mreTest2  = relative_mean_error(ytest,ŷtest,normrec=true)
 @test mreTest2 <= mreTest * 1.5
 
 m = RandomForestEstimator(oob=true,beta=1,rng=copy(TESTRNG))
@@ -248,7 +248,7 @@ fit!(m,xtrain,ytrain)
 m.opt.rng=copy(TESTRNG) # the model RNG is consumed at each operation
 ŷtest2 = predict(m,xtest)
 
-@test mean_relative_error(ŷtest,ytest,normdim=false,normrec=false) ≈ mean_relative_error(ŷtest2,ytest,normdim=false,normrec=false)
+@test relative_mean_error(ytest,ŷtest,normdim=false,normrec=false) ≈ relative_mean_error(ytest,ŷtest2,normdim=false,normrec=false)
 
 myTree2 = buildTree(xtrain,ytrainInt,rng=copy(TESTRNG))
 myTree3 = buildTree(xtrain,ytrainInt, force_classification=true,rng=copy(TESTRNG))
@@ -305,7 +305,7 @@ y = convert(Vector{String},  data[:,4])
 
 modelβ = buildForest(xtrain,ytrain,5,rng=copy(TESTRNG))
 ŷtestβ = predict(modelβ,xtest,rng=copy(TESTRNG))
-accβ   = accuracy(ŷtestβ,ytest,rng=copy(TESTRNG))
+accβ   = accuracy(ytest,ŷtestβ,rng=copy(TESTRNG))
 @test accβ >= 0.25
 
 # ==================================
@@ -316,13 +316,13 @@ model_dtr                      = DecisionTreeRegressor(rng=copy(TESTRNG))
 regressor_dtr                  = Mlj.machine(model_dtr, X, y)
 (fitresult_dtr, cache, report) = Mlj.fit(model_dtr, 0, X, y)
 yhat_dtr                       = Mlj.predict(model_dtr, fitresult_dtr, X)
-@test mean_relative_error(yhat_dtr,y) < 0.02
+@test relative_mean_error(y,yhat_dtr,normrec=true) < 0.02
 
 model_rfr                      = RandomForestRegressor(rng=copy(TESTRNG))
 regressor_rfr                  = Mlj.machine(model_rfr, X, y)
 (fitresult_rfr, cache, report) = Mlj.fit(model_rfr, 0, X, y)
 yhat_rfr                       = Mlj.predict(model_rfr, fitresult_rfr, X)
-@test mean_relative_error(yhat_rfr,y) < 0.06
+@test relative_mean_error(y,yhat_rfr,normrec=true) < 0.06
 
 X, y                           = Mlj.@load_iris
 model_dtc                      = DecisionTreeClassifier(rng=copy(TESTRNG))

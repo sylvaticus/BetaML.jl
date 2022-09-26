@@ -1125,8 +1125,8 @@ julia> sampler = KFold(nsplits=3);
 julia> (μ,σ) = cross_validation([X,Y],sampler) do trainData,valData,rng
                  (xtrain,ytrain) = trainData; (xval,yval) = valData
                  trainedModel    = buildForest(xtrain,ytrain,30)
-                 predictions     = predict(trainedModel,xval)
-                 ϵ               = mean_relative_error(predictions,yval,normrec=false)
+                 ŷval            = predict(trainedModel,xval)
+                 ϵ               = relative_mean_error(yval,ŷval,normrec=false)
                  return ϵ
                end
 (0.3202242202242202, 0.04307662219315022)

@@ -45,26 +45,37 @@ y    = data[:,16];
 
 # ### Model selection
 
-# !!! Tip 
-#     Starting v0.8 BetaML has a function to automatically select the "best" hyperparameters and this tutorial has been updated. Still it is a good exercise to see how to manually use cross-validation or even custom sampling to achieve model selection. Consult [the version of this tutorial for BetaML <= 0.6](/BetaML.jl/v0.7/tutorials/Regression - bike sharing/betaml_tutorial_regression_sharingBikes.html) for his tutorial for that.
-
 
 # We can now split the dataset between the data that we will use for training the algorithm and selecting the hyperparameters (`xtrain`/`ytrain`) and those for testing the quality of the algoritm with the optimal hyperparameters (`xtest`/`ytest`). We use the `partition` function specifying the share we want to use for these two different subsets, here 80%, and 20% respectively. As our data represents indeed a time serie, we want our model to be able to predict _future_ demand of bike sharing from _past_, observed rented bikes, so we do not shuffle the datasets as it would be the default.
 
-((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.8,1-0.8],shuffle=false)
+((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.75,1-0.75],shuffle=false)
 (ntrain, ntest) = size.([ytrain,ytest],1)
 
-# BetaML has perhaps what is the simplest to use method for finding the model hyperparametrs. Indeed, in most cases it is eought to pass the attribute `autotune=true` on the model constructor and hyperparameters search will be automatically performed on the first `fit!` call
+# Then we define the model we want to use, [`DecisionTreeEstimator`](@ref) in this case, and we create an instance of the model: 
 
-# NEW! With the new autotune functionality on:
-((xtrain2,xtest2),(ytrain2,ytest2)) = partition([x,y],[0.75,0.25,],shuffle=false)
-tunemethod = SuccessiveHalvingSearch(hpranges=Dict("max_depth"=>4:6,"max_features" =>10:13, "min_records"=>3:6), res_shares=[0.1,0.2,0.3])
-tunemethod = GridSearch(hpranges=Dict("max_depth"=>4:6,"max_features" =>10:13, "min_records"=>3:6), res_share=0.2)
-m = DecisionTreeEstimator(tunemethod=tunemethod, autotune=true, rng=copy(FIXEDRNG))
-m = DecisionTreeEstimator(autotune=true, rng=copy(FIXEDRNG), verbosity=FULL)
-ŷtrain = fit!(m,xtrain2,ytrain2)
-ŷtest  = predict(m,xtest2) 
-mean_relative_error(ŷtest,ytest2,normrec=false) # 0.151
+m = DecisionTreeEstimator(autotune=true, rng=copy(FIXEDRNG))
+
+# Passing a fixed Random Number Generator (RNG) to the `rng` parameter guaranteee that everytime we use the model with the same data (from the model creation downward to value prediciton) we obtain the same results. See the section ["Dealing with stochasticity"](@ref dealing_with_stochasticity) for details. 
+# Note also the `autotune` parameter. BetaML has perhaps what is the easiest method for automatically tuning the model hyperparameters (that become in this way _learned_ parameters). Indeed, in most cases it is enought to pass the attribute `autotune=true` on the model constructor and hyperparameters search will be automatically performed on the first `fit!` call.
+# If needed we can customise hyperparameter tuning, chosing the tuning method on the parameter `tunemethod`. The single-line above is equivalent to:
+tuning_method = SuccessiveHalvingSearch(
+                   hpranges     = Dict("max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30]),
+                   loss         = l2loss_by_cv,
+                   res_shares   = [0.05, 0.2, 0.3]
+                   multithreads =true
+                )
+m = DecisionTreeEstimator(autotune=true, rng=copy(FIXEDRNG), tunemethod=tuning_method)
+
+# Note that the defaults change according to the specific model, for example `RandomForestEstimator`](@ref) autoruning default to not being multithreaded, as the individual model is already multithreaded.
+
+# !!! Tip 
+#     Consult [the versions of this tutorial for BetaML <= 0.6](/BetaML.jl/v0.7/tutorials/Regression - bike sharing/betaml_tutorial_regression_sharingBikes.html) for a good exercise on how to perform model selection using the [`cross_validation`](@ref) function, or even by custom grid search.
+
+# We can now fit the model, that is learn the model parameters that lead to the best predictions from the data. By default (unless we use `cache=false` in the model constructor) the model stores also the training predictions, so we can just use `fit!()` instead of `fit!()` followed by `predict(model,xtrain)`
+ŷtrain = fit!(m,xtrain,ytrain)
+
+ŷtest  = predict(m,xtest) 
+relative_mean_error(ŷtest,ytest,normrec=false) # 0.151
 
 @time autotune!(m,[xtrain2,ytrain2])
 a=1
@@ -114,7 +125,7 @@ function tuneHyperParameters(model,xtrain,ytrain,xval,yval;max_depthRange=15:15,
               fit!(m,xtrain,ytrain)
               ## Here we make prediciton with this trained model and we compute its error
               ŷval   = predict(m, xval)
-              rmeVal = mean_relative_error(ŷval,yval,normrec=false)
+              rmeVal = relative_mean_error(ŷval,yval,normrec=false)
               totAttemptError += rmeVal
            end
            avgAttemptedDepthError = totAttemptError / repetitions
@@ -232,8 +243,8 @@ xtrain,ytrain
 m = RandomForestEstimator(rng=copy(FIXEDRNG),autotune=true)
 ŷtrain = fit!(m,xtrain2,ytrain2)
 ŷtest  = predict(m,xtest2)
-mer_train = mean_relative_error(ŷtrain,ytrain2,normrec=false)
-mer_test = mean_relative_error(ŷtest,ytest2,normrec=false)
+mer_train = relative_mean_error(ŷtrain,ytrain2,normrec=false)
+mer_test = relative_mean_error(ŷtest,ytest2,normrec=false)
 
 
 # Let's now benchmark the training of the BetaML Random Forest model
@@ -245,7 +256,7 @@ mer_test = mean_relative_error(ŷtest,ytest2,normrec=false)
 
 # Random forests support the so-called "out-of-bag" error, an estimation of the error that we would have when the model is applied on a testing sample.
 # However in this case the oob reported is much smaller than the testing error we will actually find. This is due to the fact that the division between training/validation and testing in this exercise is not random, but has a temporal basis. It seems that in this example the data in validation/testing follows a different pattern/variance than those in training (in probabilistic terms, the daily observations are not i.i.d.).
-oobError, trueTestMeanRelativeError  = myForest.oobError,mean_relative_error(ŷtest,ytest,normrec=true)
+oobError, trueTestMeanRelativeError  = myForest.oobError,relative_mean_error(ŷtest,ytest,normrec=true)
 #+
 (ŷtrain,ŷval,ŷtest)         = predict.([myForest], [xtrain,xval,xtest])
 (rmeTrain, rmeVal, rmeTest) = mean_relative_error.([ŷtrain,ŷval,ŷtest],[ytrain,yval,ytest],normrec=false)
@@ -406,7 +417,7 @@ function tuneHyperParameters(xtrain,ytrain,xval,yval;epochRange=50:50,hiddenLaye
            ## Training it (default to ADAM)
            res  = train!(mynn,xtrain,ytrain,epochs=epoch,batch_size=8,opt_alg=ADAM(),verbosity=NONE, rng=tsrng) # Use opt_alg=SGD() to use Stochastic Gradient Descent
            ŷval = predict(mynn,xval)
-           rmeVal  = mean_relative_error(ŷval,yval,normrec=false)
+           rmeVal  = relative_mean_error(ŷval,yval,normrec=false)
            totAttemptError += rmeVal
        end
        avgRme = totAttemptError / repetitions

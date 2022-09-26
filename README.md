@@ -83,7 +83,7 @@ y_oh     = fit!(ohmod,y)
 l1   = DenseLayer(4,10,f=relu) # The activation function is `ReLU`
 l2   = DenseLayer(10,3)        # The activation function is `identity` by default
 l3   = VectorFunctionLayer(3,f=softmax) # Add a (parameterless) layer whose activation function (`softmax` in this case) is defined to all its nodes at once
-mynn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=crossentropy,descr="Multinomial logistic regression Model Sepal", batch_size=2, epochs=200) # Build the NN and use the cross-entropy as error function. 
+mynn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=crossentropy,descr="Multinomial logistic regression Model Sepal", batch_size=2, epochs=200) # Build the NN and use the cross-entropy as error function. Swith to auto-tuning with `autotune=true`
 
 # Train the model (using the ADAM optimizer by default)
 res = fit!(mynn,fit!(Scaler(),xtrain),ytrain_oh) # Fit the model to the (scaled) data
@@ -91,8 +91,8 @@ res = fit!(mynn,fit!(Scaler(),xtrain),ytrain_oh) # Fit the model to the (scaled)
 # Obtain predictions and test them against the ground true observations
 ŷtrain         = @pipe predict(mynn,fit!(Scaler(),xtrain)) |> inverse_predict(ohmod,_)  # Note the scaling and reverse one-hot encoding functions
 ŷtest          = @pipe predict(mynn,fit!(Scaler(),xtest))  |> inverse_predict(ohmod,_) 
-train_accuracy = accuracy(ŷtrain,ytrain) # 0.975
-test_accuracy  = accuracy(ŷtest,ytest)   # 0.96
+train_accuracy = accuracy(ytrain,ŷtrain) # 0.975
+test_accuracy  = accuracy(ytest,ŷtest)   # 0.96
 
 # Analyse model performances
 cm = ConfusionMatrix()
@@ -169,7 +169,7 @@ Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl)
 
 ### Short term
 
-- Implement utility functions to do hyper-parameter tuning using cross-validation as back-end
+- [DONE] Implement utility functions to do hyper-parameter tuning using cross-validation as back-end
 
 ### Mid/Long term
 
