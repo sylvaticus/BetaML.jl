@@ -431,11 +431,53 @@ function _predict(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
             else
                 error("I don't know how to process `handle_unknown == $(handle_unknown)`")
             end
+        else
+            enctype == :onehot ? (outx[n,kidx] = true) : outx[n,1] = kidx
         end
-        enctype == :onehot ? (outx[n,kidx] = true) : outx[n,1] = kidx
     end
     return (enctype == :onehot) ? outx : dropdims(outx,dims=2)
 end
+
+# Case where X is a vector of dictionaries
+function _predict(m::Union{OneHotEncoder,OrdinalEncoder},x::Vector{<:Dict},enctype::Symbol)
+
+    N     = size(x,1)
+    # Parameter aliases
+    handle_unknown         = m.hpar.handle_unknown
+    categories_applied     = m.par.categories_applied
+
+    if enctype == :onehot
+        K    = length(categories_applied)
+        outx = fill(0.0,N,K)
+    else 
+        error("Predictions of a Ordinal Encoded with a vector of dictionary is not supported")
+    end
+    for n in 1:N
+        for (k,v) in x[n]
+            kidx = findfirst(y -> isequal(y,k),categories_applied)
+            if isnothing(kidx)
+                if handle_unknown == "error"
+                    error("Found a category ($(k)) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to swith it to either `missing` or `infrequent`.")
+                    continue
+                elseif handle_unknown == "missing"
+                    outx[n,:] = fill(missing,K);
+                    continue
+                elseif handle_unknown == "infrequent"
+                    outx[n,K] = v
+                    continue
+                else
+                    error("I don't know how to process `handle_unknown == $(handle_unknown)`")
+                end
+            else
+                outx[n,kidx] = v
+            end
+        end
+    end
+    return outx
+end
+
+
+
 
 predict(m::OneHotEncoder,x)  = _predict(m,x,:onehot)
 predict(m::OrdinalEncoder,x) = _predict(m,x,:ordinal)
@@ -1096,31 +1138,12 @@ function cross_validation(f,data,sampler=KFold(nsplits=5,nrepeats=1,shuffle=true
     for (i,iterData) in enumerate(SamplerWithData(sampler,data,dims))
        iterResult = f(iterData[1],iterData[2],sampler.rng)
        push!(iterResults,iterResult)
-       if verbosity > STD
-           println("Done iteration $i. This iteration output: $iterResult")
-       end
+       verbosity > HIGH && println("Done iteration $i. This iteration output: $iterResult")
     end
     if returnStatistics  return (mean(iterResults),std(iterResults)) else return iterResults end
 end
 
-"""
-$(TYPEDEF)
-
-Compute the loss of a given model over a given dataset running cross-validation
-"""
-function l2loss_by_cv(m,data;nsplits=5,rng=Random.GLOBAL_RNG)
-    x,y = data[1],data[2]
-    sampler = KFold(nsplits=nsplits,rng=rng)
-    (μ,σ) = cross_validation([x,y],sampler) do trainData,valData,rng
-        (xtrain,ytrain) = trainData; (xval,yval) = valData
-        fit!(m,xtrain,ytrain)
-        predictions     = predict(m,xval)
-        ϵ               = norm(yval-predictions)/size(yval,1) 
-        reset!(m)
-        return ismissing(ϵ) ? Inf : ϵ 
-      end
-    return μ
-end    
+   
 
 """
 $(TYPEDEF)
@@ -1143,7 +1166,7 @@ Base.@kwdef mutable struct GridSearch <: AutoTuneMethod
     "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values). The number of points you provide for a given parameter can be interpreted as proportional to the prior you have on the importance of that parameter for the algorithm quality."
     hpranges::Dict{String,Any} = Dict{String,Any}()
     "Use multithreads in the search for the best hyperparameters [def: `false`]"
-    use_multithreads::Bool = false
+    multithreads::Bool = false
 end
 
 
@@ -1170,7 +1193,7 @@ Base.@kwdef mutable struct SuccessiveHalvingSearch <: AutoTuneMethod
     "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values). The number of points you provide for a given parameter can be interpreted as proportional to the prior you have on the importance of that parameter for the algorithm quality."
     hpranges::Dict{String,Any} = Dict{String,Any}()
     "Use multiple threads in the search for the best hyperparameters [def: `false`]"
-    use_multithread::Bool = false
+    multithreads::Bool = false
 end
 
 "Transform a Dict(parameters => possible range) in a vector of Dict(parameters=>parvalues)"
@@ -1205,7 +1228,8 @@ function tune!(m,method::GridSearch,data)
     hpranges   = method.hpranges
     candidates = _hpranges_2_candidates(hpranges)
     rng             = options(m).rng
-    use_multithreads  = method.use_multithreads 
+    multithreads  = method.multithreads 
+    compLock        = ReentrantLock()
     best_candidate  = Dict()
     lowest_loss     = Inf
     subs = partition([data...],[method.res_share,1-method.res_share],rng=rng, copy=true)
@@ -1216,8 +1240,11 @@ function tune!(m,method::GridSearch,data)
     #end
     masterSeed = rand(rng,100:typemax(Int64))
     rngs       = generate_parallel_rngs(rng,Threads.nthreads()) 
-    @threadsif use_multithreads for candidate in candidates
+    n_candidates = length(candidates)
+    @threadsif multithreads for c in 1:n_candidates
+        candidate = candidates[c]
         tsrng = rngs[Threads.threadid()] 
+        Random.seed!(tsrng,masterSeed+c*10)
         options(m).verbosity == FULL && println("Testing candidate $candidate")
         mc = deepcopy(m)
         mc.opt.autotune = false
@@ -1225,9 +1252,14 @@ function tune!(m,method::GridSearch,data)
         sethp!(mc,candidate) 
         μ =  method.loss(mc,sampleddata;rng=tsrng)   
         options(m).verbosity == FULL && println(" -- predicted loss: $μ")   
-        if μ < lowest_loss
-            lowest_loss = μ
-            best_candidate = candidate
+        lock(compLock) ## This step can't be run in parallel...
+        try
+            if μ < lowest_loss
+                lowest_loss = μ
+                best_candidate = candidate
+            end
+        finally
+            unlock(compLock)
         end
     end
     sethp!(m,best_candidate) 
@@ -1245,7 +1277,8 @@ function tune!(m,method::SuccessiveHalvingSearch,data)
     hpranges   = method.hpranges
     res_shares = method.res_shares
     rng             = options(m).rng
-    use_multithreads  = method.use_multithread
+    multithreads  = method.multithreads
+    compLock        = ReentrantLock()
     epochs          = length(res_shares)
     candidates = _hpranges_2_candidates(hpranges)
     ncandidates = length(candidates)
@@ -1260,15 +1293,19 @@ function tune!(m,method::SuccessiveHalvingSearch,data)
         scores = Vector{Tuple{Float64,Dict}}(undef,ncandidates_thisepoch)
         masterSeed = rand(rng,100:typemax(Int64))
         rngs       = generate_parallel_rngs(rng,Threads.nthreads()) 
-        @threadsif use_multithreads for (c,candidate) in enumerate(candidates)
+        n_candidates = length(candidates)
+        ncandidates_thisepoch == n_candidates || error("Problem with number of candidates!")
+        @threadsif multithreads for c in 1:n_candidates
+            candidate=candidates[c]
             tsrng = rngs[Threads.threadid()]
+            Random.seed!(tsrng,masterSeed+c*10) 
             options(m).verbosity == FULL && println("(e $e) Testing candidate $candidate")
             mc = deepcopy(m)
             mc.opt.autotune = false
             mc.opt.verbosity = NONE
             sethp!(mc,candidate) 
             μ =  method.loss(mc,epochdata;rng=tsrng)   
-            options(m).verbosity == FULL && println(" -- predicted loss: $μ")   
+            options(m).verbosity == FULL && println(" -- predicted loss: $μ")  
             scores[c] = (μ,candidate)
         end
         sort!(scores,by=first)

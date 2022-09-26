@@ -143,6 +143,36 @@ function accuracy(ŷ::Array{Dict{T,Float64},1},y::Array{T,1};tol=1,rng=Random.G
     return acc
 end
 
+"""
+$(TYPEDEF)
+
+Compute the loss of a given model over a given (x,y) dataset running cross-validation
+"""
+function l2loss_by_cv(m,data;nsplits=5,rng=Random.GLOBAL_RNG)
+    x,y = data[1],data[2]
+    sampler = KFold(nsplits=nsplits,rng=rng)
+    if (ndims(y) == 1)
+        ohm = OneHotEncoder(handle_unknown="infrequent",cache=false)
+        fit!(ohm,y)
+    end
+    (μ,σ) = cross_validation([x,y],sampler) do trainData,valData,rng
+        (xtrain,ytrain) = trainData; (xval,yval) = valData
+        fit!(m,xtrain,ytrain)
+        ŷval     = predict(m,xval)
+        if (eltype(ŷval) <: Dict)
+            yval = predict(ohm,yval)
+            ŷval = predict(ohm,ŷval)
+        end
+        ϵ               = norm(yval-ŷval)/size(yval,1) 
+        reset!(m)
+        return ismissing(ϵ) ? Inf : ϵ 
+      end
+    return μ
+end 
+
+
+
+
 
 """ error(ŷ,y) - Categorical error with probabilistic prediction of a single datapoint (PMF vs Int). """
 error(ŷ::Array{T,1},y::Int64;tol=1) where {T <: Number} = 1 - accuracy(ŷ,y;tol=tol)

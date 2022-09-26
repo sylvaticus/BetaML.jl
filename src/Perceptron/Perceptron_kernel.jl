@@ -300,7 +300,7 @@ Base.@kwdef mutable struct KernelPerceptronClassifierHyperParametersSet <: BetaM
     See [`SuccessiveHalvingSearch`](@ref) for the default method.
     To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
-    tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("kernel" =>[radial_kernel,polynomial_kernel, (x,y) -> polynomial_kernel(x,y,d=3)], "learning_rate_multiplicative" => [0.1,0.5,1,2], "epochs" =>[50,100,1000,10000], "shuffle"=>[true,false]),use_multithread=true)
+    tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("kernel" =>[radial_kernel,polynomial_kernel, (x,y) -> polynomial_kernel(x,y,d=3)], "epochs" =>[50,100,1000,10000], "shuffle"=>[true,false]),multithreads=true)
 end
 
 Base.@kwdef mutable struct KernelPerceptronClassifierLearnableParameters <: BetaMLLearnableParametersSet

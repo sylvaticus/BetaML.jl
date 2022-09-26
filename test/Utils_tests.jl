@@ -63,6 +63,18 @@ ŷ3  = predict(m,x)
 x2 = inverse_predict(m,ŷ)
 @test isequal(x2,[3,99,missing,3,4])
 
+# Testing OneHotEncoder with vector of dictionaries
+y = ["e","g","b"]
+ŷ = [Dict("a"=>0.2,"e"=>0.8),Dict("h"=>0.1,"e"=>0.2,"g"=>0.7),Dict("b"=>0.4,"e"=>0.6)]
+m = OneHotEncoder(handle_unknown="infrequent")
+yoh = fit!(m,y)
+ŷoh = predict(m,ŷ)
+
+@test ŷoh == [0.8  0.0  0.0  0.2
+              0.2  0.7  0.0  0.1
+              0.6  0.0  0.4  0.0]
+
+# Testing ordinal encoder...
 x  = ["3","6",missing,"3","4"]
 m  = OrdinalEncoder(categories=["3","7","4"],handle_unknown="infrequent",other_categories_name="99")
 ŷ  = fit!(m,x)
@@ -625,7 +637,7 @@ println("** Testing autotuning...")
 
 X = [11:99 99:-1:11]
 y = collect(111:199)
-tunemethod = GridSearch(hpranges=Dict("max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30]),use_multithreads=true)
+tunemethod = GridSearch(hpranges=Dict("max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30]),multithreads=true)
 m = DecisionTreeEstimator(verbosity=NONE,rng=copy(TESTRNG),autotune=true,tunemethod=tunemethod)
 hyperparameters(m).tunemethod.res_share=0.8
 fit!(m,X,y)
@@ -640,8 +652,8 @@ mean_relative_error(ŷ,y,normrec=false)
 
 X = [11:99 99:-1:11]
 y = collect(111:199)
-tunemethod = SuccessiveHalvingSearch(hpranges=Dict("n_trees"=>[5,10,20,30],"max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30]),use_multithread=false)
-m = RandomForestEstimator(verbosity=NONE,rng=copy(TESTRNG),autotune=true,tunemethod=tunemethod)
+tunemethod = SuccessiveHalvingSearch(hpranges=Dict("n_trees"=>[5,10,20,30],"max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30]),multithreads=false)
+m = RandomForestEstimator(verbosity=NONE,rng=copy(TESTRNG),autotune=false,tunemethod=tunemethod)
 hyperparameters(m).tunemethod.res_shares=[0.3,0.6,0.8]
 fit!(m,X,y)
 opthp = hyperparameters(m)

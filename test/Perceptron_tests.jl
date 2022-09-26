@@ -90,7 +90,7 @@ ŷtest  = predict(xtest,out.θ,out.θ₀,out.classes)
 ϵtest  = error(ytest, mode(ŷtest))
 
 @test ϵtrain  < 0.4
-@test ϵavg    < 0.4
+@test ϵtest    < 0.4
 
 m      =  PerceptronClassifier(shuffle=false, verbosity=NONE, rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
@@ -157,6 +157,19 @@ ŷtrain3 = predict(m,xtrain)
 ŷtest2 = predict(m,xtest)
 @test all([ŷtest[r][k] ≈ ŷtest2[r][k] for k in keys(ŷtest[1]) for r in 1:length(ŷtest)])
 
+# Testing autotune for classification...
+
+m = KernelPerceptronClassifier(verbosity=NONE, rng=copy(TESTRNG),autotune=true, tunemethod=SuccessiveHalvingSearch(multithreads=true, hpranges=Dict("epochs" =>[50,100,1000,10000])))
+m = KernelPerceptronClassifier(verbosity=NONE, rng=copy(TESTRNG),autotune=true)
+ŷtrain = fit!(m,xtrain,ytrain)
+optpar = hyperparameters(m)
+ŷtest  = predict(m,xtest)
+
+ϵtrain = error(ytrain, mode(ŷtrain))
+ϵtest  = error(ytest, mode(ŷtest))
+
+@test ϵtrain  < 0.1
+@test ϵtest   < 0.8
 
 # ==================================
 # Test 3: PegasosClassifier

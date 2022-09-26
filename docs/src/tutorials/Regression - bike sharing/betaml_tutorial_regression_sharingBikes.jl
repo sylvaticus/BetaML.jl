@@ -36,21 +36,25 @@ plot(data.cnt, title="Daily bike sharing rents (2Y)", label=nothing)
 # Decision trees training consist in choosing the set of questions (in a hierarcical way, so to form indeed a "decision tree") that "best" split the dataset given for training, in the sense that the split generate the sub-samples (always 2 subsamples in the BetaML implementation) that are, for the characteristic we want to predict, the most homogeneous possible. Decision trees are one of the few ML algorithms that has an intuitive interpretation and can be used for both regression or classification tasks.
 
 # ### Data preparation
+
 # The first step is to prepare the data for the analysis. This indeed depends already on the model we want to employ, as some models "accept" almost everything as input, no matter if the data is numerical or categorical, if it has missing values or not... while other models are instead much more exigents, and require more work to "clean up" our dataset.
 
-# Here we start using  Decision Tree and Random Forest models that definitly belong to the first group, so the only thing we have to do is to select the variables in input (the "feature matrix", that we will indicate with "X") and the variable representing our output (the information we want to learn to predict, we call it "y"):
+# The tutorial starts using  Decision Tree and Random Forest models that definitly belong to the first group, so the only thing we have to do is to select the variables in input (the "feature matrix", that we will indicate with "X") and the variable representing our output (the information we want to learn to predict, we call it "y"):
 x    = Matrix{Float64}(data[:,[:instant,:season,:yr,:mnth,:holiday,:weekday,:workingday,:weathersit,:temp,:atemp,:hum,:windspeed]])
 y    = data[:,16];
 
 # ### Model selection
-# !!! Tip 
-#     Starting v0.8 BetaML has a function to automatically select the "best" hyperparameters and this tutorial has been updated. Still it is a good exercise t osee how to manually use cross-validation or even custom sampling to achieve model selection. Consult [the version of this tutorial for BetaML <= 0.6](/BetaML.jl/v0.7/tutorials/Regression - bike sharing/betaml_tutorial_regression_sharingBikes.html) for his tutorial for that.
 
-# BetaML has perhaps wht is the simplest to use method for finding the model hyperparametrs.. Indeed, in most cases it ise ought to pass the attribute `autotune=true` on the model constructor and hyperparameters search willbe automatically performed on the first `fit!` call
+# !!! Tip 
+#     Starting v0.8 BetaML has a function to automatically select the "best" hyperparameters and this tutorial has been updated. Still it is a good exercise to see how to manually use cross-validation or even custom sampling to achieve model selection. Consult [the version of this tutorial for BetaML <= 0.6](/BetaML.jl/v0.7/tutorials/Regression - bike sharing/betaml_tutorial_regression_sharingBikes.html) for his tutorial for that.
+
+
 # We can now split the dataset between the data that we will use for training the algorithm and selecting the hyperparameters (`xtrain`/`ytrain`) and those for testing the quality of the algoritm with the optimal hyperparameters (`xtest`/`ytest`). We use the `partition` function specifying the share we want to use for these two different subsets, here 80%, and 20% respectively. As our data represents indeed a time serie, we want our model to be able to predict _future_ demand of bike sharing from _past_, observed rented bikes, so we do not shuffle the datasets as it would be the default.
 
 ((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.8,1-0.8],shuffle=false)
 (ntrain, ntest) = size.([ytrain,ytest],1)
+
+# BetaML has perhaps what is the simplest to use method for finding the model hyperparametrs. Indeed, in most cases it is eought to pass the attribute `autotune=true` on the model constructor and hyperparameters search will be automatically performed on the first `fit!` call
 
 # NEW! With the new autotune functionality on:
 ((xtrain2,xtest2),(ytrain2,ytest2)) = partition([x,y],[0.75,0.25,],shuffle=false)

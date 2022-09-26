@@ -205,7 +205,7 @@ Base.@kwdef mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
     To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     We can't use `mixtures` as it depends (its vector size) from an other hhyperparametern n_classes.
     """
-    tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("n_classes" =>[2,3,4,5], "initialisation_strategy"=>["grid,","kmeans"]),use_multithread=true)
+    tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("n_classes" =>[2,3,4,5], "initialisation_strategy"=>["grid,","kmeans"]),multithreads=true)
 end
 
 
