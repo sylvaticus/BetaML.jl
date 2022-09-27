@@ -180,8 +180,10 @@ Base.@kwdef mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
     initial_probmixtures::Vector{Float64}     = Float64[]
     """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
     Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\"`
+    This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
+    Note that mixing of different mixture types is not currently supported.
     [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
-    mixtures::Vector{AbstractMixture} = [DiagonalGaussian() for i in 1:n_classes]
+    mixtures::Union{Type,Vector{<: AbstractMixture}} = [DiagonalGaussian() for i in 1:n_classes]
     "Tolerance to stop the algorithm [default: 10^(-6)]"
     tol::Float64                      = 10^(-6)
     "Minimum variance for the mixtures [default: 0.05]"
@@ -203,9 +205,8 @@ Base.@kwdef mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
     The method - and its parameters - to employ for hyperparameters autotuning.
     See [`SuccessiveHalvingSearch](@ref) for the default method (suitable for the GMM-based regressors)
     To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
-    We can't use `mixtures` as it depends (its vector size) from an other hhyperparametern n_classes.
     """
-    tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("n_classes" =>[2,3,4,5], "initialisation_strategy"=>["grid,","kmeans"]),multithreads=true)
+    tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("n_classes" =>[2,3,4,5],"mixtures"=>[SphericalGaussian,DiagonalGaussian,FullGaussian], "initialisation_strategy"=>["grid,","kmeans"]),multithreads=true)
 end
 
 
@@ -239,12 +240,20 @@ end
 
 function GMMClusterer(;kwargs...)
     # ugly manual case...
-    if (:n_classes in keys(kwargs) && ! (:mixtures in keys(kwargs)))
+    if (:n_classes in keys(kwargs))
         n_classes = kwargs[:n_classes]
-        hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
-    else 
-        hps = GMMHyperParametersSet()
+    else
+        n_classes = 3
     end
+    if ! (:mixtures in keys(kwargs))
+        mixtures = [DiagonalGaussian() for i in 1:n_classes]
+    elseif  typeof(kwargs[:mixtures]) <: UnionAll
+        mixtures = [kwargs[:mixtures]() for i in 1:n_classes]
+    else
+        mixtures = kwargs[:mixtures]
+    end
+    hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = mixtures)
+
     m = GMMClusterer(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
@@ -252,6 +261,9 @@ function GMMClusterer(;kwargs...)
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
+              if kw == :mixtures
+                found = true; continue
+              end
               setproperty!(fobj,kw,kwv)
               found = true
           end

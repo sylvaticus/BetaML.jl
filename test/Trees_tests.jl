@@ -40,7 +40,7 @@ ŷtrain3 = predict(m) # using cached elements
 
 using AbstractTrees
 import AbstractTrees: printnode
-wrappedNode = wrap(myTree)
+wrappedNode = BetaML.wrap(myTree)
 print("Node printing: ")
 printnode(stdout,wrappedNode)
 println("")
@@ -172,7 +172,7 @@ ŷtest3  = predict(m, xtest)
 ŷtrain2 == ŷtrain3
 
 @test accuracy(ŷtest2,ytest,rng=copy(TESTRNG)) ≈ accuracy(ŷtest3,ytest,rng=copy(TESTRNG))
-@test info(m)[:oobe] ≈ ooberror
+@test info(m)[:oob_errors] ≈ ooberror
 =#
 
 predictionsByTree = [] # don't use weights...

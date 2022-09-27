@@ -171,7 +171,7 @@ rme_test  = relative_mean_error(ytest,ŷtest)   # 0.161
 # However in this case the oob reported is much smaller than the testing error we will actually find. This is due to the fact that the division between training/validation and testing in this exercise is not random, but has a temporal basis. It seems that in this example the data in validation/testing follows a different pattern/variance than those in training (in probabilistic terms, the daily observations are not i.i.d.).
 
 info(m_rf)
-oob_error, rme_test  = info(m_rf)[:oobe],relative_mean_error(ytest,ŷtest)
+oob_error, rme_test  = info(m_rf)[:oob_errors],relative_mean_error(ytest,ŷtest)
 #+
 @test rme_test <= 0.17 #src
 
@@ -191,6 +191,7 @@ endc = size(x,1)
 plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷtrainfull[stc:endc] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period (RF)")
 
 # ### Comparison with DecisionTree.jl random forest
+
 # We now compare our results with those obtained employing the same model in the [DecisionTree package](https://github.com/bensadeghi/DecisionTree.jl), using the hyperparameters of the obtimal BetaML Random forest model:
 
 best_rf_hp = hyperparameters(m_rf)
@@ -228,7 +229,7 @@ model = DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
 #src # DecisionTrees.jl makes a good job in optimising the Random Forest algorithm, as it is over 3 times faster that BetaML.
 
 (rme_train, rme_test) = relative_mean_error.([ŷtrain,ŷtest],[ytrain,ytest]) # 0.022 and 0.304
-# While the train error is very small, the error on the test set remains relativly high. The very low error level on the training set is a sign that it overspecialised on the training set, and we should have better ran a dedicated hyper-parameter tuning function for the DecisionTree.jl model.
+# While the train error is very small, the error on the test set remains relativly high. The very low error level on the training set is a sign that it overspecialised on the training set, and we should have better ran a dedicated hyper-parameter tuning function for the DecisionTree.jl model (we did try using the default `DecisionTrees.jl` parameters, but we obtained roughtly the same results).
 
 @test rme_test <= 0.32 #src
 
@@ -317,6 +318,16 @@ hpranges = Dict("layers"     => candidate_structures,
 # Finally we can build "neural network" [`NeuralNetworkEstimator`](@ref) model where we "chain" the layers together and we assign a final loss function (again, you can provide your own loss function, if those available in BetaML don't suit your needs): 
 
 nnm = NeuralNetworkEstimator(loss=squared_cost, descr="Bike sharing regression model", tunemethod=SuccessiveHalvingSearch(hpranges = hpranges), autotune=true,rng=copy(FIXEDRNG)) # Build the NN model and use the squared cost (aka MSE) as error function by default
+
+#src NN without any parameters:
+#src nnm2                  = NeuralNetworkEstimator(autotune=true)
+#src ŷtrain_scaled         = fit!(nnm2,xtrain_scaled,ytrain_scaled)
+#src ŷtrain                = ŷtrain_scaled .* 1000
+#src ŷtest                 = @pipe predict(nnm2,xtest_scaled) .* 1000 |> dropdims(_,dims=2)
+#src (rme_train, rme_test) = relative_mean_error.([ŷtrain,ŷtest],[ytrain,ytest]) #0.041, 0.236
+
+#-
+(rme_train, rme_test) = relative_mean_error.([ŷtrain,ŷtest],[ytrain,ytest])
 
 # We can now fit and autotune the model: 
 ŷtrain_scaled = fit!(nnm,xtrain_scaled,ytrain_scaled)
@@ -448,7 +459,7 @@ ŷtestGMM  = @pipe predict(m,xtest_scaled)  .* 1000;
 
 # ## Summary
 
-# This is the summary of the results we had trying to predict the daily bike sharing demand, given weather and calendar information of the day
+# This is the summary of the results we had trying to predict the daily bike sharing demand, given weather and calendar information.
 
 # | Model                | Train rme     | Test rme|  Training time (ms)* | Training mem (MB)*  |
 # |:-------------------- |:-------------:| --------:| ------------------- | ------------------- |
@@ -460,9 +471,7 @@ ŷtestGMM  = @pipe predict(m,xtest_scaled)  .* 1000;
 # | GMMRegressor2        | 0.253        | 0.267   | 10.7                | 19.5                 |
 # * on a Intel Core i5-8350U laptop and using the tutorial in BetaML 0.7 (without autotuning and model wrapping)
 
-# How stable are these results? We re-evaluated the whole script but changing random seed, using instead `FIXEDRNG = StableRNG(321)`.
-
-# These are the results:
+# You may ask how stable are these results? How much do they depend from the specific RNG seed ? We re-evaluated a couple of times the whole script but changing random seeds:
 
 # | Model                | Train rme2 | Test rme2 | Train rme3 | Test rme3 | 
 # |:-------------------- |:----------:|:---------:|:----------:|:---------:|
@@ -473,7 +482,7 @@ ŷtestGMM  = @pipe predict(m,xtest_scaled)  .* 1000;
 # | NN (Flux.jl)         | 0.103      | 0.137     | 0.095      | 0.167     | 
 # | GMMRegressor2*       | 0.253      | 0.267     | 0.253      | 0.267     |
 
-# * non stochastic model
+# * deterministic model
 
 # Neural networks can be more precise than random forests models, but are more computationally expensive (and tricky to set up). When we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less versatile).
-# GMM regressors are very computationally cheap and a good choice if accuracy can be traded off for performances.
+# GMM_based regressors are very computationally cheap and a good choice if accuracy can be traded off for performances.

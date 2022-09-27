@@ -40,12 +40,20 @@ end
 
 function GMMRegressor1(;kwargs...)
     # ugly manual case...
-    if (:n_classes in keys(kwargs) && ! (:mixtures in keys(kwargs)))
+    if (:n_classes in keys(kwargs))
         n_classes = kwargs[:n_classes]
-        hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
-    else 
-        hps = GMMHyperParametersSet()
+    else
+        n_classes = 3
     end
+    if ! (:mixtures in keys(kwargs))
+        mixtures = [DiagonalGaussian() for i in 1:n_classes]
+    elseif  typeof(kwargs[:mixtures]) <: UnionAll
+        mixtures = [kwargs[:mixtures]() for i in 1:n_classes]
+    else
+        mixtures = kwargs[:mixtures]
+    end
+    hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = mixtures)
+
     m = GMMRegressor1(hps,BetaMLDefaultOptionsSet(),GMMRegressor1LearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
@@ -53,6 +61,9 @@ function GMMRegressor1(;kwargs...)
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
+              if kw == :mixtures
+                found = true; continue
+              end
               setproperty!(fobj,kw,kwv)
               found = true
           end
@@ -179,12 +190,20 @@ end
 
 function GMMRegressor2(;kwargs...)
     # ugly manual case...
-    if (:n_classes in keys(kwargs) && ! (:mixtures in keys(kwargs)))
+    if (:n_classes in keys(kwargs))
         n_classes = kwargs[:n_classes]
-        hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = [DiagonalGaussian() for i in 1:n_classes])
-    else 
-        hps = GMMHyperParametersSet()
+    else
+        n_classes = 3
     end
+    if ! (:mixtures in keys(kwargs))
+        mixtures = [DiagonalGaussian() for i in 1:n_classes]
+    elseif  typeof(kwargs[:mixtures]) <: UnionAll
+        mixtures = [kwargs[:mixtures]() for i in 1:n_classes]
+    else
+        mixtures = kwargs[:mixtures]
+    end
+    hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = mixtures)
+
     m = GMMRegressor2(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
@@ -192,6 +211,9 @@ function GMMRegressor2(;kwargs...)
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
+              if kw == :mixtures
+                found = true; continue
+              end
               setproperty!(fobj,kw,kwv)
               found = true
           end

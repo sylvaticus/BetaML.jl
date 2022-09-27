@@ -52,8 +52,13 @@ clusters = gmm(X,3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTR
 println("Testing GMMClusterer...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 
-m = GMMClusterer(n_classes=3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
-fit!(m,X)
+m = GMMClusterer(n_classes=3, mixtures=[DiagonalGaussian() for i in 1:3], verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
+m2 = GMMClusterer(n_classes=3, mixtures=DiagonalGaussian, verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
+m3 = GMMClusterer(n_classes=3, verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
+ŷ1 = fit!(m,X)
+ŷ2 = fit!(m2,X)
+ŷ3 = fit!(m3,X)
+@test ŷ1 == ŷ2 == ŷ3
 probs = predict(m)
 gmmOut = gmm(X,3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
 @test gmmOut.pₙₖ == probs

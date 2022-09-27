@@ -9,7 +9,7 @@ export MissingImputator, SimpleImputer,GaussianMixtureImputer, RandomForestImput
 
 # ------------------------------------------------------------------------------
 # Model Structure declarations..
-
+""" Deprecated. Use `GaussianMixtureImputer` or another imputer"""
 mutable struct MissingImputator <: MMI.Unsupervised
     K::Int64
     initial_probmixtures::AbstractArray{Float64,1}
@@ -46,7 +46,7 @@ SimpleImputer(;
 mutable struct GaussianMixtureImputer <: MMI.Unsupervised
     n_classes::Int64
     initial_probmixtures::Vector{Float64}
-    mixtures::Symbol
+    mixtures::Union{Type,Vector{<: AbstractMixture}}
     tol::Float64
     minimum_variance::Float64
     minimum_covariance::Float64
@@ -54,17 +54,23 @@ mutable struct GaussianMixtureImputer <: MMI.Unsupervised
     verbosity::Verbosity
     rng::AbstractRNG
 end
-GaussianMixtureImputer(;
+function GaussianMixtureImputer(;
     n_classes      = 3,
     initial_probmixtures  = Float64[],
-    mixtures      = :diag_gaussian,
+    mixtures      = [DiagonalGaussian() for i in 1:n_classes],
     tol           = 10^(-6),
     minimum_variance   = 0.05,
     minimum_covariance = 0.0,
     initialisation_strategy  = "kmeans",
     verbosity     = STD,
     rng           = Random.GLOBAL_RNG,
-) = GaussianMixtureImputer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,verbosity,rng)
+)
+    if typeof(mixtures) <: UnionAll
+        println("aaa")
+        mixtures = [mixtures() for i in 1:n_classes]
+    end
+    return GaussianMixtureImputer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,verbosity,rng)
+end
 
 mutable struct RandomForestImputer <: MMI.Unsupervised
     n_trees::Int64
@@ -122,7 +128,8 @@ function MMI.fit(m::MissingImputator, verbosity, X)
         mixtures = [SphericalGaussian() for i in 1:m.K]
     else
         error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
-    end
+    end 
+    
     res        = gmm(x,m.K,initial_probmixtures=deepcopy(m.initial_probmixtures),mixtures=mixtures, minimum_variance=m.minimum_variance, minimum_covariance=m.minimum_covariance,initialisation_strategy=m.initialisation_strategy,verbosity=NONE,rng=m.rng)
     fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # pₙₖ=res.pₙₖ
     cache      = nothing
@@ -146,7 +153,7 @@ end
 
 function MMI.fit(m::GaussianMixtureImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
-    if m.mixtures == :diag_gaussian
+    #=if m.mixtures == :diag_gaussian
         mixtures = [DiagonalGaussian() for i in 1:m.n_classes]
     elseif m.mixtures == :full_gaussian
         mixtures = [FullGaussian() for i in 1:m.n_classes]
@@ -155,11 +162,12 @@ function MMI.fit(m::GaussianMixtureImputer, verbosity, X)
     else
         error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
+    =#
 
     mod = GMMImputer(
         n_classes      = m.n_classes,
         initial_probmixtures  = m.initial_probmixtures,
-        mixtures      = mixtures,
+        mixtures      = m.mixtures,
         tol           = m.tol,
         minimum_variance   = m.minimum_variance,
         minimum_covariance = m.minimum_covariance,

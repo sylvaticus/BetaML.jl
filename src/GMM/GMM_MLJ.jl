@@ -23,10 +23,12 @@ mutable struct GaussianMixtureClusterer <: MMI.Unsupervised
   n_classes::Int64
   "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
   initial_probmixtures::AbstractArray{Float64,1}
-  """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module of BetaML for available mixtures).
-  Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to "given"`
-  [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
-  mixtures::Vector{AbstractMixture}
+  """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
+    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\"`
+    This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
+    Note that mixing of different mixture types is not currently supported.
+    [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
+  mixtures::Union{Type,Vector{<: AbstractMixture}}
   "Tolerance to stop the algorithm [default: 10^(-6)]"
   tol::Float64
   "Minimum variance for the mixtures [default: 0.05]"
@@ -47,7 +49,7 @@ mutable struct GaussianMixtureClusterer <: MMI.Unsupervised
   "Random Number Generator [deafult: `Random.GLOBAL_RNG`]"
   rng::AbstractRNG
 end
-GaussianMixtureClusterer(;
+function GaussianMixtureClusterer(;
     n_classes             = 3,
     initial_probmixtures            = Float64[],
     mixtures      = [DiagonalGaussian() for i in 1:m.n_classes],
@@ -57,7 +59,12 @@ GaussianMixtureClusterer(;
     initialisation_strategy  = "kmeans",
     maximum_iterations       = typemax(Int64),
     rng           = Random.GLOBAL_RNG,
-) = GaussianMixtureClusterer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,maximum_iterations,rng)
+)
+    if typeof(mixtures) <: UnionAll
+        mixtures = [mixtures() for i in 1:m.n_classes]
+    end
+    return GaussianMixtureClusterer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,maximum_iterations,rng)
+end
 
 """
 $(TYPEDEF)
@@ -75,9 +82,11 @@ mutable struct GaussianMixtureRegressor <: MMI.Deterministic
     "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
     initial_probmixtures::Vector{Float64}
     """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
-    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to "given"`
+    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\"`
+    This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
+    Note that mixing of different mixture types is not currently supported.
     [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
-    mixtures::Vector{AbstractMixture}
+    mixtures::Union{Type,Vector{<: AbstractMixture}}
     "Tolerance to stop the algorithm [default: 10^(-6)]"
     tol::Float64
     "Minimum variance for the mixtures [default: 0.05]"
@@ -98,7 +107,7 @@ mutable struct GaussianMixtureRegressor <: MMI.Deterministic
     "Random Number Generator [deafult: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
-GaussianMixtureRegressor(;
+function GaussianMixtureRegressor(;
     n_classes      = 3,
     initial_probmixtures  = [],
     mixtures      = [DiagonalGaussian() for i in 1:n_classes],
@@ -108,7 +117,12 @@ GaussianMixtureRegressor(;
     initialisation_strategy  = "kmeans",
     maximum_iterations       = typemax(Int64),
     rng           = Random.GLOBAL_RNG
-   ) = GaussianMixtureRegressor(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,rng)
+   )
+   if typeof(mixtures) <: UnionAll
+     mixtures = [mixtures() for i in 1:m.n_classes]
+   end
+   return GaussianMixtureRegressor(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,rng)
+end
 
 """
 $(TYPEDEF)
@@ -126,9 +140,11 @@ mutable struct MultitargetGaussianMixtureRegressor <: MMI.Deterministic
     "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
     initial_probmixtures::Vector{Float64}
     """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
-    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to "given"`
+    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\"`
+    This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
+    Note that mixing of different mixture types is not currently supported.
     [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
-    mixtures::Vector{AbstractMixture}
+    mixtures::Union{Type,Vector{<: AbstractMixture}}
     "Tolerance to stop the algorithm [default: 10^(-6)]"
     tol::Float64
     "Minimum variance for the mixtures [default: 0.05]"
@@ -149,7 +165,7 @@ mutable struct MultitargetGaussianMixtureRegressor <: MMI.Deterministic
     "Random Number Generator [deafult: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
-MultitargetGaussianMixtureRegressor(;
+function MultitargetGaussianMixtureRegressor(;
     n_classes      = 3,
     initial_probmixtures  = [],
     mixtures      = [DiagonalGaussian() for i in 1:n_classes],
@@ -159,7 +175,12 @@ MultitargetGaussianMixtureRegressor(;
     initialisation_strategy  = "kmeans",
     maximum_iterations       = typemax(Int64),
     rng           = Random.GLOBAL_RNG
-) = MultitargetGaussianMixtureRegressor(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,rng)
+) 
+    if typeof(mixtures) <: UnionAll
+        mixtures = [mixtures() for i in 1:m.n_classes]
+    end
+    return MultitargetGaussianMixtureRegressor(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,rng)
+end
 
 # ------------------------------------------------------------------------------
 # Fit functions...
