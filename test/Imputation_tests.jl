@@ -41,7 +41,7 @@ fit!(mod,X)
 x̂ = predict(mod)
 @test x̂[1,2] == 40
 @test typeof(x̂) == Matrix{Float64}
-@test info(mod) == Dict{Symbol,Any}(:n_imputed_values => 1)
+@test info(mod) == Dict{String,Any}("n_imputed_values" => 1)
 
 X2 = [2 4 missing; 20 40 100]
 x̂2 = predict(mod,X2)

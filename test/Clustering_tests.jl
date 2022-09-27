@@ -42,7 +42,7 @@ fit!(m,X)
 classes = predict(m)
 @test clIdxKMeans == classes
 @test info(m)["fitted_records"] == 9
-@test sprint(print, m) == "First test k-means model\nKMeansClusterer - A 2-dimensions 3-classes K-Means Model (fitted on 9 records)\nDict{Symbol, Any}(:fitted_records => 9, :dimensions => 2)\nRepresentatives:\n[5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664]\n"
+@test sprint(print, m) == "First test k-means model\nKMeansClusterer - A 2-dimensions 3-classes K-Means Model (fitted on 9 records)\nDict{String, Any}(\"fitted_records\" => 9, \"dimensions\" => 2)\nRepresentatives:\n[5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664]\n"
 
 # ==================================
 # New test
