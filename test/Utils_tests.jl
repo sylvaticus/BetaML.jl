@@ -306,7 +306,7 @@ m = PCA(max_prop_unexplained_var=0.05)
 fit!(m,X)
 ŷ = predict(m)
 @test ŷ == out.X
-@test 1-m.info[:prop_explained_var] ≈ 1.0556269747774571e-5
+@test 1-m.info["prop_explained_var"] ≈ 1.0556269747774571e-5
 @test sum(out.X) ≈ 662.3492034128955
 ŷ2 = predict(m,X)
 @test ŷ ≈ ŷ2
@@ -366,9 +366,9 @@ cm = ConfusionMatrix()
 scores1 = fit!(cm,y,ŷ)
 scores2 = predict(cm)
 res = info(cm)
-@test res[:scores]  == [2 0 1; 0 1 0; 0 0 1]
-@test res[:normalised_scores] == scores1 == scores2 ≈ [ 0.6666666666666666 0.0 0.3333333333333333; 0.0 1.0 0.0; 0.0 0.0 1.0]
-@test res[:tp] == [2,1,1] && res[:tn] == [2,4,3] && res[:fp] == [0,0,1] && res[:fn] == [1, 0, 0]
+@test res["scores"]  == [2 0 1; 0 1 0; 0 0 1]
+@test res["normalised_scores"] == scores1 == scores2 ≈ [ 0.6666666666666666 0.0 0.3333333333333333; 0.0 1.0 0.0; 0.0 0.0 1.0]
+@test res["tp"] == [2,1,1] && res["tn"] == [2,4,3] && res["fp"] == [0,0,1] && res["fn"] == [1, 0, 0]
 parameters(cm)
 
 # Checking multiple training equal to just training on full data
@@ -414,16 +414,16 @@ ŷ = [0,0,2,1,0]
 cm = ConfusionMatrix()
 fit!(cm,y,ŷ)
 res = info(cm)
-@test res[:precision] ≈ [0.6666666666666666, 0.0, 1.0]
-@test res[:recall] ≈ [1.0, 0.0, 0.5]
-@test res[:specificity] ≈ [0.6666666666666666, 0.75, 1.0]
-@test res[:f1score] ≈ [0.8, 0.0, 0.6666666666666666]
-@test res[:mean_precision] == (0.5555555555555555, 0.6666666666666666)
-@test res[:mean_recall] == (0.5, 0.6)
-@test res[:mean_specificity] == (0.8055555555555555, 0.8166666666666667)
-@test res[:mean_f1score] == (0.48888888888888893, 0.5866666666666667)
-@test res[:accuracy] == 0.6
-@test res[:misclassification] == 0.4
+@test res["precision"] ≈ [0.6666666666666666, 0.0, 1.0]
+@test res["recall"] ≈ [1.0, 0.0, 0.5]
+@test res["specificity"] ≈ [0.6666666666666666, 0.75, 1.0]
+@test res["f1score"] ≈ [0.8, 0.0, 0.6666666666666666]
+@test res["mean_precision"] == (0.5555555555555555, 0.6666666666666666)
+@test res["mean_recall"] == (0.5, 0.6)
+@test res["mean_specificity"] == (0.8055555555555555, 0.8166666666666667)
+@test res["mean_f1score"] == (0.48888888888888893, 0.5866666666666667)
+@test res["accuracy"] == 0.6
+@test res["misclassification"] == 0.4
 
 original_stdout = stdout
 (rd, wr) = redirect_stdout()

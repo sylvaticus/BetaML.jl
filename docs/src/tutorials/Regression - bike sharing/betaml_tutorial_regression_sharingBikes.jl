@@ -171,7 +171,7 @@ rme_test  = relative_mean_error(ytest,ŷtest)   # 0.161
 # However in this case the oob reported is much smaller than the testing error we will actually find. This is due to the fact that the division between training/validation and testing in this exercise is not random, but has a temporal basis. It seems that in this example the data in validation/testing follows a different pattern/variance than those in training (in probabilistic terms, the daily observations are not i.i.d.).
 
 info(m_rf)
-oob_error, rme_test  = info(m_rf)[:oob_errors],relative_mean_error(ytest,ŷtest)
+oob_error, rme_test  = info(m_rf)["oob_errors"],relative_mean_error(ytest,ŷtest)
 #+
 @test rme_test <= 0.17 #src
 

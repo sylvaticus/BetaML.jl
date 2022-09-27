@@ -867,7 +867,7 @@ mutable struct NeuralNetworkEstimator <: BetaMLSupervisedModel
     par::Union{Nothing,NeuralNetworkEstimatorLearnableParameters}
     cres::Union{Nothing,AbstractArray}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function NeuralNetworkEstimator(;kwargs...)
@@ -933,11 +933,11 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
             end
         end
         m.par = NeuralNetworkEstimatorLearnableParameters(NN(deepcopy(layers),loss,dloss,false,descr))
-        m.info[:epochsRan] = 0
-        m.info[:lossPerEpoch] = Float64[]
-        m.info[:parPerEpoch] = []
-        m.info[:dimensions]   = nD
-        #m.info[:fitted_records] = O
+        m.info["epochsRan"] = 0
+        m.info["lossPerEpoch"] = Float64[]
+        m.info["parPerEpoch"] = []
+        m.info["dimensions"]   = nD
+        #m.info["fitted_records"] = O
     end
 
 
@@ -946,13 +946,13 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
 
     out = train!(nnstruct,X,Y; epochs=epochs, batch_size=batch_size, sequential=!shuffle, verbosity=verbosity, cb=cb, opt_alg=opt_alg,rng = rng)
 
-    m.info[:epochsRan]     += out.epochs
-    append!(m.info[:lossPerEpoch],out.ϵ_epochs) 
-    append!(m.info[:parPerEpoch],out.θ_epochs) 
-    m.info[:dimensions]    = nD
-    m.info[:fitted_records] = nR
-    m.info[:nLayers] = length(nnstruct.layers)
-    m.info[:nPar] = get_nparams(m.par.nnstruct)
+    m.info["epochsRan"]     += out.epochs
+    append!(m.info["lossPerEpoch"],out.ϵ_epochs) 
+    append!(m.info["parPerEpoch"],out.θ_epochs) 
+    m.info["dimensions"]    = nD
+    m.info["fitted_records"] = nR
+    m.info["nLayers"] = length(nnstruct.layers)
+    m.info["nPar"] = get_nparams(m.par.nnstruct)
    
     if cache
        out    = predict(nnstruct,X)
@@ -973,7 +973,7 @@ function show(io::IO, ::MIME"text/plain", m::NeuralNetworkEstimator)
     if m.fitted == false
         print(io,"NeuralNetworkEstimator - A Feed-forward neural network (unfitted)")
     else
-        print(io,"NeuralNetworkEstimator - A Feed-forward neural network (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"NeuralNetworkEstimator - A Feed-forward neural network (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
@@ -992,7 +992,7 @@ function show(io::IO, m::NeuralNetworkEstimator)
           println("$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
         end
     else
-        println(io,"NeuralNetworkEstimator - A $(m.info[:dimensions])-dimensions $(m.info[:nLayers])-layers feedfordward neural network (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"NeuralNetworkEstimator - A $(m.info["dimensions"])-dimensions $(m.info["nLayers"])-layers feedfordward neural network (fitted on $(m.info["fitted_records"]) records)")
         println(io,"Cost function:")
         println(io,m.hpar.loss)
         println(io,"Optimisation algorithm:")

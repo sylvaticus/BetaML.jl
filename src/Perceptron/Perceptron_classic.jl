@@ -298,7 +298,7 @@ mutable struct PerceptronClassifier <: BetaMLSupervisedModel
     par::Union{Nothing,PerceptronClassifierLearnableParameters}
     cres::Union{Nothing,Vector}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function PerceptronClassifier(;kwargs...)
@@ -364,9 +364,9 @@ function fit!(m::PerceptronClassifier,X,Y)
        m.cres = cache ? out : nothing
     end
 
-    m.info[:fitted_records] = nR
-    m.info[:dimensions]    = nD
-    m.info[:n_classes]      = size(weights,1)
+    m.info["fitted_records"] = nR
+    m.info["dimensions"]    = nD
+    m.info["n_classes"]      = size(weights,1)
 
     m.fitted = true
 
@@ -389,16 +389,16 @@ function show(io::IO, ::MIME"text/plain", m::PerceptronClassifier)
     if m.fitted == false
         print(io,"PerceptronClassifier - The classic linear perceptron classifier (unfitted)")
     else
-        print(io,"PerceptronClassifier - The classic linear perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"PerceptronClassifier - The classic linear perceptron classifier (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
 function show(io::IO, m::PerceptronClassifier)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"PerceptronClassifier - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes linear perceptron classifier (unfitted)")
+        println(io,"PerceptronClassifier - A $(m.info["dimensions"])-dimensions $(m.info["n_classes"])-classes linear perceptron classifier (unfitted)")
     else
-        println(io,"PerceptronClassifier - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes linear perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"PerceptronClassifier - A $(m.info["dimensions"])-dimensions $(m.info["n_classes"])-classes linear perceptron classifier (fitted on $(m.info["fitted_records"]) records)")
         println(io,"Weights:")
         println(io,m.par.weigths)
     end

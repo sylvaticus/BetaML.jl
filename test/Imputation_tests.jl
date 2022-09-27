@@ -85,7 +85,7 @@ fit!(mod,X)
 x̂ = predict(mod)
 @test x̂[1,2] ≈ 6.0
 infos = info(mod)
-@test infos[:n_imputed_values] == 1 && infos[:lL] ≈ -163.12896063447343  && infos[:BIC] ≈ 351.5547532066659 && infos[:AIC] ≈ 352.25792126894686
+@test infos["n_imputed_values"] == 1 && infos["lL"] ≈ -163.12896063447343  && infos["BIC"] ≈ 351.5547532066659 && infos["AIC"] ≈ 352.25792126894686
 
 X2 = [3 6 9; 2000 missing 10000; 1 2 5; 1500 3000 9000; 1.5 3 6]
 
@@ -120,8 +120,8 @@ nR,nC = size(vals[1])
 medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 @test medianValues[1,2] == 4.0
 infos = info(mod)
-@test infos[:n_imputed_values] == 1
-@test infos[:oob_errors][1] ≈ [0.4219142630021683, 0.1888918370047503, 1.4813804498107928]
+@test infos["n_imputed_values"] == 1
+@test infos["oob_errors"][1] ≈ [0.4219142630021683, 0.1888918370047503, 1.4813804498107928]
 
 X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
 mod = RFImputer(rng=copy(TESTRNG),verbosity=NONE)

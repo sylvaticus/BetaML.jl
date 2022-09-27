@@ -74,7 +74,7 @@ julia> medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 
 julia> infos        = info(mod);
 
-julia> infos[:n_imputed_values]
+julia> infos["n_imputed_values"]
 1
 ```
 """
@@ -215,7 +215,7 @@ mutable struct FeatureBasedImputer <: Imputer
     par::Union{Nothing,FeatureBasedImputerLearnableParameters}
     cres::Union{Nothing,Matrix{Float64}}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function FeatureBasedImputer(;kwargs...)
@@ -262,7 +262,7 @@ function fit!(imputer::FeatureBasedImputer,X)
     end
     imputer.par = FeatureBasedImputerLearnableParameters(cStats,adjNorms)
     imputer.cres = cache ? X̂ : nothing
-    imputer.info[:n_imputed_values] = sum(missingMask)
+    imputer.info["n_imputed_values"] = sum(missingMask)
     imputer.fitted = true
     return cache ? imputer.cres : nothing
 end
@@ -334,7 +334,7 @@ mutable struct GMMImputer <: Imputer
     par::Union{GMMImputerLearnableParameters,Nothing}
     cres::Union{Nothing,Matrix{Float64}}
     fitted::Bool
-    info::Dict{Symbol,Any}    
+    info::Dict{String,Any}    
 end
 
 function GMMImputer(;kwargs...)
@@ -420,13 +420,13 @@ function fit!(m::GMMImputer,X)
         m.cres = X̂
     end
 
-    m.info[:error]          = emOut.ϵ
-    m.info[:lL]             = emOut.lL
-    m.info[:BIC]            = emOut.BIC
-    m.info[:AIC]            = emOut.AIC
-    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(X,1)
-    m.info[:dimensions]     = size(X,2)
-    m.info[:n_imputed_values]     = n_imputed_values
+    m.info["error"]          = emOut.ϵ
+    m.info["lL"]             = emOut.lL
+    m.info["BIC"]            = emOut.BIC
+    m.info["AIC"]            = emOut.AIC
+    m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(X,1)
+    m.info["dimensions"]     = size(X,2)
+    m.info["n_imputed_values"]     = n_imputed_values
     m.fitted=true
     return cache ? m.cres : nothing
 end
@@ -520,7 +520,7 @@ mutable struct RFImputer <: Imputer
     par::Union{RFImputerLearnableParameters,Nothing}
     cres
     fitted::Bool
-    info::Dict{Symbol,Any}    
+    info::Dict{String,Any}    
 end
 
 function RFImputer(;kwargs...)
@@ -675,8 +675,8 @@ function fit!(m::RFImputer,X)
             m.cres = imputed
         end
     end 
-    m.info[:n_imputed_values] = n_imputed_values
-    m.info[:oob_errors] = ooberrors
+    m.info["n_imputed_values"] = n_imputed_values
+    m.info["oob_errors"] = ooberrors
 
     m.fitted = true
     return cache ? m.cres : nothing
@@ -796,7 +796,7 @@ mutable struct UniversalImputer <: Imputer
     par::Union{UniversalImputerLearnableParameters,Nothing}
     cres
     fitted::Bool
-    info::Dict{Symbol,Any}    
+    info::Dict{String,Any}    
 end
 
 function UniversalImputer(;kwargs...)
@@ -928,7 +928,7 @@ function fit!(m::UniversalImputer,X)
             m.cres = imputed
         end
     end 
-    m.info[:n_imputed_values] = n_imputed_values
+    m.info["n_imputed_values"] = n_imputed_values
     m.fitted = true
     return cache ? m.cres : nothing
 end

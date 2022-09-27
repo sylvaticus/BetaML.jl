@@ -10,7 +10,6 @@ The module provide the following functions. Use `?[type or function]` to access 
 
 # Hyphothesis testing
 
-- ``: Build a single Decision Tree
 
 
 Acknowlegdments: most code is based on the MITx MOOC [Fundamentals of Statistics](https://www.edx.org/course/fundamentals-of-statistics)
@@ -50,6 +49,7 @@ function mEstimationBruteForce(obs,candidates,lossFunction=abs)
     return θstar
   end
 
+# test
 
 
 function findQuantile(obs,α;precision=0.001)

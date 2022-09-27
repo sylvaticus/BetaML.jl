@@ -35,7 +35,7 @@ mutable struct GMMRegressor1 <: BetaMLUnsupervisedModel
     par::Union{Nothing,GMMRegressor1LearnableParameters}
     cres::Union{Nothing,Matrix{Float64}} 
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function GMMRegressor1(;kwargs...)
@@ -117,12 +117,12 @@ function fit!(m::GMMRegressor1,x,y)
     m.cres = cache ? probRecords  * ymean : nothing
 
 
-    m.info[:error]          = gmmOut.ϵ
-    m.info[:lL]             = gmmOut.lL
-    m.info[:BIC]            = gmmOut.BIC
-    m.info[:AIC]            = gmmOut.AIC
-    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
-    m.info[:dimensions]     = size(x,2)
+    m.info["error"]          = gmmOut.ϵ
+    m.info["lL"]             = gmmOut.lL
+    m.info["BIC"]            = gmmOut.BIC
+    m.info["AIC"]            = gmmOut.AIC
+    m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
+    m.info["dimensions"]     = size(x,2)
     m.fitted=true
     return cache ? m.cres : nothing
 end  
@@ -147,7 +147,7 @@ function show(io::IO, ::MIME"text/plain", m::GMMRegressor1)
     if m.fitted == false
         print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
@@ -156,7 +156,7 @@ function show(io::IO, m::GMMRegressor1)
     if m.fitted == false
         print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, unfitted)")
     else
-        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, fitted on $(m.info[:fitted_records]) records)")
+        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, fitted on $(m.info["fitted_records"]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)
@@ -185,7 +185,7 @@ mutable struct GMMRegressor2 <: BetaMLUnsupervisedModel
     par::Union{Nothing,GMMClusterLearnableParameters}
     cres::Union{Nothing,Matrix{Float64}}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function GMMRegressor2(;kwargs...)
@@ -261,12 +261,12 @@ function fit!(m::GMMRegressor2,x,y)
     m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makecolvector(gmmOut.pₖ))
     m.cres = cache ?  probRecords  * [gmmOut.mixtures[k].μ[d] for k in 1:K, d in DX+1:DFull]  : nothing
 
-    m.info[:error]          = gmmOut.ϵ
-    m.info[:lL]             = gmmOut.lL
-    m.info[:BIC]            = gmmOut.BIC
-    m.info[:AIC]            = gmmOut.AIC
-    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
-    m.info[:dimensions]     = size(x,2)
+    m.info["error"]          = gmmOut.ϵ
+    m.info["lL"]             = gmmOut.lL
+    m.info["BIC"]            = gmmOut.BIC
+    m.info["AIC"]            = gmmOut.AIC
+    m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
+    m.info["dimensions"]     = size(x,2)
     m.fitted=true
     return cache ? m.cres : nothing
 end    
@@ -294,7 +294,7 @@ function show(io::IO, ::MIME"text/plain", m::GMMRegressor2)
     if m.fitted == false
         print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
@@ -303,7 +303,7 @@ function show(io::IO, m::GMMRegressor2)
     if m.fitted == false
         print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, unfitted)")
     else
-        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, fitted on $(m.info[:fitted_records]) records)")
+        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, fitted on $(m.info["fitted_records"]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)

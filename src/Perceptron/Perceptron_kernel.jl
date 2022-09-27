@@ -328,7 +328,7 @@ mutable struct KernelPerceptronClassifier <: BetaMLSupervisedModel
     par::Union{Nothing,KernelPerceptronClassifierLearnableParameters}
     cres::Union{Nothing,Vector}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function KernelPerceptronClassifier(;kwargs...)
@@ -396,10 +396,10 @@ function fit!(m::KernelPerceptronClassifier,X,Y)
        m.cres = cache ? out : nothing
     end
 
-    m.info[:fitted_records] = nR
-    m.info[:dimensions]    = nD
-    m.info[:n_classes]      = nCl
-    m.info[:nModels]       = nModels
+    m.info["fitted_records"] = nR
+    m.info["dimensions"]     = nD
+    m.info["n_classes"]      = nCl
+    m.info["nModels"]        = nModels
     
     m.fitted = true
     
@@ -420,16 +420,16 @@ function show(io::IO, ::MIME"text/plain", m::KernelPerceptronClassifier)
     if m.fitted == false
         print(io,"KernelPerceptronClassifier - A \"kernelised\" version of the perceptron classifier (unfitted)")
     else
-        print(io,"KernelPerceptronClassifier - A \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"KernelPerceptronClassifier - A \"kernelised\" version of the perceptron classifier (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
 function show(io::IO, m::KernelPerceptronClassifier)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"KernelPerceptronClassifier - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes \"kernelised\" version of the perceptron classifier (unfitted)")
+        println(io,"KernelPerceptronClassifier - A $(m.info["dimensions"])-dimensions $(m.info["n_classes"])-classes \"kernelised\" version of the perceptron classifier (unfitted)")
     else
-        println(io,"KernelPerceptronClassifier - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes \"kernelised\" version of the perceptron classifier (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"KernelPerceptronClassifier - A $(m.info["dimensions"])-dimensions $(m.info["n_classes"])-classes \"kernelised\" version of the perceptron classifier (fitted on $(m.info["fitted_records"]) records)")
         print(io,"Kernel: ")
         print(io,m.hpar.kernel)
     end

@@ -248,7 +248,7 @@ ŷ  = [1,3,2,2,3,3,3]
 cm = ConfusionMatrix()
 fit!(cm,y,ŷ)
 res = info(cm)
-heatmap(string.(res[:categories]),string.(res[:categories]),res[:normalised_scores],seriescolor=cgrad([:white,:blue]),xlabel="Predicted",ylabel="Actual", title="Confusion Matrix (normalised scores)")
+heatmap(string.(res["categories"]),string.(res["categories"]),res["normalised_scores"],seriescolor=cgrad([:white,:blue]),xlabel="Predicted",ylabel="Actual", title="Confusion Matrix (normalised scores)")
 ```
 
 """
@@ -258,7 +258,7 @@ mutable struct ConfusionMatrix <: BetaMLUnsupervisedModel
     par::Union{Nothing,ConfusionMatrixLearnableParameters}
     cres::Union{Nothing,Matrix{Int64},Matrix{Float64}}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function ConfusionMatrix(;kwargs...)
@@ -378,28 +378,28 @@ function fit!(m::ConfusionMatrix,Y,Ŷ)
 
     m.par = ConfusionMatrixLearnableParameters(categories_applied,vtype,scores)
 
-    m.info[:accuracy]          = accuracy           # Overall accuracy rate
-    m.info[:misclassification] = misclassification  # Overall misclassification rate
-    m.info[:actual_count]      = actual_count       # Array of counts per lebel in the actual data
-    m.info[:predicted_count]   = predicted_count    # Array of counts per label in the predicted data
-    m.info[:scores]            = scores             # Matrix actual (rows) vs predicted (columns)
-    m.info[:normalised_scores] = normalised_scores  # Normalised scores
-    m.info[:tp]                = tp                 # True positive (by class)
-    m.info[:tn]                = tn                 # True negative (by class)
-    m.info[:fp]                = fp                 # False positive (by class)
-    m.info[:fn]                = fn                 # False negative (by class)
-    m.info[:precision]         = precision          # True class i over predicted class i (by class)
-    m.info[:recall]            = recall             # Predicted class i over true class i (by class)
-    m.info[:specificity]       = specificity        # Predicted not class i over true not class i (by class)
-    m.info[:f1score]           = f1score            # Harmonic mean of precision and recall
-    m.info[:mean_precision]    = mean_precision     # Mean by class, respectively unweighted and weighted by actual_count
-    m.info[:mean_recall]       = mean_recall        # Mean by class, respectively unweighted and weighted by actual_count
-    m.info[:mean_specificity]  = mean_specificity   # Mean by class, respectively unweighted and weighted by actual_count
-    m.info[:mean_f1score]      = mean_f1score       # Mean by class, respectively unweighted and weighted by actual_count
+    m.info["accuracy"]          = accuracy           # Overall accuracy rate
+    m.info["misclassification"] = misclassification  # Overall misclassification rate
+    m.info["actual_count"]      = actual_count       # Array of counts per lebel in the actual data
+    m.info["predicted_count"]   = predicted_count    # Array of counts per label in the predicted data
+    m.info["scores"]            = scores             # Matrix actual (rows) vs predicted (columns)
+    m.info["normalised_scores"] = normalised_scores  # Normalised scores
+    m.info["tp"]                = tp                 # True positive (by class)
+    m.info["tn"]                = tn                 # True negative (by class)
+    m.info["fp"]                = fp                 # False positive (by class)
+    m.info["fn"]                = fn                 # False negative (by class)
+    m.info["precision"]         = precision          # True class i over predicted class i (by class)
+    m.info["recall"]            = recall             # Predicted class i over true class i (by class)
+    m.info["specificity"]       = specificity        # Predicted not class i over true not class i (by class)
+    m.info["f1score"]           = f1score            # Harmonic mean of precision and recall
+    m.info["mean_precision"]    = mean_precision     # Mean by class, respectively unweighted and weighted by actual_count
+    m.info["mean_recall"]       = mean_recall        # Mean by class, respectively unweighted and weighted by actual_count
+    m.info["mean_specificity"]  = mean_specificity   # Mean by class, respectively unweighted and weighted by actual_count
+    m.info["mean_f1score"]      = mean_f1score       # Mean by class, respectively unweighted and weighted by actual_count
 
-    m.info[:categories]        = categories_applied
-    m.info[:fitted_records]    = sum(scores)
-    m.info[:n_categories]      = nCl
+    m.info["categories"]        = categories_applied
+    m.info["fitted_records"]    = sum(scores)
+    m.info["n_categories"]      = nCl
     m.fitted = true
     return cache ? m.cres : nothing
 
@@ -412,26 +412,26 @@ function show(io::IO, m::ConfusionMatrix)
     else
         println(io,"A $(typeof(m)) BetaMLModel (fitted)")
         res    = info(m)
-        labels = string.(res[:categories])
+        labels = string.(res["categories"])
         nCl    = length(labels)
 
         println(io,"\n-----------------------------------------------------------------\n")
         println(io, "*** CONFUSION MATRIX ***")
         println(io,"")
         println(io,"Scores actual (rows) vs predicted (columns):\n")
-        displayScores = vcat(permutedims(labels),res[:scores])
+        displayScores = vcat(permutedims(labels),res["scores"])
         displayScores = hcat(vcat("Labels",labels),displayScores)
         show(io, "text/plain", displayScores)
         println(io,"")
         println(io,"Normalised scores actual (rows) vs predicted (columns):\n")
-        displayScores = vcat(permutedims(labels),res[:normalised_scores])
+        displayScores = vcat(permutedims(labels),res["normalised_scores"])
         displayScores = hcat(vcat("Labels",labels),displayScores)
         show(io, "text/plain", displayScores)
 
         println(io,"\n\n *** CONFUSION REPORT ***\n")
         labelWidth =  max(8,   maximum(length.(labels))+1  )
-        println(io,"- Accuracy:               $(res[:accuracy])")
-        println(io,"- Misclassification rate: $(res[:misclassification])")
+        println(io,"- Accuracy:               $(res["accuracy"])")
+        println(io,"- Misclassification rate: $(res["misclassification"])")
         println(io,"- Number of classes:      $(nCl)")
         println(io,"")
         println(io,"  N ",rpad("Class",labelWidth),"precision   recall  specificity  f1score  actual_count  predicted_count")
@@ -440,11 +440,11 @@ function show(io::IO, m::ConfusionMatrix)
         # https://discourse.julialang.org/t/printf-with-variable-format-string/3805/4
         print_formatted(io, fmt, args...) = @eval @printf($io, $fmt, $(args...))
         for i in 1:nCl
-            print_formatted(io, "%3d %-$(labelWidth)s %8.3f %8.3f %12.3f %8.3f %12i %15i\n", i, labels[i],  res[:precision][i], res[:recall][i], res[:specificity][i], res[:f1score][i], res[:actual_count][i], res[:predicted_count][i])
+            print_formatted(io, "%3d %-$(labelWidth)s %8.3f %8.3f %12.3f %8.3f %12i %15i\n", i, labels[i],  res["precision"][i], res["recall"][i], res["specificity"][i], res["f1score"][i], res["actual_count"][i], res["predicted_count"][i])
         end
         println(io,"")
-        print_formatted(io, "- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Simple   avg.",  res[:mean_precision][1], res[:mean_recall][1], res[:mean_specificity][1], res[:mean_f1score][1])
-        print_formatted(io, "- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Weigthed avg.",  res[:mean_precision][2], res[:mean_recall][2], res[:mean_specificity][2], res[:mean_f1score][2])
+        print_formatted(io, "- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Simple   avg.",  res["mean_precision"][1], res["mean_recall"][1], res["mean_specificity"][1], res["mean_f1score"][1])
+        print_formatted(io, "- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Weigthed avg.",  res["mean_precision"][2], res["mean_recall"][2], res["mean_specificity"][2], res["mean_f1score"][2])
         println("\n-----------------------------------------------------------------")
         println("Output of `info(cm)`:")
         for (k,v) in info(m)

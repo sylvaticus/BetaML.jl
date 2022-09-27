@@ -290,7 +290,7 @@ mutable struct KMeansClusterer <: BetaMLUnsupervisedModel
     par::Union{Nothing,KMeansMedoidsLearnableParameters}
     cres::Union{Nothing,Vector{Int64}}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 """
@@ -313,7 +313,7 @@ mutable struct KMedoidsClusterer <: BetaMLUnsupervisedModel
     par::Union{Nothing,KMeansMedoidsLearnableParameters}
     cres::Union{Nothing,Vector{Int64}}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 
@@ -379,8 +379,8 @@ function fit!(m::KMeansClusterer,x)
     end
     m.par  = KMeansMedoidsLearnableParameters(representatives=Z)
     m.cres = cache ? clIdx : nothing
-    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
-    m.info[:dimensions]     = size(x,2)
+    m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
+    m.info["dimensions"]     = size(x,2)
     m.fitted=true
     return cache ? m.cres : nothing
 end   
@@ -413,8 +413,8 @@ function fit!(m::KMedoidsClusterer,x)
     end
     m.par  = KMeansMedoidsLearnableParameters(representatives=Z)
     m.cres = cache ? clIdx : nothing
-    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
-    m.info[:dimensions]     = size(x,2)
+    m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
+    m.info["dimensions"]     = size(x,2)
     m.fitted=true
     return cache ? m.cres : nothing
 end  
@@ -436,7 +436,7 @@ function show(io::IO, ::MIME"text/plain", m::KMeansClusterer)
     if m.fitted == false
         print(io,"KMeansClusterer - A K-Means Model (unfitted)")
     else
-        print(io,"KMeansClusterer - A K-Means Model (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"KMeansClusterer - A K-Means Model (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
@@ -444,7 +444,7 @@ function show(io::IO, ::MIME"text/plain", m::KMedoidsClusterer)
     if m.fitted == false
         print(io,"KMedoidsClusterer - A K-Medoids Model (unfitted)")
     else
-        print(io,"KMedoidsClusterer - A K-Medoids Model (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"KMedoidsClusterer - A K-Medoids Model (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
@@ -453,7 +453,7 @@ function show(io::IO, m::KMeansClusterer)
     if m.fitted == false
         print(io,"KMeansClusterer - A $(m.hpar.n_classes)-classes K-Means Model (unfitted)")
     else
-        println(io,"KMeansClusterer - A $(m.info[:dimensions])-dimensions $(m.hpar.n_classes)-classes K-Means Model (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"KMeansClusterer - A $(m.info["dimensions"])-dimensions $(m.hpar.n_classes)-classes K-Means Model (fitted on $(m.info["fitted_records"]) records)")
         println(io,m.info)
         println(io,"Representatives:")
         println(io,m.par.representatives)
@@ -466,7 +466,7 @@ function show(io::IO, m::KMedoidsClusterer)
     if m.fitted == false
         print(io,"KMedoidsClusterer - A $(m.hpar.n_classes)-classes K-Medoids Model (unfitted)")
     else
-        println(io,"KMedoidsClusterer - A $(m.info[:dimensions])-dimensions $(m.hpar.n_classes)-classes K-Medoids Model (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"KMedoidsClusterer - A $(m.info["dimensions"])-dimensions $(m.hpar.n_classes)-classes K-Medoids Model (fitted on $(m.info["fitted_records"]) records)")
         println(io,m.info)
         println(io,"Distance function used:")
         println(io,m.hpar.dist)

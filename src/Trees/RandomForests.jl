@@ -87,7 +87,7 @@ mutable struct RandomForestEstimator <: BetaMLSupervisedModel
     par::Union{Nothing,Forest} #TODO: Forest contain info that is actualy in report. Currently we duplicate, we should just remofe them from par by making a dedicated struct instead of Forest
     cres
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function RandomForestEstimator(;kwargs...)
@@ -221,12 +221,12 @@ function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
 
     m.fitted = true
     
-    m.info[:fitted_records]             = size(x,1)
-    m.info[:dimensions]                 = max_features
-    m.info[:jobIsRegression]            = m.par.is_regression ? 1 : 0
-    m.info[:oob_errors]                       = m.par.ooberror
+    m.info["fitted_records"]             = size(x,1)
+    m.info["dimensions"]                 = max_features
+    m.info["jobIsRegression"]            = m.par.is_regression ? 1 : 0
+    m.info["oob_errors"]                 = m.par.ooberror
     depths = vcat([transpose([computeDepths(tree)[1],computeDepths(tree)[2]]) for tree in m.par.trees]...)
-    (m.info[:avgAvgDepth],m.info[:avgMmax_depth]) = mean(depths,dims=1)[1], mean(depths,dims=1)[2]
+    (m.info["avgAvgDepth"],m.info["avgMmax_depth"]) = mean(depths,dims=1)[1], mean(depths,dims=1)[2]
     return cache ? m.cres : nothing
 end
 
@@ -365,8 +365,8 @@ function show(io::IO, ::MIME"text/plain", m::RandomForestEstimator)
     if m.fitted == false
         print(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest model (unfitted)")
     else
-        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        print(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest $job (fitted on $(m.info[:fitted_records]) records)")
+        job = m.info["jobIsRegression"] == 1 ? "regressor" : "classifier"
+        print(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest $job (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
@@ -375,8 +375,8 @@ function show(io::IO, m::RandomForestEstimator)
     if m.fitted == false
         print(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest model (unfitted)")
     else
-        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        println(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest $job (fitted on $(m.info[:fitted_records]) records)")
+        job = m.info["jobIsRegression"] == 1 ? "regressor" : "classifier"
+        println(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest $job (fitted on $(m.info["fitted_records"]) records)")
         println(io,m.info)
     end
 end

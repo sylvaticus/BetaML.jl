@@ -162,9 +162,9 @@ Normalised scores actual (rows) vs predicted (columns):
 ```
 
 ```julia
-ϵ = info(mynn)[:lossPerEpoch]
+ϵ = info(mynn)["lossPerEpoch"]
 plot(1:length(ϵ),ϵ, ylabel="epochs",xlabel="error",legend=nothing,title="Avg. error per epoch on the Sepal dataset")
-heatmap(info(cm)[:categories],info(cm)[:categories],info(cm)[:normalised_scores],c=cgrad([:white,:blue]),xlabel="Predicted",ylabel="Actual", title="Confusion Matrix")
+heatmap(info(cm)["categories"],info(cm)["categories"],info(cm)["normalised_scores"],c=cgrad([:white,:blue]),xlabel="Predicted",ylabel="Actual", title="Confusion Matrix")
 ```
 
 ![results](assets/sepal_errorsPerEpoch.png) ![results](assets/sepal_confusionMatrix.png)

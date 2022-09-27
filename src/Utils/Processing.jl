@@ -268,7 +268,7 @@ mutable struct OneHotEncoder <: BetaMLUnsupervisedModel
     par::Union{Nothing,OneHotEncoderLearnableParameters}
     cres::Union{Nothing,Matrix{Bool},Matrix{Union{Bool,Missing}}}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 """
@@ -287,7 +287,7 @@ mutable struct OrdinalEncoder <: BetaMLUnsupervisedModel
     par::Union{Nothing,OneHotEncoderLearnableParameters}
     cres::Union{Nothing,Vector{Union{Int64,Missing}}}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function OneHotEncoder(;kwargs...)
@@ -387,8 +387,8 @@ function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
         m.cres = (enctype == :onehot) ? outx : dropdims(outx,dims=2)
     end
 
-    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
-    m.info[:n_categories]   = length(categories_applied)
+    m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
+    m.info["n_categories"]   = length(categories_applied)
     m.fitted = true
     return cache ? m.cres : nothing
 end
@@ -824,7 +824,7 @@ mutable struct Scaler <: BetaMLUnsupervisedModel
     par::Union{Nothing,ScalerLearnableParameters}
     cres::Union{Nothing,Matrix}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function Scaler(;kwargs...)
@@ -875,8 +875,8 @@ function fit!(m::Scaler,x)
     end
 
     m.cres,m.par.scalerpars = _fit(scaler,skip,x,cache)
-    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
-    m.info[:dimensions]     = size(x,2)
+    m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
+    m.info["dimensions"]     = size(x,2)
     m.fitted = true
     return cache ? m.cres : nothing 
 end   
@@ -1006,7 +1006,7 @@ mutable struct PCA <: BetaMLUnsupervisedModel
     par::Union{Nothing,PCALearnableParameters}
     cres::Union{Nothing,Matrix}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function PCA(;kwargs...)
@@ -1059,11 +1059,11 @@ function fit!(m::PCA,X)
         m.cres = X*P
     end
 
-    m.info[:fitted_records]  = get(m.info,:fitted_records,0) + N
-    m.info[:dimensions]     = D
-    m.info[:explained_var_by_dim] = explained_var_by_dim
-    m.info[:prop_explained_var]   = explained_var_by_dim[outdims_actual]
-    m.info[:retained_dims]        = outdims_actual
+    m.info["fitted_records"]  = get(m.info,"fitted_records",0) + N
+    m.info["dimensions"]     = D
+    m.info["explained_var_by_dim"] = explained_var_by_dim
+    m.info["prop_explained_var"]   = explained_var_by_dim[outdims_actual]
+    m.info["retained_dims"]        = outdims_actual
     m.fitted=true
     return cache ? m.cres : nothing
 end   

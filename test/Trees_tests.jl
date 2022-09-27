@@ -172,7 +172,7 @@ ŷtest3  = predict(m, xtest)
 ŷtrain2 == ŷtrain3
 
 @test accuracy(ŷtest2,ytest,rng=copy(TESTRNG)) ≈ accuracy(ŷtest3,ytest,rng=copy(TESTRNG))
-@test info(m)[:oob_errors] ≈ ooberror
+@test info(m)["oob_errors"] ≈ ooberror
 =#
 
 predictionsByTree = [] # don't use weights...

@@ -235,7 +235,7 @@ mutable struct GMMClusterer <: BetaMLUnsupervisedModel
     par::Union{Nothing,GMMClusterLearnableParameters}
     cres::Union{Nothing,Matrix{Float64}}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function GMMClusterer(;kwargs...)
@@ -306,12 +306,12 @@ function fit!(m::GMMClusterer,x)
     m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makecolvector(gmmOut.pₖ))
 
     m.cres = cache ? probRecords : nothing
-    m.info[:error]          = gmmOut.ϵ
-    m.info[:lL]             = gmmOut.lL
-    m.info[:BIC]            = gmmOut.BIC
-    m.info[:AIC]            = gmmOut.AIC
-    m.info[:fitted_records] = get(m.info,:fitted_records,0) + size(x,1)
-    m.info[:dimensions]     = size(x,2)
+    m.info["error"]          = gmmOut.ϵ
+    m.info["lL"]             = gmmOut.lL
+    m.info["BIC"]            = gmmOut.BIC
+    m.info["AIC"]            = gmmOut.AIC
+    m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
+    m.info["dimensions"]     = size(x,2)
     m.fitted=true
     return cache ? m.cres : nothing
 end    
@@ -334,7 +334,7 @@ function show(io::IO, ::MIME"text/plain", m::GMMClusterer)
     if m.fitted == false
         print(io,"GMMClusterer - A Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMClusterer - A Generative Mixture Model (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"GMMClusterer - A Generative Mixture Model (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
@@ -343,7 +343,7 @@ function show(io::IO, m::GMMClusterer)
     if m.fitted == false
         print(io,"GMMClusterer - A $(m.hpar.n_classes)-classes Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMClusterer - A $(m.hpar.n_classes)-classes Generative Mixture Model(fitted on $(m.info[:fitted_records]) records)")
+        print(io,"GMMClusterer - A $(m.hpar.n_classes)-classes Generative Mixture Model(fitted on $(m.info["fitted_records"]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)

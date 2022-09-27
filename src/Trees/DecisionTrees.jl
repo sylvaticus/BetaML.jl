@@ -145,7 +145,7 @@ mutable struct DecisionTreeEstimator <: BetaMLSupervisedModel
     par::Union{Nothing,DTLearnableParameters}
     cres
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function DecisionTreeEstimator(;kwargs...)
@@ -459,10 +459,10 @@ function fit!(m::DecisionTreeEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
 
     jobIsRegression = (force_classification || ! (Ty <: Number) ) ? false : true
     
-    m.info[:fitted_records]             = size(x,1)
-    m.info[:dimensions]                 = size(x,2)
-    m.info[:jobIsRegression]            = jobIsRegression ? 1 : 0
-    (m.info[:avgDepth],m.info[:max_depth]) = computeDepths(m.par.tree)
+    m.info["fitted_records"]             = size(x,1)
+    m.info["dimensions"]                 = size(x,2)
+    m.info["jobIsRegression"]            = jobIsRegression ? 1 : 0
+    (m.info["avgDepth"],m.info["max_depth"]) = computeDepths(m.par.tree)
     return cache ? m.cres : nothing
 end
 
@@ -598,8 +598,8 @@ function show(io::IO, ::MIME"text/plain", m::DecisionTreeEstimator)
     if m.fitted == false
         print(io,"DecisionTreeEstimator - A Decision Tree model (unfitted)")
     else
-        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        print(io,"DecisionTreeEstimator - A Decision Tree $job (fitted on $(m.info[:fitted_records]) records)")
+        job = m.info["jobIsRegression"] == 1 ? "regressor" : "classifier"
+        print(io,"DecisionTreeEstimator - A Decision Tree $job (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
@@ -608,8 +608,8 @@ function show(io::IO, m::DecisionTreeEstimator)
     if m.fitted == false
         print(io,"DecisionTreeEstimator - A Decision Tree model (unfitted)")
     else
-        job = m.info[:jobIsRegression] == 1 ? "regressor" : "classifier"
-        println(io,"DecisionTreeEstimator - A Decision Tree $job (fitted on $(m.info[:fitted_records]) records)")
+        job = m.info["jobIsRegression"] == 1 ? "regressor" : "classifier"
+        println(io,"DecisionTreeEstimator - A Decision Tree $job (fitted on $(m.info["fitted_records"]) records)")
         println(io,m.info)
         _printNode(m.par.tree)
     end

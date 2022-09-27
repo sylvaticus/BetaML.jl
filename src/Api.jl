@@ -156,6 +156,12 @@ For example, when `OneHotEncoder` is fitted with a subset of the possible catego
 """ 
 inverse_predict(m::BetaMLModel,X) = nothing
 
+"""
+$(TYPEDSIGNATURES)
+
+Return a string-keyed dictionary of "additional" information stored during model fitting.
+
+"""
 function info(m::BetaMLModel)
    return m.info
 end

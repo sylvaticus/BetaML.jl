@@ -219,7 +219,7 @@ mutable struct PegasosClassifier <: BetaMLSupervisedModel
     par::Union{Nothing,PegasosClassifierLearnableParameters}
     cres::Union{Nothing,Vector}
     fitted::Bool
-    info::Dict{Symbol,Any}
+    info::Dict{String,Any}
 end
 
 function PegasosClassifier(;kwargs...)
@@ -287,9 +287,9 @@ function fit!(m::PegasosClassifier,X,Y)
        m.cres = cache ? out : nothing
     end
 
-    m.info[:fitted_records] = nR
-    m.info[:dimensions]    = nD
-    m.info[:n_classes]      = size(weights,1)
+    m.info["fitted_records"] = nR
+    m.info["dimensions"]    = nD
+    m.info["n_classes"]      = size(weights,1)
 
     m.fitted = true
 
@@ -312,16 +312,16 @@ function show(io::IO, ::MIME"text/plain", m::PegasosClassifier)
     if m.fitted == false
         print(io,"PegasosClassifier - a loss-based linear classifier without regularisation term (unfitted)")
     else
-        print(io,"PegasosClassifier - a loss-based linear classifier without regularisation term (fitted on $(m.info[:fitted_records]) records)")
+        print(io,"PegasosClassifier - a loss-based linear classifier without regularisation term (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
 function show(io::IO, m::PegasosClassifier)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"PegasosClassifier - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes a loss-based linear classifier without regularisation term (unfitted)")
+        println(io,"PegasosClassifier - A $(m.info["dimensions"])-dimensions $(m.info["n_classes"])-classes a loss-based linear classifier without regularisation term (unfitted)")
     else
-        println(io,"PegasosClassifier - A $(m.info[:dimensions])-dimensions $(m.info[:n_classes])-classes a loss-based linear classifier without regularisation term (fitted on $(m.info[:fitted_records]) records)")
+        println(io,"PegasosClassifier - A $(m.info["dimensions"])-dimensions $(m.info["n_classes"])-classes a loss-based linear classifier without regularisation term (fitted on $(m.info["fitted_records"]) records)")
         println(io,"Weights:")
         println(io,m.par.weights)
     end
