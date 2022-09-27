@@ -34,8 +34,8 @@ Base.@kwdef mutable struct MultitargetNeuralNetworkRegressor <: MMI.Deterministi
         If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
     """
     loss::Union{Nothing,Function} = squared_cost
-    "Derivative of the loss function [def: `dSquaredCost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
-    dloss::Union{Function,Nothing}  = dSquaredCost
+    "Derivative of the loss function [def: `dsquared_cost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
+    dloss::Union{Function,Nothing}  = dsquared_cost
     "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
     epochs::Int64 = 100
     "Size of each individual batch [def: `32`]"

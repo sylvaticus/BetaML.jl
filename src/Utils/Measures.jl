@@ -647,7 +647,7 @@ Aside the 1/2 term, it correspond to the squared l-2 norm distance and when it i
 It is mostly used for regression problems.
 """
 squared_cost(y,ŷ)   = (1/2)*norm(y - ŷ)^2
-dSquaredCost(y,ŷ)  = ( ŷ - y)
+dsquared_cost(y,ŷ)  = ( ŷ - y)
 """
     mse(y,ŷ)
 

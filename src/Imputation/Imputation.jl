@@ -586,14 +586,14 @@ function fit!(m::RFImputer,X)
     missingMask    = ismissing.(X)
     nonMissingMask = .! missingMask 
     n_imputed_values = sum(missingMask)
-    oobErrors      = fill(fill(Inf,nC),multiple_imputations) # by imputations and dimensions
+    ooberrors      = fill(fill(Inf,nC),multiple_imputations) # by imputations and dimensions
     forests        = Array{Trees.Forest}(undef,multiple_imputations,nC)
 
     for imputation in 1:multiple_imputations
         verbosity >= STD && println("** Processing imputation $imputation")
         Xout    = copy(X)
         sortedDims     = reverse(sortperm(makecolvector(sum(missingMask,dims=1)))) # sorted from the dim with more missing values
-        oobErrorsImputation = fill(Inf,nC)
+        ooberrorsImputation = fill(Inf,nC)
         for pass in 1:recursive_passages 
             m.opt.verbosity >= HIGH && println("- processing passage $pass")
             if pass > 1
@@ -647,14 +647,14 @@ function fit!(m::RFImputer,X)
                 if pass == recursive_passages 
                     forests[imputation,d] = dfor 
                     if oob
-                        oobErrorsImputation[d] = Trees.oobError(dfor,Xd,y,rng=rng) # BetaML.Trees.oobError(dfor,Xd,y)
+                        ooberrorsImputation[d] = Trees.ooberror(dfor,Xd,y,rng=rng) # BetaML.Trees.ooberror(dfor,Xd,y)
                     end
                 end
             end # end dimension
         end # end recursive passage pass
         imputed[imputation]   = Xout
 
-        oobErrors[imputation] = oobErrorsImputation
+        ooberrors[imputation] = ooberrorsImputation
     end # end individual imputation
     m.par = RFImputerLearnableParameters(forests)
     if cache
@@ -665,7 +665,7 @@ function fit!(m::RFImputer,X)
         end
     end 
     m.info[:n_imputed_values] = n_imputed_values
-    m.info[:oobErrors] = oobErrors
+    m.info[:oob_errors] = ooberrors
 
     m.fitted = true
     return cache ? m.cres : nothing

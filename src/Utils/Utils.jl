@@ -48,7 +48,7 @@ export @codelocation, generate_parallel_rngs,
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
        autojacobian,
-       squared_cost, dSquaredCost, mse, crossentropy, dcrossentropy, class_counts, class_counts_with_labels, mean_dicts, mode, gini, entropy, variance,
+       squared_cost, dsquared_cost, mse, crossentropy, dcrossentropy, class_counts, class_counts_with_labels, mean_dicts, mode, gini, entropy, variance,
        error, accuracy, relative_mean_error,
        ConfusionMatrix, ConfusionMatrixHyperParametersSet,
        ConfMatrix, labels, scores, normalised_scores,

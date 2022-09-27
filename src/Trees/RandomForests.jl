@@ -12,16 +12,16 @@ Individual trees are stored in the array `trees`. The "type" of the forest is gi
 
 # Struct members:
 - `trees`:        The individual Decision Trees
-- `isRegression`: Whether the forest is to be used for regression jobs or classification
+- `is_regression`: Whether the forest is to be used for regression jobs or classification
 - `oobData`:      For each tree, the rows number if the data that have _not_ being used to train the specific tree
-- `oobError`:     The out of bag error (if it has been computed)
+- `ooberror`:     The out of bag error (if it has been computed)
 - `weights`:      A weight for each tree depending on the tree's score on the oobData (see [`buildForest`](@ref))
 """
 mutable struct Forest{Ty} <: BetaMLLearnableParametersSet
     trees::Array{Union{AbstractDecisionNode,Leaf{Ty}},1}
-    isRegression::Bool
+    is_regression::Bool
     oobData::Array{Array{Int64,1},1}
-    oobError::Float64
+    ooberror::Float64
     weights::Array{Float64,1}
 end
 
@@ -172,11 +172,11 @@ function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1
     if β > 0
         weights = updateTreesWeights!(Forest{Ty}(trees,jobIsRegression,notSampledByTree,0.0,weights), x, y, β=β, rng=rng)
     end
-    oobE = +Inf
+    oobe = +Inf
     if oob
-        oobE = oobError(Forest{Ty}(trees,jobIsRegression,notSampledByTree,0.0,weights),x,y,rng=rng)
+        oobe = ooberror(Forest{Ty}(trees,jobIsRegression,notSampledByTree,0.0,weights),x,y,rng=rng)
     end
-    return Forest{Ty}(trees,jobIsRegression,notSampledByTree,oobE,weights)
+    return Forest{Ty}(trees,jobIsRegression,notSampledByTree,oobe,weights)
 end
 
 # API V2
@@ -216,15 +216,15 @@ function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
     m.cres = cache ? predictSingle.(Ref(forest),eachrow(x),rng=rng) : nothing
     
     if oob
-        m.par.oobError = oobError(m.par,x,y;rng = rng) 
+        m.par.ooberror = ooberror(m.par,x,y;rng = rng) 
     end
 
     m.fitted = true
     
     m.info[:fitted_records]             = size(x,1)
     m.info[:dimensions]                 = max_features
-    m.info[:jobIsRegression]            = m.par.isRegression ? 1 : 0
-    m.info[:oobE]                       = m.par.oobError
+    m.info[:jobIsRegression]            = m.par.is_regression ? 1 : 0
+    m.info[:oobe]                       = m.par.ooberror
     depths = vcat([transpose([computeDepths(tree)[1],computeDepths(tree)[2]]) for tree in m.par.trees]...)
     (m.info[:avgAvgDepth],m.info[:avgMmax_depth]) = mean(depths,dims=1)[1], mean(depths,dims=1)[2]
     return cache ? m.cres : nothing
@@ -297,7 +297,7 @@ As training a forest is expensive, this function can be used to "just" upgrade t
 function updateTreesWeights!(forest::Forest{Ty},x,y;β=50,rng = Random.GLOBAL_RNG) where {Ty}
     trees            = forest.trees
     notSampledByTree = forest.oobData
-    jobIsRegression  = forest.isRegression
+    jobIsRegression  = forest.is_regression
     weights          = Float64[]
     for (i,tree) in enumerate(trees)
         yoob = y[notSampledByTree[i]]
@@ -317,16 +317,16 @@ function updateTreesWeights!(forest::Forest{Ty},x,y;β=50,rng = Random.GLOBAL_RN
 end
 
 """
-   oobError(forest,x,y;rng)
+   ooberror(forest,x,y;rng)
 
 Compute the Out-Of-Bag error, an estimation of the validation error.
 
 This function is called at time of train the forest if the parameter `oob` is `true`, or can be used later to get the oob error on an already trained forest.
 The oob error reported is the mismatching error for classification and the relative mean error for regression. 
 """
-function oobError(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
+function ooberror(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
     trees            = forest.trees
-    jobIsRegression  = forest.isRegression
+    jobIsRegression  = forest.is_regression
     notSampledByTree = forest.oobData
     weights          = forest.weights
     B                = length(trees)

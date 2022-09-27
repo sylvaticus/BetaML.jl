@@ -121,7 +121,7 @@ medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 @test medianValues[1,2] == 4.0
 infos = info(mod)
 @test infos[:n_imputed_values] == 1
-@test infos[:oobErrors][1] ≈ [0.4219142630021683, 0.1888918370047503, 1.4813804498107928]
+@test infos[:ooberrors][1] ≈ [0.4219142630021683, 0.1888918370047503, 1.4813804498107928]
 
 X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
 mod = RFImputer(rng=copy(TESTRNG),verbosity=NONE)

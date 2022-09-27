@@ -688,11 +688,17 @@ end
 """
 $(TYPEDEF)
 
-Standardise the input to zero mean (unless `center=false` is used) and unit standard deviation (unless `scale=false` is used), aka "Z-score".
+Standardise the input to zero mean and unit standard deviation, aka "Z-score". 
 Note that missing values are skipped.
+
+# Parameters
+$(FIELDS)
+
 """
 Base.@kwdef mutable struct StandardScaler <: AbstractScaler
+    "Scale to unit variance [def: true]"
     scale::Bool=true
+    "Center to zero mean [def: true]"
     center::Bool=true
 end
 
@@ -792,7 +798,7 @@ $(FIELDS)
 Base.@kwdef mutable struct ScalerHyperParametersSet <: BetaMLHyperParametersSet
     "The specific scaler method to employ with its own parameters. See [`StandardScaler`](@ref) [def] or [`MinMaxScaler`](@ref)."
     method::AbstractScaler = StandardScaler()
-    "The ids of the columns to skip scaling (eg. categorical columns, dummies,...) [def: `[]`]"
+    "The positional ids of the columns to skip scaling (eg. categorical columns, dummies,...) [def: `[]`]"
     skip::Vector{Int64}    = Int64[]
 end
 

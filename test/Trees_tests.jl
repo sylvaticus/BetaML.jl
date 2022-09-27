@@ -132,7 +132,7 @@ myForest = buildForest(xtrain,ytrain,β=0,max_depth=20,oob=true,rng=copy(TESTRNG
 
 trees = myForest.trees
 treesWeights = myForest.weights
-oobError = myForest.oobError
+ooberror = myForest.ooberror
 ŷtrain = predict(myForest, xtrain,rng=copy(TESTRNG))
 @test accuracy(ytrain,ŷtrain,rng=copy(TESTRNG)) >= 0.96
 ŷtest = predict(myForest, xtest,rng=copy(TESTRNG))
@@ -142,7 +142,7 @@ ŷtrain2 = predict(myForest, xtrain,rng=copy(TESTRNG))
 @test accuracy(ytrain,ŷtrain2,rng=copy(TESTRNG)) >= 0.98
 ŷtest2 = predict(myForest, xtest,rng=copy(TESTRNG))
 @test accuracy(ytest,ŷtest2,rng=copy(TESTRNG))  >= 0.96
-@test oobError <= 0.1
+@test ooberror <= 0.1
 
 m = RandomForestEstimator(max_depth=20,oob=true,beta=0,rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
@@ -172,7 +172,7 @@ ŷtest3  = predict(m, xtest)
 ŷtrain2 == ŷtrain3
 
 @test accuracy(ŷtest2,ytest,rng=copy(TESTRNG)) ≈ accuracy(ŷtest3,ytest,rng=copy(TESTRNG))
-@test info(m)[:oobE] ≈ oobError
+@test info(m)[:oobe] ≈ ooberror
 =#
 
 predictionsByTree = [] # don't use weights...
@@ -227,7 +227,7 @@ ytrainInt = Int64.(round.(ytrain))
 
 myTree1 = buildTree(xtrain,ytrain,rng=copy(TESTRNG))
 myForest = buildForest(xtrain,ytrain,oob=true,rng=copy(TESTRNG)) # TO.DO solved 20201130: If I add here β=1 I have no problem, but local testing gives a crazy error!!!
-oobError = myForest.oobError
+ooberror = myForest.ooberror
 ŷtrain = predict(myForest,xtrain,rng=copy(TESTRNG))
 ŷtest = predict(myForest,xtest,rng=copy(TESTRNG))
 mreTrain = relative_mean_error(ytrain,ŷtrain,normrec=true)
@@ -236,7 +236,7 @@ mreTest  = relative_mean_error(ytest,ŷtest,normrec=true)
 xtrain[3,3] = missing
 xtest[3,2] = missing
 myForest = buildForest(xtrain,ytrain,oob=true,β=1,rng=copy(TESTRNG))
-oobError = myForest.oobError
+ooberror = myForest.ooberror
 ŷtrain = predict(myForest,xtrain,rng=copy(TESTRNG))
 ŷtest = predict(myForest,xtest,rng=copy(TESTRNG))
 mreTrain2 = relative_mean_error(ytrain,ŷtrain,normrec=true)

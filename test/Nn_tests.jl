@@ -53,9 +53,9 @@ orig = predict(mynn,x')[1,:]
 lossOrig = loss(mynn,x',y')
 @test ϵ == lossOrig
 #@code_warntype  loss(mynn,x',y')
-dϵ_do2 = dSquaredCost(y,o2)
+dϵ_do2 = dsquared_cost(y,o2)
 @test dϵ_do2 == [-0.4750208125210601,0.47502081252106]
-#@code_warntype dSquaredCost(o2,y)
+#@code_warntype dsquared_cost(o2,y)
 dϵ_do1 = backward(l2,o1,dϵ_do2) # here takes long as needs Zygote
 @test dϵ_do1 ≈ [-0.23691761847142412, 0.23691761847142412]
 #@code_warntype backward(l2,o1,dϵ_do2)
@@ -132,7 +132,7 @@ ytest = [1.1; 0.36; 1.0; 6.0]
 l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], f=tanh, df=dtanh,rng=copy(TESTRNG))
 l2 = DenseNoBiasLayer(3,2, w=[1 1 1; 1 1 1], f=relu, df=drelu,rng=copy(TESTRNG))
 l3 = DenseLayer(2,1, w=[1 1], wb=[0], f=identity,df=didentity,rng=copy(TESTRNG))
-mynn = buildNetwork(deepcopy([l1,l2,l3]),squared_cost,name="Feed-forward Neural Network Model 1",dcf=dSquaredCost)
+mynn = buildNetwork(deepcopy([l1,l2,l3]),squared_cost,name="Feed-forward Neural Network Model 1",dcf=dsquared_cost)
 train!(mynn,xtrain,ytrain,batch_size=1,sequential=true,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG))
 #@benchmark train!(mynn,xtrain,ytrain,batch_size=1,sequential=true,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1))
 avgLoss = loss(mynn,xtest,ytest)
@@ -142,7 +142,7 @@ ŷtrain = dropdims(predict(mynn,xtrain),dims=2)
 ŷtest = dropdims(predict(mynn,xtest),dims=2)
 @test any(isapprox(expectedŷtest,ŷtest))
 
-m = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=squared_cost,dloss=dSquaredCost,batch_size=1,shuffle=false,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test")
+m = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=squared_cost,dloss=dsquared_cost,batch_size=1,shuffle=false,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test")
 fit!(m,xtrain,ytrain)
 ŷtrain2 =  dropdims(predict(m),dims=2)
 ŷtrain3 =  dropdims(predict(m,xtrain),dims=2)
@@ -155,7 +155,7 @@ ŷtest2 =  dropdims(predict(m,xtest),dims=2)
 l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], f=tanh, df=dtanh,rng=copy(TESTRNG))
 l2 = DenseNoBiasLayer(3,2, w=[1 1 1; 1 1 1], f=relu, df=drelu,rng=copy(TESTRNG))
 l3 = DenseLayer(2,1, w=[1 1], wb=[0], f=identity,df=didentity,rng=copy(TESTRNG))
-mynn = buildNetwork([l1,l2,l3],squared_cost,name="Feed-forward Neural Network with ADAM",dcf=dSquaredCost)
+mynn = buildNetwork([l1,l2,l3],squared_cost,name="Feed-forward Neural Network with ADAM",dcf=dsquared_cost)
 train!(mynn,xtrain,ytrain,batch_size=1,sequential=true,epochs=100,verbosity=NONE,opt_alg=ADAM(),rng=copy(TESTRNG))
 avgLoss = loss(mynn,xtest,ytest)
 @test  avgLoss ≈ 0.9497779759064725
