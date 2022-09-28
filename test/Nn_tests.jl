@@ -144,10 +144,10 @@ ŷtest = dropdims(predict(mynn,xtest),dims=2)
 
 m = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=squared_cost,dloss=dsquared_cost,batch_size=1,shuffle=false,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test")
 fit!(m,xtrain,ytrain)
-ŷtrain2 =  dropdims(predict(m),dims=2)
-ŷtrain3 =  dropdims(predict(m,xtrain),dims=2)
+ŷtrain2 =  predict(m)
+ŷtrain3 =  predict(m,xtrain)
 @test ŷtrain ≈ ŷtrain2 ≈ ŷtrain3
-ŷtest2 =  dropdims(predict(m,xtest),dims=2)
+ŷtest2 =  predict(m,xtest)
 @test ŷtest ≈ ŷtest2 
 
 
@@ -192,7 +192,7 @@ mreTest  = relative_mean_error(ytest,ŷtest,normrec=true)
 
 m = NeuralNetworkEstimator(rng=copy(TESTRNG),verbosity=NONE)
 fit!(m,xtrain,ytrain)
-ŷtrain2 =  dropdims(predict(m),dims=2)
+ŷtrain2 =  predict(m)
 mreTrain = relative_mean_error(ytrain,ŷtrain,normrec=true)
 @test mreTrain <= 0.06
 
@@ -323,11 +323,19 @@ println("Testing MLJ interface for FeedfordwarNN....")
 import MLJBase
 const Mlj = MLJBase
 X, y                           = Mlj.@load_boston
-model                          = MultitargetNeuralNetworkRegressor(rng=copy(TESTRNG))
+model                          = NeuralNetworkRegressor(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
-yhat                           = dropdims(Mlj.predict(model, fitresult, X),dims=2)
+yhat                           = Mlj.predict(model, fitresult, X)
 @test relative_mean_error(y,yhat,normrec=true) < 0.2
+
+X, y                           = Mlj.@load_boston
+y2d = [y y]
+model                          = MultitargetNeuralNetworkRegressor(rng=copy(TESTRNG))
+regressor                      = Mlj.machine(model, X, y2d)
+(fitresult, cache, report)     = Mlj.fit(model, 0, X, y2d)
+yhat                           = Mlj.predict(model, fitresult, X)
+@test relative_mean_error(y2d,yhat,normrec=true) < 0.2
 
 X, y                           = Mlj.@load_iris
 model                          = NeuralNetworkClassifier(rng=copy(TESTRNG))

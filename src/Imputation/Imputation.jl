@@ -425,7 +425,7 @@ function fit!(m::GMMImputer,X)
     m.info["BIC"]            = emOut.BIC
     m.info["AIC"]            = emOut.AIC
     m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(X,1)
-    m.info["dimensions"]     = size(X,2)
+    m.info["xndims"]     = size(X,2)
     m.info["n_imputed_values"]     = n_imputed_values
     m.fitted=true
     return cache ? m.cres : nothing

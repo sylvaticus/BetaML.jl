@@ -365,7 +365,7 @@ function fit!(m::PerceptronClassifier,X,Y)
     end
 
     m.info["fitted_records"] = nR
-    m.info["dimensions"]    = nD
+    m.info["xndims"]    = nD
     m.info["n_classes"]      = size(weights,1)
 
     m.fitted = true
@@ -396,9 +396,9 @@ end
 function show(io::IO, m::PerceptronClassifier)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"PerceptronClassifier - A $(m.info["dimensions"])-dimensions $(m.info["n_classes"])-classes linear perceptron classifier (unfitted)")
+        println(io,"PerceptronClassifier - A $(m.info["xndims"])-dimensions $(m.info["n_classes"])-classes linear perceptron classifier (unfitted)")
     else
-        println(io,"PerceptronClassifier - A $(m.info["dimensions"])-dimensions $(m.info["n_classes"])-classes linear perceptron classifier (fitted on $(m.info["fitted_records"]) records)")
+        println(io,"PerceptronClassifier - A $(m.info["xndims"])-dimensions $(m.info["n_classes"])-classes linear perceptron classifier (fitted on $(m.info["fitted_records"]) records)")
         println(io,"Weights:")
         println(io,m.par.weigths)
     end

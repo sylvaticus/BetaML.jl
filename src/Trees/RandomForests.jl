@@ -222,7 +222,7 @@ function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
     m.fitted = true
     
     m.info["fitted_records"]             = size(x,1)
-    m.info["dimensions"]                 = max_features
+    m.info["xndims"]                 = max_features
     m.info["jobIsRegression"]            = m.par.is_regression ? 1 : 0
     m.info["oob_errors"]                 = m.par.ooberror
     depths = vcat([transpose([computeDepths(tree)[1],computeDepths(tree)[2]]) for tree in m.par.trees]...)

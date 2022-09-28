@@ -876,7 +876,7 @@ function fit!(m::Scaler,x)
 
     m.cres,m.par.scalerpars = _fit(scaler,skip,x,cache)
     m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
-    m.info["dimensions"]     = size(x,2)
+    m.info["xndims"]     = size(x,2)
     m.fitted = true
     return cache ? m.cres : nothing 
 end   
@@ -1060,7 +1060,7 @@ function fit!(m::PCA,X)
     end
 
     m.info["fitted_records"]  = get(m.info,"fitted_records",0) + N
-    m.info["dimensions"]     = D
+    m.info["xndims"]     = D
     m.info["explained_var_by_dim"] = explained_var_by_dim
     m.info["prop_explained_var"]   = explained_var_by_dim[outdims_actual]
     m.info["retained_dims"]        = outdims_actual

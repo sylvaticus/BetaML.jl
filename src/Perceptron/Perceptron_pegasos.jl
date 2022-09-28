@@ -288,7 +288,7 @@ function fit!(m::PegasosClassifier,X,Y)
     end
 
     m.info["fitted_records"] = nR
-    m.info["dimensions"]    = nD
+    m.info["xndims"]    = nD
     m.info["n_classes"]      = size(weights,1)
 
     m.fitted = true
@@ -319,9 +319,9 @@ end
 function show(io::IO, m::PegasosClassifier)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"PegasosClassifier - A $(m.info["dimensions"])-dimensions $(m.info["n_classes"])-classes a loss-based linear classifier without regularisation term (unfitted)")
+        println(io,"PegasosClassifier - A $(m.info["xndims"])-dimensions $(m.info["n_classes"])-classes a loss-based linear classifier without regularisation term (unfitted)")
     else
-        println(io,"PegasosClassifier - A $(m.info["dimensions"])-dimensions $(m.info["n_classes"])-classes a loss-based linear classifier without regularisation term (fitted on $(m.info["fitted_records"]) records)")
+        println(io,"PegasosClassifier - A $(m.info["xndims"])-dimensions $(m.info["n_classes"])-classes a loss-based linear classifier without regularisation term (fitted on $(m.info["fitted_records"]) records)")
         println(io,"Weights:")
         println(io,m.par.weights)
     end

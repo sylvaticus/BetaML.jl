@@ -795,7 +795,8 @@ To know the available layers type `subtypes(AbstractLayer)`) and then type `?Lay
 Base.@kwdef mutable struct NNHyperParametersSet <: BetaMLHyperParametersSet
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
-    """Loss (cost) function [def: `squared_cost`].
+    """Loss (cost) function [def: `squared_cost`]
+    It must always assume y and ŷ as (n x d) matrices, eventually using `dropdims` inside.
     !!! warning
         If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
     """
@@ -859,7 +860,7 @@ For the parameters see [`NNHyperParametersSet`](@ref).
 - data must be numerical
 - the label can be a _n-records_ vector or a _n-records_ by _n-dimensions_ matrix, but the result is always a matrix.
   - For one-dimension regressions drop the unnecessary dimension with `dropdims(ŷ,dims=2)`
-  - For classification tasks the columns should be interpreted as the probabilities for each categories
+  - For classification tasks the columns should normally be interpreted as the probabilities for each categories
 """
 mutable struct NeuralNetworkEstimator <: BetaMLSupervisedModel
     hpar::NNHyperParametersSet
@@ -896,8 +897,8 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
     loss        = m.hpar.loss
     dloss       = m.hpar.dloss
     epochs      = m.hpar.epochs
-    batch_size   = m.hpar.batch_size
-    opt_alg      = m.hpar.opt_alg
+    batch_size  = m.hpar.batch_size
+    opt_alg     = m.hpar.opt_alg
     shuffle     = m.hpar.shuffle
     cache       = m.opt.cache
     descr       = m.opt.descr
@@ -932,11 +933,19 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
                 layers = [l1,l2,l3,l4]
             end
         end
+        # Check that the first layer has the dimensions of X and the last layer has the output dimensions of Y
+        nn_isize = size(layers[1])[1]
+        nn_osize = size(layers[end])[2]
+
+        nn_isize == nD || error("The first layer of the network must have the ndims of the input data ($nD) instead of $(nn_isize).")
+        nn_osize == nDy || error("The last layer of the network must have the ndims of the output data ($nDy) instead of $(nn_osize). For classification tasks, this is normally the number of possible categories.")
+
         m.par = NeuralNetworkEstimatorLearnableParameters(NN(deepcopy(layers),loss,dloss,false,descr))
         m.info["epochsRan"] = 0
         m.info["lossPerEpoch"] = Float64[]
         m.info["parPerEpoch"] = []
-        m.info["dimensions"]   = nD
+        m.info["xndims"]   = nD
+        m.info["yndims"]   = nDy
         #m.info["fitted_records"] = O
     end
 
@@ -949,14 +958,18 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
     m.info["epochsRan"]     += out.epochs
     append!(m.info["lossPerEpoch"],out.ϵ_epochs) 
     append!(m.info["parPerEpoch"],out.θ_epochs) 
-    m.info["dimensions"]    = nD
+    m.info["xndims"]    = nD
     m.info["fitted_records"] = nR
     m.info["nLayers"] = length(nnstruct.layers)
     m.info["nPar"] = get_nparams(m.par.nnstruct)
    
     if cache
-       out    = predict(nnstruct,X)
-       m.cres = out
+       ŷ  = predict(nnstruct,X)
+       if ndims(ŷ) > 1 && nn_osize == 1
+          m.cres = dropdims(ŷ,dims=2)
+       else
+          m.cres = ŷ
+       end 
     end
 
     m.fitted = true
@@ -965,8 +978,37 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
     return cache ? m.cres : nothing
 end
 
+#=
+# Need to overrite for the size check in the output specific to NN
+function predict(m::NeuralNetworkEstimator)
+    println("gooo")
+    if m.fitted 
+        ŷ        = m.cres
+        nn_osize = size(m.par.nnstruct.layers[end])[2]
+        if ndims(ŷ) > 1 && nn_osize == 1
+            return dropdims(ŷ,dims=2)
+        else
+            return ŷ
+        end 
+    else
+       if m.opt.verbosity > NONE
+          @warn "Trying to predict an unfitted model. Run `fit!(model,X,[Y])` before!"
+       end
+       return nothing
+    end
+end
+=#
+
+
+
 function predict(m::NeuralNetworkEstimator,X)
-    return predict(m.par.nnstruct,X)
+    ŷ        = predict(m.par.nnstruct,X)
+    nn_osize = size(m.par.nnstruct.layers[end])[2]
+    if ndims(ŷ) > 1 && nn_osize == 1
+        return dropdims(ŷ,dims=2)
+    else
+        return ŷ
+    end    
 end
 
 function show(io::IO, ::MIME"text/plain", m::NeuralNetworkEstimator)
@@ -992,7 +1034,7 @@ function show(io::IO, m::NeuralNetworkEstimator)
           println("$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
         end
     else
-        println(io,"NeuralNetworkEstimator - A $(m.info["dimensions"])-dimensions $(m.info["nLayers"])-layers feedfordward neural network (fitted on $(m.info["fitted_records"]) records)")
+        println(io,"NeuralNetworkEstimator - A $(m.info["xndims"])-dimensions $(m.info["nLayers"])-layers feedfordward neural network (fitted on $(m.info["fitted_records"]) records)")
         println(io,"Cost function:")
         println(io,m.hpar.loss)
         println(io,"Optimisation algorithm:")
@@ -1003,7 +1045,7 @@ function show(io::IO, m::NeuralNetworkEstimator)
           shapes = size(l)
           println(io, "$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
         end
-        println("Output of `info(model)`:")
+        println(io,"Output of `info(model)`:")
         for (k,v) in info(m)
             print(io,"- ")
             print(io,k)

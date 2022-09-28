@@ -460,7 +460,7 @@ function fit!(m::DecisionTreeEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
     jobIsRegression = (force_classification || ! (Ty <: Number) ) ? false : true
     
     m.info["fitted_records"]             = size(x,1)
-    m.info["dimensions"]                 = size(x,2)
+    m.info["xndims"]                 = size(x,2)
     m.info["jobIsRegression"]            = jobIsRegression ? 1 : 0
     (m.info["avgDepth"],m.info["max_depth"]) = computeDepths(m.par.tree)
     return cache ? m.cres : nothing

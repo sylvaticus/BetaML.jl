@@ -327,7 +327,6 @@ nnm = NeuralNetworkEstimator(loss=squared_cost, descr="Bike sharing regression m
 #src (rme_train, rme_test) = relative_mean_error.([ŷtrain,ŷtest],[ytrain,ytest]) #0.041, 0.236
 
 #-
-(rme_train, rme_test) = relative_mean_error.([ŷtrain,ŷtest],[ytrain,ytest])
 
 # We can now fit and autotune the model: 
 ŷtrain_scaled = fit!(nnm,xtrain_scaled,ytrain_scaled)

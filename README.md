@@ -23,7 +23,7 @@ Currently the following models are available:
 | PegasosClassifier | Pegasos | _Supervised classifier_ |
 | DecisionTreeEstimator | DecisionTreeClassifier, DecisionTreeRegressor | _Supervised regressor and classifier_ |
 | RandomForestEstimator |  RandomForestClassifier, RandomForestRegressor | _Supervised regressor and classifier_ |
-| NeuralNetworkEstimator | MultitargetNeuralNetworkRegressor, NeuralNetworkClassifier | _Supervised regressor and classifier_ |
+| NeuralNetworkEstimator | NeuralNetworkRegressor, MultitargetNeuralNetworkRegressor, NeuralNetworkClassifier | _Supervised regressor and classifier_ |
 | GMMRegressor1 | | _Supervised regressor_ | 
 | GMMRegressor2 | GaussianMixtureRegressor, MultitargetGaussianMixtureRegressor | _Supervised regressor_ | 
 | KMeansClusterer | KMeans | _Unsupervised hard clusterer_ |

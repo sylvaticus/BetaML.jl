@@ -3,33 +3,99 @@
 # MLJ interface for Neural Networks models
 
 import MLJModelInterface       # It seems that having done this in the top module is not enought
-const MMI = MLJModelInterface  # We need to repoeat it here
+const MMI = MLJModelInterface  # We need to repeat it here
 using CategoricalArrays
 
-export MultitargetNeuralNetworkRegressor, NeuralNetworkClassifier
+export NeuralNetworkRegressor, MultitargetNeuralNetworkRegressor, NeuralNetworkClassifier
 
 
-
-# ------------------------------------------------------------------------------
 # Model Structure declarations..
 """
-    FeedfordwardNeuralNetwork
+$(TYPEDEF)
 
-A simple but flexible Feedforward Neural Network, from the Beta Machine Learning Toolkit (BetaML) that can be used for both regression tasks or classification ones.
+A simple but flexible Feedforward Neural Network, from the Beta Machine Learning Toolkit (BetaML) for regression of a single dimensional target.
 
 ## Parameters:
 $(FIELDS)
 
 ## Notes:
 - data must be numerical
-- the label can be a _n-records_ vector or a _n-records_ by _n-dimensions_ matrix (e.g. a one-hot-encoded data for classification), but the result is always a matrix.
-  - For one-dimension regressions drop the unnecessary dimension with `dropdims(ŷ,dims=2)`
-  - For classification tasks the columns should be interpreted as the probabilities for each categories
+- the label should be be a _n-records_ vector.
+"""
+Base.@kwdef mutable struct NeuralNetworkRegressor <: MMI.Deterministic
+    "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
+    layers::Union{Array{AbstractLayer,1},Nothing} = nothing
+    """Loss (cost) function [def: `squared_cost`]. Should always assume y and ŷ as matrices, even if the regression task is 1-D
+    !!! warning
+        If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
+    """
+    loss::Union{Nothing,Function} = squared_cost
+    "Derivative of the loss function [def: `dsquared_cost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
+    dloss::Union{Function,Nothing}  = dsquared_cost
+    "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
+    epochs::Int64 = 100
+    "Size of each individual batch [def: `32`]"
+    batch_size::Int64 = 32
+    "The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]"
+    opt_alg::OptimisationAlgorithm = ADAM()
+    "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
+    shuffle::Bool = true  
+    "An optional title and/or description for this model"
+    descr::String = "" 
+    "A call back function to provide information during training [def: `fitting_info`"
+    cb::Function=fitting_info
+    "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+    "
+    rng::AbstractRNG = Random.GLOBAL_RNG
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+For the `verbosity` parameter see [`Verbosity`](@ref))
+
+"""
+function MMI.fit(m::NeuralNetworkRegressor, verbosity, X, y)
+    x = MMI.matrix(X)                     # convert table to matrix   
+    if !(verbosity == 0 || verbosity == 10 || verbosity == 20 || verbosity == 30 || verbosity == 40) 
+        error("Wrong verbosity level. Verbosity must be either 0, 10, 20, 30 or 40.")
+    end
+    ndims(y) > 1 && error("The label should have only 1 dimensions. Use `MultitargetNeuralNetworkRegressor` or `NeuralNetworkClassifier` for multi_dimensional outputs.")
+    mi = NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=Verbosity(verbosity))
+    fit!(mi,x,y)
+    fitresults = mi
+    cache      = nothing
+    report     = nothing
+    return fitresults, cache, report
+ end
+
+ MMI.predict(m::NeuralNetworkRegressor, fitresult, Xnew) = predict(fitresult, MMI.matrix(Xnew))
+
+ MMI.metadata_model(NeuralNetworkRegressor,
+    input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Count}),
+    target_scitype   = AbstractVector{<: Union{MMI.Continuous,MMI.Count}},
+    supports_weights = false,
+    load_path        = "BetaML.Nn.NeuralNetworkRegressor"
+)
+
+# ------------------------------------------------------------------------------
+# Model Structure declarations..
+"""
+$(TYPEDEF)
+
+A simple but flexible Feedforward Neural Network, from the Beta Machine Learning Toolkit (BetaML) for regression of multiple dimensional targets.
+
+## Parameters:
+$(FIELDS)
+
+## Notes:
+- data must be numerical
+- the label should be a _n-records_ by _n-dimensions_ matrix 
 """
 Base.@kwdef mutable struct MultitargetNeuralNetworkRegressor <: MMI.Deterministic
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
-    """Loss (cost) function [def: `squared_cost`].
+    """Loss (cost) function [def: `squared_cost`].  Should always assume y and ŷ as matrices.
     !!! warning
         If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
     """
@@ -53,8 +119,7 @@ Base.@kwdef mutable struct MultitargetNeuralNetworkRegressor <: MMI.Deterministi
     rng::AbstractRNG = Random.GLOBAL_RNG
 end
 """
-
-MMI.fit(model::NeuralNetworkEstimator, verbosity, X, y)
+$(TYPEDSIGNATURES)
 
 For the `verbosity` parameter see [`Verbosity`](@ref))
 
@@ -64,6 +129,7 @@ function MMI.fit(m::MultitargetNeuralNetworkRegressor, verbosity, X, y)
     if !(verbosity == 0 || verbosity == 10 || verbosity == 20 || verbosity == 30 || verbosity == 40) 
         error("Wrong verbosity level. Verbosity must be either 0, 10, 20, 30 or 40.")
     end
+    ndims(y) > 1 || error("The label should have multiple dimensions. Use `NeuralNetworkRegressor` for single-dimensional outputs.")
     mi = NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=Verbosity(verbosity))
     fit!(mi,x,y)
     fitresults = mi
@@ -78,14 +144,13 @@ function MMI.fit(m::MultitargetNeuralNetworkRegressor, verbosity, X, y)
     input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Count}),
     target_scitype   = Union{AbstractVector{<: Union{MMI.Continuous,MMI.Count}},AbstractMatrix{<: Union{MMI.Continuous,MMI.Count}}},
     supports_weights = false,
-    descr            = "A simple but flexible Feedforward Neural Network, from the Beta Machine Learning Toolkit (BetaML) that can be used for both regression tasks or classification ones.",
     load_path        = "BetaML.Nn.MultitargetNeuralNetworkRegressor"
 )
 
 # ------------------------------------------------------------------------------
 
 """
-NeuralNetworkClassifier
+$(TYPEDEF)
 
 A simple but flexible Feedforward Neural Network, from the Beta Machine Learning Toolkit (BetaML) for classification  problems.
 
@@ -94,14 +159,12 @@ $(FIELDS)
 
 ## Notes:
 - data must be numerical
-- the label can be a _n-records_ vector or a _n-records_ by _n-dimensions_ matrix (e.g. a one-hot-encoded data for classification), but the result is always a matrix.
-  - For one-dimension regressions drop the unnecessary dimension with `dropdims(ŷ,dims=2)`
-  - For classification tasks the columns should be interpreted as the probabilities for each categories
+- the label should be a _n-records_ by _n-dimensions_ matrix (e.g. a one-hot-encoded data for classification), where the output columns should be interpreted as the probabilities for each categories.
 """
 Base.@kwdef mutable struct NeuralNetworkClassifier <: MMI.Probabilistic
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers. The last \"softmax\" layer is automatically added."
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
-    """Loss (cost) function [def: `crossentropy`].
+    """Loss (cost) function [def: `crossentropy`]. Should always assume y and ŷ as matrices.
     !!! warning
         If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
     """
@@ -141,7 +204,6 @@ function MMI.fit(m::NeuralNetworkClassifier, verbosity, X, y)
     if !(verbosity == 0 || verbosity == 10 || verbosity == 20 || verbosity == 30 || verbosity == 40) 
         error("Wrong verbosity level. Verbosity must be either 0, 10, 20, 30 or 40.")
     end
-
     categories = deepcopy(m.categories)
     if categories == nothing
         #if occursin("CategoricalVector",string(typeof(y))) # to avoid dependency to CategoricalArrays or MLJBase 
@@ -185,6 +247,5 @@ end
     input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Count}),
     target_scitype = AbstractVector{<: Union{MMI.Multiclass,MMI.Finite,MMI.Count}},
     supports_weights = false,
-    descr            = "A simple but flexible Feedforward Neural Network, from the Beta Machine Learning Toolkit (BetaML) that can be used for both regression tasks or classification ones.",
     load_path        = "BetaML.Nn.NeuralNetworkClassifier"
 )

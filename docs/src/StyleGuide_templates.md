@@ -29,7 +29,7 @@ One line description
 
 # Parameters:
 
-$(TYPEDFIELDS)
+
 
 # Returns:
 - Elements the funtion need
@@ -49,7 +49,7 @@ julia> [code]
 
 ```
 """
-
+$(TYPEDEF)
 
 One line description
 

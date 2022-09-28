@@ -47,7 +47,7 @@ Currently BetaML provides the following models:
 | [`PegasosClassifier`](@ref) | [`Pegasos`](@ref) | _Supervised classifier_ |
 | [`DecisionTreeEstimator`](@ref) | [`DecisionTreeClassifier`](@ref), [`DecisionTreeRegressor`](@ref) | _Supervised regressor and classifier_ |
 | [`RandomForestEstimator`](@ref) |  [`RandomForestClassifier`](@ref), [`RandomForestRegressor`](@ref) | _Supervised regressor and classifier_ |
-| [`NeuralNetworkEstimator`](@ref) | [`MultitargetNeuralNetworkRegressor`](@ref), [`NeuralNetworkClassifier`](@ref) | _Supervised regressor and classifier_ |
+| [`NeuralNetworkEstimator`](@ref) | [`NeuralNetworkRegressor`](@ref), [`MultitargetNeuralNetworkRegressor`](@ref), [`NeuralNetworkClassifier`](@ref) | _Supervised regressor and classifier_ |
 | [`GMMRegressor1`](@ref) | | _Supervised regressor_ | 
 | [`GMMRegressor2`](@ref) | [`GaussianMixtureRegressor`](@ref), [`MultitargetGaussianMixtureRegressor`](@ref) | _Supervised regressor_ | 
 | [`KMeansClusterer`](@ref) | [`KMeans`](@ref) | _Unsupervised hard clusterer_ |

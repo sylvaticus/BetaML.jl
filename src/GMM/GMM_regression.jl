@@ -122,7 +122,7 @@ function fit!(m::GMMRegressor1,x,y)
     m.info["BIC"]            = gmmOut.BIC
     m.info["AIC"]            = gmmOut.AIC
     m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
-    m.info["dimensions"]     = size(x,2)
+    m.info["xndims"]     = size(x,2)
     m.fitted=true
     return cache ? m.cres : nothing
 end  
@@ -266,7 +266,7 @@ function fit!(m::GMMRegressor2,x,y)
     m.info["BIC"]            = gmmOut.BIC
     m.info["AIC"]            = gmmOut.AIC
     m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
-    m.info["dimensions"]     = size(x,2)
+    m.info["xndims"]     = size(x,2)
     m.fitted=true
     return cache ? m.cres : nothing
 end    
