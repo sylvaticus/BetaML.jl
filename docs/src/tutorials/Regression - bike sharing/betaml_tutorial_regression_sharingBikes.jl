@@ -435,18 +435,19 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷtestfullf[stc:endc]], label=
 
 # Still, for small and medium datasets, BetaML provides simpler yet customisable solutions that are accurate and fast.
 
-# ## Using GMM-based regressors
-# These are newly addded regression algorithms based on Gaussian Mixture Model.
-# There are two variants available, `GMMRegressor1` and `GMMRegressor2`, and this example uses  `GMMRegressor2`
+# ## GMM-based regressors
+# BetaML 0.8 introduces new regression algorithms based on Gaussian Mixture Model.
+# Specifically, there are two variants available, `GMMRegressor1` and `GMMRegressor2`, and this example uses  `GMMRegressor2`
+# As for neural networks, they work on numerical data only, so we reuse the datasets we prepared for the neural networks.
 
-# First we define the model with its hyperparameters and the options (random seed, verbosity level..)
+# As usual we first define the model with the autotune option:
 m = GMMRegressor2(rng=copy(FIXEDRNG), autotune=true,verbosity=NONE)
 #src # @btime begin fit!(m,xtrainScaled,ytrainScaled); reset!(m) end
 #src # 13.584 ms (103690 allocations: 25.08 MiB)
 
-# Here we fit the model to the training data..
+# We then fit the model to the training data..
 ŷtrainGMM_unscaled = fit!(m,xtrain_scaled,ytrain_scaled)
-# And here we predict...
+# And we predict...
 ŷtrainGMM = ŷtrainGMM_unscaled .* 1000;
 ŷtestGMM  = predict(m,xtest_scaled)  .* 1000;
 
@@ -476,9 +477,9 @@ ŷtestGMM  = predict(m,xtest_scaled)  .* 1000;
 # | RF (DecisionTree.jl) | 0.003      | 0.350     | 0.011      | 0.329     |
 # | NN                   | 0.116      | 0.161     | 0.119      | 0.153     | 
 # | NN (Flux.jl)         | 0.103      | 0.137     | 0.095      | 0.167     | 
-# | GMMRegressor2*       | 0.138      | 0.295     | 0.138        | 0.295     |
+# | GMMRegressor2*       | 0.138      | 0.295     | 0.138      | 0.295     |
 
 # * deterministic model
 
 # Neural networks can be more precise than random forests models, but are more computationally expensive (and tricky to set up). When we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less versatile).
-# GMM_based regressors are very computationally cheap and a good choice if accuracy can be traded off for performances.
+# GMM_based regressors are very computationally cheap and a good compromise if accuracy can be traded off for performances.

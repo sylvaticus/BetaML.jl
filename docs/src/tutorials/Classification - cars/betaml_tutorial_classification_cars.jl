@@ -22,7 +22,6 @@
 # 8. origin:        _multi-valued discrete_
 # 9. car name:      _string (unique for each instance)_ - not used here
 
-# !!! warning As the above example is automatically executed by GitHub on every code update, it uses parameters (epoch numbers, parameter space of hyperparameter validation, number of trees,...) that minimise the computation. In real case you will want to use better but more computationally intensive ones. For the same reason benchmarks codes are commented and the pre-run output reported rather than actually being executed.
 
 # ## Library and data loading
 
@@ -62,6 +61,9 @@ y     = Vector{Int64}(data[:,8]);
 # Note that the same function (`predictMissing`) can be used for Collaborative Filtering / recomendation systems. Using GMM has the advantage over traditional algorithms as k-nearest neighbors (KNN) that GMM can "detect" the hidden structure of the observed data, where some observation can be similar to a certain pool of other observvations for a certain characteristic, but similar to an other pool of observations for other characteristics.
 
 xFull = predictMissing(x,rng=copy(FIXEDRNG)).X̂;
+xFull = fit!(GMMImputer(rng=copy(FIXEDRNG)),x)
+xFull = fit!(RFImputer(rng=copy(FIXEDRNG)),x)
+
 
 # Further, some models don't work with categorical data as such, so we need to represent our `y` as a matrix with a separate column for each possible categorical value (the so called "one-hot" representation).
 # For example, within a three classes field, the individual value `2` (or `"Europe"` for what it matters) would be represented as the vector `[0 1 0]`, while `3` (or `"Japan"`) would become the vector `[0 0 1]`.
@@ -89,7 +91,8 @@ myForest       = buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),force_classifi
 # with our `myForest` model and either the training or the testing data.
 ŷtrain,ŷtest   = predict.(Ref(myForest), [xtrain,xtest],rng=copy(FIXEDRNG));
 # Finally we can measure the _accuracy_ of our predictions with the [`accuracy`](@ref) function, with the sidenote that we need first to "parse" the ŷs as forcing the classification job transformed automatically them to strings (they originally were integers):
-trainAccuracy,testAccuracy  = accuracy.([parse.(Int64,mode(ŷtrain,rng=copy(FIXEDRNG))),parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG)))],[ytrain,ytest])
+
+trainAccuracy,testAccuracy  = accuracy.([ytrain,ytest],[parse.(Int64,mode(ŷtrain,rng=copy(FIXEDRNG))),parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG)))])
 #src (0.9969230769230769,0.8024691358024691)
 
 @test testAccuracy > 0.8 #src
@@ -102,7 +105,7 @@ trainAccuracy,testAccuracy  = accuracy.([parse.(Int64,mode(ŷtrain,rng=copy(FIX
 
 # We fist build the [`ConfMatrix`](@ref BetaML.Utils.ConfMatrix) object between `ŷ` and `y` and then we print it (we do it here for the test subset):
 
-cm = ConfMatrix(parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG))),ytest,classes=[1,2,3],labels=["US","EU","Japan"])
+cm = ConfMatrix(ytest,parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG))),classes=[1,2,3],labels=["US","EU","Japan"])
 print(cm,"all")
 
 # From the report we can see that Japanese cars have more trouble in being correctly classified, and in particular many Japanease cars are classified as US ones. This is likely a result of the class imbalance of the data set, and could be solved by balancing the dataset with various sampling tecniques before training the model.
@@ -119,7 +122,7 @@ print(cm,"all")
 model = DecisionTree.build_forest(ytrain, xtrainFull,-1,30,rng=123)
 ## ..and we generate predictions and measure their error
 (ŷtrain,ŷtest) = DecisionTree.apply_forest.([model],[xtrainFull,xtestFull]);
-(trainAccuracy,testAccuracy) = accuracy.([ŷtrain,ŷtest],[ytrain,ytest])
+(trainAccuracy,testAccuracy) = accuracy.([ytrain,ytest],[ŷtrain,ŷtest])
 #src (0.9969230769230769, 0.7530864197530864)
 
 #src nothing; cm = ConfMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"])
@@ -162,18 +165,18 @@ res  = train!(mynn,scale(xtrainFull,xScaleFactors),ytrain_oh,epochs=500,batch_si
 
 # Once trained, we can predict the label. As the trained was based on the scaled feature matrix, so must be for the predictions
 (ŷtrain,ŷtest)  = predict.(Ref(mynn),[scale(xtrainFull,xScaleFactors),scale(xtestFull,xScaleFactors)])
-trainAccuracy   = accuracy(ŷtrain,ytrain,rng=copy(FIXEDRNG))
+trainAccuracy   = accuracy(ytrain,ŷtrain,rng=copy(FIXEDRNG))
 
 #-
 
-testAccuracy    = accuracy(ŷtest,ytest,rng=copy(FIXEDRNG))
+testAccuracy    = accuracy(ytest,ŷtest,rng=copy(FIXEDRNG))
 #src (0.8953846153846153, 0.7654320987654321
 
 @test testAccuracy > 0.76 #src
 
 #src accuracy(mode(ŷtest,rng=copy(FIXEDRNG)),ytest)
 
-cm = ConfMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"],rng=copy(FIXEDRNG))
+cm = ConfMatrix(ytest,ŷtest,classes=[1,2,3],labels=["US","EU","Japan"],rng=copy(FIXEDRNG))
 # print(cm)
 
 # 4×4 Matrix{Any}:
@@ -214,21 +217,21 @@ l1         = Flux.Dense(D,ls,Flux.relu)
 #l2         = Flux.Dense(ls,ls,Flux.relu)
 l3         = Flux.Dense(ls,nCl,Flux.relu)
 Flux_nn    = Flux.Chain(l1,l3)
-loss(x, y) = Flux.logitcrossentropy(Flux_nn(x), y)
+fluxloss(x, y) = Flux.logitcrossentropy(Flux_nn(x), y)
 ps         = Flux.params(Flux_nn)
 nndata     = Flux.Data.DataLoader((xtrainT, ytrain_ohT), batchsize=8,shuffle=true)
-begin for i in 1:500  Flux.train!(loss, ps, nndata, Flux.ADAM()) end end
+begin for i in 1:500  Flux.train!(fluxloss, ps, nndata, Flux.ADAM()) end end
 ŷtrain     = Flux.onecold(Flux_nn(xtrainT),1:3)
 ŷtest      = Flux.onecold(Flux_nn(xtestT),1:3)
 trainAccuracy =  accuracy(ŷtrain,ytrain)
 
 #-
 
-testAccuracy  = accuracy(ŷtest,ytest)
+testAccuracy  = accuracy(ytest,ŷtest)
 #src 0.9384615384615385, 0.7407407407407407
 # While the train accuracy is little bit higher that BetaML, the test accuracy remains comparable
 
-@test testAccuracy > 0.74 #src
+@test testAccuracy > 0.72 #src
 
 # However the time is again lower than BetaML, even if here for "just" a factor 2
 # @btime begin for i in 1:500 Flux.train!(loss, ps, nndata, Flux.ADAM()) end end;
@@ -247,7 +250,8 @@ testAccuracy  = accuracy(ŷtest,ytest)
 # | NN (Flux.jl)         | 0.938         | 0.741    | 5665                | 1096              |
 
 
-# * on a Intel Core i5-8350U laptop
+# * on a Intel Core i5-8350U laptop and using the tutorial in BetaML 0.7 (without autotuning and model wrapping)
+
 
 # We warn that this table just provides a rought idea of the various algorithms performances. Indeed there is a large amount of stochasticity both in the sampling of the data used for training/testing and in the initial settings of the parameters of the algorithm. For a statistically significant comparision we would have to repeat the analysis with multiple sampling (e.g. by cross-validation, see the [clustering tutorial](@ref clustering_tutorial) for an example) and initial random parameters.
 
