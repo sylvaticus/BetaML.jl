@@ -38,6 +38,13 @@ ŷtrain3 = predict(m) # using cached elements
 @test ŷtrain == ŷtrain2 ==  ŷtrain3
 
 
+
+ytrainI = fit!(OrdinalEncoder(),ytrain)
+ytrainI = convert(Vector{Int64},ytrainI) 
+m = DecisionTreeEstimator(rng=copy(TESTRNG),force_classification=true)
+ŷtrainI =   fit!(m,xtrain,ytrainI)
+predict(m,xtrain)
+
 using AbstractTrees
 import AbstractTrees: printnode
 wrappedNode = BetaML.wrap(myTree)

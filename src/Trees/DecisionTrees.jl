@@ -7,6 +7,24 @@ abstract type AbstractNode end
 abstract type AbstractDecisionNode <: AbstractNode end
 abstract type AbstractLeaf <: AbstractNode end
 
+struct BetaMLClass
+    d::Int64
+end
+function convert(::Type{BetaMLClass},x::Integer)
+    return BetaMLClass(x)
+end
+function convert(::Type{BetaMLClass},x)
+    return x
+end
+function convert(::Type{T},x::BetaMLClass) where {T <:Integer}
+    return convert(T,x.d)
+end
+
+function convert(::Type{BetaMLClass}, x::BetaMLClass)
+    return x
+end
+
+
 """
    Question
 
@@ -123,6 +141,7 @@ end
 
 Base.@kwdef mutable struct DTLearnableParameters <: BetaMLLearnableParametersSet
     tree::Union{Nothing,AbstractNode} = nothing
+    Ty::DataType = Any
 end
 
 """
@@ -438,10 +457,16 @@ function fit!(m::DecisionTreeEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
         autotune!(m,(x,y))
     end
 
+    Tynm = nonmissingtype(Ty)
     # Setting default parameters that depends from the data...
     max_depth    = m.hpar.max_depth    == nothing ?  size(x,1) : m.hpar.max_depth
     max_features = m.hpar.max_features == nothing ?  size(x,2) : m.hpar.max_features
-    splitting_criterion = m.hpar.splitting_criterion == nothing ? ( (Ty <: Number && !m.hpar.force_classification) ? variance : gini) : m.hpar.splitting_criterion
+    splitting_criterion = m.hpar.splitting_criterion == nothing ? ( (Tynm <: Number && !m.hpar.force_classification) ? variance : gini) : m.hpar.splitting_criterion
+
+    if (Tynm <: Integer && m.hpar.force_classification)
+        y = convert.(BetaMLClass,y)
+    end
+
     # Setting schortcuts to other hyperparameters/options....
     min_gain             = m.hpar.min_gain
     min_records          = m.hpar.min_records
@@ -452,12 +477,27 @@ function fit!(m::DecisionTreeEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
 
     tree = buildTree(x, y; max_depth = max_depth, min_gain=min_gain, min_records=min_records, max_features=max_features, force_classification=force_classification, splitting_criterion = splitting_criterion, mCols=nothing, rng = rng)
 
-    m.par = DTLearnableParameters(tree)
-    m.cres = cache ? predictSingle.(Ref(tree),eachrow(x),rng=rng) : nothing
+    m.par = DTLearnableParameters(tree,Tynm)
+    if cache
+       #println(Tynm)
+       #println("zzz")
+       rawout = predictSingle.(Ref(tree),eachrow(x),rng=rng)
+       if (Tynm <: Integer && m.hpar.force_classification)
+          #println("foo")
+          #println(rawout)
+          #out = convert.(Dict{Tynm,Float64},rawout)
+          out = [ Dict([convert(Tynm,k) => v for (k,v) in e]) for e in rawout]
+       else
+          out = rawout
+       end
+       m.cres = out
+    else
+       m.cres = nothing
+    end
 
     m.fitted = true
 
-    jobIsRegression = (force_classification || ! (Ty <: Number) ) ? false : true
+    jobIsRegression = (force_classification || ! (Tynm <: Number) ) ? false : true
     
     m.info["fitted_records"]             = size(x,1)
     m.info["xndims"]                 = size(x,2)
@@ -526,7 +566,13 @@ Predict the labels associated to some feature data using a trained [`DecisionTre
 
 """
 function predict(m::DecisionTreeEstimator,x)
-    return predictSingle.(Ref(m.par.tree),eachrow(x),rng=m.opt.rng)
+    Ty = m.par.Ty # this should already be the nonmissing type
+    rawout = predictSingle.(Ref(m.par.tree),eachrow(x),rng=m.opt.rng)
+    if (Ty <: Integer && m.hpar.force_classification)
+        return [ Dict([convert(Ty,k) => v for (k,v) in e]) for e in rawout]
+    else
+        return rawout
+    end
 end
 
 # ------------------------------------------------------------------------------

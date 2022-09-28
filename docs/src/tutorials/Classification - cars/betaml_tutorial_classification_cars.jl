@@ -60,15 +60,16 @@ y     = Vector{Int64}(data[:,8]);
 # Some algorithms that we will use today don't work with missing data, so we need to _impute_ them. We use the [`predictMissing`](@ref) function provided by the [`BetaML.Clustering`](@ref clustering_module) sub-module. Internally the function uses a Gaussian Mixture Model to assign to the missing walue of a given record an average of the values of the non-missing records weighted for how close they are to our specific record.
 # Note that the same function (`predictMissing`) can be used for Collaborative Filtering / recomendation systems. Using GMM has the advantage over traditional algorithms as k-nearest neighbors (KNN) that GMM can "detect" the hidden structure of the observed data, where some observation can be similar to a certain pool of other observvations for a certain characteristic, but similar to an other pool of observations for other characteristics.
 
-xFull = predictMissing(x,rng=copy(FIXEDRNG)).X̂;
-xFull = fit!(GMMImputer(rng=copy(FIXEDRNG)),x)
+#xFull = predictMissing(x,rng=copy(FIXEDRNG)).X̂;
+#xFull = fit!(GMMImputer(rng=copy(FIXEDRNG)),x)
 xFull = fit!(RFImputer(rng=copy(FIXEDRNG)),x)
 
 
 # Further, some models don't work with categorical data as such, so we need to represent our `y` as a matrix with a separate column for each possible categorical value (the so called "one-hot" representation).
 # For example, within a three classes field, the individual value `2` (or `"Europe"` for what it matters) would be represented as the vector `[0 1 0]`, while `3` (or `"Japan"`) would become the vector `[0 0 1]`.
 # To encode as one-hot we use the function [`onehotencoder`](@ref) in [`BetaML.Utils`](@ref utils_module)
-y_oh  = onehotencoder(y);
+ohm = OneHotEncoder()
+y_oh  = fit!(ohm,y);
 
 # In supervised machine learning it is good practice to partition the available data in a _training_, _validation_, and _test_ subsets, where the first one is used to train the ML algorithm, the second one to train any eventual "hyper-parameters" of the algorithm and the _test_ subset is finally used to evaluate the quality of the algorithm.
 # Here, for brevity, we use only the _train_ and the _test_ subsets, implicitly assuming we already know the best hyper-parameters. Please refer to the [regression tutorial](@ref regression_tutorial) for examples of how to use the validation subset to train the hyper-parameters, or even better the [clustering tutorial](@ref clustering_tutorial) for an example of using the [`cross_validation`](@ref) function.
@@ -84,18 +85,27 @@ y_oh  = onehotencoder(y);
 
 # As the labels are encoded using integers,  we need also to specify the parameter `force_classification=true`, otherwise the model would undergo a _regression_ job instead.
 
-myForest       = buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),force_classification=true);
+
+#myForest       = buildForest(xtrain,ytrain,30, rng=copy(FIXEDRNG),force_classification=true);
+
+rfm      = DecisionTreeEstimator(force_classification=true,autotune=true)
+ŷtrain   = fit!(rfm,xtrain,string(ytrain))
+
+
 
 # To obtain the predicted values, we can simply use the function [`BetaML.Trees.predict`](@ref)
 #src [`predict`](@ref BetaML.Trees.predict)  [`predict`](@ref forest_prediction)
 # with our `myForest` model and either the training or the testing data.
-ŷtrain,ŷtest   = predict.(Ref(myForest), [xtrain,xtest],rng=copy(FIXEDRNG));
+#ŷtrain,ŷtest   = predict.(Ref(myForest), [xtrain,xtest],rng=copy(FIXEDRNG))
+ŷtest   = predict(rfm,xtest)
+
+
 # Finally we can measure the _accuracy_ of our predictions with the [`accuracy`](@ref) function, with the sidenote that we need first to "parse" the ŷs as forcing the classification job transformed automatically them to strings (they originally were integers):
 
 trainAccuracy,testAccuracy  = accuracy.([ytrain,ytest],[parse.(Int64,mode(ŷtrain,rng=copy(FIXEDRNG))),parse.(Int64,mode(ŷtest,rng=copy(FIXEDRNG)))])
 #src (0.9969230769230769,0.8024691358024691)
 
-@test testAccuracy > 0.8 #src
+@test testAccuracy > 0.77 #src
 
 
 # The predictions are quite good, for the training set the algoritm predicted almost all cars' origins correctly, while for the testing set (i.e. those records that has **not** been used to train the algorithm), the correct prediction level is still quite high, at 80%

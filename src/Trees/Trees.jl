@@ -31,6 +31,7 @@ using  ForceImport
 
 import Base.print
 import Base.show
+import Base.convert
 
 export DecisionTreeEstimator, DTHyperParametersSet
 # export AbstractDecisionNode,Leaf, DecisionNode, 
