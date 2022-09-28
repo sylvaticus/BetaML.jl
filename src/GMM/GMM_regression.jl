@@ -39,31 +39,13 @@ mutable struct GMMRegressor1 <: BetaMLUnsupervisedModel
 end
 
 function GMMRegressor1(;kwargs...)
-    # ugly manual case...
-    if (:n_classes in keys(kwargs))
-        n_classes = kwargs[:n_classes]
-    else
-        n_classes = 3
-    end
-    if ! (:mixtures in keys(kwargs))
-        mixtures = [DiagonalGaussian() for i in 1:n_classes]
-    elseif  typeof(kwargs[:mixtures]) <: UnionAll
-        mixtures = [kwargs[:mixtures]() for i in 1:n_classes]
-    else
-        mixtures = kwargs[:mixtures]
-    end
-    hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = mixtures)
-
-    m = GMMRegressor1(hps,BetaMLDefaultOptionsSet(),GMMRegressor1LearnableParameters(),nothing,false,Dict{Symbol,Any}())
+     m = GMMRegressor1(GMMHyperParametersSet(),BetaMLDefaultOptionsSet(),GMMRegressor1LearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
-              if kw == :mixtures
-                found = true; continue
-              end
               setproperty!(fobj,kw,kwv)
               found = true
           end
@@ -92,6 +74,9 @@ function fit!(m::GMMRegressor1,x,y)
     K             = m.hpar.n_classes
     initial_probmixtures            = m.hpar.initial_probmixtures
     mixtures      = m.hpar.mixtures
+    if  typeof(mixtures) <: UnionAll
+       mixtures = [mixtures() for i in 1:K]
+    end
     tol           = m.hpar.tol
     minimum_variance   = m.hpar.minimum_variance
     minimum_covariance = m.hpar.minimum_covariance
@@ -189,31 +174,13 @@ mutable struct GMMRegressor2 <: BetaMLUnsupervisedModel
 end
 
 function GMMRegressor2(;kwargs...)
-    # ugly manual case...
-    if (:n_classes in keys(kwargs))
-        n_classes = kwargs[:n_classes]
-    else
-        n_classes = 3
-    end
-    if ! (:mixtures in keys(kwargs))
-        mixtures = [DiagonalGaussian() for i in 1:n_classes]
-    elseif  typeof(kwargs[:mixtures]) <: UnionAll
-        mixtures = [kwargs[:mixtures]() for i in 1:n_classes]
-    else
-        mixtures = kwargs[:mixtures]
-    end
-    hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = mixtures)
-
-    m = GMMRegressor2(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = GMMRegressor2(GMMHyperParametersSet(),BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
-              if kw == :mixtures
-                found = true; continue
-              end
               setproperty!(fobj,kw,kwv)
               found = true
           end
@@ -233,6 +200,8 @@ Fit the [`GMMRegressor2`](@ref) model to data
 """
 function fit!(m::GMMRegressor2,x,y)
 
+    m.fitted || autotune!(m,(x,y))
+
     x = makematrix(x)
     N,DX = size(x)
     y = makematrix(y)
@@ -242,6 +211,10 @@ function fit!(m::GMMRegressor2,x,y)
     K             = m.hpar.n_classes
     initial_probmixtures            = m.hpar.initial_probmixtures
     mixtures      = m.hpar.mixtures
+    if  typeof(mixtures) <: UnionAll
+       mixtures = [mixtures() for i in 1:K]
+    end
+
     tol           = m.hpar.tol
     minimum_variance   = m.hpar.minimum_variance
     minimum_covariance = m.hpar.minimum_covariance

@@ -338,31 +338,13 @@ mutable struct GMMImputer <: Imputer
 end
 
 function GMMImputer(;kwargs...)
-    # ugly manual case...
-    if (:n_classes in keys(kwargs))
-        n_classes = kwargs[:n_classes]
-    else
-        n_classes = 3
-    end
-    if ! (:mixtures in keys(kwargs))
-        mixtures = [DiagonalGaussian() for i in 1:n_classes]
-    elseif  typeof(kwargs[:mixtures]) <: UnionAll
-        mixtures = [kwargs[:mixtures]() for i in 1:n_classes]
-    else
-        mixtures = kwargs[:mixtures]
-    end
-    hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = mixtures)
-
-    m   = GMMImputer(hps,BetaMLDefaultOptionsSet(),GMMImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m   = GMMImputer(GMMHyperParametersSet(),BetaMLDefaultOptionsSet(),GMMImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
-              if kw == :mixtures
-                found = true; continue
-              end
               setproperty!(fobj,kw,kwv)
               found = true
           end
@@ -380,11 +362,13 @@ Fit a matrix with missing data using [`GMMImputer`](@ref)
 """
 function fit!(m::GMMImputer,X)
     
-
     # Parameter alias..
     K             = m.hpar.n_classes
     initial_probmixtures            = m.hpar.initial_probmixtures
     mixtures      = m.hpar.mixtures
+    if  typeof(mixtures) <: UnionAll
+        mixtures = [mixtures() for i in 1:K]
+    end
     tol           = m.hpar.tol
     minimum_variance   = m.hpar.minimum_variance
     minimum_covariance = m.hpar.minimum_covariance

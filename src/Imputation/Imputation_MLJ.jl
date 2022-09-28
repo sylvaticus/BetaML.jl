@@ -66,7 +66,6 @@ function GaussianMixtureImputer(;
     rng           = Random.GLOBAL_RNG,
 )
     if typeof(mixtures) <: UnionAll
-        println("aaa")
         mixtures = [mixtures() for i in 1:n_classes]
     end
     return GaussianMixtureImputer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,verbosity,rng)

@@ -225,7 +225,10 @@ function lpdf(m::FullGaussian,x,mask)
     end
     =#
     diff = x .- μ
-    return -(nmd/2)*log(2pi)-(1/2)log(det(σ²))-(1/2)*diff'*σ²^(-1)*diff
+    #a = det(σ²)
+    #b = log(max(a,eps()))
+    #return -(nmd/2)*log(2pi)-(1/2)*b-(1/2)*diff'*σ²^(-1)*diff
+    return -(nmd/2)*log(2pi)-(1/2)log(max(det(σ²),eps()))-(1/2)*diff'*σ²^(-1)*diff
 
 
 end

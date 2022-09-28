@@ -336,12 +336,11 @@ ŷtrain_scaled = fit!(nnm,xtrain_scaled,ytrain_scaled)
 
 #-
 
-# To obtain the neural network predictions we apply the function `predict` to the feature matrix X for which we want to generate previsions, and then, in order to obtain the _unscaled_ estimates we use the [`inverse_predict`](@ref) function applied to the scaled values.
-# Note the usage of the _pipe_ operator to avoid ugly `function1(function2(function3(...)))` nested calls:
+# To obtain the neural network predictions we apply the function `predict` to the feature matrix X for which we want to generate previsions, and then we rescale y.
+# Normally we would apply here the `inverse_predict` function, but as we simple divided by 1000, we multiply ŷ by the same amount:
 
-ŷtrain = @pipe ŷtrain_scaled .* 1000             |> dropdims(_,dims=2)
-ŷtest  = @pipe predict(nnm,xtest_scaled) .* 1000 |> dropdims(_,dims=2)
-
+ŷtrain = ŷtrain_scaled .* 1000 
+ŷtest  = predict(nnm,xtest_scaled) .* 1000
 #-
 (rme_train, rme_test) = relative_mean_error.([ŷtrain,ŷtest],[ytrain,ytest])
 #src 0.134, 0.149
@@ -383,7 +382,7 @@ l1         = Flux.Dense(D,opt_size,Flux.relu)
 l2         = Flux.Dense(opt_size,opt_size,identity)
 l3         = Flux.Dense(opt_size,1,Flux.relu)
 Flux_nn    = Flux.Chain(l1,l2,l3)
-loss(x, y) = Flux.mse(Flux_nn(x), y)
+fluxloss(x, y) = Flux.mse(Flux_nn(x), y)
 ps         = Flux.params(Flux_nn)
 nndata     = Flux.Data.DataLoader((xtrain_scaled', ytrain_scaled'), batchsize=opt_batch_size,shuffle=true)
 
@@ -391,7 +390,7 @@ nndata     = Flux.Data.DataLoader((xtrain_scaled', ytrain_scaled'), batchsize=op
 #src ps2        = Flux.params(Flux_nn2)  ## A copy for the time benchmarking
 
 # We do the training of the Flux model...
-[Flux.train!(loss, ps, nndata, Flux.ADAM(0.001, (0.9, 0.8))) for i in 1:opt_epochs]
+[Flux.train!(fluxloss, ps, nndata, Flux.ADAM(0.001, (0.9, 0.8))) for i in 1:opt_epochs]
 
 #src # ..and we benchmark it..
 #src # ```
@@ -441,19 +440,17 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷtestfullf[stc:endc]], label=
 # There are two variants available, `GMMRegressor1` and `GMMRegressor2`, and this example uses  `GMMRegressor2`
 
 # First we define the model with its hyperparameters and the options (random seed, verbosity level..)
-m = GMMRegressor2(rng=copy(FIXEDRNG), verbosity=NONE)
-# @btime begin fit!(m,xtrainScaled,ytrainScaled); reset!(m) end
-# 13.584 ms (103690 allocations: 25.08 MiB)
+m = GMMRegressor2(rng=copy(FIXEDRNG), autotune=true,verbosity=NONE)
+#src # @btime begin fit!(m,xtrainScaled,ytrainScaled); reset!(m) end
+#src # 13.584 ms (103690 allocations: 25.08 MiB)
 
 # Here we fit the model to the training data..
-fit!(m,xtrain_scaled,ytrain_scaled)
+ŷtrainGMM_unscaled = fit!(m,xtrain_scaled,ytrain_scaled)
 # And here we predict...
-ŷtrainGMM = @pipe predict(m,xtrain_scaled) .* 1000;
-ŷtestGMM  = @pipe predict(m,xtest_scaled)  .* 1000;
+ŷtrainGMM = ŷtrainGMM_unscaled .* 1000;
+ŷtestGMM  = predict(m,xtest_scaled)  .* 1000;
 
 (rme_trainGMM, rme_testGMM) = relative_mean_error.([ŷtrainGMM,ŷtestGMM],[ytrain,ytest])
-
-
 
 
 # ## Summary
@@ -467,7 +464,7 @@ ŷtestGMM  = @pipe predict(m,xtest_scaled)  .* 1000;
 # | RF (DecisionTree.jl) | 0.002        | 0.304   | 36                  | 11                  |
 # | NN                   | 0.134        | 0.149   | 1768                | 758                 |
 # | NN (Flux.jl)         | 0.103        | 0.171   | 1708                | 282                 |
-# | GMMRegressor2        | 0.253        | 0.267   | 10.7                | 19.5                 |
+# | GMMRegressor2        | 0.138        | 0.295   | 10.7                | 19.5                 |
 # * on a Intel Core i5-8350U laptop and using the tutorial in BetaML 0.7 (without autotuning and model wrapping)
 
 # You may ask how stable are these results? How much do they depend from the specific RNG seed ? We re-evaluated a couple of times the whole script but changing random seeds:
@@ -479,7 +476,7 @@ ŷtestGMM  = @pipe predict(m,xtest_scaled)  .* 1000;
 # | RF (DecisionTree.jl) | 0.003      | 0.350     | 0.011      | 0.329     |
 # | NN                   | 0.116      | 0.161     | 0.119      | 0.153     | 
 # | NN (Flux.jl)         | 0.103      | 0.137     | 0.095      | 0.167     | 
-# | GMMRegressor2*       | 0.253      | 0.267     | 0.253      | 0.267     |
+# | GMMRegressor2*       | 0.138      | 0.295     | 0.138        | 0.295     |
 
 # * deterministic model
 

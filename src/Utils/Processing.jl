@@ -1238,12 +1238,13 @@ function tune!(m,method::GridSearch,data)
     compLock        = ReentrantLock()
     best_candidate  = Dict()
     lowest_loss     = Inf
-    subs = partition([data...],[method.res_share,1-method.res_share],rng=rng, copy=true)
-    #if eltype(data) <: AbstractArray # data has multiple arrays, like X,Y
+    n_orig          = size(data[1],1)
+    res_share       = method.res_share
+    if n_orig * res_share < 10 
+        res_share = 10 / n_orig # trick to avoid training on 1-sample, where some models have problems
+    end 
+    subs = partition([data...],[res_share,1-res_share],rng=rng, copy=true)
     sampleddata = (collect([subs[i][1] for i in 1:length(subs)])...,)
-    #else # data is a single matrix/tensor
-    #    sampleddata = (collect(subs[1]),)
-    #end
     masterSeed = rand(rng,100:typemax(Int64))
     rngs       = generate_parallel_rngs(rng,Threads.nthreads()) 
     n_candidates = length(candidates)
@@ -1289,13 +1290,18 @@ function tune!(m,method::SuccessiveHalvingSearch,data)
     candidates = _hpranges_2_candidates(hpranges)
     ncandidates = length(candidates)
     shrinkfactor = ncandidates^(1/epochs)
+    n_orig          = size(data[1],1)
 
     for e in 1:epochs
-        esubs = partition([data...],[res_shares[e],1-res_shares[e]],copy=false,rng=rng)
+        res_share       = res_shares[e]
+        if n_orig * res_share < 10 
+            res_share = 10 / n_orig # trick to avoid training on 1-sample, where some models have problems
+        end 
+        esubs = partition([data...],[res_share,1-res_share],copy=false,rng=rng)
         epochdata = (collect([esubs[i][1] for i in 1:length(esubs)])...,)
         ncandidates_thisepoch = Int(round(ncandidates/shrinkfactor^(e-1)))
         ncandidates_tokeep = Int(round(ncandidates/shrinkfactor^e))
-        options(m).verbosity >= HIGH && println("(e $e) N candidates to retain: $ncandidates_tokeep")
+        options(m).verbosity >= HIGH && println("(e $e) N data / cndidates / candidates to retain : $(n_orig * res_share) \t $ncandidates_thisepoch $ncandidates_tokeep")
         scores = Vector{Tuple{Float64,Dict}}(undef,ncandidates_thisepoch)
         masterSeed = rand(rng,100:typemax(Int64))
         rngs       = generate_parallel_rngs(rng,Threads.nthreads()) 
@@ -1336,6 +1342,8 @@ function autotune!(m,data) # or autotune!(m,data) ???
     if !(eltype(data) <: AbstractArray) # data is a single array
         data = (data,)
     end
+    n = size(data[1],1)
+    n >= 10 || error("Too few records to autotune the model. At very least I need 1O records ($n provided)")
     tune!(m,hyperparameters(m).tunemethod,data)
     return nothing
 end

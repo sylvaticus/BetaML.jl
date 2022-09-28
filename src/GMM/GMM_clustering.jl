@@ -182,13 +182,13 @@ Base.@kwdef mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
     Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\"`
     This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
     Note that mixing of different mixture types is not currently supported.
-    [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
-    mixtures::Union{Type,Vector{<: AbstractMixture}} = [DiagonalGaussian() for i in 1:n_classes]
+    [def: `DiagonalGaussian`]"""
+    mixtures::Union{Type,Vector{<: AbstractMixture}} = DiagonalGaussian
     "Tolerance to stop the algorithm [default: 10^(-6)]"
     tol::Float64                      = 10^(-6)
     "Minimum variance for the mixtures [default: 0.05]"
     minimum_variance::Float64              = 0.05
-    "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minimum_variance (see notes)."
+    "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minimum_variance."
     minimum_covariance::Float64            = 0.0
     """
     The computation method of the vector of the initial mixtures.
@@ -199,19 +199,19 @@ Base.@kwdef mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
     Note that currently "random" and "shuffle" initialisations are not supported in gmm-based algorithms.
     """
     initialisation_strategy::String              = "kmeans"
-    "Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]"
-    maximum_iterations::Int64                    = typemax(Int64)
+    "Maximum number of iterations [def: 5000]"
+    maximum_iterations::Int64                    = 5000
     """
     The method - and its parameters - to employ for hyperparameters autotuning.
     See [`SuccessiveHalvingSearch](@ref) for the default method (suitable for the GMM-based regressors)
     To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
-    tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("n_classes" =>[2,3,4,5],"mixtures"=>[SphericalGaussian,DiagonalGaussian,FullGaussian], "initialisation_strategy"=>["grid,","kmeans"]),multithreads=true)
+    tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("n_classes" =>[2,3,4,5,6],"mixtures"=>[SphericalGaussian,DiagonalGaussian,FullGaussian], "initialisation_strategy"=>["grid","kmeans"],"minimum_covariance"=>[0.01,0.02],"minimum_variance"=>[0.05,0.07,0.1]),multithreads=true)
 end
 
 
 Base.@kwdef mutable struct GMMClusterLearnableParameters <: BetaMLLearnableParametersSet
-    mixtures::Vector{AbstractMixture}           = []
+    mixtures::Union{Type,Vector{<: AbstractMixture}}    = AbstractMixture[] # attention that this is set up at model construction, as it has the same name as the hyperparameter
     initial_probmixtures::Vector{Float64}               = []
     #probRecords::Union{Nothing,Matrix{Float64}} = nothing
 end
@@ -239,31 +239,13 @@ mutable struct GMMClusterer <: BetaMLUnsupervisedModel
 end
 
 function GMMClusterer(;kwargs...)
-    # ugly manual case...
-    if (:n_classes in keys(kwargs))
-        n_classes = kwargs[:n_classes]
-    else
-        n_classes = 3
-    end
-    if ! (:mixtures in keys(kwargs))
-        mixtures = [DiagonalGaussian() for i in 1:n_classes]
-    elseif  typeof(kwargs[:mixtures]) <: UnionAll
-        mixtures = [kwargs[:mixtures]() for i in 1:n_classes]
-    else
-        mixtures = kwargs[:mixtures]
-    end
-    hps = GMMHyperParametersSet(n_classes = n_classes, mixtures = mixtures)
-
-    m = GMMClusterer(hps,BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+     m = GMMClusterer(GMMHyperParametersSet(),BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
        for f in thisobjfields
           fobj = getproperty(m,f)
           if kw in fieldnames(typeof(fobj))
-              if kw == :mixtures
-                found = true; continue
-              end
               setproperty!(fobj,kw,kwv)
               found = true
           end
@@ -287,6 +269,9 @@ function fit!(m::GMMClusterer,x)
     K             = m.hpar.n_classes
     initial_probmixtures            = m.hpar.initial_probmixtures
     mixtures      = m.hpar.mixtures
+    if  typeof(mixtures) <: UnionAll
+        mixtures = [mixtures() for i in 1:K]
+    end
     tol           = m.hpar.tol
     minimum_variance   = m.hpar.minimum_variance
     minimum_covariance = m.hpar.minimum_covariance

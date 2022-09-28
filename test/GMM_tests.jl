@@ -114,7 +114,6 @@ mreTrain2d = relative_mean_error(ytrain2d,ŷtrain2d,normrec=true)
 @test mreTrain2d <= 0.08
 
 # Testing GMM Regressor 2
-
 m = GMMRegressor2(n_classes=2,rng=copy(TESTRNG), verbosity=NONE)
 fit!(m,xtrain,ytrain)
 ŷtrain = predict(m, xtrain)
@@ -139,6 +138,15 @@ ŷtrain2d = predict(m, xtrain)
 mreTrain2d = relative_mean_error(ytrain2d,ŷtrain2d,normrec=true)
 @test mreTrain2d <= 0.08
 
+# testing with different mixtures definition
+m = GMMRegressor2(rng=copy(TESTRNG),verbosity=NONE)
+fit!(m,xtrain,ytrain)
+m = GMMRegressor2(mixtures=[DiagonalGaussian(),DiagonalGaussian(),DiagonalGaussian()],rng=copy(TESTRNG), verbosity=NONE)
+fit!(m,xtrain,ytrain)
+m = GMMRegressor2(n_classes=2,mixtures=SphericalGaussian,rng=copy(TESTRNG), verbosity=NONE)
+fit!(m,xtrain,ytrain)
+m = GMMRegressor2(autotune=true,rng=copy(TESTRNG), verbosity=NONE)
+fit!(m,xtrain,ytrain)
 
 
 # ==================================
