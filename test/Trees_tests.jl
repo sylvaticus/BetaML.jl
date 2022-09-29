@@ -40,10 +40,17 @@ ŷtrain3 = predict(m) # using cached elements
 
 
 ytrainI = fit!(OrdinalEncoder(),ytrain)
-ytrainI = convert(Vector{Int64},ytrainI) 
-m = DecisionTreeEstimator(rng=copy(TESTRNG),force_classification=true)
-ŷtrainI =   fit!(m,xtrain,ytrainI)
-predict(m,xtrain)
+mi = DecisionTreeEstimator(rng=copy(TESTRNG),force_classification=true)
+ŷtrainI =   fit!(mi,xtrain,ytrainI)
+predict(mi,xtrain)
+@test accuracy(ytrainI,ŷtrainI, rng=copy(TESTRNG)) == 1
+
+mi = RandomForestEstimator(rng=copy(TESTRNG),force_classification=true)
+ŷtrainI =   fit!(mi,xtrain,ytrainI)
+predict(mi,xtrain)
+@test accuracy(ytrainI,ŷtrainI, rng=copy(TESTRNG)) >= 0.8
+
+
 
 using AbstractTrees
 import AbstractTrees: printnode
@@ -186,7 +193,7 @@ ŷtrain2 == ŷtrain3
 predictionsByTree = [] # don't use weights...
 for i in 1:30
     old = trees[i]
-    new = m.par.trees[i]
+    new = m.par.forest.trees[i]
     pold = predict(old,xtrain, rng=copy(TESTRNG))
     pnew = predict(old,xtrain, rng=copy(TESTRNG))
     push!(predictionsByTree,pold == pnew)

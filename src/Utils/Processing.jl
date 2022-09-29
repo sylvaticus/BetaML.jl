@@ -285,7 +285,7 @@ mutable struct OrdinalEncoder <: BetaMLUnsupervisedModel
     hpar::OneHotEncoderHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,OneHotEncoderLearnableParameters}
-    cres::Union{Nothing,Vector{Union{Int64,Missing}}}
+    cres::Union{Nothing,Vector{Int64},Vector{Union{Int64,Missing}}}
     fitted::Bool
     info::Dict{String,Any}
 end
@@ -373,6 +373,7 @@ function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
                 if handle_unknown == "error"
                     error("Found a category ($(x[n])) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to swith it to either `missing` or `infrequent`.")
                 elseif handle_unknown == "missing"
+                    outx = (enctype == :onehot) ? convert(Matrix{Union{Missing,Bool}},outx) : convert(Matrix{Union{Missing,Int64}},outx)
                     outx[n,:] = fill(missing,K);
                     continue
                 elseif handle_unknown == "infrequent"
@@ -384,7 +385,7 @@ function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
             end
             enctype == :onehot ? (outx[n,kidx] = true) : outx[n,1] = kidx
         end
-        m.cres = (enctype == :onehot) ? outx : dropdims(outx,dims=2)
+        m.cres = (enctype == :onehot) ? outx : collect(dropdims(outx,dims=2))
     end
 
     m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
@@ -423,6 +424,7 @@ function _predict(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
                 error("Found a category ($(x[n])) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to swith it to either `missing` or `infrequent`.")
                 continue
             elseif handle_unknown == "missing"
+                outx = (enctype == :onehot) ? convert(Matrix{Union{Missing,Bool}},outx) : convert(Matrix{Union{Missing,Int64}},outx)
                 outx[n,:] = fill(missing,K);
                 continue
             elseif handle_unknown == "infrequent"

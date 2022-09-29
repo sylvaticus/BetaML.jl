@@ -210,7 +210,6 @@ MMI.fitted_params(model::GaussianMixtureClusterer, fitresult) = (weights=fitesul
 
 function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
     x  = MMI.matrix(X) # convert table to matrix
-    println(ndims(y))
     ndims(y) < 2 || error("Trying to fit `GaussianMixtureRegressor` with a multidimensional target. Use `MultitargetGaussianMixtureRegressor` instead.")
     #=
     if typeof(y) <: AbstractMatrix

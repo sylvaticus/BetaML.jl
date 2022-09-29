@@ -40,3 +40,6 @@ macro threadsif(cond, loop)
         end
     end
 end
+
+# Attention, it uses Julia internals!
+get_parametric_types(obj) = typeof(obj).parameters

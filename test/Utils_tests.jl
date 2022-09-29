@@ -86,6 +86,13 @@ ŷ3  = predict(m,x)
 x2 = inverse_predict(m,ŷ)
 @test isequal(x2,["3","99",missing,"3","4"]) 
 
+x  = ["1","2","3"]
+m  = OrdinalEncoder(handle_unknown="missing")
+x̂  = fit!(m,x)
+x̂m = collect(predict(m,["1","4","3"]))
+@test x̂  == [1,2,3] && typeof(x̂) == Vector{Int64}
+@test isequal(x̂m,[1,missing,3])
+
 # ==================================
 # NEW TEST
 println("Testing findFirst/ findall / integerencoder / integerdecoder...")
@@ -694,6 +701,17 @@ out = pool1d(x,poolsize)
 @test out == [2.0,3.0,4.0,5.0]
 out = pool1d(x,poolsize;f=maximum)
 @test out == [3,4,5,6]
+
+
+
+# ==================================
+# New test
+println("** Testing get_parametric_types() (this uses Julia internals!)...")
+
+o = [1,2,3]
+T = get_parametric_types(o)[1]
+@test T == Int64
+
 
 #=
 using Random, StableRNGs

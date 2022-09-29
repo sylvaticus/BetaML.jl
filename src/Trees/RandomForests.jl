@@ -63,6 +63,12 @@ Base.@kwdef mutable struct RFHyperParametersSet <: BetaMLHyperParametersSet
     tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("n_trees" => [10, 20, 30, 40], "max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30],"beta"=>[0,0.01,0.1]),multithreads=false) # RF are already MT
 end
 
+Base.@kwdef mutable struct RFLearnableParameters <: BetaMLLearnableParametersSet
+    forest::Union{Nothing,Forest} = nothing #TODO: Forest contain info that is actualy in report. Currently we duplicate, we should just remove them from par by making a dedicated struct instead of Forest
+    Ty::DataType = Any
+end
+
+
 """
 $(TYPEDEF)
 
@@ -84,14 +90,14 @@ For the parameters see [`?RFHyperParametersSet`](@ref RFHyperParametersSet) and 
 mutable struct RandomForestEstimator <: BetaMLSupervisedModel
     hpar::RFHyperParametersSet
     opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,Forest} #TODO: Forest contain info that is actualy in report. Currently we duplicate, we should just remofe them from par by making a dedicated struct instead of Forest
+    par::Union{Nothing,RFLearnableParameters} 
     cres
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function RandomForestEstimator(;kwargs...)
-m              = RandomForestEstimator(RFHyperParametersSet(),BetaMLDefaultOptionsSet(),nothing,nothing,false,Dict{Symbol,Any}())
+m              = RandomForestEstimator(RFHyperParametersSet(),BetaMLDefaultOptionsSet(),RFLearnableParameters(),nothing,false,Dict{Symbol,Any}())
 thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
 for (kw,kwv) in kwargs
     found = false
@@ -195,10 +201,16 @@ function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
         autotune!(m,(x,y))
     end
 
+    Tynm = nonmissingtype(Ty)
     # Setting default parameters that depends from the data...
     max_depth    = m.hpar.max_depth    == nothing ?  size(x,1) : m.hpar.max_depth
     max_features = m.hpar.max_features == nothing ?  Int(round(sqrt(size(x,2)))) : m.hpar.max_features
-    splitting_criterion = m.hpar.splitting_criterion == nothing ? ( (Ty <: Number && !m.hpar.force_classification) ? variance : gini) : m.hpar.splitting_criterion
+    splitting_criterion = m.hpar.splitting_criterion == nothing ? ( (Tynm <: Number && !m.hpar.force_classification) ? variance : gini) : m.hpar.splitting_criterion
+
+    if (Tynm <: Integer && m.hpar.force_classification)
+        y = convert.(BetaMLClass,y)
+    end
+
     # Setting schortcuts to other hyperparameters/options....
     min_gain             = m.hpar.min_gain
     min_records          = m.hpar.min_records
@@ -211,21 +223,32 @@ function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
     verbosity           = m.opt.verbosity
     
     forest = buildForest(x, y, n_trees; max_depth = max_depth, min_gain=min_gain, min_records=min_records, max_features=max_features, force_classification=force_classification, splitting_criterion = splitting_criterion, β=β, oob=false,  rng = rng)
-    m.par = forest
 
-    m.cres = cache ? predictSingle.(Ref(forest),eachrow(x),rng=rng) : nothing
+    m.par = RFLearnableParameters(forest,Tynm)
+
+    if cache
+        rawout = predictSingle.(Ref(forest),eachrow(x),rng=rng)
+        if (Tynm <: Integer && m.hpar.force_classification)
+           out = [ Dict([convert(Tynm,k) => v for (k,v) in e]) for e in rawout]
+        else
+           out = rawout
+        end
+        m.cres = out
+     else
+        m.cres = nothing
+     end
     
     if oob
-        m.par.ooberror = ooberror(m.par,x,y;rng = rng) 
+        m.par.forest.ooberror = ooberror(m.par.forest,x,y;rng = rng) 
     end
 
     m.fitted = true
     
-    m.info["fitted_records"]             = size(x,1)
-    m.info["xndims"]                 = max_features
-    m.info["jobIsRegression"]            = m.par.is_regression ? 1 : 0
-    m.info["oob_errors"]                 = m.par.ooberror
-    depths = vcat([transpose([computeDepths(tree)[1],computeDepths(tree)[2]]) for tree in m.par.trees]...)
+    m.info["fitted_records"]   = size(x,1)
+    m.info["xndims"]           = max_features
+    m.info["jobIsRegression"]  = m.par.forest.is_regression ? 1 : 0
+    m.info["oob_errors"]       = m.par.forest.ooberror
+    depths = vcat([transpose([computeDepths(tree)[1],computeDepths(tree)[2]]) for tree in m.par.forest.trees]...)
     (m.info["avgAvgDepth"],m.info["avgMmax_depth"]) = mean(depths,dims=1)[1], mean(depths,dims=1)[2]
     return cache ? m.cres : nothing
 end
@@ -281,7 +304,15 @@ Predict the labels associated to some feature data using a trained [`RandomFores
 
 """
 function predict(m::RandomForestEstimator,x)
-    return predictSingle.(Ref(m.par),eachrow(x),rng=m.opt.rng)
+    #TODO: get Tynm here! and OrdinalEncoder!
+    #Ty = get_parametric_types(m.par)[1] |> nonmissingtype
+    Ty = m.par.Ty # this should already be the nonmissing type
+    rawout = predictSingle.(Ref(m.par.forest),eachrow(x),rng=m.opt.rng)
+    if (Ty <: Integer && m.hpar.force_classification)
+        return [ Dict([convert(Ty,k) => v for (k,v) in e]) for e in rawout]
+    else
+        return rawout
+    end
 end
 
 # ------------------------------------------------------------------------------

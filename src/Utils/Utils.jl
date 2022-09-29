@@ -61,7 +61,8 @@ export @codelocation, generate_parallel_rngs,
        ScalerHyperParametersSet, MinMaxScaler,StandardScaler,
        PCA, PCAHyperParametersSet,
        OneHotEncoder, OrdinalEncoder, OneHotEncoderHyperParametersSet,
-       @threadsif
+       @threadsif,
+       get_parametric_types
 
 # Various functions that we add a method to
 import Base.print, Base.println, Base.findfirst, Base.findall, Base.error, Random.shuffle, Base.show
