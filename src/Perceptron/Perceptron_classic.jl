@@ -355,7 +355,7 @@ function fit!(m::PerceptronClassifier,X,Y)
         nMsgs = 100000
     end
 
-    out = perceptron(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[:,c] for c in 2:nD+1], T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng)
+    out = perceptron(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[c,2:end] for c in 1:nCl], T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng)
 
     weights = hcat(out.θ₀,vcat(out.θ' ...))
     m.par = PerceptronClassifierLearnableParameters(weights,out.classes)

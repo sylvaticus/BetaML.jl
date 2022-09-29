@@ -654,9 +654,9 @@ function fit!(m::RFImputer,X)
     m.par = RFImputerLearnableParameters(forests)
     if cache
         if multiple_imputations == 1
-            m.cres = imputed[1]
+            m.cres = Utils.disallowmissing!(imputed[1])
         else
-            m.cres = imputed
+            m.cres = Utils.disallowmissing!.(imputed)
         end
     end 
     m.info["n_imputed_values"] = n_imputed_values
@@ -720,7 +720,7 @@ function predict(m::RFImputer,X)
         end # end dimension
         imputed[imputation]   = Xout
     end # end individual imputation
-    multiple_imputations == 1 ? (return imputed[1]) : return imputed
+    multiple_imputations == 1 ? (return Utils.disallowmissing!(imputed[1])) : return Utils.disallowmissing!.(imputed)
 end
 
 function show(io::IO, ::MIME"text/plain", m::RFImputer)
@@ -907,9 +907,9 @@ function fit!(m::UniversalImputer,X)
     m.par = UniversalImputerLearnableParameters(estimators)
     if cache
         if multiple_imputations == 1
-            m.cres = imputed[1]
+            m.cres = Utils.disallowmissing!(imputed[1])
         else
-            m.cres = imputed
+            m.cres = Utils.disallowmissing!.(imputed)
         end
     end 
     m.info["n_imputed_values"] = n_imputed_values
@@ -983,7 +983,7 @@ function predict(m::UniversalImputer,X)
         end # end dimension
         imputed[imputation]   = Xout
     end # end individual imputation
-    multiple_imputations == 1 ? (return imputed[1]) : return imputed
+    multiple_imputations == 1 ? (return Utils.disallowmissing!(imputed[1])) : return Utils.disallowmissing!.(imputed)
 end
 
 function show(io::IO, ::MIME"text/plain", m::UniversalImputer)

@@ -195,6 +195,8 @@ Base.@kwdef mutable struct ConfusionMatrixHyperParametersSet <: BetaMLHyperParam
   handle_missing::String = "error"
   "Which value to assign to the \"other\" category (i.e. categories not seen in the gound truth or not present in the provided `categories` array? [def: ` nothing`, i.e. typemax(Int64) for integer vectors and \"other\" for other types]. This setting is active only if `handle_unknown=\"infrequent\"` and in that case it MUST be specified if the vector to one-hot encode is neither integer or strings"
   other_categories_name = nothing
+  "A dictionary to map categories to some custom names. Useful for example if categories are integers, or you want to use shorter names [def: `Dict()`, i.e. not used]. This option isn't currently compatible with missing values or when some record has a value not in this provided dictionary."
+  categories_names = Dict()
   "Wheter `predict` should return the normalised scores. Note that both unnormalised and normalised scores remain available using `info`. [def: `true`]"
   normalise_scores = true
 end
@@ -292,6 +294,12 @@ This model supports multiple training (but the categories, if not provided, are 
 function fit!(m::ConfusionMatrix,Y,Ŷ)
     nR = size(Y,1)
     size(Ŷ,1) == nR || error("Y and Ŷ have different number of elements!")
+
+    rng                    = m.opt.rng
+    if eltype(Ŷ) <: Dict || ndims(Ŷ) > 1# allow probabilistic outputs
+        Ŷ = mode(Ŷ,rng=rng)
+    end
+
     vtype = eltype(Y) 
 
     # Parameter aliases
@@ -299,6 +307,7 @@ function fit!(m::ConfusionMatrix,Y,Ŷ)
     handle_unknown         = m.hpar.handle_unknown
     handle_missing         = m.hpar.handle_missing
     other_categories_name  = m.hpar.other_categories_name
+    categories_names       = m.hpar.categories_names
     if isnothing(other_categories_name)
         if nonmissingtype(vtype) <: Integer
             other_categories_name = typemax(Int64)
@@ -309,8 +318,15 @@ function fit!(m::ConfusionMatrix,Y,Ŷ)
     normalise_scores       = m.hpar.normalise_scores
     cache                  = m.opt.cache
     verbosity              = m.opt.verbosity
-    rng                    = m.opt.rng
+
     fitted                 = m.fitted
+
+
+    if categories_names != Dict()
+        Y = map(x->categories_names[x], Y) 
+        Ŷ = map(x->categories_names[x], Ŷ)
+    end
+
 
     if fitted
         categories_applied = m.par.categories_applied

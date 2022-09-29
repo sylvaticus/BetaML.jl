@@ -438,6 +438,12 @@ original_stdout = stdout
 @test BetaML.Utils.println(cm) == nothing
 redirect_stdout(original_stdout)
 close(wr)
+
+cm = ConfusionMatrix(categories_names = Dict(0=>"0",1=>"1",2=>"2"))
+fit!(cm,y,ŷ)
+res = info(cm)
+@test res["categories"] == ["0","1","2"]
+
 # ==================================
 # New test
 println("** Testing class_counts()...")

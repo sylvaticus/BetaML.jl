@@ -965,7 +965,7 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
    
     if cache
        ŷ  = predict(nnstruct,X)
-       if ndims(ŷ) > 1 && nn_osize == 1
+       if ndims(ŷ) > 1 && size(layers[end])[2] == 1
           m.cres = dropdims(ŷ,dims=2)
        else
           m.cres = ŷ

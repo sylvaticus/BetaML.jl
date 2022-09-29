@@ -136,7 +136,7 @@ sumθ = θ; sumθ₀ = θ₀
   ηₜ = η(t)
   if shuffle
      # random shuffle x and y
-     ridx = Base.shuffle(rng, 1:size(x)[1])
+     ridx = Random.shuffle(rng, 1:size(x)[1])
      x = x[ridx, :]
      y = y[ridx]
   end
@@ -278,7 +278,7 @@ function fit!(m::PegasosClassifier,X,Y)
         nMsgs = 100000
     end
 
-    out = pegasos(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[:,c] for c in 2:nD+1], λ=learning_rate_multiplicative, η=learning_rate, T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng)
+    out = pegasos(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[c,2:end] for c in 1:nCl], λ=learning_rate_multiplicative, η=learning_rate, T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng)
 
     weights = hcat(out.θ₀,vcat(out.θ' ...))
     m.par = PegasosClassifierLearnableParameters(weights,out.classes)

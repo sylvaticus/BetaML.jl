@@ -1197,7 +1197,7 @@ Base.@kwdef mutable struct SuccessiveHalvingSearch <: AutoTuneMethod
     "Loss function to use. [def: [`l2loss_by_cv`](@ref)`]. Any function that takes a model, data (a vector of arrays, even if we work only with X) and (using the `rng` keyword) a RNG and return a scalar loss."
     loss::Function = l2loss_by_cv
     "Shares of the (data) resources to use for the autotuning in the successive iterations [def: `[0.05, 0.2, 0.3]`]. With `res_share=1` all the dataset is used for autotuning, it can be very time consuming!"
-    res_shares::Vector{Float64} = [0.05, 0.2, 0.3]
+    res_shares::Vector{Float64} = [0.08, 0.1, 0.15, 0.2, 0.3, 0.4]
     "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values). The number of points you provide for a given parameter can be interpreted as proportional to the prior you have on the importance of that parameter for the algorithm quality."
     hpranges::Dict{String,Any} = Dict{String,Any}()
     "Use multiple threads in the search for the best hyperparameters [def: `false`]"
@@ -1303,7 +1303,7 @@ function tune!(m,method::SuccessiveHalvingSearch,data)
         epochdata = (collect([esubs[i][1] for i in 1:length(esubs)])...,)
         ncandidates_thisepoch = Int(round(ncandidates/shrinkfactor^(e-1)))
         ncandidates_tokeep = Int(round(ncandidates/shrinkfactor^e))
-        options(m).verbosity >= HIGH && println("(e $e) N data / cndidates / candidates to retain : $(n_orig * res_share) \t $ncandidates_thisepoch $ncandidates_tokeep")
+        options(m).verbosity >= STD && println("(e $e / $epochs) N data / candidates / candidates to retain : $(n_orig * res_share) \t $ncandidates_thisepoch $ncandidates_tokeep")
         scores = Vector{Tuple{Float64,Dict}}(undef,ncandidates_thisepoch)
         masterSeed = rand(rng,100:typemax(Int64))
         rngs       = generate_parallel_rngs(rng,Threads.nthreads()) 
