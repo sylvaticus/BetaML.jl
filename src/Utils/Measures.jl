@@ -155,7 +155,7 @@ function l2loss_by_cv(m,data;nsplits=5,rng=Random.GLOBAL_RNG)
         ohm = OneHotEncoder(handle_unknown="infrequent",cache=false)
         fit!(ohm,y)
     end
-    (μ,σ) = cross_validation([x,y],sampler,rng=rng) do trainData,valData,rng
+    (μ,σ) = cross_validation([x,y],sampler) do trainData,valData,rng
         (xtrain,ytrain) = trainData; (xval,yval) = valData
         fit!(m,xtrain,ytrain)
         ŷval     = predict(m,xval)
