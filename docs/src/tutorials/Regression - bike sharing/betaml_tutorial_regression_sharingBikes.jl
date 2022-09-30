@@ -14,11 +14,20 @@
 
 # ## Library and data loading
 
+# Activating the local environment specific to 
+using Pkg
+Pkg.activate(joinpath(@__DIR__,"..","..",".."))
+
 # We first load all the packages we are going to use
-using  LinearAlgebra, Random, Statistics, DataFrames, CSV, Plots, Pipe, BenchmarkTools, BetaML
+using  LinearAlgebra, Random, Statistics, StableRNGs, DataFrames, CSV, Plots, Pipe, BenchmarkTools, BetaML
 import Distributions: Uniform, DiscreteUniform
 import DecisionTree, Flux ## For comparisions
 using  Test     #src
+
+# Here we are explicit and we use our own fixed RNG:
+seed = 123 # The table at the end of this tutorial has been obtained with seeds 123, 1000 and 10000
+AFIXEDRNG = StableRNG(seed)
+
 
 # Here we load the data from a csv provided by the BataML package
 basedir = joinpath(dirname(pathof(BetaML)),"..","docs","src","tutorials","Regression - bike sharing")
@@ -42,6 +51,9 @@ plot(data.cnt, title="Daily bike sharing rents (2Y)", label=nothing)
 x    = Matrix{Float64}(data[:,[:instant,:season,:yr,:mnth,:holiday,:weekday,:workingday,:weathersit,:temp,:atemp,:hum,:windspeed]])
 y    = data[:,16];
 
+# We finally set up a dataframe to store the relative mean errors of the various models we'll use.
+results = DataFrame(model=String[],train_rme=Float64[],test_rme=Float64[])
+
 # ### Model selection
 
 
@@ -52,7 +64,7 @@ y    = data[:,16];
 
 # Then we define the model we want to use, [`DecisionTreeEstimator`](@ref) in this case, and we create an instance of the model: 
 
-m = DecisionTreeEstimator(autotune=true, rng=copy(FIXEDRNG))
+m = DecisionTreeEstimator(autotune=true, rng=copy(AFIXEDRNG))
 
 # Passing a fixed Random Number Generator (RNG) to the `rng` parameter guarantees that everytime we use the model with the same data (from the model creation downward to value prediciton) we obtain the same results. In particular BetaML provide `FIXEDRNG`, an istance of `StableRNG` that guarantees reproducibility even across different Julia versions. See the section ["Dealing with stochasticity"](@ref dealing_with_stochasticity) for details. 
 # Note the `autotune` parameter. BetaML has perhaps what is the easiest method for automatically tuning the model hyperparameters (thus becoming in this way _learned_ parameters). Indeed, in most cases it is enought to pass the attribute `autotune=true` on the model constructor and hyperparameters search will be automatically performed on the first `fit!` call.
@@ -63,7 +75,7 @@ tuning_method = SuccessiveHalvingSearch(
                    res_shares   = [0.05, 0.2, 0.3],
                    multithreads =true
                 )
-m_dt = DecisionTreeEstimator(autotune=true, rng=copy(FIXEDRNG), tunemethod=tuning_method)
+m_dt = DecisionTreeEstimator(autotune=true, rng=copy(AFIXEDRNG), tunemethod=tuning_method)
 
 # Note that the defaults change according to the specific model, for example `RandomForestEstimator`](@ref) autotuning default to not being multithreaded, as the individual model is already multithreaded.
 
@@ -77,14 +89,14 @@ ŷtrain = fit!(m_dt,xtrain,ytrain)
 #src # - including auto-tuning:
 #src # ```
 #src # @btime let 
-#src #    m = DecisionTreeEstimator(autotune=true, rng=copy(FIXEDRNG), verbosity=NONE, cache=false)
+#src #    m = DecisionTreeEstimator(autotune=true, rng=copy(AFIXEDRNG), verbosity=NONE, cache=false)
 #src #    fit!(m,$xtrain,$ytrain)
 #src # end
 #src # ```
 #src # 323.560 ms (4514026 allocations: 741.38 MiB)
 #src # - excluding autotuning:
 #src # ```
-#src # m = DecisionTreeEstimator(autotune=false, rng=copy(FIXEDRNG), verbosity=NONE, cache=false)
+#src # m = DecisionTreeEstimator(autotune=false, rng=copy(AFIXEDRNG), verbosity=NONE, cache=false)
 #src # @btime let 
 #src #     fit!(m,$xtrain,$ytrain)
 #src #     reset!(m)
@@ -110,7 +122,10 @@ ŷtest  = predict(m_dt, xtest)
 rme_train = relative_mean_error(ytrain,ŷtrain) # 0.1367
 rme_test  = relative_mean_error(ytest,ŷtest) # 0.1547
 
-@test rme_test <= 0.24 #src
+@test rme_test <= 0.3 #src
+
+# And we save the real mean accuracies in the `results` dataframe:
+push!(results,["DT",rme_train,rme_test]);
 
 
 # We can plot the true labels vs the estimated one for the three subsets...
@@ -136,26 +151,26 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷtestfull[stc:endc]], label=[
 # Rather than trying to solve this problem using a single Decision Tree model, let's not try to use a _Random Forest_ model. Random forests average the results of many different decision trees and provide a more "stable" result.
 # Being made of many decision trees, random forests are hovever more computationally expensive to train.
 
-m_rf      = RandomForestEstimator(autotune=true, oob=true, rng=copy(FIXEDRNG))
+m_rf      = RandomForestEstimator(autotune=true, oob=true, rng=copy(AFIXEDRNG))
 ŷtrain    = fit!(m_rf,xtrain,ytrain);
 ŷtest     = predict(m_rf,xtest);
 rme_train = relative_mean_error(ytrain,ŷtrain) # 0.056
 rme_test  = relative_mean_error(ytest,ŷtest)   # 0.161
-
+push!(results,["RF",rme_train,rme_test]);
 
 #src # Let's now benchmark the training of the BetaML Random Forest model
 #src #
 #src # - including auto-tuning:
 #src # ```
 #src # @btime let 
-#src #    m = RandomForestEstimator(autotune=true, rng=copy(FIXEDRNG), verbosity=NONE, cache=false)
+#src #    m = RandomForestEstimator(autotune=true, rng=copy(AFIXEDRNG), verbosity=NONE, cache=false)
 #src #    fit!(m,$xtrain,$ytrain)
 #src # end
 #src #  ```
 #src # 69.524 s (592717390 allocations: 80.28 GiB)
 #src # - excluding autotuning:
 #src # ```
-#src # m = RandomForestEstimator(autotune=false, rng=copy(FIXEDRNG), verbosity=NONE, cache=false)
+#src # m = RandomForestEstimator(autotune=false, rng=copy(AFIXEDRNG), verbosity=NONE, cache=false)
 #src # @btime let 
 #src #     fit!(m,$xtrain,$ytrain)
 #src #     reset!(m)
@@ -173,7 +188,7 @@ rme_test  = relative_mean_error(ytest,ŷtest)   # 0.161
 info(m_rf)
 oob_error, rme_test  = info(m_rf)["oob_errors"],relative_mean_error(ytest,ŷtest)
 #+
-@test rme_test <= 0.17 #src
+@test rme_test <= 0.20 #src
 
 # In this case we found an error very similar to the one employing a single decision tree. Let's print the observed data vs the estimated one using the random forest and then along the temporal axis:
 scatter(ytrain,ŷtrain,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in training period (RF)")
@@ -196,8 +211,19 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷtrainfull[stc:endc] ŷtestf
 
 best_rf_hp = hyperparameters(m_rf)
 # Hyperparameters of the DecisionTree.jl random forest model
-n_subfeatures=-1; n_trees=best_rf_hp.n_trees; partial_sampling=1; max_depth=best_rf_hp.max_depth
-min_samples_leaf=best_rf_hp.min_records; min_samples_split=best_rf_hp.min_records; min_purity_increase=0.0; seed=3
+
+#src # set of classification parameters and respective default values
+#src # n_subfeatures: number of features to consider at random per split (default: -1, sqrt(# features))
+#src # n_trees: number of trees to train (default: 10)
+#src # partial_sampling: fraction of samples to train each tree on (default: 0.7)
+#src # max_depth: maximum depth of the decision trees (default: no maximum)
+#src # min_samples_leaf: the minimum number of samples each leaf needs to have (default: 5)
+#src # min_samples_split: the minimum number of samples in needed for a split (default: 2)
+#src # min_purity_increase: minimum purity needed for a split (default: 0.0)
+#src # keyword rng: the random number generator or seed to use (default Random.GLOBAL_RNG)
+#src #              multi-threaded forests must be seeded with an `Int`
+n_subfeatures=isnothing(best_rf_hp.max_features) ? -1 : best_rf_hp.max_features; n_trees=best_rf_hp.n_trees; partial_sampling=0.7; max_depth=isnothing(best_rf_hp.max_depth) ? typemax(Int64) : best_rf_hp.max_depth;
+min_samples_leaf=best_rf_hp.min_records; min_samples_split=best_rf_hp.min_records; min_purity_increase=best_rf_hp.min_gain;
 
 # We train the model..
 model = DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
@@ -228,7 +254,9 @@ model = DecisionTree.build_forest(ytrain, convert(Matrix,xtrain),
 #src # ```
 #src # DecisionTrees.jl makes a good job in optimising the Random Forest algorithm, as it is over 3 times faster that BetaML.
 
-(rme_train, rme_test) = relative_mean_error.([ŷtrain,ŷtest],[ytrain,ytest]) # 0.022 and 0.304
+(rme_train, rme_test) = relative_mean_error.([ytrain,ytest],[ŷtrain,ŷtest]) # 0.022 and 0.304
+push!(results,["RF (DecisionTree.jl)",rme_train,rme_test]);
+
 # While the train error is very small, the error on the test set remains relativly high. The very low error level on the training set is a sign that it overspecialised on the training set, and we should have better ran a dedicated hyper-parameter tuning function for the DecisionTree.jl model (we did try using the default `DecisionTrees.jl` parameters, but we obtained roughtly the same results).
 
 @test rme_test <= 0.32 #src
@@ -300,9 +328,9 @@ D               = size(xtrain,2)
 # Let's hence build our candidate neural network structures, choosing between 5 and 10 nodes in the hidden layers:
 
 candidate_structures = [
-        [DenseLayer(D,k,f=relu,df=drelu,rng=copy(FIXEDRNG)),     # Activation function is ReLU, it's derivative is drelu
-         DenseLayer(k,k,f=identity,df=identity,rng=copy(FIXEDRNG)), # This is the hidden layer we vant to test various sizes
-         DenseLayer(k,1,f=relu,df=didentity,rng=copy(FIXEDRNG))] for k in 5:2:10]
+        [DenseLayer(D,k,f=relu,df=drelu,rng=copy(AFIXEDRNG)),     # Activation function is ReLU, it's derivative is drelu
+         DenseLayer(k,k,f=identity,df=identity,rng=copy(AFIXEDRNG)), # This is the hidden layer we vant to test various sizes
+         DenseLayer(k,1,f=relu,df=didentity,rng=copy(AFIXEDRNG))] for k in 5:2:10]
 
 # Note that specify the derivatives of the activation functions (and of the loss function that we'll see in a moment) it totally optional, as without them BetaML will use [`Zygote.jl`](https://github.com/FluxML/Zygote.jl for automatic differentiation.
 
@@ -311,13 +339,13 @@ candidate_structures = [
 
 # The hyperparameter ranges will then look as follow:
 hpranges = Dict("layers"     => candidate_structures, 
-                "epochs"     => rand(copy(FIXEDRNG),DiscreteUniform(50,100),3), # 3 values sampled at random between 50 and 100
+                "epochs"     => rand(copy(AFIXEDRNG),DiscreteUniform(50,100),3), # 3 values sampled at random between 50 and 100
                 "batch_size" => [4,8,16],
                 "opt_alg"    => [SGD(λ=2),SGD(λ=1),SGD(λ=3),ADAM(λ=0.5),ADAM(λ=1),ADAM(λ=0.25)])
 
 # Finally we can build "neural network" [`NeuralNetworkEstimator`](@ref) model where we "chain" the layers together and we assign a final loss function (again, you can provide your own loss function, if those available in BetaML don't suit your needs): 
 
-nnm = NeuralNetworkEstimator(loss=squared_cost, descr="Bike sharing regression model", tunemethod=SuccessiveHalvingSearch(hpranges = hpranges), autotune=true,rng=copy(FIXEDRNG)) # Build the NN model and use the squared cost (aka MSE) as error function by default
+nnm = NeuralNetworkEstimator(loss=squared_cost, descr="Bike sharing regression model", tunemethod=SuccessiveHalvingSearch(hpranges = hpranges), autotune=true,rng=copy(AFIXEDRNG)) # Build the NN model and use the squared cost (aka MSE) as error function by default
 
 #src NN without any parameters:
 #src nnm2                  = NeuralNetworkEstimator(autotune=true)
@@ -343,6 +371,8 @@ ŷtrain = ŷtrain_scaled .* 1000
 ŷtest  = predict(nnm,xtest_scaled) .* 1000
 #-
 (rme_train, rme_test) = relative_mean_error.([ŷtrain,ŷtest],[ytrain,ytest])
+push!(results,["NN",rme_train,rme_test]);
+
 #src 0.134, 0.149
 
 # The error is much lower. Let's plot our predictions:
@@ -375,7 +405,7 @@ opt_batch_size = hp_opt.batch_size
 opt_epochs     = hp_opt.epochs
 
 # We fix the default random number generator so that the Flux example gives a reproducible output
-Random.seed!(123)
+Random.seed!(seed)
 
 # We define the Flux neural network model and load it with data...
 l1         = Flux.Dense(D,opt_size,Flux.relu)
@@ -406,6 +436,7 @@ ŷtestf  = @pipe Flux_nn(xtest_scaled')'  .* 1000;
 
 # ..and we compute the mean relative errors..
 (rme_train, rme_test) = relative_mean_error.([ŷtrainf,ŷtestf],[ytrain,ytest])
+push!(results,["NN (Flux.jl)",rme_train,rme_test]);
 #src 0.102, 0.171
 # .. finding an error not significantly different than the one obtained from BetaML.Nn.
 
@@ -441,7 +472,7 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷtestfullf[stc:endc]], label=
 # As for neural networks, they work on numerical data only, so we reuse the datasets we prepared for the neural networks.
 
 # As usual we first define the model with the autotune option:
-m = GMMRegressor2(rng=copy(FIXEDRNG), autotune=true,verbosity=NONE)
+m = GMMRegressor2(rng=copy(AFIXEDRNG), autotune=true,verbosity=NONE)
 #src # @btime begin fit!(m,xtrainScaled,ytrainScaled); reset!(m) end
 #src # 13.584 ms (103690 allocations: 25.08 MiB)
 
@@ -451,35 +482,27 @@ ŷtrainGMM_unscaled = fit!(m,xtrain_scaled,ytrain_scaled)
 ŷtrainGMM = ŷtrainGMM_unscaled .* 1000;
 ŷtestGMM  = predict(m,xtest_scaled)  .* 1000;
 
-(rme_trainGMM, rme_testGMM) = relative_mean_error.([ŷtrainGMM,ŷtestGMM],[ytrain,ytest])
-
+(rme_train, rme_test) = relative_mean_error.([ŷtrainGMM,ŷtestGMM],[ytrain,ytest])
+push!(results,["GMM",rme_train,rme_test]);
 
 # ## Summary
 
-# This is the summary of the results we had trying to predict the daily bike sharing demand, given weather and calendar information.
+# This is the summary of the results (train and test relative mean error) we had trying to predict the daily bike sharing demand, given weather and calendar information:
 
-# | Model                | Train rme     | Test rme|  Training time (ms)* | Training mem (MB)*  |
-# |:-------------------- |:-------------:| --------:| ------------------- | ------------------- |
-# | DT                   | 0.137        | 0.155   | 26.5                | 58                  |
-# | RF                   | 0.056        | 0.161   | 362                 | 971                 |
-# | RF (DecisionTree.jl) | 0.002        | 0.304   | 36                  | 11                  |
-# | NN                   | 0.134        | 0.149   | 1768                | 758                 |
-# | NN (Flux.jl)         | 0.103        | 0.171   | 1708                | 282                 |
-# | GMMRegressor2        | 0.138        | 0.295   | 10.7                | 19.5                 |
-# * on a Intel Core i5-8350U laptop and using the tutorial in BetaML 0.7 (without autotuning and model wrapping)
+println(results)
 
-# You may ask how stable are these results? How much do they depend from the specific RNG seed ? We re-evaluated a couple of times the whole script but changing random seeds:
+# You may ask how stable are these results? How much do they depend from the specific RNG seed ? We re-evaluated a couple of times the whole script but changing random seeds (to `1000` and `10000`):
 
-# | Model                | Train rme2 | Test rme2 | Train rme3 | Test rme3 | 
-# |:-------------------- |:----------:|:---------:|:----------:|:---------:|
-# | DT                   | 0.037      | 0.168     | 0.127      | 0.148     |
-# | RF                   | 0.058      | 0.180     | 0.053      | 0.162     |
-# | RF (DecisionTree.jl) | 0.003      | 0.350     | 0.011      | 0.329     |
-# | NN                   | 0.116      | 0.161     | 0.119      | 0.153     | 
-# | NN (Flux.jl)         | 0.103      | 0.137     | 0.095      | 0.167     | 
-# | GMMRegressor2*       | 0.138      | 0.295     | 0.138      | 0.295     |
+# | Model                | Train rme1 | Test rme1 | Train rme2 | Test rme2 | Train rme3 | Test rme3 | 
+# |:-------------------- |:----------:|:---------:|:----------:|:---------:|:----------:|:---------:|
+# | DT                   | 0.1366960  | 0.154720  | 0.0233044  | 0.249329  | 0.0621571  | 0.161657  |
+# | RF                   | 0.0421267  | 0.180186  | 0.0535776  | 0.136920  | 0.0386144  | 0.141606  |
+# | RF (DecisionTree.jl) | 0.0230439  | 0.235823  | 0.0801040  | 0.243822  | 0.0168764  | 0.219011  |
+# | NN                   | 0.1604000  | 0.169952  | 0.1091330  | 0.121496  | 0.1481440  | 0.150458  | 
+# | NN (Flux.jl)         | 0.0931161  | 0.166228  | 0.0920796  | 0.167047  | 0.0907810  | 0.122469  | 
+# | GMMRegressor2*       | 0.1432800  | 0.293891  | 0.1380340  | 0.295470  | 0.1477570  | 0.284567  |
 
-# * deterministic model
+# * GMM is a deterministic model, the variations are due to the different random sampling in choosing the best hyperparameters
 
 # Neural networks can be more precise than random forests models, but are more computationally expensive (and tricky to set up). When we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less versatile).
 # GMM_based regressors are very computationally cheap and a good compromise if accuracy can be traded off for performances.

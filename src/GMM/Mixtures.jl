@@ -209,7 +209,7 @@ function lpdf(m::FullGaussian,x,mask)
     μ   = m.μ[mask]
     nmd = length(μ)
     σ²  = reshape(m.σ²[mask*mask'],(nmd,nmd))
-    σ²  = σ² + max(0, -2minimum(eigvals(σ²))) * I # Improve numerical stability https://stackoverflow.com/q/57559589/1586860 (-2 * minimum...) https://stackoverflow.com/a/35612398/1586860
+    σ²  = σ² + max(eps(), -2minimum(eigvals(σ²))) * I # Improve numerical stability https://stackoverflow.com/q/57559589/1586860 (-2 * minimum...) https://stackoverflow.com/a/35612398/1586860
 
     #=
     try

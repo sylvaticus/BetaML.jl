@@ -37,8 +37,8 @@ const _TUTORIAL_DIR = joinpath(SRC_ROOTDIR, "tutorials")
 # Important: If some tutorial is removed but the md file is left, this may still  be used by Documenter
 _TUTORIAL_SUBDIR = [
     #"Getting started",
-    "Regression - bike sharing",
     "Classification - cars",
+    "Regression - bike sharing",
     "Clustering - Iris"
 ]
 

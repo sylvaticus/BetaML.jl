@@ -1099,17 +1099,17 @@ function cols_with_missing(x)
 end
 
 """
-    cross_validation(f,data,sampler;dims,verbosity,returnStatistics)
+$(TYPEDSIGNATURES)
 
 Perform cross_validation according to `sampler` rule by calling the function f and collecting its output
 
 # Parameters
 - `f`: The user-defined function that consume the specific train and validation data and return somehting (often the associated validation error). See later
 - `data`: A single n-dimenasional array or a vector of them (e.g. X,Y), depending on the tasks required by `f`.
-- sampler: An istance of a ` AbstractDataSampler`, defining the "rules" for sampling at each iteration. [def: `KFold(nsplits=5,nrepeats=1,shuffle=true,rng=Random.GLOBAL_RNG)` ]
+- sampler: An istance of a ` AbstractDataSampler`, defining the "rules" for sampling at each iteration. [def: `KFold(nsplits=5,nrepeats=1,shuffle=true,rng=Random.GLOBAL_RNG)` ]. Note that the RNG passed to the `f` function is the `RNG` passed to the sampler
 - `dims`: The dimension over performing the cross_validation i.e. the dimension containing the observations [def: `1`]
 - `verbosity`: The verbosity to print information during each iteration (this can also be printed in the `f` function) [def: `STD`]
-- `returnStatistics`: Wheter cross_validation should return the statistics of the output of `f` (mean and standard deviation) or the whole outputs [def: `true`].
+- `return_statistics`: Wheter cross_validation should return the statistics of the output of `f` (mean and standard deviation) or the whole outputs [def: `true`].
 
 # Notes
 
@@ -1120,7 +1120,7 @@ This approach is very flexible because the specific model to employ or the metri
 **Input of the user-provided function**
 `trainData` and `valData` are both themselves tuples. In supervised models, cross_validations `data` should be a tuple of (X,Y) and `trainData` and `valData` will be equivalent to (xtrain, ytrain) and (xval, yval). In unsupervised models `data` is a single array, but the training and validation data should still need to be accessed as  `trainData[1]` and `valData[1]`.
 **Output of the user-provided function**
-The user-defined function can return whatever. However, if `returnStatistics` is left on its default `true` value the user-defined function must return a single scalar (e.g. some error measure) so that the mean and the standard deviation are returned.
+The user-defined function can return whatever. However, if `return_statistics` is left on its default `true` value the user-defined function must return a single scalar (e.g. some error measure) so that the mean and the standard deviation are returned.
 
 Note that `cross_validation` can beconveniently be employed using the `do` syntax, as Julia automatically rewrite `cross_validation(data,...) trainData,valData,rng  ...user defined body... end` as `cross_validation(f(trainData,valData,rng ), data,...)`
 
@@ -1141,14 +1141,14 @@ julia> (μ,σ) = cross_validation([X,Y],sampler) do trainData,valData,rng
 ```
 
 """
-function cross_validation(f,data,sampler=KFold(nsplits=5,nrepeats=1,shuffle=true,rng=Random.GLOBAL_RNG);dims=1,verbosity=STD, returnStatistics=true)
+function cross_validation(f,data,sampler=KFold(nsplits=5,nrepeats=1,shuffle=true,rng=Random.GLOBAL_RNG);dims=1,verbosity=STD, return_statistics=true)
     iterResults = []
     for (i,iterData) in enumerate(SamplerWithData(sampler,data,dims))
        iterResult = f(iterData[1],iterData[2],sampler.rng)
        push!(iterResults,iterResult)
        verbosity > HIGH && println("Done iteration $i. This iteration output: $iterResult")
     end
-    if returnStatistics  return (mean(iterResults),std(iterResults)) else return iterResults end
+    if return_statistics  return (mean(iterResults),std(iterResults)) else return iterResults end
 end
 
    

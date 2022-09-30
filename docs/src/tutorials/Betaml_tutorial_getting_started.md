@@ -4,9 +4,10 @@
 
 This "tutorial" part of the documentation presents a step-by-step guide to the main algorithms and utility functions provided by BetaML and comparisons with the leading packages in each field.
 Aside this page, the tutorial is divided in the following sections:
--  [Regression tutorial](@ref regression_tutorial) - Topics: _Decision trees, Random forests, neural networks, hyper-parameter tuning, continuous error measures_
--  [Classification tutorial](@ref classification_tutorial) - Topics: _Decision trees and random forests, neural networks (softmax), pre-processing workflow, confusion matrix_
--  [Clustering tutorial](@ref clustering_tutorial) - Topics: _k-means, kmedoids, generative (gaussian) mixture models (gmm), cross-validation_
+
+-  [Classification tutorial](@ref classification_tutorial) - Topics: _Decision trees and random forests, neural networks (softmax), dealing with stochasticity, loading data from internet_
+-  [Regression tutorial](@ref regression_tutorial) - Topics: _Decision trees, Random forests, neural networks, hyper-parameters autotuning, one-hot encoding, continuous error measures_
+-  [Clustering tutorial](@ref clustering_tutorial) - Topics: _k-means, kmedoids, generative (gaussian) mixture models (gmm), cross-validation, ordinal encoding_
 
 Detailed usage instructions on each algorithm can be found on each model struct (listed [here](@ref models_list)), while theoretical notes describing most of them can be found at the companion repository [https://github.com/sylvaticus/MITx_6.86x](https://github.com/sylvaticus/MITx_6.86x).
 
@@ -166,8 +167,9 @@ We can then call the above function in R in one of the following three ways:
 
 While other "convenience" functions are provided by the package, using  `julia_call`, or `julia_assign` followed by `julia_eval`, should suffix to use `BetaML` from R.
 
-## [Dealing with stochasticity](@id dealing_with_stochasticity)
+## [Dealing with stochasticity and reproducibility](@id dealing_with_stochasticity)
 
+Machine Learning workflows include stochastic components in several steps: in the data sampling, in the model initialisation and often in the models's own algorithms (and sometimes also in the prediction step).
 All BetaML models with a stochastic components support a `rng` parameter, standing for _Random Number Generator_. A RNG is a "machine" that streams a flow of random numbers. The flow itself however is deterministically determined for each "seed" (an integer number) that the RNG has been told to use.
 Normally this seed changes at each running of the script/model, so that stochastic models are indeed stochastic and their output differs at each run.
 
@@ -179,12 +181,28 @@ However the default Julia RNG guarantee to provide the same flow of random numbe
 - `MyModel(;rng=FIXEDRNG)`               : always produce the same sequence of results on each run of the script ("pulling" from the same rng object on different calls)
 - `MyModel(;rng=StableRNG(SOMEINTEGER))` : always produce the same result (new identical rng object on each call)
 
+This is very convenient expecially during model development, as a model that use `(...,rng=StableRNG(an_integer))` will provides stochastic results that are isolated (i.e. they don't depend from the consumption of the random stream from other parts of the model).
+
 In particular, use `rng=StableRNG(FIXEDSEED)` or `rng=copy(FIXEDRNG)` with [`FIXEDSEED`](@ref)  to retrieve the exact output as in the documentation or in the unit tests.
 
 Most of the stochasticity appears in _training_ a model. However in few cases (e.g. decision trees with missing values) some stochasticity appears also in _predicting_ new data using a trained model. In such cases the model doesn't restrict the random seed, so that you can choose at _predict_ time to use a fixed or a variable random seed.
 
-Finally, if you plan to use multiple threads and want to provide a reproducible output independent to the number of threads used, have a look at [`generate_parallel_rngs`](@ref).
+Finally, if you plan to use multiple threads and want to provide the same stochastic output independent to the number of threads used, have a look at [`generate_parallel_rngs`](@ref).
 
-## Saving trained models
+"Reproducible stochasticity" is only one of the elements needed for a reproductible output. The other two are (a) the inputs the workflow uses and (b) the code that is evaluated.
+Concerning the second point Julia has a very modern package system that guarantee reproducible code evaluation (with a few exception linked to using external libraries, but BetaML models are all implemented in Julia itself). Without going in detail, you can use a pattern like this at the beginning of your machine learning workflows:
 
-Please see [`model_save`](@ref) to learn how to save a trained model on disk and [`model_load`](@ref) for how to retrieve it.
+```        
+using Pkg  
+cd(@__DIR__)            
+Pkg.activate(".")  # Activate a "local" environment, specific to this folder
+Pkg.instantiate()  # Download and install the required packages if not already available 
+```
+
+This will tell Julia to load the exact version of dependent packages, and recursively of their dependencies, from a `Manifest.toml` file that is automatically created in the script's folder, and automatically updated, when you add or update a package in your workflow.
+Note that these locals "environments" are very "cheap" (packages are not actually copied to each environment on your system, only referenced) and the environment doen't need to be in the same script folder as in this example, can be any folder you want to "activate".
+
+## Saving and loading trained models
+
+Trained models can be saved on disk using the [`model_save`](@ref) function, and retrieved with [`model_load`](@ref).
+The advantage over the serialization functionality in Julia core is that the two functions are actually wrappers around equivalent [JLD2](https://juliaio.github.io/JLD2.jl/stable/) package functions, and should maintain compatibility across different Julia versions. 
