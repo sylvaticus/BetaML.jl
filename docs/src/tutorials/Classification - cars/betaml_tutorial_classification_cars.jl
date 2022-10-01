@@ -24,18 +24,21 @@
 
 # The car name is not used in this tutorial, so that the country is inferred only from technical data. As this field includes also the car maker, and there are several car's models from the same car maker, a more sophisticated machine learnign model could exploit this information e.g. using a bag of word encoding.
 
+using Dates     #src
+println(now(), " ", "*** Starting car classification tutorial..." )  #src
 
 # ## Library loading and initialisation
 
-# Activating the local environment specific to BetaML documentation
-using Pkg
-Pkg.activate(joinpath(@__DIR__,"..","..",".."))
+#src # Activating the local environment specific to BetaML documentation
+#src using Pkg
+#src Pkg.activate(joinpath(@__DIR__,"..","..",".."))
 
 # We load a buch of packages that we'll use during this tutorial..
 using Random, HTTP, Plots, CSV, DataFrames, BenchmarkTools, StableRNGs, BetaML
 import DecisionTree, Flux
 import Pipe: @pipe
 using  Test     #src
+println(now(), " - getting the data..." )  #src
 
 # Machine Learning workflows include stochastic components in several steps: in the data sampling, in the model initialisation and often in the models's own algorithms (and sometimes also in the prediciton step).
 # BetaML provides a random nuber generator  (RNG) in order to simplify reproducibility ( [`FIXEDRNG`](@ref BetaML.Utils.FIXEDRNG). This is nothing else than an istance of `StableRNG(123)` defined in the [`BetaML.Utils`](@ref utils_module) sub-module, but you can choose of course your own "fixed" RNG). See the [Dealing with stochasticity](@ref dealing_with_stochasticity) section in the [Getting started](@ref getting_started) tutorial for details.
@@ -57,6 +60,7 @@ data = @pipe HTTP.get(urlDataOriginal).body                                     
              CSV.File(_, delim=' ', missingstring="NA", ignorerepeated=true, header=false) |>
              DataFrame;
 
+println(now(), " ", "- data wrangling..." )  #src
 # This results in a table where the rows are the observations (the various cars' models) and the column the fields. All BetaML models expect this layout.
 
 # As the dataset is ordered, we randomly shuffle the data. 
@@ -96,6 +100,7 @@ y_oh  = fit!(OneHotEncoder(),y)
 results = DataFrame(model=String[],train_acc=Float64[],test_acc=Float64[])
 
 # ## Random Forests
+println(now(), " ", "- random forests..." )  #src
 
 # We are now ready to use our first model, the [`RandomForestEstimator`](@ref). Random Forests build a "forest" of decision trees models and then average their predictions in order to make an overall prediction, wheter a regression or a classification.
 
@@ -159,6 +164,7 @@ heatmap(string.(res["categories"]),string.(res["categories"]),res["normalised_sc
 #src # 134.096 ms (781027 allocations: 196.30 MiB)
 
 # ### Comparision with DecisionTree.jl
+println(now(), " ", "- DecisionTree.jl..." )  #src
 
 # We now compare BetaML [`RandomForestEstimator`] with the random forest estimator of the package [`DecisionTrees.jl`](https://github.com/JuliaAI/DecisionTree.jl)` random forests are similar in usage: we first "build" (train) the forest and we then make predictions out of the trained model.
 #src # They are much faster than [`RandomForestEstimator`], but they don't work with missing or fully categorical (unordered) data. As we will see the accuracy is roughly the same, if not a bit lower.
@@ -184,6 +190,7 @@ push!(results,["RF (DecisionTrees.jl)",trainAccuracy,testAccuracy]);
 #src 1.431 ms (10875 allocations: 1.52 MiB)
 
 # ### Neural network
+println(now(), " ", "- neutal networks..." )  #src
 
 # Neural networks (NN) can be very powerfull, but have two "inconvenients" compared with random forests: first, are a bit "picky". We need to do a bit of work to provide data in specific format. Note that this is _not_ feature engineering. One of the advantages on neural network is that for the most this is not needed for neural networks. However we still need to "clean" the data. One issue is that NN don't like missing data. So we need to provide them with the feature matrix "clean" of missing data. Secondly, they work only with numerical data. So we need to use the one-hot encoding we saw earlier.
 # Further, they work best if the features are scaled such that each feature has mean zero and standard deviation 1. This is why we scaled the data back at the beginning of this tutorial.
@@ -240,6 +247,8 @@ heatmap(string.(res["categories"]),string.(res["categories"]),res["normalised_sc
 
 # ### Comparisons with Flux
 
+println(now(), " ", "- Flux.jl..." )  #src
+
 # As we did for Random Forests, we compare BetaML neural networks with the leading package for deep learning in Julia, [`Flux.jl`](https://github.com/FluxML/Flux.jl). 
 
 # In Flux the input must be in the form (fields, observations), so we transpose our original matrices
@@ -278,6 +287,7 @@ push!(results,["NN (Flux.jl)",trainAccuracy,testAccuracy]);
 #src # 5.665 s (8943640 allocations: 1.07 GiB)
 
 # ## Perceptron-like classifiers.
+println(now(), " ", "- perceptrons-like classifiers..." )  #src
 
 # We finaly test 3 "perceptron-like" classifiers, the "classical" Perceptron ([`PerceptronClassifier`](@ref)), one of the first ML algorithms (a linear classifier), a "kernellised" version of it ([`KernelPerceptronClassifier`](@ref), default to using the radial kernel) and "Pegasos" ([`PegasosClassifier`](@ref)) another linear algorithm that starts considering a gradient-based optimisation, altought without the regularisation term as in the Support Vector Machines (SVM).  
 
@@ -329,3 +339,4 @@ println(results)
 
 # Neverthless the table above shows that, when we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less verstatile).
 # Also, for this dataset, Random Forests seems to remain marginally more accurate than Neural Network, altought of course this depends on the hyper-parameters and, with a single run of the models, we don't know if this difference is significant.
+println(now(), " ", "- DONE classification tutorial..." )  #src

@@ -13,6 +13,8 @@
 #     As the above example is automatically run by GitHub on every code update, it uses parameters (epoch numbers, parameter space of hyperparameter validation, number of trees,...) that minimise the computation. As the GitHub script automatically update all the packages, it doesn't run exactly the same code and some output may be slightly different than the one discussed.
 
 # ## Library and data loading
+using Dates                                                              #src
+println(now(), " ", "*** Starting bike demand regression tutorial..." )  #src
 
 #src # Activating the local environment specific to 
 #src using Pkg
@@ -23,6 +25,7 @@ using  LinearAlgebra, Random, Statistics, StableRNGs, DataFrames, CSV, Plots, Pi
 import Distributions: Uniform, DiscreteUniform
 import DecisionTree, Flux ## For comparisions
 using  Test     #src
+println(now(), " ", "- Loading, plotting, wrangling data..." )  #src
 
 # Here we are explicit and we use our own fixed RNG:
 seed = 123 # The table at the end of this tutorial has been obtained with seeds 123, 1000 and 10000
@@ -63,6 +66,7 @@ results = DataFrame(model=String[],train_rme=Float64[],test_rme=Float64[])
 (ntrain, ntest) = size.([ytrain,ytest],1)
 
 # Then we define the model we want to use, [`DecisionTreeEstimator`](@ref) in this case, and we create an instance of the model: 
+println(now(), " ", "- decision trees..." )  #src
 
 m = DecisionTreeEstimator(autotune=true, rng=copy(AFIXEDRNG))
 
@@ -150,6 +154,7 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷtestfull[stc:endc]], label=[
 # ## Random Forests
 # Rather than trying to solve this problem using a single Decision Tree model, let's not try to use a _Random Forest_ model. Random forests average the results of many different decision trees and provide a more "stable" result.
 # Being made of many decision trees, random forests are hovever more computationally expensive to train.
+println(now(), " ", "- random forests..." )  #src
 
 m_rf      = RandomForestEstimator(autotune=true, oob=true, rng=copy(AFIXEDRNG))
 ŷtrain    = fit!(m_rf,xtrain,ytrain);
@@ -208,6 +213,7 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷtrainfull[stc:endc] ŷtestf
 # ### Comparison with DecisionTree.jl random forest
 
 # We now compare our results with those obtained employing the same model in the [DecisionTree package](https://github.com/bensadeghi/DecisionTree.jl), using the hyperparameters of the obtimal BetaML Random forest model:
+println(now(), " ", "- decision trees.jl..." )  #src
 
 best_rf_hp = hyperparameters(m_rf)
 # Hyperparameters of the DecisionTree.jl random forest model
@@ -277,6 +283,7 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷtestfull[stc:endc]], label=[
 # To sum up, BetaML random forests are ideal algorithms when we want to obtain good predictions in the most simpler way, even without manually tuning the hyper-parameters, and without spending time in cleaning ("munging") the feature matrix, as they accept almost "any kind" of data as it is.
 
 # ## Neural Networks
+println(now(), " ", "- neural networks..." )  #src
 
 # BetaML provides only _deep forward neural networks_, artificial neural network units where the individual "nodes" are arranged in _layers_, from the _input layer_, where each unit holds the input coordinate, through various _hidden layer_ transformations, until the actual _output_ of the model:
 
@@ -395,7 +402,8 @@ endc = size(x,1)
 plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷtestfull[stc:endc]], label=["obs" "val" "test"], legend=:bottomleft, ylabel="Daily rides", title="Focus on the testing period (NN)")
 
 
-# ### Comparison with Flux
+# ### Comparison with Flux.jl
+println(now(), " ", "- Flux.jl..." )  #src
 
 # We now apply the same Neural Network model using the [Flux](https://fluxml.ai/) framework, a dedicated neural network library, reusing the optimal parameters that we did learn from tuning `NeuralNetworkEstimator`:
 
@@ -467,6 +475,8 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷtestfullf[stc:endc]], label=
 # Still, for small and medium datasets, BetaML provides simpler yet customisable solutions that are accurate and fast.
 
 # ## GMM-based regressors
+println(now(), " ", "- GMM regressor..." )  #src
+
 # BetaML 0.8 introduces new regression algorithms based on Gaussian Mixture Model.
 # Specifically, there are two variants available, `GMMRegressor1` and `GMMRegressor2`, and this example uses  `GMMRegressor2`
 # As for neural networks, they work on numerical data only, so we reuse the datasets we prepared for the neural networks.
@@ -506,3 +516,5 @@ println(results)
 
 # Neural networks can be more precise than random forests models, but are more computationally expensive (and tricky to set up). When we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less versatile).
 # GMM_based regressors are very computationally cheap and a good compromise if accuracy can be traded off for performances.
+
+println(now(), " ", "- DONE regression tutorial..." )  #src

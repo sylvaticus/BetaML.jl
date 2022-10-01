@@ -9,10 +9,12 @@
 
 
 # ## Library and data loading
+using Dates #src
+println(now(), " ", "*** Start iris clustering tutorial..." )  #src
 
-# Activating the local environment specific to BetaML documentation
-using Pkg
-Pkg.activate(joinpath(@__DIR__,"..","..",".."))
+#src # Activating the local environment specific to BetaML documentation
+#src using Pkg
+#src Pkg.activate(joinpath(@__DIR__,"..","..",".."))
 
 # We load the Beta Machine Learning Toolkit as well as some other packages that we use in this tutorial
 using BetaML
@@ -29,6 +31,7 @@ AFIXEDRNG = StableRNG(seed)
 # We do a few tweeks for the Clustering and GaussianMixtures packages. Note that in BetaML we can also control both the random seed and the verbosity in the algorithm call, not only globally
 Random.seed!(seed)
 #logger  = Logging.SimpleLogger(stdout, Logging.Error); global_logger(logger); ## For suppressing GaussianMixtures output
+println(now(), " ", "- data wrangling..." )  #src
 
 # Differently from the [regression tutorial](@ref regression_tutorial), we load the data here from [`RDatasets`](https://github.com/JuliaStats/RDatasets.jl](https://github.com/JuliaStats/RDatasets.jl), a package providing standard datasets.
 iris = dataset("datasets", "iris")
@@ -54,6 +57,7 @@ y  = fit!(OrdinalEncoder(categories=yLabels),iris[:,5])
 
 
 # ## Main analysis
+println(now(), " ", "- main analysis..." )  #src
 
 # We will try 3 BetaML models ([`KMeansClusterer`](@ref), [`KMedoidsClusterer`](@ref) and [`GMMClusterer`](@ref)) and we compare them with `kmeans` from Clusterings.jl and `GMM` from GaussianMixtures.jl
 # `KMeansClusterer` and `KMedoidsClusterer` works by first initialising the centers of the k-clusters (the "representative" (step a ) . For kmedoids they must be selected within one of the data, for kmeans they are the geometrical center) n a nutshell. Then ( b ) iterate for each point to assign the point to the cluster of the closest representative (according with a user defined distance metric, default to Euclidean), and ( c ) move each representative at the center of its newly acquired cluster (where "center" depends again from the metric). Steps ( b ) and ( c ) are reiterated until the algorithm converge, i.e. the tentative k representative points (and their relative clusters) don't move any more. The result (output of the algorithm) is that each point is assigned to one of the clusters (classes).
@@ -166,6 +170,7 @@ report = DataFrame(mName = modelLabels, avgAccuracy = dropdims(round.(μs',digit
 # The grid initialisation "guarantee" indeed that the initial means of the mixture components are well spread across the multidimensional space defined by the data, and it helps avoiding the EM algoritm to converge to a bad local optimus.
 
 # ## Working without the labels
+println(now(), " ", "- BIC based tuning of K..." )  #src
 
 # Up to now we used the real labels to compare the model accuracies. But in real clustering examples we don't have the true classes, or we wouln't need to do clustering in the first instance, so we don't know the number of classes to use.
 # There are several methods to judge clusters algorithms goodness, perhaps the simplest one, at least for the expectation-maximisation algorithm employed in `gmm` to fit the data to the unknown mixture, is to use a information criteria that trade the goodness of the lickelyhood with the parameters used to do the fit.
@@ -244,3 +249,4 @@ plot(1:K,[μsBICS' μsAICS'], labels=["BIC" "AIC"], title="Information criteria 
 
 # We have shown in this tutorial how we can easily run clustering algorithms in BetaML with just one line of code `fit!(ChoosenClusterer(),x)`, but also how can we use cross-validation in order to help the model or parameter selection, with or whithout knowing the real classes.
 # We retrieve here what we observed with supervised models. Globally the accuracy of BetaML models are comparable to those of leading specialised packages (in this case they are even better), but there is a significant gap in computational efficiency that restricts the pratical usage of BetaML to datasets that fits in the pc memory. However we trade this relative inefficiency with very flexible model definition and utility functions (for example `GMMClusterer` works with missing data, allowing it to be used as the backbone of the [`GMMImputer`](@ref) missing imputation function, or for collaborative reccomendation systems).
+println(now(), " ", "- DONE clustering tutorial..." )  #src
