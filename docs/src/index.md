@@ -36,7 +36,7 @@ Each module is documented on the links below (you can also use the inline Julia 
 - [**`BetaML.Imputation`**](Imputation.html): Imputation algorithms;
 - [**`BetaML.Utils`**](Utils.html): Various utility functions (scale, one-hot, distances, kernels, pca, accuracy/error measures..).
 
-## Available models(@id models_list)
+## [Available models](@id models_list)
 
 Currently BetaML provides the following models:
 
