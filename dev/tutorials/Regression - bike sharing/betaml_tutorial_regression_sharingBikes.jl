@@ -74,7 +74,7 @@ tuning_method = SuccessiveHalvingSearch(
                    hpranges     = Dict("max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30]),
                    loss         = l2loss_by_cv,
                    res_shares   = [0.05, 0.2, 0.3],
-                   multithreads =true
+                   multithreads = true
                 )
 m_dt = DecisionTreeEstimator(autotune=true, rng=copy(AFIXEDRNG), tunemethod=tuning_method)
 
