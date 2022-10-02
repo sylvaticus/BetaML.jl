@@ -1238,7 +1238,7 @@ function tune!(m,method::GridSearch,data)
     hpranges   = method.hpranges
     candidates = _hpranges_2_candidates(hpranges)
     rng             = options(m).rng
-    multithreads  = method.multithreads 
+    multithreads  = method.multithreads && Threads.nthreads() > 1
     compLock        = ReentrantLock()
     best_candidate  = Dict()
     lowest_loss     = Inf
@@ -1262,15 +1262,19 @@ function tune!(m,method::GridSearch,data)
         mc.opt.verbosity = NONE
         sethp!(mc,candidate) 
         μ =  method.loss(mc,sampleddata;rng=tsrng)   
-        options(m).verbosity == FULL && println(" -- predicted loss: $μ")   
-        lock(compLock) ## This step can't be run in parallel...
+        options(m).verbosity == FULL && println(" -- predicted loss: $μ")  
+        if multithreads 
+            lock(compLock) ## This step can't be run in parallel...
+        end
         try
             if μ < lowest_loss
                 lowest_loss = μ
                 best_candidate = candidate
             end
         finally
-            unlock(compLock)
+            if multithread
+                unlock(compLock)
+            end
         end
     end
     sethp!(m,best_candidate) 
@@ -1288,7 +1292,7 @@ function tune!(m,method::SuccessiveHalvingSearch,data)
     hpranges   = method.hpranges
     res_shares = method.res_shares
     rng             = options(m).rng
-    multithreads  = method.multithreads
+    multithreads    = method.multithreads && Threads.nthreads() > 1
     compLock        = ReentrantLock()
     epochs          = length(res_shares)
     candidates = _hpranges_2_candidates(hpranges)

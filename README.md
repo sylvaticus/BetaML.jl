@@ -169,7 +169,7 @@ Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl)
 
 ### Short term
 
-- [DONE] Implement utility functions to do hyper-parameter tuning using cross-validation as back-end
+- Implement autotuning of `GMMClusterer` using  `BIC` or `AIC`
 
 ### Mid/Long term
 

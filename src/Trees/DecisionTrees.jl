@@ -243,7 +243,7 @@ function partition(question::Question{Tx},x,mCols;sorted=false,rng = Random.GLOB
     else
         if sorted
             #val = x[question.column]
-            idx = searchsorted(x[:,question.column], question.value)
+            @views idx = searchsorted(x[:,question.column], question.value)
             if Tx <: Number
                 trueIdx[first(idx):end] .= true
             else
