@@ -1196,8 +1196,10 @@ $(TYPEDFIELDS)
 Base.@kwdef mutable struct SuccessiveHalvingSearch <: AutoTuneMethod
     "Loss function to use. [def: [`l2loss_by_cv`](@ref)`]. Any function that takes a model, data (a vector of arrays, even if we work only with X) and (using the `rng` keyword) a RNG and return a scalar loss."
     loss::Function = l2loss_by_cv
-    "Shares of the (data) resources to use for the autotuning in the successive iterations [def: `[0.05, 0.2, 0.3]`]. With `res_share=1` all the dataset is used for autotuning, it can be very time consuming!"
-    res_shares::Vector{Float64} = [0.08, 0.1, 0.15, 0.2, 0.3, 0.4]
+    """Shares of the (data) resources to use for the autotuning in the successive iterations [def: `[0.05, 0.2, 0.3]`]. With `res_share=1` all the dataset is used for autotuning, it can be very time consuming!
+    The number of models is reduced of the same share in order to arrive with a single model. Increase the number of `res_shares` in order to increase the number of models kept at each iteration.
+    """
+    res_shares::Vector{Float64} = [0.08, 0.1, 0.13, 0.15, 0.2, 0.3, 0.4]
     "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values). The number of points you provide for a given parameter can be interpreted as proportional to the prior you have on the importance of that parameter for the algorithm quality."
     hpranges::Dict{String,Any} = Dict{String,Any}()
     "Use multiple threads in the search for the best hyperparameters [def: `false`]"

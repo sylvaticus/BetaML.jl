@@ -2,8 +2,7 @@
 
 ## Master Style guide
 
-The Style guide should follow the official Julia Style Guide: https://docs.julialang.org/en/v1/manual/style-guide/
-
+The code in BetaML should follow the official [Julia Style Guide](https://docs.julialang.org/en/v1/manual/style-guide/).
 
 ## Names style
 

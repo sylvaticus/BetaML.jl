@@ -9,9 +9,6 @@
 
 # Note that even if we are estimating a time serie, we are not using here a recurrent neural network as we assume the temporal dependence to be negligible (i.e. $Y_t = f(X_t)$ alone).
 
-# !!! warning
-#     As the above example is automatically run by GitHub on every code update, it uses parameters (epoch numbers, parameter space of hyperparameter validation, number of trees,...) that minimise the computation. As the GitHub script automatically update all the packages, it doesn't run exactly the same code and some output may be slightly different than the one discussed.
-
 # ## Library and data loading
 using Dates                                                              #src
 println(now(), " ", "*** Starting bike demand regression tutorial..." )  #src
@@ -481,8 +478,12 @@ println(now(), " ", "- GMM regressor..." )  #src
 # Specifically, there are two variants available, `GMMRegressor1` and `GMMRegressor2`, and this example uses  `GMMRegressor2`
 # As for neural networks, they work on numerical data only, so we reuse the datasets we prepared for the neural networks.
 
-# As usual we first define the model. We don't use autotune here, as GitHub ci servers seems to have some strange troubles with it, taking almost 4 hours instead of a few seconds on my machine.
+# As usual we first define the model.
 m = GMMRegressor2(rng=copy(AFIXEDRNG),verbosity=NONE)
+
+# !!! info
+#     We disabled autotune here, as this code is run by GitHub continuous_integration servers on each code update, and GitHub servers seem to have some strange problem with it, taking almost 4 hours instead of a few seconds on my machine.
+
 #src # @btime begin fit!(m,xtrainScaled,ytrainScaled); reset!(m) end
 #src # 13.584 ms (103690 allocations: 25.08 MiB)
 
