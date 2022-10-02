@@ -29,9 +29,9 @@ println(now(), " ", "*** Starting car classification tutorial..." )  #src
 
 # ## Library loading and initialisation
 
-#src # Activating the local environment specific to BetaML documentation
-#src using Pkg
-#src Pkg.activate(joinpath(@__DIR__,"..","..",".."))
+# Activating the local environment specific to BetaML documentation
+using Pkg
+Pkg.activate(joinpath(@__DIR__,"..","..",".."))
 
 # We load a buch of packages that we'll use during this tutorial..
 using Random, HTTP, Plots, CSV, DataFrames, BenchmarkTools, StableRNGs, BetaML
