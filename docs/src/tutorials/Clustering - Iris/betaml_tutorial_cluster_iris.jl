@@ -12,9 +12,9 @@
 using Dates #src
 println(now(), " ", "*** Start iris clustering tutorial..." )  #src
 
-#src # Activating the local environment specific to BetaML documentation
-#src using Pkg
-#src Pkg.activate(joinpath(@__DIR__,"..","..",".."))
+# Activating the local environment specific to BetaML documentation
+using Pkg
+Pkg.activate(joinpath(@__DIR__,"..","..",".."))
 
 # We load the Beta Machine Learning Toolkit as well as some other packages that we use in this tutorial
 using BetaML

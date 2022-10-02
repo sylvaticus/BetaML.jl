@@ -16,9 +16,9 @@
 using Dates                                                              #src
 println(now(), " ", "*** Starting bike demand regression tutorial..." )  #src
 
-#src # Activating the local environment specific to 
-#src using Pkg
-#src Pkg.activate(joinpath(@__DIR__,"..","..",".."))
+# Activating the local environment specific to 
+using Pkg
+Pkg.activate(joinpath(@__DIR__,"..","..",".."))
 
 # We first load all the packages we are going to use
 using  LinearAlgebra, Random, Statistics, StableRNGs, DataFrames, CSV, Plots, Pipe, BenchmarkTools, BetaML
