@@ -1272,7 +1272,7 @@ function tune!(m,method::GridSearch,data)
                 best_candidate = candidate
             end
         finally
-            if multithread
+            if multithreads
                 unlock(compLock)
             end
         end
