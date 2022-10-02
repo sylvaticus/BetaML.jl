@@ -261,6 +261,7 @@ xtestT, ytest_ohT   = transpose.([xtest, ytest_oh])
 #src function poolForFlux(x,wsize=5)
 #src     hcat([pool1d(x[:,i],wsize;f=maximum) for i in 1:size(x,2)]...)
 #src end
+# We fix the random seed for Flux, altough you may still get different results depending on the number of threads used.. this is a problem we solve in BetaML with [`generate_parallel_rngs`](@ref).
 Random.seed!(seed)
 
 l1         = Flux.Dense(D,ls,Flux.relu)
