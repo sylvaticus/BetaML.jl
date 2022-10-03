@@ -28,7 +28,8 @@ A few conventions applied across the library:
 
 Thanks to respectively [PyJulia](https://github.com/JuliaPy/pyjulia) and [JuliaCall](https://github.com/Non-Contradiction/JuliaCall), using BetaML in Python or R is almost as simple as using a native library.
 In both cases we need first to download and install the Julia binaries for our operating system from [JuliaLang.org](https://julialang.org/). Be sure that Julia is working by opening the Julia terminal and e.g. typing `println("hello world")` (JuliaCall has an option to install a private-to-R version of Julia from within R).
-Also, in both case we do not need to think to converting Python/R objects to Julia objects when calling a Julia function and converting back the result from the Julia object to a Pytoh or R object, as this is handled automatically by PyJulia and JuliaCall, at least for simple types (arrays, strings,...)
+Also, in both case we do not need to think to converting Python/R objects to Julia objects when calling a Julia function and converting back the result from the Julia object to a Python or R object, as this is handled automatically by PyJulia and JuliaCall, at least for simple types (arrays, strings, ...).
+A different [JuliaCall](https://cjdoris.github.io/PythonCall.jl/stable/juliacall/) is also awailable to call from Python, that downloads Julia for you.
 
 ### Use BetaML in Python
 
