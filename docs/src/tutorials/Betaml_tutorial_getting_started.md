@@ -26,16 +26,20 @@ A few conventions applied across the library:
 
 ## [Using BetaML from other programming languages](@id using_betaml_from_other_languages)
 
-Thanks to respectively [PyJulia](https://github.com/JuliaPy/pyjulia) and [JuliaCall](https://github.com/Non-Contradiction/JuliaCall), using BetaML in Python or R is almost as simple as using a native library.
-In both cases we need first to download and install the Julia binaries for our operating system from [JuliaLang.org](https://julialang.org/). Be sure that Julia is working by opening the Julia terminal and e.g. typing `println("hello world")` (JuliaCall has an option to install a private-to-R version of Julia from within R).
-Also, in both case we do not need to think to converting Python/R objects to Julia objects when calling a Julia function and converting back the result from the Julia object to a Python or R object, as this is handled automatically by PyJulia and JuliaCall, at least for simple types (arrays, strings, ...).
-A different [JuliaCall](https://cjdoris.github.io/PythonCall.jl/stable/juliacall/) is also awailable to call from Python, that downloads Julia for you.
+In this section we learn how to use `BetaML` in Python or R is almost as simple as to use a native library, with objects converted automatically between Julia and Python, and hence no specific package wrappers are needed. For Python we will show two separate "Julia from Python" interfaces, [PyJulia](https://github.com/JuliaPy/pyjulia) and [JuliaCall](https://github.com/cjdoris/PythonCall.jl) with the second one being the most recent one, while for R we will show the [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) R package (no relations with the homonymous Python package).
 
 ### Use BetaML in Python
+
+#### With the classical `pyjulia` package
+
+[PyJulia](https://github.com/JuliaPy/pyjulia) is a relativelly old method to use Julia code and libraries in Python. It works great but it requires that you already have a Julia working installation on your PC, so we need first to download and install the Julia binaries for our operating system from [JuliaLang.org](https://julialang.org/). Be sure that Julia is working by opening the Julia terminal and e.g. typing `println("hello world")`
+
+Install `PyJulia` with: 
 
 ```
 $ python3 -m pip install --user julia   # the name of the package in `pip` is `julia`, not `PyJulia`
 ```
+
 For the sake of this tutorial, let's also install in Python a package that contains the dataset that we will use:
 ```
 $ python3 -m pip install --user sklearn # only for retrieving the dataset in the python way
@@ -62,6 +66,7 @@ While `jl.eval('some Julia code')` evaluates any arbitrary Julia code (see below
 
 ```python
 >>> from julia import BetaML
+>>> jl.seval("using BetaML")
 ```
 
 As you can see, it is no different than importing any other Python module.
@@ -82,7 +87,7 @@ We can now call BetaML functions as we would do for any other Python library fun
 >>> (Xs,ys) = BetaML.shuffle([X,y]) # X and y are first converted to julia arrays and then the returned julia arrays are converted back to python Numpy arrays
 >>> m       = BetaML.KMeansClusterer(n_classes=3)
 >>> yhat    = BetaML.fit_ex(m,Xs) # Python doesn't allow exclamation marks in function names, so we use `fit_ex(⋅)` instead of `fit!(⋅)`
->>> acc     = BetaML.accuracy(yhat,ys,ignorelabels=True)
+>>> acc     = BetaML.accuracy(ys,yhat,ignorelabels=True)
 >>> acc
  0.8933333333333333
 ```
@@ -104,12 +109,69 @@ Another alternative is to "eval" only the function name and pass the (python) ob
 0.7199999999999999
 ```
 
-Using either the direct call or the `eval` function you should be able to use all the BetaML functionalities directly from Python. If you run into problems using BetaML from Python, [open an issue](https://github.com/sylvaticus/BetaML.jl/issues/new) specifying your set-up.
+#### With the newer `JuliaCall` python package
+
+[JuliaCall](https://github.com/cjdoris/PythonCall.jl) is a newer way to use Julia in Python that doesn't require separate installation of Julia.
+
+Istall it in Python using `pip` as well:
+
+```
+$ python3 -m pip install --user juliacall
+```
+
+We can now open a Python terminal and, to obtain an interface to Julia, just run:
+
+```python
+>>> from juliacall import Main as jl
+```
+If you have `julia` on PATH, it will use that version, otherwise it will automatically download and install a private version for `JuliaCall`
+
+If we have multiple Julia versions, we can specify the one to use in Python passing `julia="/path/to/julia/binary/executable"` (e.g. `julia = "/home/myUser/lib/julia-1.8.0/bin/julia"`) to the `install()` function.
+
+To add `BetaML` to the JuliaCall private version we evaluate the julia package manager `add` function:
+
+```python
+>>> jl.seval('using Pkg; Pkg.add("BetaML")')# Only once to install BetaML
+```
+
+As with `PyJulia` we can evaluate arbitrary Julia code either using `jl.seval('some Julia code')` and by direct call, but let's first import `BetaML`:
+
+```python
+>>> jl.seval("using BetaML")
+>>> bml = jl.BetaML
+```
+
+For the data, we reuse the `X` and `y` Numpy arrays we loaded earlier.
+
+We can now call BetaML functions as we would do for any other Python library functions. In particular, we can pass to the functions (and retrieve) complex data types without worrying too much about the conversion between Python and Julia types, as these are converted automatically:
+
+
+```python
+>>> (Xs,ys) = bml.shuffle([X,y])
+>>> m       = bml.KMeansClusterer(n_classes=3)
+>>> yhat    = bml.fit_ex(m,Xs)
+>>> m._jl_display() # force a "Julian" way of displaing of Julia objects
+>>> acc     = bml.accuracy(ys,yhat,ignorelabels=True)
+>>> acc
+ 0.8933333333333333
+```
+
+Note: If we are using the `jl.eval()` interface, the objects we use must be already known to julia or can be passed as pyhton objects as arguments of the function call, evaluating only the function name:
+
+```python
+>>> X_python = [1,2,3,2,4]
+>>> jl.seval('BetaML.gini')(X_python)
+0.7199999999999999
+```
+
+#### Conclusions about using BetaML in Python
+
+Using either the direct call or the `eval` function, wheter in `Pyjulia` or `JuliaCall`, we should be able to use all the BetaML functionalities directly from Python. If you run into problems using BetaML from Python, [open an issue](https://github.com/sylvaticus/BetaML.jl/issues/new) specifying your set-up.
 
 
 ### Use BetaML in R
 
-We start by installing the `JuliaCall` R package:
+To use `BetaML` in R we start by installing the [`JuliaCall`]() R package:
 
 ```{r}
 > install.packages("JuliaCall")
