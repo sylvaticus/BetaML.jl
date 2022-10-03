@@ -156,7 +156,17 @@ We can now call BetaML functions as we would do for any other Python library fun
  0.8933333333333333
 ```
 
-Note: If we are using the `jl.eval()` interface, the objects we use must be already known to julia or can be passed as pyhton objects as arguments of the function call, evaluating only the function name:
+Note: If we are using the `jl.eval()` interface, the objects we use must be already known to julia. To pass objects from Python to Julia, we can write a small Julia _macro_:
+
+```python
+>>> X_python = [1,2,3,2,4]
+>>> jlstore = jl.seval("(k, v) -> (@eval $(Symbol(k)) = $v; return)")
+>>> jlstore("X_julia",X_python)
+>>> jl.seval("BetaML.gini(X_julia)")
+0.7199999999999999
+```
+
+Another alternative is to "eval" only the function name and pass the (python) objects in the function call:
 
 ```python
 >>> X_python = [1,2,3,2,4]
