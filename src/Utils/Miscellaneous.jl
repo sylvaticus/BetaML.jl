@@ -43,3 +43,9 @@ end
 
 # Attention, it uses Julia internals!
 get_parametric_types(obj) = typeof(obj).parameters
+
+isinteger_bml(_)          = false
+isinteger_bml(_::Integer) = true
+isinteger_bml(_::Nothing) = error("Trying to run isinteger() over a `Nothing` value")
+isinteger_bml(_::Missing) = missing
+isinteger_bml(x::AbstractFloat)   = isinteger(x)

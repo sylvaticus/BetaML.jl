@@ -50,6 +50,11 @@ ŷtrainI =   fit!(mi,xtrain,ytrainI)
 predict(mi,xtrain)
 @test accuracy(ytrainI,ŷtrainI, rng=copy(TESTRNG)) >= 0.8
 
+x = [1 0.1; 2 0.2; 3 0.3; 4 0.4; 5 0.5]
+y = ["a","a","b","b","b"]
+import BetaML.Trees: findbestgain_sortedvector
+@test findbestgain_sortedvector(x,y,2,x[:,2];mCols=[],currentUncertainty=gini(y),splitting_criterion=gini,rng=copy(TESTRNG)) == 0.3
+
 
 
 using AbstractTrees
@@ -143,8 +148,7 @@ ytrain = y[1:ntrain]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-myForest = buildForest(xtrain,ytrain,β=0,max_depth=20,oob=true,rng=copy(TESTRNG))
-
+myForest = buildForest(xtrain,ytrain,β=0,max_depth=20,oob=true,rng=copy(TESTRNG), fast_algorithm=false)
 trees = myForest.trees
 treesWeights = myForest.weights
 ooberror = myForest.ooberror
@@ -212,7 +216,7 @@ ytrain = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtrain[i] for (i,x) in enumerate(eachrow(xtra
 xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
 ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest))]
 
-myForest         = buildForest(xtrain,ytrain, min_gain=0.001, min_records=2, max_depth=3,rng=copy(TESTRNG))
+myForest         = buildForest(xtrain,ytrain, min_gain=0.001, min_records=2, max_depth=3,rng=copy(TESTRNG), fast_algorithm=true)
 trees            = myForest.trees
 treesWeights     = myForest.weights
 

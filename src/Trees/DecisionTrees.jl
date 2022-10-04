@@ -130,6 +130,10 @@ Base.@kwdef mutable struct DTHyperParametersSet <: BetaMLHyperParametersSet
     force_classification::Bool                   = false
     "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `nothing`, i.e. `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]. Either `gini`, `entropy`, `variance` or a custom function. It can also be an anonymous function."
     splitting_criterion::Union{Nothing,Function} = nothing
+    "Use an experimental faster algoritm for looking up the best split in ordered fields (colums). Currently it brings down the fitting time of an order of magnitude, but predictions are sensibly affected. If used, control the meaning of integer fields with `integer_encoded_cols`."
+    fast_algorithm::Bool                         = false
+    "A vector of columns positions to specify which integer columns should be treated as encoding of categorical variables insteads of ordered classes/values. [def: `nothing`, integer columns with less than 20 unique values are considered categorical]. Useful in conjunction with `fast_algorithm`, little difference otherwise."
+    integer_encoded_cols::Union{Nothing,Array{Int64,1}} =nothing
     """
     The method - and its parameters - to employ for hyperparameters autotuning.
     See [`SuccessiveHalvingSearch`](@ref) for the default method.
@@ -216,6 +220,8 @@ Rows with missing values on the question column are assigned randomly proportion
 function partition(question::Question{Tx},x,mCols;sorted=false,rng = Random.GLOBAL_RNG) where {Tx}
     N = size(x,1)
 
+    # TODO: possible huge improvement: pass to partition only the individual column of x rather than the whole x on all the columns
+
     trueIdx = fill(false,N);
 
     if  in(question.column,mCols) # do we have missings in this col ?
@@ -286,6 +292,43 @@ function infoGain(leftY, rightY, parentUncertainty; splitting_criterion=gini)
     return parentUncertainty - p * splitting_criterion(leftY) - (1 - p) * splitting_criterion(rightY)
 end
 
+
+function findbestgain_sortedvector(x,y,d,candidates;mCols,currentUncertainty,splitting_criterion,rng)
+    #println(splitting_criterion)
+    #println("HERE I AM CALLED ! Dimension $d, candidates: ", candidates)
+    n = size(candidates,1)
+    #println("n is: ",n)
+    #println("candidates is: ", candidates)
+    if n < 2
+        return candidates[1]
+    end
+    l = max(1,Int(round((1/4) * n ))) # lower bound candidate
+    u = min(n,Int(round((3/4) * n ))) # upper bound candidate
+
+    
+    #println("l is: ",l)
+    #println("u is: ",u)
+    lquestion = Question(d, candidates[l])
+    ltrueIdx  = partition(lquestion,x,mCols,sorted=true,rng=rng)
+    lgain = 0.0
+    if !all(ltrueIdx) && any(ltrueIdx)
+       lgain = infoGain(y[ltrueIdx], y[map(!,ltrueIdx)], currentUncertainty, splitting_criterion=splitting_criterion)
+    end
+
+    uquestion = Question(d, candidates[u])
+    utrueIdx  = partition(uquestion,x,mCols,sorted=true,rng=rng)
+    ugain = 0.0
+    if !all(utrueIdx) && any(utrueIdx)
+       ugain = infoGain(y[utrueIdx], y[map(!,utrueIdx)], currentUncertainty, splitting_criterion=splitting_criterion)
+    end    
+
+    if lgain > ugain
+        return findbestgain_sortedvector(x,y,d,candidates[1:u-1];mCols=mCols,currentUncertainty=currentUncertainty,splitting_criterion=splitting_criterion,rng=rng)
+    else
+        return findbestgain_sortedvector(x,y,d,candidates[l+1:n];mCols=mCols,currentUncertainty=currentUncertainty,splitting_criterion=splitting_criterion,rng=rng)
+    end
+end
+
 """
    findBestSplit(x,y;max_features,splitting_criterion)
 
@@ -301,46 +344,86 @@ Find the best question to ask by iterating over every feature / value and calcul
 - `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
 
 """
-function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_criterion=gini,rng = Random.GLOBAL_RNG) where {Ty}
-    bestGain           = 0.0  # keep track of the best information gain
-    bestQuestion       = Question(1,1.0) # keep train of the feature / value that produced it
+function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_criterion=gini, integer_encoded_cols, fast_algorithm, rng = Random.GLOBAL_RNG) where {Ty}
+    bestGain           = 0.0             # keep track of the best information gain
+    bestQuestion       = Question(1,1.0) # keep track of the feature / value that produced it
     currentUncertainty = splitting_criterion(y)
-    (N,D)  = size(x)  # number of columns (the last column is the label)
+    (N,D)              = size(x)  # number of columns (the last column is the label)
 
     featuresToConsider = (max_features >= D) ? (1:D) : shuffle(rng, 1:D)[1:max_features]
 
     for d in featuresToConsider      # for each feature (we consider only max_features features randomly)
         values = Set(skipmissing(x[:,d]))  # unique values in the column
         sortable = Utils.issortable(x[:,d])
-        if(sortable)
+        if(sortable && !in(d,integer_encoded_cols))
             sortIdx = sortperm(x[:,d])
             sortedx = x[sortIdx,:]
             sortedy = y[sortIdx]
+
+            if fast_algorithm
+                bestvalue     = findbestgain_sortedvector(sortedx,sortedy,d,sortedx;mCols=mCols,currentUncertainty=currentUncertainty,splitting_criterion=splitting_criterion,rng=rng)
+                bestQuestionD = Question(d,bestvalue)
+                btrueIdx      = partition(bestQuestionD,sortedx,mCols,sorted=true,rng=rng)
+                bestGainD     = 0.0             # keep track of the best information gain
+                if !all(btrueIdx) && any(btrueIdx)
+                    bestGainD  = infoGain(sortedy[btrueIdx], sortedy[map(!,btrueIdx)], currentUncertainty, splitting_criterion=splitting_criterion)
+                end
+                if bestGainD >= bestGain
+                    bestGain, bestQuestion = bestGainD, bestQuestionD
+                end
+            else
+                for val in values  # for each value- it is this one that I can optimize (when it is sortable)!
+                    question = Question(d, val)
+                    # try splitting the dataset
+                    #println(question)
+                    trueIdx = partition(question,sortedx,mCols,sorted=true,rng=rng)
+                    # Skip this split if it doesn't divide the
+                    # dataset.
+                    if all(trueIdx) || ! any(trueIdx)
+                        continue
+                    end
+                    # Calculate the information gain from this split
+                    gain = infoGain(sortedy[trueIdx], sortedy[map(!,trueIdx)], currentUncertainty, splitting_criterion=splitting_criterion)
+                    # You actually can use '>' instead of '>=' here
+                    # but I wanted the tree to look a certain way for our
+                    # toy dataset.
+                    if gain >= bestGain
+                    #    println("*** New best gain: ", question)
+                        bestGain, bestQuestion = gain, question
+                    #else
+                    #    println("    bad gain: ", question)
+                    end
+                end
+            end
+
         else
             sortIdx = 1:N
             sortedx = x
             sortedy = y
+
+            for val in values  # for each value - not optimisable
+                question = Question(d, val)
+                # try splitting the dataset
+                #println(question)
+                trueIdx = partition(question,sortedx,mCols,sorted=false,rng=rng)
+                # Skip this split if it doesn't divide the
+                # dataset.
+                if all(trueIdx) || ! any(trueIdx)
+                    continue
+                end
+                # Calculate the information gain from this split
+                gain = infoGain(sortedy[trueIdx], sortedy[map(!,trueIdx)], currentUncertainty, splitting_criterion=splitting_criterion)
+                # You actually can use '>' instead of '>=' here
+                # but I wanted the tree to look a certain way for our
+                # toy dataset.
+                if gain >= bestGain
+                    bestGain, bestQuestion = gain, question
+                end
+            end
+
         end
 
-        for val in values  # for each value
-            question = Question(d, val)
-            # try splitting the dataset
-            #println(question)
-            trueIdx = partition(question,sortedx,mCols,sorted=sortable,rng=rng)
-            # Skip this split if it doesn't divide the
-            # dataset.
-            if all(trueIdx) || ! any(trueIdx)
-                continue
-            end
-            # Calculate the information gain from this split
-            gain = infoGain(sortedy[trueIdx], sortedy[map(!,trueIdx)], currentUncertainty, splitting_criterion=splitting_criterion)
-            # You actually can use '>' instead of '>=' here
-            # but I wanted the tree to look a certain way for our
-            # toy dataset.
-            if gain >= bestGain
-                bestGain, bestQuestion = gain, question
-            end
-        end
+
     end
     return bestGain, bestQuestion
 end
@@ -374,7 +457,7 @@ The given tree is then returned.
 
 Missing data (in the feature dataset) are supported.
 """
-function buildTree(x, y::AbstractArray{Ty,1}; max_depth = size(x,1), min_gain=0.0, min_records=2, max_features=size(x,2), force_classification=false, splitting_criterion = (Ty <: Number && !force_classification) ? variance : gini, mCols=nothing, rng = Random.GLOBAL_RNG) where {Ty}
+function buildTree(x, y::AbstractArray{Ty,1}; max_depth = size(x,1), min_gain=0.0, min_records=2, max_features=size(x,2), force_classification=false, splitting_criterion = (Ty <: Number && !force_classification) ? variance : gini, integer_encoded_cols=nothing, fast_algorithm=false, mCols=nothing, rng = Random.GLOBAL_RNG) where {Ty}
 
 
     #println(depth)
@@ -389,6 +472,15 @@ function buildTree(x, y::AbstractArray{Ty,1}; max_depth = size(x,1), min_gain=0.
     nodes = TempNode[]
     depth = 1
 
+    if isnothing(integer_encoded_cols)
+        integer_encoded_cols = Int64[]
+        for (d,c) in enumerate(eachcol(x))
+            if(all(isinteger_bml.(skipmissing(c)))) && length(unique(skipmissing(c))) < 20 # hardcoded: when using automatic identifier of integer encoded cols, if less than XX values, we consider the integers to be an categorical encoded variable 
+              push!(integer_encoded_cols,d)
+            end
+        end
+    end
+
     # Deciding if the root node is a Leaf itself or not
 
     # Check if this branch has still the minimum number of records required and we are reached the max_depth allowed. In case, declare it a leaf
@@ -397,7 +489,7 @@ function buildTree(x, y::AbstractArray{Ty,1}; max_depth = size(x,1), min_gain=0.
     # Try partitioing the dataset on each of the unique attribute,
     # calculate the information gain,
     # and return the question that produces the highest gain.
-    gain, question = findBestSplit(x,y,mCols;max_features=max_features,splitting_criterion=splitting_criterion,rng=rng)
+    gain, question = findBestSplit(x,y,mCols;max_features=max_features,splitting_criterion=splitting_criterion,integer_encoded_cols=integer_encoded_cols,fast_algorithm=fast_algorithm,rng=rng)
 
     # Base case: no further info gain
     # Since we can ask no further questions,
@@ -421,7 +513,7 @@ function buildTree(x, y::AbstractArray{Ty,1}; max_depth = size(x,1), min_gain=0.
             # Try partitioing the dataset on each of the unique attribute,
             # calculate the information gain,
             # and return the question that produces the highest gain.
-            gain, question = findBestSplit(thisNode.x,thisNode.y,mCols;max_features=max_features,splitting_criterion=splitting_criterion,rng=rng)
+            gain, question = findBestSplit(thisNode.x,thisNode.y,mCols;max_features=max_features,splitting_criterion=splitting_criterion,integer_encoded_cols=integer_encoded_cols,fast_algorithm=fast_algorithm,rng=rng)
             if gain <= min_gain
                 isLeaf = true
             end
@@ -471,11 +563,13 @@ function fit!(m::DecisionTreeEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
     min_gain             = m.hpar.min_gain
     min_records          = m.hpar.min_records
     force_classification = m.hpar.force_classification
+    fast_algorithm       = m.hpar.fast_algorithm
+    integer_encoded_cols = m.hpar.integer_encoded_cols
     cache               = m.opt.cache
     rng                 = m.opt.rng
     verbosity           = m.opt.verbosity
 
-    tree = buildTree(x, y; max_depth = max_depth, min_gain=min_gain, min_records=min_records, max_features=max_features, force_classification=force_classification, splitting_criterion = splitting_criterion, mCols=nothing, rng = rng)
+    tree = buildTree(x, y; max_depth = max_depth, min_gain=min_gain, min_records=min_records, max_features=max_features, force_classification=force_classification, splitting_criterion = splitting_criterion, mCols=nothing, fast_algorithm=fast_algorithm, integer_encoded_cols=integer_encoded_cols, rng = rng)
 
     m.par = DTLearnableParameters(tree,Tynm)
     if cache

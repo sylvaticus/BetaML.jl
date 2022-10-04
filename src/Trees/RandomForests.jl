@@ -51,6 +51,10 @@ Base.@kwdef mutable struct RFHyperParametersSet <: BetaMLHyperParametersSet
     force_classification::Bool                   = false
     "Either `gini`, `entropy` or `variance`. This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `nothing`, i.e. `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]. It can be an anonymous function."
     splitting_criterion::Union{Nothing,Function} = nothing
+    "Use an experimental faster algoritm for looking up the best split in ordered fields (colums). Currently it brings down the fitting time of an order of magnitude, but predictions are sensibly affected. If used, control the meaning of integer fields with `integer_encoded_cols`."
+    fast_algorithm::Bool                         = false
+    "A vector of columns positions to specify which integer columns should be treated as encoding of categorical variables insteads of ordered classes/values. [def: `nothing`, integer columns with less than 20 unique values are considered categorical]. Useful in conjunction with `fast_algorithm`, little difference otherwise."
+    integer_encoded_cols::Union{Nothing,Array{Int64,1}} =nothing
     "Parameter that regulate the weights of the scoring of each tree, to be (optionally) used in prediction based on the error of the individual trees computed on the records on which trees have not been trained. Higher values favour \"better\" trees, but too high values will cause overfitting [def: `0`, i.e. uniform weigths]"
     beta::Float64                               = 0.0
     "Wheter to compute the _Out-Of-Bag_ error, an estimation of the validation error (the mismatching error for classification and the relative mean error for regression jobs)."
@@ -142,7 +146,7 @@ See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with
 - This function optionally reports a weight distribution of the performances of eanch individual trees, as measured using the records he has not being trained with. These weights can then be (optionally) used in the `predict` function. The parameter `β ≥ 0` regulate the distribution of these weights: larger is `β`, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of β depends on the problem under exam (and the chosen caratteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
 - Note that this function uses multiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
 """
-function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1), min_gain=0.0, min_records=2, max_features=Int(round(sqrt(size(x,2)))), force_classification=false, splitting_criterion = (Ty <: Number && !force_classification) ? variance : gini, β=0, oob=false,rng = Random.GLOBAL_RNG) where {Ty}
+function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1), min_gain=0.0, min_records=2, max_features=Int(round(sqrt(size(x,2)))), force_classification=false, splitting_criterion = (Ty <: Number && !force_classification) ? variance : gini, integer_encoded_cols=nothing, fast_algorithm=false, β=0, oob=false,rng = Random.GLOBAL_RNG) where {Ty}
     # Force what would be a regression task into a classification task
     if force_classification && Ty <: Number
         y = string.(y)
@@ -154,6 +158,15 @@ function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1
 
     jobIsRegression = (force_classification || !(eltype(y) <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     (N,D) = size(x)
+
+    if isnothing(integer_encoded_cols)
+        integer_encoded_cols = Int64[]
+        for (d,c) in enumerate(eachcol(x))
+            if(all(isinteger_bml.(skipmissing(c)))) && length(unique(skipmissing(c))) < 20 # hardcoded: when using automatic identifier of integer encoded cols, if more than XX values, we consider that is not a categorical variable 
+              push!(integer_encoded_cols,d)
+            end
+        end
+    end
 
     masterSeed = rand(rng,100:9999999999999) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generate_parallel_rngs
     rngs = generate_parallel_rngs(rng,Threads.nthreads())
@@ -168,7 +181,7 @@ function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1
         bootstrappedy = y[toSample]
         #controlx = x[notToSample,:]
         #controly = y[notToSample]
-        tree = buildTree(bootstrappedx, bootstrappedy; max_depth = max_depth, min_gain=min_gain, min_records=min_records, max_features=max_features, splitting_criterion = splitting_criterion, force_classification=force_classification, rng = tsrng)
+        tree = buildTree(bootstrappedx, bootstrappedy; max_depth = max_depth, min_gain=min_gain, min_records=min_records, max_features=max_features, splitting_criterion = splitting_criterion, force_classification=force_classification, integer_encoded_cols=integer_encoded_cols, fast_algorithm=fast_algorithm, rng = tsrng)
         #ŷ = predict(tree,controlx)
         trees[i] = tree
         notSampledByTree[i] = notToSample
@@ -216,13 +229,15 @@ function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
     min_records          = m.hpar.min_records
     force_classification = m.hpar.force_classification
     n_trees              = m.hpar.n_trees
+    fast_algorithm       = m.hpar.fast_algorithm
+    integer_encoded_cols = m.hpar.integer_encoded_cols
     β                   = m.hpar.beta
     oob                 = m.hpar.oob
     cache               = m.opt.cache
     rng                 = m.opt.rng
     verbosity           = m.opt.verbosity
     
-    forest = buildForest(x, y, n_trees; max_depth = max_depth, min_gain=min_gain, min_records=min_records, max_features=max_features, force_classification=force_classification, splitting_criterion = splitting_criterion, β=β, oob=false,  rng = rng)
+    forest = buildForest(x, y, n_trees; max_depth = max_depth, min_gain=min_gain, min_records=min_records, max_features=max_features, force_classification=force_classification, splitting_criterion = splitting_criterion, fast_algorithm=fast_algorithm, integer_encoded_cols=integer_encoded_cols, β=β, oob=false,  rng = rng)
 
     m.par = RFLearnableParameters(forest,Tynm)
 

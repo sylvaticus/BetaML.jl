@@ -62,7 +62,7 @@ export @codelocation, generate_parallel_rngs,
        PCA, PCAHyperParametersSet,
        OneHotEncoder, OrdinalEncoder, OneHotEncoderHyperParametersSet,
        @threadsif,
-       get_parametric_types
+       get_parametric_types, isinteger_bml
 
 # Various functions that we add a method to
 import Base.print, Base.println, Base.findfirst, Base.findall, Base.error, Random.shuffle, Base.show
