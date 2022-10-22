@@ -4,6 +4,7 @@ import MLJBase
 const Mlj = MLJBase
 import Distributions
 using BetaML
+import BetaML.GMM: gmm, initVariances!, updateVariances!
 
 TESTRNG = FIXEDRNG # This could change...
 

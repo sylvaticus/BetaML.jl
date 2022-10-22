@@ -59,7 +59,7 @@ const MLJ_OTHER_MODELS      = (GaussianMixtureRegressor,MultitargetGaussianMixtu
 const MLJ_INTERFACED_MODELS = (MLJ_PERCEPTRON_MODELS..., MLJ_TREES_MODELS..., MLJ_CLUSTERING_MODELS..., MLJ_IMPUTERS_MODELS..., MLJ_NN_MODELS..., MLJ_OTHER_MODELS...) 
 
 
-function __init__()
+#function __init__()
     MMI.metadata_pkg.(MLJ_INTERFACED_MODELS,
         name       = "BetaML",
         uuid       = "024491cd-cc6b-443e-8034-08ea7eb7db2b",     # see your Project.toml
@@ -68,7 +68,7 @@ function __init__()
         license    = "MIT",    # your package license
         is_wrapper = false,    # does it wrap around some other package?
     )
-end
+#end
 
 
 end # module

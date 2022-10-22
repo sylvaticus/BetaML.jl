@@ -19,6 +19,7 @@ All the algorithms works with arbitrary mixture distribution, altought only {Sph
 - `init_mixtures!(mixtures, X; minimum_variance, minimum_covariance, initialisation_strategy)`
 - `lpdf(m,x,mask)` (for the e-step)
 - `update_parameters!(mixtures, X, pₙₖ; minimum_variance, minimum_covariance)` (the m-step)
+- `npar(mixtures::Array{T,1})` (for the BIC/AIC computation)
 
 
 All the GMM-based algorithms works only with numerical data, but accepts also Missing one.
@@ -36,7 +37,8 @@ using  ForceImport
 import Base.print
 import Base.show
 
-export gmm, AbstractMixture,
+#export gmm, 
+export AbstractMixture,
        GMMClusterer,
        GMMRegressor1, GMMRegressor2,
        GMMHyperParametersSet

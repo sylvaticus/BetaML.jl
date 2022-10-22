@@ -24,9 +24,9 @@ end
 
 
 function single_update!(θ,▽,opt_alg::SGD;n_epoch,n_batch,n_batches,xbatch,ybatch)
-    η    = opt_alg.η(n_epoch)*opt_alg.λ
+    η    = opt_alg.η(n_epoch) * opt_alg.λ
     #newθ = gradSub.(θ,gradMul.(▽,η))
-    θ =  θ - ▽ .* η
+    θ = θ - ▽ .* η
     #newθ = gradientDescentSingleUpdate(θ,▽,η)
     return (θ=θ,stop=false)
 end
@@ -85,12 +85,12 @@ function single_update!(θ,▽,opt_alg::ADAM;n_epoch,n_batch,n_batches,xbatch,yb
     β₁,β₂,ϵ  = opt_alg.β₁, opt_alg.β₂, opt_alg.ϵ
     η        = opt_alg.η(n_epoch)*opt_alg.λ
     t        = (n_epoch-1)*n_batches+n_batch
-    opt_alg.m = @. β₁ * opt_alg.m + (1-β₁) * ▽
-    opt_alg.v = @. β₂ * opt_alg.v + (1-β₂) * (▽*▽)
+    opt_alg.m =  β₁ .* opt_alg.m .+ (1 .- β₁) .* ▽
+    opt_alg.v =  β₂ .* opt_alg.v .+ (1 .- β₂) .* (▽ .* ▽)
     #opt_alg.v = [β₂ .* opt_alg.v.data[i] .+ (1-β₂) .* (▽.data[i] .* ▽.data[i]) for i in 1:size(opt_alg.v.data)]
-    m̂        = @. opt_alg.m /(1-β₁^t)
-    v̂        = @. opt_alg.v /(1-β₂^t)
-    θ        = @. θ - (η * m̂) /(sqrt(v̂)+ϵ)
+    m̂        = opt_alg.m ./ (1 .- β₁.^t)
+    v̂        = opt_alg.v ./ (1 .- β₂.^t)
+    θ        = θ .- (η .* m̂) ./(sqrt.(v̂) .+ ϵ)
     return     (θ=θ,stop=false)
 end
 

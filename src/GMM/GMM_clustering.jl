@@ -39,8 +39,7 @@ gmm(X,K;initial_probmixtures,mixtures,tol,verbosity,minimum_variance,minimum_cov
 Compute Expectation-Maximisation algorithm to identify K clusters of X data, i.e. employ a Generative Mixture Model as the underlying probabilistic model.
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use one of the various models that use GMM as backend instead.
+    This function is no longer exported. Use one of the various models that use GMM as backend instead.
 
 X can contain missing values in some or all of its dimensions. In such case the learning is done only with the available data.
 Implemented in the log-domain for better numerical accuracy with many dimensions.

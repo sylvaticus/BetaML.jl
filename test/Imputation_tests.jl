@@ -18,18 +18,18 @@ println("*** Testing Imputations...")
 # ==================================
 # New test
 # ==================================
-println("Testing predictMissing...")
-X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out = predictMissing(X,3,mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
-@test isapprox(out.X̂[2,2],14.155186593170251)
+#println("Testing predictMissing...")
+#X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+#out = predictMissing(X,3,mixtures=[SphericalGaussian() for i in 1:3],verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
+#@test isapprox(out.X̂[2,2],14.155186593170251)
 
-X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out2 = predictMissing(X,3,mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
-@test out2.X̂[2,2] ≈ 14.588514438886131
+#X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+#out2 = predictMissing(X,3,mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
+#@test out2.X̂[2,2] ≈ 14.588514438886131
 
-X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-out3 = predictMissing(X,3,mixtures=[FullGaussian() for i in 1:3],verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
-@test out3.X̂[2,2] ≈ 11.166652292936876
+#X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
+#out3 = predictMissing(X,3,mixtures=[FullGaussian() for i in 1:3],verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
+#@test out3.X̂[2,2] ≈ 11.166652292936876
 
 # ------------------------------------------------------------------------------
 
@@ -183,19 +183,7 @@ println("Testing MLJ Interfaces...")
 
 # ------------------------------------------------------------------------------
 
-X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
-X = Mlj.table(X)
-model                       = MissingImputator(initialisation_strategy="kmeans",rng=copy(TESTRNG))
-modelMachine                = Mlj.machine(model,X)
-(fitResults, cache, report) = Mlj.fit(model, 0, X)
-XD                          = Mlj.transform(model,fitResults,X)
-XDM                         = Mlj.matrix(XD)
-@test isapprox(XDM[2,2],11.166666666667362)
-# Use the previously learned structure to imput missings..
-Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
-XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
-XDMNew                      = Mlj.matrix(XDNew)
-@test isapprox(XDMNew[1,2],XDM[2,2])
+
 
 println("Testing MLJ Interface for SimpleImputer...")
 

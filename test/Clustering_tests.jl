@@ -3,7 +3,7 @@ using Test
 import MLJBase
 const Mlj = MLJBase
 using BetaML
-import BetaML.Clustering: init_representatives
+import BetaML.Clustering: init_representatives, kmeans, kmedoids
 
 TESTRNG = FIXEDRNG # This could change...
 

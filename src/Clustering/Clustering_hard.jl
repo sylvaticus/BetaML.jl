@@ -94,8 +94,7 @@ kmeans(X,K;dist,initialisation_strategy,initial_representatives)
 Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use `KMeansClusterer` instead. 
+    This function is no longer exported.  Use `KMeansClusterer` instead. 
 
 # Parameters:
 * `X`: a (N x D) data to clusterise
@@ -181,8 +180,7 @@ kmedoids(X,K;dist,initialisation_strategy,initial_representatives)
 Compute K-Medoids algorithm to identify K clusters of X using distance definition `dist`
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use `KMedoidsClusterer` instead. 
+    This function is no longer exported. Use `KMedoidsClusterer` instead. 
 
 # Parameters:
 * `X`: a (n x d) data to clusterise

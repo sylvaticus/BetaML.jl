@@ -9,6 +9,8 @@ Provided layers
 - VectorFunctionLayer
 """
 
+using LoopVectorization
+
 #using Random, Zygote
 #import ..Utils
 #import Base.size
@@ -65,7 +67,7 @@ function _zComp(layer::DenseLayer,x)
     z  = zeros(eltype(x),size(w,1))
     @inbounds for n in axes(w,1)
         zn = zero(eltype(x))
-        @simd for nl in axes(x,1)
+        @turbo for nl in axes(x,1)
             zn += w[n,nl] * x[nl]
         end
         zn   += wb[n]
@@ -83,11 +85,11 @@ end
 function backward(layer::DenseLayer,x,next_gradient)
    z = _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) # layer.w * x + layer.wb # _zComp(layer,x) # @avx layer.w * x + layer.wb               # tested @avx
    if layer.df != nothing
-       dϵ_dz =  layer.df.(z) .* next_gradient # tested @avx
+       dϵ_dz = @turbo layer.df.(z) .* next_gradient # tested @avx
     else
-       dϵ_dz = layer.f'.(z) .* next_gradient # using AD
+       dϵ_dz = @turbo layer.f'.(z) .* next_gradient # using AD
     end
-   dϵ_dI =  layer.w' * dϵ_dz # @avx
+   dϵ_dI =  @turbo layer.w' * dϵ_dz # @avx
 end
 
 function get_params(layer::DenseLayer)
@@ -97,11 +99,11 @@ end
 function get_gradient(layer::DenseLayer,x,next_gradient)
    z      =  _zComp(layer,x) #@avx layer.w * x + layer.wb #  _zComp(layer,x) #layer.w * x + layer.wb # @avx
    if layer.df != nothing
-       dϵ_dz = layer.df.(z) .* next_gradient
+       dϵ_dz = @turbo layer.df.(z) .* next_gradient
     else
-       dϵ_dz = layer.f'.(z) .* next_gradient # using AD
+       dϵ_dz = @turbo layer.f'.(z) .* next_gradient # using AD
     end
-   dϵ_dw  = dϵ_dz * x' # @avx
+   dϵ_dw  = @turbo dϵ_dz * x' # @avx
    dϵ_dwb = dϵ_dz
    return Learnable((dϵ_dw,dϵ_dwb))
 end
@@ -164,7 +166,7 @@ function _zComp(layer::DenseNoBiasLayer,x)
     z  = zeros(eltype(x),size(w,1))
     @inbounds for n in axes(w,1)
         zn = zero(eltype(x))
-        @simd for nl in axes(x,1)
+        @turbo for nl in axes(x,1)
             zn += w[n,nl] * x[nl]
         end
         z[n]  = zn

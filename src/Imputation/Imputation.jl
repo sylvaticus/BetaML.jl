@@ -92,87 +92,12 @@ import ..GMM.estep
 import Base.print
 import Base.show
 
-export predictMissing,
-       FeatureBasedImputerHyperParametersSet, RFImputerHyperParametersSet,UniversalImputerHyperParametersSet,
-       Imputer, FeatureBasedImputer, GMMImputer, RFImputer, UniversalImputer,
-       fit!, predict, info
+#export predictMissing,
+export FeatureBasedImputerHyperParametersSet, RFImputerHyperParametersSet,UniversalImputerHyperParametersSet,
+       Imputer, FeatureBasedImputer, GMMImputer, RFImputer, UniversalImputer
+#fit!, predict, info
 
 abstract type Imputer <: BetaMLModel end   
-
-# ------------------------------------------------------------------------------
-
-"""
-    predictMissing(X,K;initial_probmixtures,mixtures,tol,verbosity,minimum_variance,minimum_covariance)
-
-!!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
-    Use the model [`GMMClusterer`](@ref) instead. 
-
-Fill missing entries in a sparse matrix (i.e. perform a "matrix completion") assuming an underlying Gaussian Mixture probabilistic Model (GMM) fitted using an Expectation-Maximisation algorithm.
-
-While the name of the function is `predictMissing`, the function can be also used for system reccomendation / collaborative filtering and GMM-based regressions. The advantage over traditional algorithms as k-nearest neighbors (KNN) is that GMM can "detect" the hidden structure of the observed data, where some observation can be similar to a certain pool of other observvations for a certain characteristic, but similar to an other pool of observations for other characteristics.
-
-Implemented in the log-domain for better numerical accuracy with many dimensions.
-
-# Parameters:
-* `X`  :           A (N x D) sparse matrix of data to fill according to a GMM model
-* `K`  :           Number of mixtures (latent classes) to consider [def: 3]
-* `initial_probmixtures` :           Initial probabilities of the categorical distribution (K x 1) [default: `[]`]
-* `mixtures`:      An array (of length K) of the mixture to employ (see notes) [def: `[DiagonalGaussian() for i in 1:K]`]
-* `tol`:           Tolerance to stop the algorithm [default: 10^(-6)]
-* `verbosity`:     A verbosity parameter regulating the information messages frequency [def: `STD`]
-* `minimum_variance`:   Minimum variance for the mixtures [default: 0.05]
-* `minimum_covariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minimum_variance (see notes).
-* `initialisation_strategy`:  Mixture initialisation algorithm [def: `grid`]
-* `maximum_iterations`:       Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]
-* `rng`:           Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
-
-# Returns:
-* A named touple of:
-* `̂X̂`    : The Filled Matrix of size (N x D)
-* `nFill`: The number of items filled
-* `lL`   : The log-likelihood (without considering the last mixture optimisation)
-* `BIC` :  The Bayesian Information Criterion (lower is better)
-* `AIC` :  The Akaike Information Criterion (lower is better)
-
-# Notes:
-- The mixtures currently implemented are `SphericalGaussian(μ,σ²)`,`DiagonalGaussian(μ,σ²)` and `FullGaussian(μ,σ²)`
-- For `initialisation_strategy`, look at the documentation of `init_mixtures!` for the mixture you want. The provided gaussian mixtures support `grid`, `kmeans` or `given`. `grid` is faster, but `kmeans` often provides better results.
-- The algorithm requires to specify a number of "latent classes" (mlixtures) to divide the dataset into. If there isn't any prior domain specific knowledge on this point one can test sevaral `k` and verify which one minimise the `BIC` or `AIC` criteria.
-
-
-# Example:
-```julia
-julia>  cFOut = predictMissing([1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4],3)
-```
-"""
-function predictMissing(X,K=3;initial_probmixtures=[],mixtures=[DiagonalGaussian() for i in 1:K],tol=10^(-6),verbosity=STD,minimum_variance=0.05,minimum_covariance=0.0,initialisation_strategy="kmeans",maximum_iterations=typemax(Int64),rng = Random.GLOBAL_RNG)
- if verbosity > STD
-     @codelocation
- end
- emOut = gmm(X,K;initial_probmixtures=initial_probmixtures,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng=rng)
-
- (N,D) = size(X)
- nDim  = ndims(X)
- nmT   = nonmissingtype(eltype(X))
- #K = size(emOut.μ)[1]
- XMask = .! ismissing.(X)
- nFill = (N * D) - sum(XMask)
- #=
- X̂ = copy(X)
- for n in 1:N
-     for d in 1:D
-         if !XMask[n,d]
-              X̂[n,d] = sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:K])
-         end
-     end
- end
- =#
- X̂ = [XMask[n,d] ? X[n,d] : sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:K]) for n in 1:N, d in 1:D ]
- X̂ = identity.(X̂)
- #X̂ = convert(Array{nmT,nDim},X̂)
- return (X̂=X̂,nFill=nFill,lL=emOut.lL,BIC=emOut.BIC,AIC=emOut.AIC)
-end
 
 # ------------------------------------------------------------------------------
 # FeatureBasedImputer

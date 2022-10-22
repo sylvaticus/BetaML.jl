@@ -5,7 +5,10 @@ import Distributions: IsoNormal, DiagNormal, FullNormal, logpdf
 import PDMats: ScalMat, PDiagMat, PDMat
 
 export SphericalGaussian, DiagonalGaussian, FullGaussian,
-initVariances!, init_mixtures!,lpdf,updateVariances!
+       init_mixtures!,lpdf, update_parameters!
+
+#export initVariances!, updateVariances!
+
 
 
 abstract type AbstractGaussian <: AbstractMixture end
@@ -233,7 +236,14 @@ function lpdf(m::FullGaussian,x,mask)
 
 end
 
+"""
+$(TYPEDSIGNATURES)
 
+Return the number of learnable parameters of the mixture model, that is the number of parameters of the individual distribution multiplied by the number of distributions used.
+
+Used to compute the BIC/AIC
+"""
+npar(mixtures::Array{T,1}) where {T <: AbstractMixture} = nothing 
 npar(mixtures::Array{T,1}) where {T <: SphericalGaussian} = length(mixtures) * length(mixtures[1].μ) + length(mixtures) # K * D + K
 npar(mixtures::Array{T,1}) where {T <: DiagonalGaussian}  = length(mixtures) * length(mixtures[1].μ) + length(mixtures) * length(mixtures[1].μ) # K * D + K * D
 npar(mixtures::Array{T,1}) where {T <: FullGaussian} = begin K = length(mixtures); D = length(mixtures[1].μ); K * D + K * (D^2+D)/2 end

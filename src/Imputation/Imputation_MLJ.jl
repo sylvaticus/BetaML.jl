@@ -5,34 +5,16 @@
 import MLJModelInterface       # It seems that having done this in the top module is not enought
 const MMI = MLJModelInterface  # We need to repeat it here
 
-export MissingImputator, SimpleImputer,GaussianMixtureImputer, RandomForestImputer, GeneralImputer
+export SimpleImputer,GaussianMixtureImputer, RandomForestImputer, GeneralImputer
 
-# ------------------------------------------------------------------------------
-# Model Structure declarations..
-""" Deprecated. Use `GaussianMixtureImputer` or another imputer"""
-mutable struct MissingImputator <: MMI.Unsupervised
-    K::Int64
-    initial_probmixtures::AbstractArray{Float64,1}
-    mixtures::Symbol
-    tol::Float64
-    minimum_variance::Float64
-    minimum_covariance::Float64
-    initialisation_strategy::String
-    verbosity::Verbosity
-    rng::AbstractRNG
-end
-MissingImputator(;
-    K             = 3,
-    initial_probmixtures            = Float64[],
-    mixtures      = :diag_gaussian,
-    tol           = 10^(-6),
-    minimum_variance   = 0.05,
-    minimum_covariance = 0.0,
-    initialisation_strategy  = "kmeans",
-    verbosity     = STD,
-    rng           = Random.GLOBAL_RNG,
-) = MissingImputator(K,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,verbosity,rng)
+"""
+$(TYPEDEF)
 
+Impute missing values using feature (column) mean, with optional record normalisation (using l-`norm` norms), from the Beta Machine Learning Toolkit (BetaML).
+
+## Hyperparameters:
+$(TYPEDFIELDS)
+"""
 mutable struct SimpleImputer <: MMI.Unsupervised
     statistic::Function
     norm::Int64
@@ -43,6 +25,14 @@ SimpleImputer(;
     norm::Union{Nothing,Int64}       = nothing,
 ) = SimpleImputer(statistic,norm)
 
+"""
+$(TYPEDEF)
+
+Impute missing values using a probabilistic approach (Gaussian Mixture Models) fitted using the Expectation-Maximisation algorithm, from the Beta Machine Learning Toolkit (BetaML).
+
+## Hyperparameters:
+$(TYPEDFIELDS)
+"""
 mutable struct GaussianMixtureImputer <: MMI.Unsupervised
     n_classes::Int64
     initial_probmixtures::Vector{Float64}
@@ -71,6 +61,14 @@ function GaussianMixtureImputer(;
     return GaussianMixtureImputer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,verbosity,rng)
 end
 
+"""
+$(TYPEDEF)
+
+Impute missing values using Random Forests, from the Beta Machine Learning Toolkit (BetaML).
+
+## Hyperparameters:
+$(TYPEDFIELDS)
+"""
 mutable struct RandomForestImputer <: MMI.Unsupervised
     n_trees::Int64
     max_depth::Union{Nothing,Int64}
@@ -98,6 +96,14 @@ RandomForestImputer(;
     rng                    = Random.GLOBAL_RNG,
 ) = RandomForestImputer(n_trees, max_depth, min_gain, min_records, max_features, forced_categorical_cols, splitting_criterion, recursive_passages, verbosity, rng)
 
+"""
+$(TYPEDEF)
+
+Impute missing values using a vector (one per column) of arbitrary learning models (classifiers/regressors) that implement `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)` (default to Random Forests), from the Beta Machine Learning Toolkit (BetaML).
+
+## Hyperparameters:
+$(TYPEDFIELDS)
+"""
 mutable struct GeneralImputer <: MMI.Unsupervised
     estimators::Union{Vector,Nothing}
     recursive_passages::Int64     
@@ -116,25 +122,6 @@ GeneralImputer(;
 
 # ------------------------------------------------------------------------------
 # Fit functions...
-
-function MMI.fit(m::MissingImputator, verbosity, X)
-    x          = MMI.matrix(X) # convert table to matrix
-    if m.mixtures == :diag_gaussian
-        mixtures = [DiagonalGaussian() for i in 1:m.K]
-    elseif m.mixtures == :full_gaussian
-        mixtures = [FullGaussian() for i in 1:m.K]
-    elseif m.mixtures == :spherical_gaussian
-        mixtures = [SphericalGaussian() for i in 1:m.K]
-    else
-        error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
-    end 
-    
-    res        = gmm(x,m.K,initial_probmixtures=deepcopy(m.initial_probmixtures),mixtures=mixtures, minimum_variance=m.minimum_variance, minimum_covariance=m.minimum_covariance,initialisation_strategy=m.initialisation_strategy,verbosity=NONE,rng=m.rng)
-    fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # pₙₖ=res.pₙₖ
-    cache      = nothing
-    report     = (res.ϵ,res.lL,res.BIC,res.AIC)
-    return (fitResults, cache, report)
-end
 
 function MMI.fit(m::SimpleImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
@@ -236,16 +223,7 @@ end
 # ------------------------------------------------------------------------------
 # Transform functions...
 
-""" transform(m::MissingImputator, fitResults, X) - Given a trained imputator model fill the missing data of some new observations"""
-function MMI.transform(m::MissingImputator, fitResults, X)
-    x             = MMI.matrix(X) # convert table to matrix
-    (N,D)         = size(x)
-    (pₖ,mixtures) = fitResults.pₖ, fitResults.mixtures   #
-    nCl           = length(pₖ)
-    # Fill the missing data of this "new X" using the mixtures computed in the fit stage
-    xout          = predictMissing(x,nCl,initial_probmixtures=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minimum_variance=m.minimum_variance,minimum_covariance=m.minimum_covariance,initialisation_strategy="given",maximum_iterations=1,rng=m.rng)
-    return MMI.table(xout.X̂)
-end
+""" transform(m, fitResults, X) - Given a trained imputator model fill the missing data of some new observations"""
 function MMI.transform(m::Union{SimpleImputer,GaussianMixtureImputer,RandomForestImputer,GeneralImputer}, fitResults, X)
     x   = MMI.matrix(X) # convert table to matrix
     mod = fitResults
@@ -256,19 +234,10 @@ end
 # ------------------------------------------------------------------------------
 # Model metadata for registration in MLJ...
 
-MMI.metadata_model(MissingImputator,
-    input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
-    output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
-    supports_weights = false,                         # does the model support sample weights?
-    descr            = "Impute missing values using an Expectation-Maximisation clustering algorithm, from the Beta Machine Learning Toolkit (BetaML). Old API, consider also `GaussianMixtureImputer` (equivalent, experimental)",
-	load_path        = "BetaML.Imputation.MissingImputator"
-)
-
 MMI.metadata_model(SimpleImputer,
     input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
     output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
-    descr            = "Impute missing values using feature (column) mean, with optional record normalisation (using l-`norm` norms), from the Beta Machine Learning Toolkit (BetaML). Experimental.",
 	load_path        = "BetaML.Imputation.SimpleImputer"
 )
 
@@ -276,7 +245,6 @@ MMI.metadata_model(GaussianMixtureImputer,
     input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
     output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
-    descr            = "Impute missing values using a probabilistic approach (Gaussian Mixture Models) fitted using the Expectation-Maximisation algorithm, from the Beta Machine Learning Toolkit (BetaML). Experimental.",
 	load_path        = "BetaML.Imputation.GaussianMixtureImputer"
 )
 
@@ -284,13 +252,11 @@ MMI.metadata_model(RandomForestImputer,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     output_scitype   = MMI.Table(MMI.Known),          # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
-    descr            = "Impute missing values using Random Forests, from the Beta Machine Learning Toolkit (BetaML). Experimental.",
 	load_path        = "BetaML.Imputation.RandomForestImputer"
 )
 MMI.metadata_model(GeneralImputer,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     output_scitype   = MMI.Table(MMI.Known),          # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
-    descr            = "Impute missing values using a vector (one per column) of arbitrary learning models (classifiers/regressors) that implement `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)` (default to Random Forests), from the Beta Machine Learning Toolkit (BetaML). Experimental.",
 	load_path        = "BetaML.Imputation.GeneralImputer"
 )
