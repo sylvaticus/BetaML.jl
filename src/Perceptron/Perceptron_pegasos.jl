@@ -6,7 +6,7 @@ pegasos(x,y;θ,θ₀,λ,η,T,nMsgs,shuffle,force_origin,return_mean_hyperplane)
 Train the multiclass classifier "pegasos" algorithm according to x (features) and y (labels)
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated. It has been unexported in BetaML 0.9.
     Use the model `PegasosClassifier` instead. 
 
 PegasosClassifier is a _linear_, gradient-based classifier. Multiclass is supported using a one-vs-all approach.
@@ -87,7 +87,7 @@ pegasosBinary(x,y;θ,θ₀,λ,η,T,nMsgs,shuffle,force_origin)
 Train the peagasos algorithm based on x and y (labels)
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated. It has been unexported in BetaML 0.9.
     Use the model `PegasosClassifier` instead. 
 
 # Parameters:
@@ -127,6 +127,8 @@ if nMsgs != 0
 end
 x = makematrix(x)
 (n,d) = size(x)
+ny = size(y,1)
+ny == n || error("y and x have different number of rows (records) !")
 bestϵ = Inf
 lastϵ = Inf
 if force_origin θ₀ = 0.0; end
@@ -140,7 +142,7 @@ sumθ = θ; sumθ₀ = θ₀
      x = x[ridx, :]
      y = y[ridx]
   end
-  for i in 1:n
+  @inbounds for i in 1:n
       if y[i]*(θ' * x[i,:] + θ₀) <= eps()
           θ  = (1-ηₜ*λ) * θ + ηₜ * y[i] * x[i,:]
           θ₀ = force_origin ? 0.0 : θ₀ + ηₜ * y[i]

@@ -6,7 +6,7 @@
 Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated. It has been unexported in BetaML 0.9.
     Use the model kernelPerceptron() instead. 
 
 `kernelPerceptron` is a (potentially) non-linear perceptron-style classifier employing user-defined kernel funcions. Multiclass is supported using a one-vs-one approach.
@@ -43,6 +43,8 @@ function kernelPerceptron(x, y; K=radial_kernel, T=100, α=nothing, nMsgs=0, shu
  nCl       = length(yclasses)
  nModels   = Int((nCl  * (nCl - 1)) / 2)
  (n,d) = size(x)
+ ny = size(y,1)
+ ny == n || error("y and x have differnt number of records (rows)!")
  outX = Array{typeof(x),1}(undef,nModels)
  outY = Array{Array{Int64,1},1}(undef,nModels)
  outα = Array{Array{Int64,1},1}(undef,nModels)
@@ -73,7 +75,7 @@ end
 Train a binary kernel classifier "perceptron" algorithm based on x and y
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated. It has been unexported in BetaML 0.9.
     Use the model KernelPerceptronClassifier() instead. 
 
 # Parameters:
@@ -111,6 +113,8 @@ function kernelPerceptronBinary(x, y; K=radial_kernel, T=1000, α=zeros(Int64,le
  x = makematrix(x)
  α = deepcopy(α) # let's not modify the argument !
  (n,d) = size(x)
+ ny = size(y,1)
+ ny == n || error("y and x have different number of records (rows)!")
  bestϵ = Inf
  lastϵ = Inf
  
@@ -135,7 +139,7 @@ function kernelPerceptronBinary(x, y; K=radial_kernel, T=1000, α=zeros(Int64,le
         y = y[ridx]
         α = α[ridx]
      end
-     for i in 1:n
+     @inbounds for i in 1:n
          if y[i]*sum([α[j]*y[j]*K(x[j,:],x[i,:]) for j in 1:n]) <= 0 + eps()
              α[i] += 1
              ϵ += 1
@@ -163,7 +167,7 @@ end
 Predict a binary label {-1,1} given the feature vector and the training data together with their errors (as trained by a kernel perceptron algorithm)
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated. It has been unexported in BetaML 0.9.
     Use the `predict` function with your desired model instead. 
 
 # Parameters:
@@ -206,7 +210,7 @@ function predict(x,xtrain,ytrain,α;K=radial_kernel)
  Predict a multiclass label given the new feature vector and a trained kernel perceptron model.
 
  !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated. It has been unexported in BetaML 0.9.
     Use the `predict` function with your desired model instead. 
 
  # Parameters:

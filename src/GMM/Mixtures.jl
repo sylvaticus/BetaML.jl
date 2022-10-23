@@ -3,7 +3,7 @@
 using Statistics, LinearAlgebra, PDMats
 import Distributions: IsoNormal, DiagNormal, FullNormal, logpdf
 import PDMats: ScalMat, PDiagMat, PDMat
-
+import BetaML.Clustering: kmeans
 export SphericalGaussian, DiagonalGaussian, FullGaussian,
        init_mixtures!,lpdf, update_parameters!
 

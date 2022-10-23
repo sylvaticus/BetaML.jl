@@ -5,6 +5,7 @@ import MLJBase
 const Mlj = MLJBase
 using StableRNGs
 using BetaML
+import BetaML.Perceptron: perceptron, perceptronBinary, kernelPerceptron, kernelPerceptronBinary, pegasos, pegasosBinary
 
 #TESTRNG = FIXEDRNG # This could change...
 TESTRNG = StableRNG(123)

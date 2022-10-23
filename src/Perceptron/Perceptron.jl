@@ -26,7 +26,7 @@ using ForceImport
 
 import Base.show
 
-export perceptron, perceptronBinary, kernelPerceptron, kernelPerceptronBinary, pegasos, pegasosBinary, predict
+# export perceptron, perceptronBinary, kernelPerceptron, kernelPerceptronBinary, pegasos, pegasosBinary, predict
 export PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier
 export PerceptronClassifierHyperParametersSet, KernelPerceptronClassifierHyperParametersSet, PegasosClassifierHyperParametersSet
 

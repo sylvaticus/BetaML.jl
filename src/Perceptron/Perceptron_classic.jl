@@ -6,7 +6,7 @@
 Train the multiclass classifier "perceptron" algorithm  based on x and y (labels).
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated. It has been unexported in BetaML 0.9.
     Use the model [`PerceptronClassifier`](@ref) instead. 
 
 The perceptron is a _linear_ classifier. Multiclass is supported using a one-vs-all approach.
@@ -83,7 +83,7 @@ end
     perceptronBinary(x,y;θ,θ₀,T,nMsgs,shuffle,force_origin)
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated. It has been unexported in BetaML 0.9.
     Use the model PerceptronClassifier() instead. 
 
 Train the binary classifier "perceptron" algorithm based on x and y (labels)
@@ -126,6 +126,8 @@ if nMsgs != 0
 end
 x = makematrix(x)
 (n,d) = size(x)
+ny = size(y,1)
+ny == n || error("y has different number of records (rows) than x!")
 bestϵ = Inf
 lastϵ = Inf
 if force_origin θ₀ = 0.0; end
@@ -138,7 +140,7 @@ sumθ = θ; sumθ₀ = θ₀
       x = x[ridx, :]
       y = y[ridx]
    end
-   for i in 1:n
+   @inbounds for i in 1:n
        if y[i]*(θ' * x[i,:] + θ₀) <= eps()
            θ  = θ + y[i] * x[i,:]
            θ₀ = force_origin ? 0.0 : θ₀ + y[i]
@@ -169,7 +171,7 @@ end
 Predict a binary label {-1,1} given the feature vector and the linear coefficients
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated. It has been unexported in BetaML 0.9.
     Use the `predict` function with your desired model instead. 
 
 # Parameters:
@@ -205,7 +207,7 @@ end
 Predict a multiclass label given the feature vector, the linear coefficients and the classes vector
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated. It has been unexported in BetaML 0.9.
     Use the `predict` function of your desired model instead. 
 
 # Parameters:
