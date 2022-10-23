@@ -85,11 +85,13 @@ end
 function backward(layer::DenseLayer,x,next_gradient)
    z = _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) # layer.w * x + layer.wb # _zComp(layer,x) # @avx layer.w * x + layer.wb               # tested @avx
    if layer.df != nothing
-       dϵ_dz = @turbo layer.df.(z) .* next_gradient # tested @avx
+      dfz = layer.df.(z)
     else
-       dϵ_dz = @turbo layer.f'.(z) .* next_gradient # using AD
+      dfz = layer.f'.(z) # using AD
     end
-   dϵ_dI =  @turbo layer.w' * dϵ_dz # @avx
+   dϵ_dz = @turbo dfz .* next_gradient
+   dϵ_dI = @turbo layer.w' * dϵ_dz # @avx
+   return dϵ_dI
 end
 
 function get_params(layer::DenseLayer)
@@ -99,10 +101,11 @@ end
 function get_gradient(layer::DenseLayer,x,next_gradient)
    z      =  _zComp(layer,x) #@avx layer.w * x + layer.wb #  _zComp(layer,x) #layer.w * x + layer.wb # @avx
    if layer.df != nothing
-       dϵ_dz = @turbo layer.df.(z) .* next_gradient
-    else
-       dϵ_dz = @turbo layer.f'.(z) .* next_gradient # using AD
-    end
+      dfz = layer.df.(z)  
+   else
+      dfz =  layer.f'.(z) # using AD
+   end
+   dϵ_dz  = @turbo  dfz .* next_gradient
    dϵ_dw  = @turbo dϵ_dz * x' # @avx
    dϵ_dwb = dϵ_dz
    return Learnable((dϵ_dw,dϵ_dwb))
@@ -182,11 +185,13 @@ end
 function backward(layer::DenseNoBiasLayer,x,next_gradient)
    z = _zComp(layer,x)
    if layer.df != nothing
-       dϵ_dz = layer.df.(z) .* next_gradient
-    else
-       dϵ_dz = layer.f'.(z) .* next_gradient # using AD
-    end
-   dϵ_dI = layer.w' * dϵ_dz
+      dfz = layer.df.(z) 
+   else
+      dfz = layer.f'.(z)  # using AD
+   end
+   dϵ_dz = @turbo dfz .* next_gradient
+   dϵ_dI = @turbo layer.w' * dϵ_dz
+   return dϵ_dI
 end
 
 function get_params(layer::DenseNoBiasLayer)
@@ -196,11 +201,12 @@ end
 function get_gradient(layer::DenseNoBiasLayer,x,next_gradient)
    z      = _zComp(layer,x)
    if layer.df != nothing
-       dϵ_dz = layer.df.(z) .* next_gradient
-    else
-       dϵ_dz = layer.f'.(z) .* next_gradient # using AD
-    end
-   dϵ_dw  =  dϵ_dz * x'
+      dfz = layer.df.(z)
+   else
+      dfz = layer.f'.(z) # using AD
+   end
+   dϵ_dz = @turbo dfz .* next_gradient
+   dϵ_dw = @turbo dϵ_dz * x'
    return Learnable((dϵ_dw,))
 end
 
@@ -302,21 +308,21 @@ end
 function backward(layer::VectorFunctionLayer{N},x,next_gradient) where N
    if N == 0
       if layer.dfx != nothing
-         dϵ_dI = layer.dfx(x)' * next_gradient
+         dfz = layer.dfx(x)'
       else  # using AD
-         j = autojacobian(layer.f,x; nY=layer.n)
-         dϵ_dI = j' * next_gradient
+         dfz = (autojacobian(layer.f,x; nY=layer.n))'
       end
+      dϵ_dI =  @turbo dfz * next_gradient
       return dϵ_dI
    else
       if layer.dfx != nothing
-         dϵ_dI = layer.dfx(x,layer.w)' * next_gradient
+         dfz = layer.dfx(x,layer.w)'
       else  # using AD
         tempfunction(x) = layer.f(x,layer.w)
         nYl = layer.n
-        j = autojacobian(tempfunction,x; nY=nYl)
-        dϵ_dI = j' * next_gradient
+        dfz = (autojacobian(tempfunction,x; nY=nYl))'
       end
+      dϵ_dI = @turbo dfz * next_gradient
      return dϵ_dI
    end
 end
@@ -330,11 +336,11 @@ function get_gradient(layer::VectorFunctionLayer{N},x,next_gradient) where {N}
      return Learnable(()) # parameterless layer
    else
       if layer.dfw != nothing
-         dϵ_dw = layer.dfw(x,layer.w)' * next_gradient
+         dfz = layer.dfw(x,layer.w)'
       else  # using AD
-        j = autojacobian(wt -> layer.f(x,wt),layer.w; nY=layer.n)
-        dϵ_dw = j' * next_gradient
+        dfz = (autojacobian(wt -> layer.f(x,wt),layer.w; nY=layer.n))'
       end
+      dϵ_dw = @turbo dfz * next_gradient
      return Learnable((dϵ_dw,))
    end
 end
@@ -422,19 +428,20 @@ end
 function backward(layer::ScalarFunctionLayer{N},x,next_gradient) where N
    if N == 0
       if layer.dfx != nothing
-         dϵ_dI = layer.dfx.(x) .* next_gradient
+         dfz = layer.dfx.(x)
       else  # using AD
-         dϵ_dI = layer.f'.(x) .* next_gradient
+         dfz = layer.f'.(x)
       end
+      dϵ_dI = @turbo dfz  .* next_gradient
       return dϵ_dI
    else
       if layer.dfx != nothing
-         dϵ_dI = layer.dfx.(x,Ref(layer.w)) .* next_gradient
+         df_dx = layer.dfx.(x,Ref(layer.w))
       else  # using AD
         #tempfunction(x) = layer.f.(x,Ref(layer.w))
         df_dx = [gradient(xt -> layer.f(xt,layer.w),xi)[1] for xi in x]  
-        dϵ_dI = df_dx .* next_gradient 
       end
+      dϵ_dI = @turbo df_dx .* next_gradient
      return dϵ_dI
    end
 end
@@ -448,12 +455,13 @@ function get_gradient(layer::ScalarFunctionLayer{N},x,next_gradient) where {N}
      return Learnable(()) # parameterless layer
    else
       if layer.dfw != nothing
-         dϵ_dw = [layer.dfw(xi,wj) for wj in layer.w, xi in x] * next_gradient
+         dfz = [layer.dfw(xi,wj) for wj in layer.w, xi in x] 
+         
       else  # using AD
         tempfunction(w) = [layer.f(xi,w) for xi in x]
-        j = autojacobian(tempfunction,layer.w; nY=layer.n)
-        dϵ_dw = j' * next_gradient
+        dfz = (autojacobian(tempfunction,layer.w; nY=layer.n))'
       end
+      dϵ_dw = @turbo dfz * next_gradient
      return Learnable((dϵ_dw,))
    end
 end
@@ -551,11 +559,13 @@ end
 function backward(layer::RNNLayer,x,next_gradient) #TODO
    z = _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) # layer.w * x + layer.wb # _zComp(layer,x) # @avx layer.w * x + layer.wb               # tested @avx
    if layer.df != nothing
-       dϵ_dz =  layer.df.(z) .* next_gradient # tested @avx
-    else
-       dϵ_dz = layer.f'.(z) .* next_gradient # using AD
-    end
+      dfz = layer.df.(z) 
+   else
+      dfz = layer.f'.(z) # using AD
+   end
+   dϵ_dz = @turbo dfz .* next_gradient # tested @avx
    dϵ_dI =  layer.w' * dϵ_dz # @avx
+   return dϵ_dI 
 end
 
 function get_params(layer::RNNLayer)
@@ -565,11 +575,12 @@ end
 function get_gradient(layer::RNNLayer,x,next_gradient) #TODO
    z      =  _zComp(layer,x) #@avx layer.w * x + layer.wb #  _zComp(layer,x) #layer.w * x + layer.wb # @avx
    if layer.df != nothing
-       dϵ_dz = layer.df.(z) .* next_gradient
-    else
-       dϵ_dz = layer.f'.(z) .* next_gradient # using AD
-    end
-   dϵ_dw  = dϵ_dz * x' # @avx
+      dfz = layer.df.(z)
+   else
+      dfz = layer.f'.(z) # using AD
+   end
+   dϵ_dz  = @turbo dfz .* next_gradient 
+   dϵ_dw  = @turbo dϵ_dz * x' # @avx
    dϵ_dwb = dϵ_dz
    return Learnable((dϵ_dw,dϵ_dwb))
 end

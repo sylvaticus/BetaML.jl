@@ -1,6 +1,6 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
-export SGD,DebugOptAlg,ADAM
+
 
 
 # ------------------------------------------------------------------------------

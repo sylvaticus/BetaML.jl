@@ -36,13 +36,12 @@ You can alternativly implement your own layer defining a new type as subtype of 
 - `SGD`:  The classical optimisation algorithm
 - `ADAM`: A faster moment-based optimisation algorithm 
 
-To define your own optimisation algorithm define a subtype of `OptimisationAlgorithm` and implement the function `single_update!(θ,▽;opt_alg)` and eventually `init_optalg(⋅)` specific for it.
+To define your own optimisation algorithm define a subtype of `OptimisationAlgorithm` and implement the function `single_update!(θ,▽;opt_alg)` and eventually `init_optalg!(⋅)` specific for it.
 
 # Model predictions and assessment:
 
 - `predict(nn)` or `predict(nn,X)`: Return the output given the data
-- `loss(nn)`: Compute avg. network loss on a test set
-- `accuracy(ŷ,y)`: Categorical output accuracy
+
 
 While high-level functions operating on the dataset expect it to be in the standard format (n_records × n_dimensions matrices) it is customary to represent the chain of a neural network as a flow of column vectors, so all low-level operations (operating on a single datapoint) expect both the input and the output as a column vector.
 """
@@ -63,14 +62,13 @@ import Base: +, -, *, /, sum, sqrt
 import Base.show
 
 # module own functions
-export AbstractLayer, forward, backward, get_params, get_nparams, get_gradient, set_params!, size, NN,
-       buildNetwork, predict, loss, train!, getindex, init_optalg!, single_update!,
-       DenseLayer, DenseNoBiasLayer, VectorFunctionLayer, ScalarFunctionLayer,
-       Learnable,
-       show, fitting_info
+export AbstractLayer, forward, backward, get_params, get_gradient, set_params!, size # layer API
+export DenseLayer, DenseNoBiasLayer, VectorFunctionLayer, ScalarFunctionLayer # Available layers
+export  init_optalg!, single_update! # Optimizers API
+export SGD,ADAM, DebugOptAlg # Available optimizers
+export Learnable, fitting_info, NeuralNetworkEstimator, NNHyperParametersSet, NeuralNetworkEstimatorOptionsSet # NN API
 
-export NeuralNetworkEstimator
-export NNHyperParametersSet, NeuralNetworkEstimatorOptionsSet
+# export get_nparams, NN, buildNetwork, predict, loss, train!, getindex, show # old
 
 # for working on gradient as e.g [([1.0 2.0; 3.0 4.0], [1.0,2.0,3.0]),([1.0,2.0,3.0],1.0)]
 """
@@ -269,7 +267,7 @@ end
 """
    NN
 
-Representation of a Neural Network
+Low-level representation of a Neural Network. Use the model `NeuralNetworkEstimator` instead.
 
 # Fields:
 * `layers`:  Array of layers objects
@@ -291,7 +289,7 @@ end
 Instantiate a new Feedforward Neural Network
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    This function has been de-exported in BetaML 0.9.
     Use the model [`NeuralNetworkEstimator`](@ref) instead. 
 
 Parameters:
@@ -309,25 +307,14 @@ end
 
 
 """
-   predict(nn,x)
+   predict(nn::NN,x)
 
-Network predictions
+Low-level network predictions. Use instead `predict(m::NeuralNetworkEstimator)`
 
 # Parameters:
 * `nn`:  Worker network
 * `x`:   Input to the network (n × d)
 """
-#=
-function predict(nn::NN,x)
-    makecolvector(x)
-    values = x
-    for l in nn.layers
-        values = forward(l,values)
-    end
-    return values
-end
-=#
-
 function predict(nn::NN,x)
     x = makematrix(x)
     # get the output dimensions
@@ -347,7 +334,7 @@ end
 """
    loss(fnn,x,y)
 
-Compute avg. network loss on a test set (or a single (1 × d) data point)
+Low level funciton that compute the avg. network loss on a test set (or a single (1 × d) data point)
 
 # Parameters:
 * `fnn`: Worker network
@@ -386,7 +373,7 @@ end
 """
    get_gradient(nn,x,y)
 
-Retrieve the current gradient of the weigthts (i.e. derivative of the cost with respect to the weigths)
+Low level function that retrieve the current gradient of the weigthts (i.e. derivative of the cost with respect to the weigths). Unexported in BetaML >= v0.9
 
 # Parameters:
 * `nn`: Worker network
@@ -477,27 +464,6 @@ function set_params!(nn::NN,w)
     end
 end
 
-
-
-
-"""
-  show(nn)
-
-Print a representation of the Neural Network (layers, dimensions..)
-
-# Parameters:
-* `nn`: Worker network
-"""
-function show(nn::NN)
-  trainedString = nn.trained == true ? "trained" : "non trained"
-  println("*** $(nn.name) ($(length(nn.layers)) layers, $(trainedString))\n")
-  println("#\t # In \t # Out \t Type")
-  for (i,l) in enumerate(nn.layers)
-    shapes = size(l)
-    println("$i \t $(shapes[1]) \t\t $(shapes[2]) \t\t $(typeof(l)) ")
-  end
-end
-
 "get_nparams(nn) - Return the number of trainable parameters of the neural network."
 function get_nparams(nn::NN)
     nP = 0
@@ -570,10 +536,10 @@ end
 """
    train!(nn,x,y;epochs,batch_size,sequential,opt_alg,verbosity,cb)
 
-Train a neural network with the given x,y data
+Low leval function that trains a neural network with the given x,y data.
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    This function is deprecated and has been unexported in BetaML v0.9.
     Use the model [`NeuralNetworkEstimator`](@ref) instead. 
 
 # Parameters:
@@ -977,29 +943,6 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
 
     return cache ? m.cres : nothing
 end
-
-#=
-# Need to overrite for the size check in the output specific to NN
-function predict(m::NeuralNetworkEstimator)
-    println("gooo")
-    if m.fitted 
-        ŷ        = m.cres
-        nn_osize = size(m.par.nnstruct.layers[end])[2]
-        if ndims(ŷ) > 1 && nn_osize == 1
-            return dropdims(ŷ,dims=2)
-        else
-            return ŷ
-        end 
-    else
-       if m.opt.verbosity > NONE
-          @warn "Trying to predict an unfitted model. Run `fit!(model,X,[Y])` before!"
-       end
-       return nothing
-    end
-end
-=#
-
-
 
 function predict(m::NeuralNetworkEstimator,X)
     ŷ        = predict(m.par.nnstruct,X)

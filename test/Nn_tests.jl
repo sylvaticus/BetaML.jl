@@ -7,6 +7,8 @@ using BetaML
 import MLJBase
 const Mlj = MLJBase
 
+using BetaML.Nn: buildNetwork, forward, loss, backward, train!, get_nparams
+
 TESTRNG = FIXEDRNG # This could change...
 #TESTRNG = StableRNG(123)
 
@@ -124,7 +126,6 @@ li   = DenseLayer(2,2,w=[2 1;1 1],f=identity,rng=copy(TESTRNG))
 # ==================================
 # NEW Test
 println("Testing regression if it just works with manual derivatives...")
-@btime begin
 xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1]
 ytrain = [0.3; 0.8; 0.5; 0.9; 1.6; 0.3]
 xtest = [0.5 0.6; 0.14 0.2; 0.3 0.7; 2.0 4.0]
@@ -135,7 +136,6 @@ l3 = DenseLayer(2,1, w=[1 1], wb=[0], f=identity,df=didentity,rng=copy(TESTRNG))
 mynn = buildNetwork(deepcopy([l1,l2,l3]),squared_cost,name="Feed-forward Neural Network Model 1",dcf=dsquared_cost)
 train!(mynn,xtrain,ytrain, opt_alg=SGD(η=t -> 1/(1+t),λ=1), batch_size=1,sequential=true,epochs=100,verbosity=NONE,rng=copy(TESTRNG)) # 
 #@benchmark train!(mynn,xtrain,ytrain,batch_size=1,sequential=true,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1))
-end
 avgLoss = loss(mynn,xtest,ytest)
 @test  avgLoss ≈ 1.599729991966362
 expectedŷtest= [0.7360644412052633, 0.7360644412052633, 0.7360644412052633, 2.47093434438514]
@@ -229,10 +229,10 @@ ytrain_oh = y_oh[1:ntrain,:]
 xtest = x[ntrain+1:end,:]
 ytest = y[ntrain+1:end]
 
-xtrain = scale(xtrain)
+xtrain = fit!(Scaler(),xtrain)
 #pcaOut = pca(xtrain,error=0.01)
 #(xtrain,P) = pcaOut.X, pcaOut.P
-xtest = scale(xtest)
+xtest = fit!(Scaler(),xtest)
 #xtest = xtest*P
 
 l1   = DenseLayer(4,10, w=ones(10,4), wb=zeros(10),f=celu,rng=copy(TESTRNG))
