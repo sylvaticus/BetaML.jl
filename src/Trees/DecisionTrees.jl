@@ -436,7 +436,7 @@ end
 Builds (define and train) a Decision Tree.
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated and it has been unexported in BetaML 0.9.
     Use [`DecisionTreeEstimator`](@ref) instead. 
 
 Given a dataset of features `x` and the corresponding dataset of labels `y`, recursivelly build a decision tree by finding at each node the best question to split the data untill either all the dataset is separated or a terminal condition is reached.
@@ -638,7 +638,7 @@ end
 Predict the labels of a feature dataset.
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated.
     Use [`DecisionTreeEstimator`](@ref) and the associated `predict(m::Model,x)` function instead.
 
 For each record of the dataset, recursivelly traverse the tree to find the prediction most opportune for the given record.

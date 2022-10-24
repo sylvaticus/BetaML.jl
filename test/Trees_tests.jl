@@ -6,6 +6,7 @@ using StableRNGs
 #rng = StableRNG(123)
 using BetaML
 import BetaML.Trees: predictSingle, updateTreesWeights!
+import BetaML.Trees: buildTree, buildForest
 
 #TESTRNG = FIXEDRNG # This could change...
 TESTRNG = StableRNG(123)

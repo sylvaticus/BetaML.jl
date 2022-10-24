@@ -6,7 +6,7 @@
 """
     Forest{Ty}
 
-Type representing a Random Forest.
+TLow level type representing a Random Forest.
 
 Individual trees are stored in the array `trees`. The "type" of the forest is given by the type of the labels on which it has been trained.
 
@@ -126,7 +126,7 @@ end
 Builds (define and train) a "forest" of Decision Trees.
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated and it has been unexported in BetaML 0.9.
     Use [`RandomForestEstimator`](@ref) instead. 
 
 # Parameters:
@@ -297,7 +297,7 @@ end
 Predict the labels of a feature dataset.
 
 !!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9.
+    Direct usage of this low-level function is deprecated and it has been unexported in BetaML 0.9.
     Use [`RandomForestEstimator`](@ref) and the associated `predict(m::Model,x)` function instead.
 
 For each record of the dataset and each tree of the "forest", recursivelly traverse the tree to find the prediction most opportune for the given record.

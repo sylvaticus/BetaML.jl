@@ -35,12 +35,12 @@ import Base.convert
 
 export DecisionTreeEstimator, DTHyperParametersSet
 # export AbstractDecisionNode,Leaf, DecisionNode, 
-export buildTree
+# export buildTree
 #predictSingle # TODO: to remove
 
 export RandomForestEstimator, RFHyperParametersSet
 #export  Forest 
-export buildForest
+# export buildForest
 # updateTreesWeights! # TODO:to remove
 
 include("DecisionTrees.jl") # Decision Trees algorithm and API
