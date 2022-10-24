@@ -88,7 +88,8 @@ using ForceImport
 @force using ..GMM
 @force using ..Trees
 
-import ..GMM.estep
+import ..Trees: buildForest
+import ..GMM: gmm, estep
 import Base.print
 import Base.show
 
