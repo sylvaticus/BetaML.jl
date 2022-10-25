@@ -62,168 +62,12 @@ function singleunique(x::Union{T,AbstractArray{T}}) where {T <: Union{Any,Abstra
     end
 end
 
-"""
-!!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model OneHotEncoder() instead.
-"""
-function onehotencoder_row(x::Union{AbstractArray{T},T}; d=maximum(x), factors=1:d,count = false) where {T <: Integer}
-    x = makecolvector(x)
-    out = zeros(Int64,d)
-    for j in x
-        out[j] = count ? out[j] + 1 : 1
-    end
-    return out
-end
-
-"""
-!!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model OneHotEncoder() instead.
-"""
-function onehotencoder_row(x::Union{AbstractArray{T},T};factors=singleunique(x),d=length(factors),count = false) where {T}
-    x = makecolvector(x)
-    return onehotencoder_row(integerencoder(x;factors=factors),d=length(factors);count=count)
-end
-
-"""
-    onehotencoder(x;d,factors,count)
-
-Encode arrays (or arrays of arrays) of categorical data as matrices of one column per factor.
-
-!!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model OneHotEncoder() instead.
-
-The case of arrays of arrays is for when at each record you have more than one categorical output. You can then decide to encode just the presence of the factors or their counting
-
-# Parameters:
-- `x`: The data to convert (array or array of arrays)
-- `d`: The number of dimensions in the output matrix [def: `maximum(x)` for integers and `length(factors)` otherwise]
-- `factors`: The factors from which to encode [def: `1:d` for integer x or `unique(x)` otherwise]
-- `count`: Wether to count multiple instances on the same dimension/record (`true`) or indicate just presence. [def: `false`]
-
-# Examples
-```julia
-julia> onehotencoder(["a","c","c"],factors=["a","b","c","d"])
-3×4 Matrix{Int64}:
- 1  0  0  0
- 0  0  1  0
- 0  0  1  0
-julia> onehotencoder([2,4,4])
-3×4 Matrix{Int64}:
- 0  1  0  0
- 0  0  0  1
- 0  0  0  1
- julia> onehotencoder([[2,2,1],[2,4,4]],count=true)
-2×4 Matrix{Int64}:
- 1  2  0  0
- 0  1  0  2
-```
-"""
-function onehotencoder(x::Union{T,AbstractVector{T}};factors=singleunique(x),d=length(factors),count=false) where {T <: Union{Any,AbstractVector{T2}} where T2 <: Any  }
-    if typeof(x) <: AbstractVector
-        n  = length(x)
-        out = zeros(Int64,n,d)
-        for (i,x) in enumerate(x)
-          out[i,:] = onehotencoder_row(x;factors=factors,count = count)
-        end
-        return out
-    else
-       out = zeros(Int64,1,d)
-       out[1,:] = onehotencoder_row(x;factors=factors,count = count)
-       return out
-   end
-end
-
-function onehotencoder(Y::Union{Ti,AbstractVector{Ti}};d=maximum(maximum.(Y)),factors=1:d,count=false) where {Ti <: Union{Integer,AbstractVector{Ti2}} where Ti2 <: Integer  }
-    n   = length(Y)
-    if d < maximum(maximum.(Y))
-        error("Trying to encode elements with indexes greater than the provided number of dimensions. Please increase d.")
-    end
-    out = zeros(Int64,n,d)
-    for (i,y) in enumerate(Y)
-        out[i,:] = onehotencoder_row(y;d=d,factors=1:d,count = count)
-    end
-    return out
-end
-
-"""
-    onehotdecoder(x)
-
-Given a matrix of one-hot encoded values (e.g. [0 1 0; 1 0 0]) returns a vector of the integer positions (e.g. [2,1]).
-
-!!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model OneHotEncoder() instead.
-"""
-function onehotdecoder(x)
-    function findfirst_custom(f,x)
-        for (i,val) in pairs(x)
-            if ismissing(val)
-                return missing
-            elseif f(val)
-                return i
-            end
-        end
-        return nothing
-    end
-    [findfirst_custom(i -> i == 1, r) for r in eachrow(x)]
-end
-
-
-
 findfirst(el::T,cont::Array{T};returnTuple=true) where {T<:Union{AbstractString,Number}} = ndims(cont) > 1 && returnTuple ? Tuple(findfirst(x -> isequal(x,el),cont)) : findfirst(x -> isequal(x,el),cont)
 #findfirst(el::T,cont::Array{T,N};returnTuple=true) where {T,N} = returnTuple ? Tuple(findfirst(x -> isequal(x,el),cont)) : findfirst(x -> isequal(x,el),cont)
 #findfirst(el::T,cont::Array{T,1};returnTuple=true) where {T} =  findfirst(x -> isequal(x,el),cont)
 
 
 findall(el::T, cont::Array{T};returnTuple=true) where {T} = ndims(cont) > 1 && returnTuple ? Tuple.(findall(x -> isequal(x,el),cont)) : findall(x -> isequal(x,el),cont)
-
-"""
-    integerencoder(x;factors=unique(x))
-
-Encode an array of T to an array of integers using the their position in `factor` vector (default to the unique vector of the input array)
-
-!!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model OrdinalEncoder() instead.
-
-# Parameters:
-- `x`: The vector to encode
-- `factors`: The vector of factors whose position is the result of the encoding [def: `unique(x)`]
-# Return:
-- A vector of [1,length(x)] integers corresponding to the position of each element in the `factors` vector`
-# Note:
-- Attention that while this function creates a ordered (and sortable) set, it is up to the user to be sure that this "property" is not indeed used in his code if the unencoded data is indeed unordered.
-# Example:
-```
-julia> integerencoder(["a","e","b","e"],factors=["a","b","c","d","e"]) # out: [1,5,2,5]
-```
-"""
-function integerencoder(x::AbstractVector;factors=Base.unique(x))
-    #return findfirst.(x,Ref(factors)) slower
-    return  map(i -> findfirst(j -> j==i,factors) , x  )
-end
-
-"""
-    integerdecoder(x,factors::AbstractVector{T};unique)
-
-Decode an array of integers to an array of T corresponding to the elements of `factors`
-
-!!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model OrdinalEncoder() instead.
-
-# Parameters:
-- `x`: The vector to decode
-- `factors`: The vector of elements to use for the encoding
-- `unique`: Wether `factors` is already made of unique elements [def: `true`]
-# Return:
-- A vector of length(x) elements corresponding to the (unique) `factors` elements at the position x
-# Example:
-```
-julia> integerdecoder([1, 2, 2, 3, 2, 1],["aa","cc","bb"]) # out: ["aa","cc","cc","bb","cc","aa"]
-```
-"""
-function integerdecoder(x,factors::AbstractVector{T};unique=true) where{T}
-    uniqueTarget =  unique ? factors :  Base.unique(factors)
-    return map(i -> uniqueTarget[i], x )
-end
 
 
 # API V2 for encoders
@@ -239,7 +83,7 @@ $(FIELDS)
 
 """
 Base.@kwdef mutable struct OneHotEncoderHyperParametersSet <: BetaMLHyperParametersSet
-  "The categories to represent as columns. [def: `nothing`, i.e. unique training values]. Do not include `missing` in this list."  
+  "The categories to represent as columns. [def: `nothing`, i.e. unique training values or range for integers]. Do not include `missing` in this list."  
   categories::Union{Vector,Nothing} = nothing
   "How to handle categories not seen in training or not present in the provided `categories` array? \"error\" (default) rises an error, \"missing\" labels the whole output with missing values, \"infrequent\" adds a specific column for these categories in one-hot encoding or a single new category for ordinal one."
   handle_unknown::String = "error"
@@ -349,8 +193,19 @@ function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
         m.par = OneHotEncoderLearnableParameters([],vtype)
         return cache ? nothing : x
     end
+   
+    if isnothing(categories)
+        if nonmissingtype(vtype) <: Integer
+            minx = minimum(x) 
+            maxx = maximum(x)
+            categories_applied = collect(minx:maxx)
+        else
+            categories_applied = collect(skipmissing(unique(x)))
+        end
+    else
+        categories_applied = deepcopy(categories)
+    end
 
-    categories_applied = isnothing(categories) ? collect(skipmissing(unique(x))) : deepcopy(categories)
     handle_unknown == "infrequent" && push!(categories_applied,other_categories_name)
     m.par = OneHotEncoderLearnableParameters(categories_applied,vtype)
 
@@ -589,80 +444,7 @@ function partition(data::AbstractArray{T,Ndims}, parts::AbstractArray{Float64,1}
 end
 
 
-"""
-    get_scalefactors(x;skip)
 
-Return the scale factors (for each dimensions) in order to scale a matrix X (n,d) such that each dimension has mean 0 and variance 1.
-Note that missing values are skipped.
-
-!!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model Scaler() instead.
-
-# Parameters
-- `x`: the (n × d) dimension matrix to scale on each dimension d
-- `skip`: an array of dimension index to skip the scaling [def: `[]`]
-
-# Return
-- A touple whose first elmement is the shift and the second the multiplicative
-term to make the scale.
-"""
-function get_scalefactors(x;skip=[])
-    μ  = transpose([mean(skipmissing(x[:,c])) for c in 1:size(x,2)])
-    σ² = transpose([var(skipmissing(x[:,c]),corrected=false ) for c in 1:size(x,2)])
-    sfμ = - μ
-    sfσ² = 1 ./ sqrt.(σ²)
-    for i in skip
-        sfμ[i] = 0
-        sfσ²[i] = 1
-    end
-    return (sfμ,sfσ²)
-end
-
-"""
-    scale(x,scalefactors;rev)
-
-Perform a linear scaling of x using scaling factors `scalefactors`.
-
-!!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model Scaler() instead.
-
-
-# Parameters
-- `x`: The (n × d) dimension matrix to scale on each dimension d
-- `scalingFactors`: A tuple of the constant and multiplicative scaling factor
-respectively [def: the scaling factors needed to scale x to mean 0 and variance 1]
-- `rev`: Whether to invert the scaling [def: `false`]
-
-# Return
-- The scaled matrix
-
-# Notes:
-- Also available `scale!(x,scalefactors)` for in-place scaling
-- Retrieve the scale factors with the [`get_scalefactors()`](@ref) function
-- Note that missing values are skipped
-"""
-function scale(x,scalefactors=(
-    -transpose([mean(skipmissing(x[:,c])) for c in 1:size(x,2)]),
-    1 ./ sqrt.(transpose([var(skipmissing(x[:,c]),corrected=false ) for c in 1:size(x,2)]))
-    ); rev=false )
-    if (!rev)
-      y = (x .+ scalefactors[1]) .* scalefactors[2]
-    else
-      y = (x ./ scalefactors[2]) .- scalefactors[1]
-    end
-    return y
-end
-function scale!(x,scalefactors=(
-    -transpose([mean(skipmissing(x[:,c])) for c in 1:size(x,2)]),
-    1 ./ sqrt.(transpose([var(skipmissing(x[:,c]),corrected=false ) for c in 1:size(x,2)]))
-    ); rev=false)
-    if (!rev)
-        x .= (x .+ scalefactors[1]) .* scalefactors[2]
-    else
-        x .= (x ./ scalefactors[2]) .- scalefactors[1]
-    end
-    return nothing
-end
 # API V2 for Scale
 
 abstract type AbstractScaler end

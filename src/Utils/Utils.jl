@@ -43,7 +43,11 @@ using ..Api
 
 export @codelocation, generate_parallel_rngs,
        reshape, makecolvector, makerowvector, makematrix, issortable, getpermutations,
-       onehotencoder, onehotdecoder, integerencoder, integerdecoder, cols_with_missing, get_scalefactors, scale, scale!, batch, partition, shuffle, pca,
+#       onehotencoder, onehotdecoder, integerencoder, integerdecoder, # TODO: delete
+       cols_with_missing, 
+#      get_scalefactors, scale, scale!, # TODO: delete
+       batch, partition, shuffle,
+       pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
@@ -51,11 +55,12 @@ export @codelocation, generate_parallel_rngs,
        squared_cost, dsquared_cost, mse, crossentropy, dcrossentropy, class_counts, class_counts_with_labels, mean_dicts, mode, gini, entropy, variance,
        error, accuracy, relative_mean_error,
        ConfusionMatrix, ConfusionMatrixHyperParametersSet,
-       ConfMatrix, labels, scores, normalised_scores,
-       cross_validation, AbstractDataSampler, SamplerWithData, KFold,
+#       ConfMatrix, # TODO delete
+       labels, scores, normalised_scores,
+       cross_validation,
+       AbstractDataSampler, SamplerWithData, KFold,
        autotune!, GridSearch, SuccessiveHalvingSearch, l2loss_by_cv,
        l1_distance,l2_distance, l2squared_distance, cosine_distance, lse, sterling,
-       #normalFixedSd, logNormalFixedSd,
        radial_kernel, polynomial_kernel,
        Scaler, MinMaxScaler, StandardScaler,
        ScalerHyperParametersSet, MinMaxScaler,StandardScaler,

@@ -11,41 +11,21 @@ println("*** Testing individual utility functions (module `Utils`)...")
 
 # ==================================
 # TEST 1: onehotencoder
-println("Going through Test1 (onehotencoder)...")
 
-a = [[1,3,4],[1,4,2,2,3],[2,3]]
-b = [2,1,5,2,1]
-c = 2
-ae = onehotencoder(a;d=5,count=true)
-be = onehotencoder(b;d=6,count=true)
-ce = onehotencoder(c;d=6)
-@test sum(ae*be*ce') == 4
-
-a = [["aa","ee","dd","aa"],["aa","dd","bb","bb","dd"],["bb","ee"]]
-b = ["a","d","b","b","d"]
-c = "dd"
-ae = onehotencoder(a,factors=["aa","bb","cc","dd","ee","ff"],count=true)
-be = onehotencoder(b,factors=["a","b","c","d","e","f"],count=true)
-ce = onehotencoder(c,factors=["aa","bb","cc","dd","ee","ff"],count=false)
-@test sum(ae * be') + ce[1,2] == 15
-
-ae = onehotencoder(a,count=true)
-be = onehotencoder(b,count=false)
-ce = onehotencoder(c,count=true)
-@test sum(ae)+sum(size(be))+sum(ce) == 20
 
 @test BetaML.Utils.singleunique([[1,2,3],[7,8],[5]]) == [1,2,3,7,8,5]
 @test BetaML.Utils.singleunique([1,4,5,4]) == [1,4,5]
 @test BetaML.Utils.singleunique("aaa") == ["aaa"]
 
-@test BetaML.Utils.onehotencoder_row(4,d=5) == [0,0,0,1,0]
-@test BetaML.Utils.onehotencoder_row("b",factors=["a","b","c"]) == [0,1,0]
-@test BetaML.Utils.onehotencoder_row(["b","c","c"],factors=["a","b","c"],count=true) == [0,1,2]
-
 
 m  = OneHotEncoder()
 x  = [3,6,3,4]
 ŷ  = fit!(m,x)
+@test ŷ == [ 1  0  0  0
+             0  0  0  1
+             1  0  0  0
+             0  1  0  0
+            ]
 x2 = inverse_predict(m,ŷ)
 @test x2 == x
 x  = [3,6,missing,3,4]
@@ -93,6 +73,11 @@ x̂m = collect(predict(m,["1","4","3"]))
 @test x̂  == [1,2,3] && typeof(x̂) == Vector{Int64}
 @test isequal(x̂m,[1,missing,3])
 
+x  = [2,1,3]
+m  = OrdinalEncoder()
+x̂  = fit!(m,x)
+@test x̂  == x
+
 # ==================================
 # NEW TEST
 println("Testing findFirst/ findall / integerencoder / integerdecoder...")
@@ -104,13 +89,6 @@ A = [3 2 1; 2 3 1; 1 2 3]
 @test findfirst(2,A)     == (2,1)
 @test findall(2,A)       == [(2,1),(1,2),(3,2)]
 @test findfirst(2,A;returnTuple=false) == CartesianIndex(2,1)
-
-factors =  ["aa","bb","cc"]
-encoded  = integerencoder(a,factors=factors)
-@test encoded == [1,3,3,2,3,1]
-decoded  = integerdecoder(encoded,factors)
-@test a == decoded
-
 
 # ==================================
 # TEST 2: softMax
@@ -217,17 +195,6 @@ accuracy(y,yest)
 # New test
 println("** Going through testing scaling...")
 
-skip = [1,4,5]
-x = [1.1 4.1 8.1 3 8; 2 4 9 7 2; 7 2 9 3 1]
-scalefactors = get_scalefactors(x,skip=skip)
-y  = scale(x,scalefactors)
-y2 = scale(x)
-x2 = copy(x)
-scale!(x2)
-@test y2 == x2
-@test all((sum(mean(y,dims=1)), sum(var(y,corrected=false,dims=1)) ) .≈ (11.366666666666667, 21.846666666666668))
-x3 = scale(y,scalefactors,rev=true)
-@test x3 == x
 
 x = [1.1 4.1 8.1 missing 8; 2 4 9 7 2; 7 2 9 3 1]
 m = Scaler(method=MinMaxScaler(),skip=[1,5])
@@ -360,10 +327,6 @@ mode(y,rng=copy(TESTRNG)) == [4,3]
 
 # ==================================
 # New test
-println("** Testing ConfMatrix()...")
-cm = ConfMatrix(["Lemon","Lemon","Apple","Grape","Lemon"],ŷ,rng=copy(FIXEDRNG))
-@test cm.scores == [2 0 1; 0 1 0; 0 0 1]
-@test cm.tp == [2,1,1] && cm.tn == [2,4,3] && cm.fp == [0,0,1] && cm.fn == [1, 0, 0]
 
 println("** Testing ConfusionMatrix()...")
 
@@ -398,25 +361,6 @@ res = info(cm)
 # Example from https://scikit-learn.org/stable/modules/model_evaluation.html#classification-report
 y = [0,1,2,2,0]
 ŷ = [0,0,2,1,0]
-labels = ["Class 0", "Class 1 with an extra long name super long", "Class 2"]
-#y = integerdecoder(y .+ 1,labels)
-#ŷ = integerdecoder(ŷ .+ 1,labels)
-cm = ConfMatrix(y,ŷ,labels=labels)
-
-@test cm.precision ≈ [0.6666666666666666, 0.0, 1.0]
-@test cm.recall ≈ [1.0, 0.0, 0.5]
-@test cm.specificity ≈ [0.6666666666666666, 0.75, 1.0]
-@test cm.f1score ≈ [0.8, 0.0, 0.6666666666666666]
-@test cm.mean_precision == (0.5555555555555555, 0.6666666666666666)
-@test cm.mean_recall == (0.5, 0.6)
-@test cm.mean_specificity == (0.8055555555555555, 0.8166666666666667)
-@test cm.mean_f1score == (0.48888888888888893, 0.5866666666666667)
-@test cm.accuracy == 0.6
-@test cm.misclassification == 0.4
-
-# Same test on ConfusionMatrix
-y = [0,1,2,2,0]
-ŷ = [0,0,2,1,0]
 
 cm = ConfusionMatrix()
 fit!(cm,y,ŷ)
@@ -432,12 +376,11 @@ res = info(cm)
 @test res["accuracy"] == 0.6
 @test res["misclassification"] == 0.4
 
-original_stdout = stdout
-(rd, wr) = redirect_stdout()
-@test BetaML.Utils.print(cm,["report"]) == nothing
-@test BetaML.Utils.println(cm) == nothing
-redirect_stdout(original_stdout)
-close(wr)
+#original_stdout = stdout
+#(rd, wr) = redirect_stdout()
+
+#redirect_stdout(original_stdout)
+#close(wr)
 
 cm = ConfusionMatrix(categories_names = Dict(0=>"0",1=>"1",2=>"2"))
 fit!(cm,y,ŷ)
@@ -565,8 +508,9 @@ Y = [1:9;]
 sampler = KFold(nsplits=3,nrepeats=1,shuffle=true,rng=copy(TESTRNG))
 (μ,σ) = cross_validation([X,Y],sampler) do trainData,valData,rng
         (xtrain,ytrain) = trainData; (xval,yval) = valData
-        trainedModel = buildForest(xtrain,ytrain,30,rng=rng)
-        predictions = predict(trainedModel,xval,rng=rng)
+        rfmod = RandomForestEstimator(n_trees=30,rng=rng)
+        fit!(rfmod,xtrain,ytrain)
+        predictions = predict(rfmod,xval)
         ϵ = relative_mean_error(yval,predictions,normrec=false)
         return ϵ
     end
