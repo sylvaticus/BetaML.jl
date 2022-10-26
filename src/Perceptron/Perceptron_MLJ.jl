@@ -10,65 +10,107 @@ export LinearPerceptron, KernelPerceptron, Pegasos
 
 # ------------------------------------------------------------------------------
 # Model Structure declarations..
-"The classical perceptron algorithm using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML)."
+"""
+$(TYPEDEF)
+
+The classical perceptron algorithm using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML).
+
+## Hyperparameters:
+$(TYPEDFIELDS)
+"""
 mutable struct LinearPerceptron <: MMI.Probabilistic
-   initialθ::Union{Matrix{Float64},Nothing} 
-   initialθ₀::Union{Vector{Float64},Nothing} 
-   maxEpochs::Int64
+   "N-classes by D-dimensions matrix of initial linear coefficients [def: `nothing`, i.e. zeros]"
+   initial_coefficients::Union{Matrix{Float64},Nothing} 
+   "N-classes vector of initial contant terms [def: `nothing`, i.e. zeros]"
+   initial_constant::Union{Vector{Float64},Nothing} 
+   "Maximum number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
+   epochs::Int64
+   "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
    shuffle::Bool
+   "Whether to force the parameter associated with the constant term to remain zero [def: `false`]"
    force_origin::Bool
+   "Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]"
    return_mean_hyperplane::Bool
+   "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG
 end
 LinearPerceptron(;
-  initialθ=nothing,
-  initialθ₀=nothing,
-  maxEpochs=1000,
-  shuffle=false,
+  initial_coefficients=nothing,
+  initial_constant=nothing,
+  epochs=1000,
+  shuffle=true,
   force_origin=false,
   return_mean_hyperplane=false,
   rng = Random.GLOBAL_RNG,
-  ) = LinearPerceptron(initialθ,initialθ₀,maxEpochs,shuffle,force_origin,return_mean_hyperplane,rng)
+  ) = LinearPerceptron(initial_coefficients,initial_constant,epochs,shuffle,force_origin,return_mean_hyperplane,rng)
 
-"The kernel perceptron algorithm using one-vs-one for multiclass, from the Beta Machine Learning Toolkit (BetaML)."
+"""
+$(TYPEDEF)
+
+The kernel perceptron algorithm using one-vs-one for multiclass, from the Beta Machine Learning Toolkit (BetaML).
+
+## Hyperparameters:
+$(TYPEDFIELDS)
+
+"""
 mutable struct KernelPerceptron <: MMI.Probabilistic
-     K::Function
-     maxEpochs::Int64
-     initialα::Union{Nothing,Vector{Vector{Int64}}}
-     shuffle::Bool
-     rng::AbstractRNG
+    "Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel` (once loaded the BetaML package) for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radial_kernel`](@ref)]"
+    kernel::Function
+    "Maximum number of epochs, i.e. passages trough the whole training sample [def: `100`]"
+    epochs::Int64
+    "Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`"
+    initial_errors::Union{Nothing,Vector{Vector{Int64}}}
+    "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
+    shuffle::Bool
+    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
+    rng::AbstractRNG
 end
 KernelPerceptron(;
-    K=radial_kernel,
-    maxEpochs=100,
-    initialα = nothing,
-    shuffle=false,
+    kernel=radial_kernel,
+    epochs=100,
+    initial_errors = nothing,
+    shuffle=true,
     rng = Random.GLOBAL_RNG,
-    ) = KernelPerceptron(K,maxEpochs,initialα,shuffle,rng)
+    ) = KernelPerceptron(kernel,epochs,initial_errors,shuffle,rng)
+"""
+$(TYPEDEF)
 
-"The gradient-based linear \"pegasos\" classifier using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML)."
+The gradient-based linear "pegasos" classifier using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML).
+
+## Hyperparameters:
+$(TYPEDFIELDS)
+"""
 mutable struct Pegasos <: MMI.Probabilistic
-   initialθ::Union{Matrix{Float64},Nothing} 
-   initialθ₀::Union{Vector{Float64},Nothing} 
-   λ::Float64
-   η::Function
-   maxEpochs::Int64
+    "N-classes by D-dimensions matrix of initial linear coefficients [def: `nothing`, i.e. zeros]"
+   initial_coefficients::Union{Matrix{Float64},Nothing} 
+   "N-classes vector of initial contant terms [def: `nothing`, i.e. zeros]"
+   initial_constant::Union{Vector{Float64},Nothing} 
+   "Learning rate [def: (epoch -> 1/sqrt(epoch))]"
+   learning_rate::Function
+   "Multiplicative term of the learning rate [def: `0.5`]"       
+   learning_rate_multiplicative::Float64
+   "Maximum number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
+   epochs::Int64
+   "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
    shuffle::Bool
+   "Whether to force the parameter associated with the constant term to remain zero [def: `false`]"
    force_origin::Bool
+   "Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]"
    return_mean_hyperplane::Bool
+   "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG
 end
 Pegasos(;
-  initialθ=nothing,
-  initialθ₀=nothing,
-  λ = 0.5,
-  η = (t -> 1/sqrt(t)),
-  maxEpochs=1000,
-  shuffle=false,
+  initial_coefficients=nothing,
+  initial_constant=nothing,
+  learning_rate = (t -> 1/sqrt(t)),
+  learning_rate_multiplicative = 0.5,
+  epochs=1000,
+  shuffle=true,
   force_origin=false,
   return_mean_hyperplane=false,
   rng = Random.GLOBAL_RNG,
-  ) = Pegasos(initialθ,initialθ₀,λ,η,maxEpochs,shuffle,force_origin,return_mean_hyperplane,rng)
+  ) = Pegasos(initial_coefficients,initial_constant,learning_rate,learning_rate_multiplicative,epochs,shuffle,force_origin,return_mean_hyperplane,rng)
 
 # ------------------------------------------------------------------------------
 # Fit functions...
@@ -76,8 +118,8 @@ Pegasos(;
 function MMI.fit(model::LinearPerceptron, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
- #initialθ  = length(model.initialθ) == 0 ? zeros(size(x,2)) : model.initialθ
- fitresult = perceptron(x, y; θ=model.initialθ, θ₀=model.initialθ₀, T=model.maxEpochs, nMsgs=0, shuffle=model.shuffle, force_origin=model.force_origin, return_mean_hyperplane=model.return_mean_hyperplane,rng=model.rng)
+ #initial_coefficients  = length(model.initial_coefficients) == 0 ? zeros(size(x,2)) : model.initial_coefficients
+ fitresult = perceptron(x, y; θ=model.initial_coefficients, θ₀=model.initial_constant, T=model.epochs, nMsgs=0, shuffle=model.shuffle, force_origin=model.force_origin, return_mean_hyperplane=model.return_mean_hyperplane,rng=model.rng)
  cache=nothing
  report=nothing
  return (fitresult,allClasses), cache, report
@@ -86,8 +128,8 @@ end
 function MMI.fit(model::KernelPerceptron, verbosity, X, y)
  x          = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
- #initialα   = length(model.initialα) == 0 ? zeros(Int64,length(y)) : model.initialα
- fitresult  = kernelPerceptron(x, y; K=model.K, T=model.maxEpochs, α=model.initialα, nMsgs=0, shuffle=model.shuffle,rng=model.rng)
+ #initial_errors   = length(model.initial_errors) == 0 ? zeros(Int64,length(y)) : model.initial_errors
+ fitresult  = kernelPerceptron(x, y; K=model.kernel, T=model.epochs, α=model.initial_errors, nMsgs=0, shuffle=model.shuffle,rng=model.rng)
  cache      = nothing
  report     = nothing
  return (fitresult,allClasses), cache, report
@@ -96,8 +138,8 @@ end
 function MMI.fit(model::Pegasos, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
- #initialθ  = length(model.initialθ) == 0 ? zeros(size(x,2)) : model.initialθ
- fitresult = pegasos(x, y; θ=model.initialθ,θ₀=model.initialθ₀, λ=model.λ,η=model.η, T=model.maxEpochs, nMsgs=0, shuffle=model.shuffle, force_origin=model.force_origin, return_mean_hyperplane=model.return_mean_hyperplane,rng=model.rng)
+ #initial_coefficients  = length(model.initial_coefficients) == 0 ? zeros(size(x,2)) : model.initial_coefficients
+ fitresult = pegasos(x, y; θ=model.initial_coefficients,θ₀=model.initial_constant, λ=model.learning_rate_multiplicative,η=model.learning_rate, T=model.epochs, nMsgs=0, shuffle=model.shuffle, force_origin=model.force_origin, return_mean_hyperplane=model.return_mean_hyperplane,rng=model.rng)
  cache=nothing
  report=nothing
  return (fitresult,allClasses), cache, report
@@ -105,7 +147,6 @@ end
 
 # ------------------------------------------------------------------------------
 # Predict functions....
-
 function MMI.predict(model::Union{LinearPerceptron,Pegasos}, fitresult, Xnew)
     fittedModel      = fitresult[1]
     #classes          = CategoricalVector(fittedModel.classes)
@@ -161,7 +202,6 @@ MMI.metadata_model(LinearPerceptron,
     input_scitype    = MMI.Table(MMI.Infinite),
     target_scitype   = AbstractVector{<: MMI.Finite},
     supports_weights = false,
-    descr            = "The classical perceptron algorithm using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Perceptron.LinearPerceptron"
 )
 
@@ -169,7 +209,6 @@ MMI.metadata_model(KernelPerceptron,
     input_scitype    = MMI.Table(MMI.Infinite),
     target_scitype   = AbstractVector{<: MMI.Finite},
     supports_weights = false,
-    descr            = "The kernel perceptron algorithm using one-vs-one for multiclass, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Perceptron.KernelPerceptron"
 )
 
@@ -177,6 +216,5 @@ MMI.metadata_model(Pegasos,
     input_scitype    = MMI.Table(MMI.Infinite),
     target_scitype   = AbstractVector{<: MMI.Finite},
     supports_weights = false,
-    descr            = "The gradient-based linear \"pegasos\" classifier using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Perceptron.Pegasos"
 )

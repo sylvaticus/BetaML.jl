@@ -16,10 +16,11 @@ Impute missing values using feature (column) mean, with optional record normalis
 $(TYPEDFIELDS)
 """
 mutable struct SimpleImputer <: MMI.Unsupervised
+    "The descriptive statistic of the column (feature) to use as imputed value [def: `mean`]"
     statistic::Function
+    "Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries)."
     norm::Int64
 end
-
 SimpleImputer(;
     statistic::Function              = mean,
     norm::Union{Nothing,Int64}       = nothing,
@@ -34,25 +35,45 @@ Impute missing values using a probabilistic approach (Gaussian Mixture Models) f
 $(TYPEDFIELDS)
 """
 mutable struct GaussianMixtureImputer <: MMI.Unsupervised
+    "Number of mixtures (latent classes) to consider [def: 3]"
     n_classes::Int64
+    "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
     initial_probmixtures::Vector{Float64}
+    """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module in BetaML).
+    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\"`
+    This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
+    Note that mixing of different mixture types is not currently supported and that currently implemented mixtures are `SphericalGaussian`, `DiagonalGaussian` and `FullGaussian`.
+    [def: `DiagonalGaussian`]"""
     mixtures::Union{Type,Vector{<: AbstractMixture}}
+    "Tolerance to stop the algorithm [default: 10^(-6)]"
     tol::Float64
+    "Minimum variance for the mixtures [default: 0.05]"
     minimum_variance::Float64
+    "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minimum_variance."
     minimum_covariance::Float64
+    """
+    The computation method of the vector of the initial mixtures.
+    One of the following:
+    - "grid": using a grid approach
+    - "given": using the mixture provided in the fully qualified `mixtures` parameter
+    - "kmeans": use first kmeans (itself initialised with a "grid" strategy) to set the initial mixture centers [default]
+    Note that currently "random" and "shuffle" initialisations are not supported in gmm-based algorithms.
+    """
     initialisation_strategy::String
+    "The verbosity level to be used in training or prediction: `NONE` [default], `LOW`, `STD`, `HIGH` or `FULL`"
     verbosity::Verbosity
+    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
 function GaussianMixtureImputer(;
     n_classes      = 3,
     initial_probmixtures  = Float64[],
-    mixtures      = [DiagonalGaussian() for i in 1:n_classes],
+    mixtures      = DiagonalGaussian, #[DiagonalGaussian() for i in 1:n_classes],
     tol           = 10^(-6),
     minimum_variance   = 0.05,
     minimum_covariance = 0.0,
     initialisation_strategy  = "kmeans",
-    verbosity     = STD,
+    verbosity     = NONE,
     rng           = Random.GLOBAL_RNG,
 )
     if typeof(mixtures) <: UnionAll
@@ -70,16 +91,25 @@ Impute missing values using Random Forests, from the Beta Machine Learning Toolk
 $(TYPEDFIELDS)
 """
 mutable struct RandomForestImputer <: MMI.Unsupervised
+    "Number of (decision) trees in the forest [def: `30`]"
     n_trees::Int64
+    "The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `nothing`, i.e. no limits]"
     max_depth::Union{Nothing,Int64}
+    "The minimum information gain to allow for a node's partition [def: `0`]"
     min_gain::Float64
+    "The minimum number of records a node must holds to consider for a partition of it [def: `2`]"
     min_records::Int64
+    "The maximum number of (random) features to consider at each partitioning [def: `nothing`, i.e. square root of the data dimension]"
     max_features::Union{Nothing,Int64}
+    "Specify the positions of the integer columns to treat as categorical instead of cardinal. [Default: empty vector (all numerical cols are treated as cardinal by default and the others as categorical)]"
     forced_categorical_cols::Vector{Int64}
+    "Either `gini`, `entropy` or `variance`. This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `nothing`, i.e. `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]. It can be an anonymous function."
     splitting_criterion::Union{Nothing,Function}
+    "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
     recursive_passages::Int64                  
-    #multiple_imputations::Int64 
+    "The verbosity level to be used in training or prediction: `NONE` [default], `LOW`, `STD`, `HIGH` or `FULL`"
     verbosity::Verbosity
+    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
 RandomForestImputer(;
@@ -105,10 +135,13 @@ Impute missing values using a vector (one per column) of arbitrary learning mode
 $(TYPEDFIELDS)
 """
 mutable struct GeneralImputer <: MMI.Unsupervised
+    "A D-dimensions vector of regressor or classifier models (and eventually their respective options/hyper-parameters) to be used to impute the various columns of the matrix [default: `nothing`, i.e. use random forests]."
     estimators::Union{Vector,Nothing}
-    recursive_passages::Int64     
-    #multiple_imputations::Int64
-    verbosity::Verbosity 
+    "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
+    recursive_passages::Int64                  
+    "The verbosity level to be used in training or prediction: `NONE` [default], `LOW`, `STD`, `HIGH` or `FULL`"
+    verbosity::Verbosity
+    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
 GeneralImputer(;

@@ -718,7 +718,7 @@ init_optalg!(opt_alg::OptimisationAlgorithm;θ,batch_size,x,y,rng = Random.GLOBA
             set_params!(nn,newW)
             ϵ += loss(nn,xᵢ,yᵢ)
         end
-        if nMsgs != 0 && (t % ceil(maxEpochs/nMsgs) == 0 || t == 1 || t == maxEpochs)
+        if nMsgs != 0 && (t % ceil(epochs/nMsgs) == 0 || t == 1 || t == epochs)
           println("Avg. error after epoch $t : $(ϵ/size(x)[1])")
         end
 
@@ -734,7 +734,7 @@ init_optalg!(opt_alg::OptimisationAlgorithm;θ,batch_size,x,y,rng = Random.GLOBA
         end
     end
     if nMsgs != 0 && converged == false
-        println("*** Avg. error after epoch $maxEpochs : $(ϵ/size(x)[1]) (convergence not reached)")
+        println("*** Avg. error after epoch $epochs : $(ϵ/size(x)[1]) (convergence not reached)")
     end
     nn.trained = true
 end

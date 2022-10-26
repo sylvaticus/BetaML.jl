@@ -35,7 +35,7 @@ end
 #gradientDescentSingleUpdate(θ::AbstractArray,▽::AbstractArray,η) = gradientDescentSingleUpdate.(θ,▽,Ref(η))
 #gradientDescentSingleUpdate(θ::Tuple,▽::Tuple,η) = gradientDescentSingleUpdate.(θ,▽,Ref(η))
 
-#maxEpochs=1000, η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0
+#epochs=1000, η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0
 
 
 

@@ -6,7 +6,7 @@
 
 <img src="assets/BetaML_logo.png" width="300" valign="middle"/> &nbsp;&nbsp;&nbsp;<img src="assets/microExample_white.png" width="500" valign="middle"/>
 
-The **Beta Machine Learning Toolkit** is a package including many algorithms and utilities to implement machine learning workflows in Julia.
+The **Beta Machine Learning Toolkit** is a package including many algorithms and utilities to implement machine learning workflows in Julia, Python, R and any other language with a Julia binding.
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://sylvaticus.github.io/BetaML.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sylvaticus.github.io/BetaML.jl/dev)
@@ -148,12 +148,15 @@ heatmap(info(cm)["categories"],info(cm)["categories"],info(cm)["normalised_score
 
 - **Other examples**
 
-Further examples, with more models and more advanced techniques in order to improve predictions, are provided in the documentation tutorial. At the opposite, very "micro" examples of usage of the various functions can be studied in the unit-tests available in the [`test`](https://github.com/sylvaticus/BetaML.jl/tree/master/test) folder. 
+Further examples, with more models and more advanced techniques in order to improve predictions, are provided in the documentation tutorial.
+Basic examples in Python and R are given [here](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#using_betaml_from_other_languages).
+Very "micro" examples of usage of the various functions can also be studied in the unit-tests available in the [`test`](https://github.com/sylvaticus/BetaML.jl/tree/master/test) folder. 
+
 
 ## Limitations and alternative packages
 
 The focus of the library is skewed toward user-friendliness rather than computational efficiency. While the code is (relatively) easy to read, it is not heavily optimised, and currently all models operate on the CPU and only with data that fits in the pc's memory.
-For very large data we suggest specialised packages. See the list below.
+For very large data we suggest specialised packages. See the list below:
 
 Category         | Packages
 -----------------|-----------------

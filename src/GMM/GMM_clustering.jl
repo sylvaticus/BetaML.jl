@@ -180,7 +180,7 @@ Base.@kwdef mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
     """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
     Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\"`
     This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
-    Note that mixing of different mixture types is not currently supported.
+    Note that mixing of different mixture types is not currently supported and that currently implemented mixtures are `SphericalGaussian`, `DiagonalGaussian` and `FullGaussian`.
     [def: `DiagonalGaussian`]"""
     mixtures::Union{Type,Vector{<: AbstractMixture}} = DiagonalGaussian
     "Tolerance to stop the algorithm [default: 10^(-6)]"

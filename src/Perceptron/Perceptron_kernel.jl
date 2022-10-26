@@ -297,8 +297,8 @@ Base.@kwdef mutable struct KernelPerceptronClassifierHyperParametersSet <: BetaM
     initial_errors::Union{Nothing,Vector{Vector{Int64}}} = nothing
     "Maximum number of epochs, i.e. passages trough the whole training sample [def: `100`]"
     epochs::Int64 = 100
-    "Whether to randomly shuffle the data at each iteration (epoch) [def: `false`]"
-    shuffle::Bool = false
+    "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
+    shuffle::Bool = true
     """
     The method - and its parameters - to employ for hyperparameters autotuning.
     See [`SuccessiveHalvingSearch`](@ref) for the default method.

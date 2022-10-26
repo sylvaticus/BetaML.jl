@@ -188,8 +188,8 @@ Base.@kwdef mutable struct PegasosClassifierHyperParametersSet <: BetaMLHyperPar
     initial_parameters::Union{Nothing,Matrix{Float64}} = nothing
     "Maximum number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
     epochs::Int64 = 1000
-    "Whether to randomly shuffle the data at each iteration (epoch) [def: `false`]"
-    shuffle::Bool = false  
+    "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
+    shuffle::Bool = true  
     "Whether to force the parameter associated with the constant term to remain zero [def: `false`]"
     force_origin::Bool = false
     " Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]"

@@ -14,7 +14,7 @@ export DecisionTreeRegressor, RandomForestRegressor, DecisionTreeClassifier, Ran
 """
 $(TYPEDEF)
 
-A simple Decision Tree for regression with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).
+A simple Decision Tree model for regression with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).
 
 # Hyperparameters:
 $(TYPEDFIELDS)
@@ -46,7 +46,7 @@ DecisionTreeRegressor(;
 """
 $(TYPEDEF)
 
-A simple Decision Tree for classification with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).
+A simple Decision Tree model for classification with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).
 
 # Hyperparameters:
 $(TYPEDFIELDS)
@@ -78,13 +78,14 @@ DecisionTreeClassifier(;
 """
 $(TYPEDEF)
 
-A simple Random Forest for regression with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).
+A simple Random Forest model for regression with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).
 
 # Hyperparameters:
 $(TYPEDFIELDS)
 
 """
 mutable struct RandomForestRegressor <: MMI.Deterministic
+   "Number of (decision) trees in the forest [def: `30`]"
    n_trees::Int64
    "The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `0`, i.e. no limits]"
    max_depth::Int64
@@ -115,7 +116,7 @@ RandomForestRegressor(;
 """
 $(TYPEDEF)
 
-A simple Random Forest for classification with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).
+A simple Random Forest model for classification with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).
 
 # Hyperparameters:
 $(TYPEDFIELDS)
@@ -238,27 +239,23 @@ MMI.metadata_model(DecisionTreeRegressor,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     target_scitype   = AbstractVector{<: MMI.Continuous},           # for a supervised model, what target?
     supports_weights = false,                                       # does the model support sample weights?
-    descr            = "A simple Decision Tree for regression with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Trees.DecisionTreeRegressor"
     )
 MMI.metadata_model(RandomForestRegressor,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     target_scitype   = AbstractVector{<: MMI.Continuous},
     supports_weights = false,
-    descr            = "A simple Random Forest ensemble for regression with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Trees.RandomForestRegressor"
     )
 MMI.metadata_model(DecisionTreeClassifier,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite}},
     supports_weights = false,
-    descr            = "A simple Decision Tree for classification with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Trees.DecisionTreeClassifier"
     )
 MMI.metadata_model(RandomForestClassifier,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite}},
     supports_weights = false,
-    descr            = "A simple Random Forest ensemble for classification with support for Missing data, from the Beta Machine Learning Toolkit (BetaML).",
 	load_path        = "BetaML.Trees.RandomForestClassifier"
     )

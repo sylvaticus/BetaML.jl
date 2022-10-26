@@ -43,9 +43,7 @@ using ..Api
 
 export @codelocation, generate_parallel_rngs,
        reshape, makecolvector, makerowvector, makematrix, issortable, getpermutations,
-#       onehotencoder, onehotdecoder, integerencoder, integerdecoder, # TODO: delete
        cols_with_missing, 
-#      get_scalefactors, scale, scale!, # TODO: delete
        batch, partition, shuffle,
        pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
@@ -55,8 +53,6 @@ export @codelocation, generate_parallel_rngs,
        squared_cost, dsquared_cost, mse, crossentropy, dcrossentropy, class_counts, class_counts_with_labels, mean_dicts, mode, gini, entropy, variance,
        error, accuracy, relative_mean_error,
        ConfusionMatrix, ConfusionMatrixHyperParametersSet,
-#       ConfMatrix, # TODO delete
-       labels, scores, normalised_scores,
        cross_validation,
        AbstractDataSampler, SamplerWithData, KFold,
        autotune!, GridSearch, SuccessiveHalvingSearch, l2loss_by_cv,

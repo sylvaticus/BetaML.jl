@@ -98,8 +98,7 @@ Base.@kwdef mutable struct BetaMLDefaultOptionsSet
    descr::String = "" 
    "0ption for hyper-parameters autotuning [def: `false`, i.e. not autotuning performed]. If activated, autotuning is performed on the first `fit!()` call. Controll auto-tuning trough the option `tunemethod` (see the model hyper-parameters)"
    autotune::Bool = false
-   "The verbosity level to be used in training or prediction (see [`?Verbosity`](@ref Verbosity)) [deafult: `STD`]
-   "
+   "The verbosity level to be used in training or prediction: `NONE`, `LOW`, `STD` [default], `HIGH` or `FULL`"
    verbosity::Verbosity = STD
    "Random Number Generator (see [`?FIXEDSEED`](@ref FIXEDSEED)) [deafult: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG = Random.GLOBAL_RNG

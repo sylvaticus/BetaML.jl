@@ -679,7 +679,7 @@ Hyperparameters for [`UniversalImputer`](@ref)
 $(FIELDS)
 """
 Base.@kwdef mutable struct UniversalImputerHyperParametersSet <: BetaMLHyperParametersSet
-    "Specify a regressor or classifier model (and its options/hyper-parameters) per each column of the matrix to impute. Default to random forests."
+    "A D-dimensions vector of regressor or classifier models (and eventually their respective options/hyper-parameters) to be used to impute the various columns of the matrix [default: `nothing`, i.e. use random forests]."
     estimators                        = nothing
     "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
     recursive_passages::Int64      = 1
