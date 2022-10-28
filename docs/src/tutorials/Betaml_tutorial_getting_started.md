@@ -84,7 +84,7 @@ Note that `X` and `y` are Numpy arrays.
 We can now call BetaML functions as we would do for any other Python library functions. In particular, we can pass to the functions (and retrieve) complex data types without worrying too much about the conversion between Python and Julia types, as these are converted automatically:
 
 ```python
->>> (Xs,ys) = BetaML.shuffle([X,y]) # X and y are first converted to julia arrays and then the returned julia arrays are converted back to python Numpy arrays
+>>> (Xs,ys) = BetaML.consistent_shuffle([X,y]) # X and y are first converted to julia arrays and then the returned julia arrays are converted back to python Numpy arrays
 >>> m       = BetaML.KMeansClusterer(n_classes=3)
 >>> yhat    = BetaML.fit_ex(m,Xs) # Python doesn't allow exclamation marks in function names, so we use `fit_ex(⋅)` instead of `fit!(⋅)`
 >>> acc     = BetaML.accuracy(ys,yhat,ignorelabels=True)
@@ -147,7 +147,7 @@ We can now call BetaML functions as we would do for any other Python library fun
 
 
 ```python
->>> (Xs,ys) = bml.shuffle([X,y])
+>>> (Xs,ys) = bml.consistent_shuffle([X,y])
 >>> m       = bml.KMeansClusterer(n_classes=3)
 >>> yhat    = bml.fit_ex(m,Xs)
 >>> m._jl_display() # force a "Julian" way of displaing of Julia objects
@@ -213,7 +213,7 @@ We can now "import" the BetaML julia package (in julia a "Package" is basically 
 
 ```{r}
 > julia_eval("using BetaML")
-> shuffled <- julia_call("shuffle",list(X,y))
+> shuffled <- julia_call("consistent_shuffle",list(X,y))
 > Xs       <- matrix(sapply(shuffled[1],as.numeric), nrow=xsize[1])
 > ys       <- as.vector(sapply(shuffled[2], as.integer))
 > m        <- julia_eval('KMeansClusterer(n_classes=3)')

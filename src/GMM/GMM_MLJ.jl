@@ -52,7 +52,7 @@ end
 function GaussianMixtureClusterer(;
     n_classes             = 3,
     initial_probmixtures            = Float64[],
-    mixtures      = [DiagonalGaussian() for i in 1:m.n_classes],
+    mixtures      = [DiagonalGaussian() for i in 1:n_classes],
     tol           = 10^(-6),
     minimum_variance   = 0.05,
     minimum_covariance = 0.0,
@@ -61,7 +61,7 @@ function GaussianMixtureClusterer(;
     rng           = Random.GLOBAL_RNG,
 )
     if typeof(mixtures) <: UnionAll
-        mixtures = [mixtures() for i in 1:m.n_classes]
+        mixtures = [mixtures() for i in 1:n_classes]
     end
     return GaussianMixtureClusterer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,maximum_iterations,rng)
 end
@@ -119,7 +119,7 @@ function GaussianMixtureRegressor(;
     rng           = Random.GLOBAL_RNG
    )
    if typeof(mixtures) <: UnionAll
-     mixtures = [mixtures() for i in 1:m.n_classes]
+     mixtures = [mixtures() for i in 1:n_classes]
    end
    return GaussianMixtureRegressor(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,rng)
 end
@@ -177,7 +177,7 @@ function MultitargetGaussianMixtureRegressor(;
     rng           = Random.GLOBAL_RNG
 ) 
     if typeof(mixtures) <: UnionAll
-        mixtures = [mixtures() for i in 1:m.n_classes]
+        mixtures = [mixtures() for i in 1:n_classes]
     end
     return MultitargetGaussianMixtureRegressor(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,rng)
 end

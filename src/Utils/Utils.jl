@@ -44,7 +44,7 @@ using ..Api
 export @codelocation, generate_parallel_rngs,
        reshape, makecolvector, makerowvector, makematrix, issortable, getpermutations,
        cols_with_missing, 
-       batch, partition, shuffle,
+       batch, partition, consistent_shuffle,
        pca,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions

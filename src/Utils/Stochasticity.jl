@@ -34,7 +34,7 @@ end
 
 
 """
-    shuffle(data;dims,rng)
+    consistent_shuffle(data;dims,rng)
 
 Shuffle a vector of n-dimensional arrays across dimension `dims` keeping the same order between the arrays
 
@@ -49,24 +49,29 @@ Shuffle a vector of n-dimensional arrays across dimension `dims` keeping the sam
 # Example
 ```
 julia> a = [1 2 30; 10 20 30]; b = [100 200 300];
-julia> (aShuffled, bShuffled) = shuffle([a,b],dims=2)
+julia> (aShuffled, bShuffled) = consistent_shuffle([a,b],dims=2)
 2-element Vector{Matrix{Int64}}:
  [1 30 2; 10 30 20]
  [100 300 200]
  ```
 """
-function shuffle(data::AbstractArray{T,1};dims=1,rng=Random.GLOBAL_RNG)  where T <: AbstractArray
+function consistent_shuffle(data::AbstractArray{T,1};dims=1,rng=Random.GLOBAL_RNG) where T <: Any
+    #= old code, fast for small data, slow for big element to shuffle
     Ns = [size(m,dims) for m in data]
-    length(Set(Ns)) == 1 || @error "In `shuffle(arrays)` all individual arrays need to have the same size on the dimension specified"
+    length(Set(Ns)) == 1 || @error "In `consistent_shuffle(arrays)` all individual arrays need to have the same size on the dimension specified"
     N    = Ns[1]
     ridx = Random.shuffle(rng, 1:N)
     out = similar(data)
     for (i,a) in enumerate(data)
        aidx = convert(Vector{Union{UnitRange{Int64},Vector{Int64}}},[1:i for i in size(a)])
-       #aidx = [collect(1:i) for i in size(a)]
        aidx[dims] = ridx
        out[i] = a[aidx...]
     end
     return out
+    =#
+    Ns = [size(m,dims) for m in data]
+    length(Set(Ns)) == 1 || @error "In `consistent_shuffle(arrays)` all individual arrays need to have the same size on the dimension specified"
+    ix = randperm(rng,size(data[1],dims))
+    return mapslices.(x->x[ix], data, dims=dims)
 end
-shuffle(rng::AbstractRNG,data::AbstractArray{T,1};dims=1) where T <: AbstractArray = shuffle(data;dims=dims,rng=rng)
+consistent_shuffle(rng::AbstractRNG,data::AbstractArray{T,1};dims=1) where T <: Any = consistent_shuffle(data;dims=dims,rng=rng)

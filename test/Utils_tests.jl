@@ -552,47 +552,18 @@ ŷ = predict(m,X)
 
 # ==================================
 # New test
-println("** Testing shuffle()...")
+println("** Testing consistent_shuffle()...")
 
-a = [1 2 3; 10 20 30; 100 200 300; 1000 2000 4000; 10000 20000 40000]; b = [4,40,400,4000,40000]
-out = shuffle([a,b],rng=copy(FIXEDRNG))
-@test out[1] ==  [100 200 300; 1 2 3;10000 20000 40000; 10 20 30; 1000 2000 4000] && out[2] == [400,4,40000,40,4000]
-out2 = shuffle(copy(FIXEDRNG),[a,b])
+a = [1 2 3; 10 20 30; 100 200 300; 1000 2000 3000; 10000 20000 30000]; b = [4,40,400,4000,40000]
+out = consistent_shuffle([a,b],rng=copy(FIXEDRNG))
+@test out[1] ==  [1000 2000 3000; 10000 20000 30000; 10 20 30; 1 2 3; 100 200 300] && out[2] == [4000, 40000, 40, 4, 400]
+out2 = consistent_shuffle(copy(FIXEDRNG),[a,b])
 @test out2 == out
 
 
 a = [1 2 3 4 5; 10 20 30 40 50]; b = [100 200 300 400 500]
-out = shuffle([a,b],rng=copy(FIXEDRNG),dims=2)
-@test out[1] == [3 1 5 2 4; 30 10 50 20 40] && out[2] == [300 100 500 200 400]
-
-
-a = [1 2 30; 10 20 30]; b = [100 200 300];
-(aShuffled, bShuffled) = shuffle([a,b],dims=2)
-
-
-a = [1 2 3; 10 20 30]; b = [4,40]
-out = shuffle([a,b],rng=copy(FIXEDRNG))
-
-
-data = [a,b]
-dims = 1
-rng=Random.GLOBAL_RNG
-Ns = [size(m,dims) for m in data]
-length(Set(Ns)) == 1 || @error "In `shuffle(arrays)` all individual arrays need to have the same size on the dimension specified"
-N    = Ns[1]
-ridx = Random.shuffle(rng, 1:N)
-out = similar(data)
-for (i,a) in enumerate(data)
-i = 1
-a = data[1]
-aidx = convert(Vector{Union{UnitRange{Int64},Vector{Int64}}},[1:i for i in size(a)])
-aidx[dims] = ridx
-out[i] = a[aidx...]
-Vector{Union{UnitRange{Int64},Vector{Int64}}}
-end
-return out
-
-
+out = consistent_shuffle([a,b],rng=copy(FIXEDRNG),dims=2)
+@test out[1] == [4 5 2 1 3; 40 50 20 10 30] && out[2] == [400 500 200 100 300]
 
 # ==================================
 # New test
