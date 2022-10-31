@@ -6,8 +6,8 @@ Welcome to the documentation of the [_Beta Machine Learning toolkit_](https://gi
 
 The `BetaML` toolkit provides machine learning algorithms written in the Julia programming language.
 
-Aside the algorithms themselves, `BetaML` provides many "utility" functions. Because algorithms are all self-contained in the library itself (you are invited to explore their source code by typing `@edit functionOfInterest(par1,par2,...)`), the utility functions have APIs that are coordinated with the algorithms, facilitating the "preparation" of the data for the analysis, the evaluation of the models or the implementation of several models in chains (pipelines).
-While `BetaML` doesn't provide itself tools for hyper-parameters optimisation or complex pipeline building tools, most models have an interface for the [`MLJ`](https://github.com/alan-turing-institute/MLJ.jl) framework that allows it.
+Aside the algorithms themselves, `BetaML` provides many "utility" functions. Because algorithms are all self-contained in the library itself (you are invited to explore their source code by typing `@edit functionOfInterest(par1,par2,...)`), the utility functions have APIs that are coordinated with the algorithms, facilitating the "preparation" of the data for the analysis, the choice of the hyper-parameters or the evaluation of the models.
+Most models have an interface for the [`MLJ`](https://github.com/alan-turing-institute/MLJ.jl) framework.
 
 Aside Julia, BetaML can be accessed in R or Python using respectively [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) and [PyJulia](https://github.com/JuliaPy/pyjulia). See [the tutorial](@ref using_betaml_from_other_languages) for details.
 

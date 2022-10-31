@@ -6,7 +6,7 @@
 
 <img src="assets/BetaML_logo.png" width="300" valign="middle"/> &nbsp;&nbsp;&nbsp;<img src="assets/microExample_white.png" width="500" valign="middle"/>
 
-The **Beta Machine Learning Toolkit** is a package including many algorithms and utilities to implement machine learning workflows in Julia, Python, R and any other language with a Julia binding.
+The **Beta Machine Learning Toolkit** is a package including many algorithms and utilities to implement machine learning workflows in Julia, Python [[ex.](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#Use-BetaML-in-Python)], R [[ex.](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#Use-BetaML-in-R)] and any other language with a Julia binding.
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://sylvaticus.github.io/BetaML.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sylvaticus.github.io/BetaML.jl/dev)

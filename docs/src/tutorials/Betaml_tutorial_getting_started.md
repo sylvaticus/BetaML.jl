@@ -239,7 +239,7 @@ kMeansR  <- julia_eval('
 We can then call the above function in R in one of the following three ways:
 1. `kMeansR(Xs,3,ys)`
 2. `julia_assign("Xs_julia", Xs); julia_assign("ys_julia", ys); julia_eval("accFromKmeans(Xs_julia,3,ys_julia)")`
-3. `julia_call("accFromKmeans",Xs,3,ys)`.
+3. `julia_call("accFromKmeans",Xs,3,ys)`
 
 While other "convenience" functions are provided by the package, using  `julia_call`, or `julia_assign` followed by `julia_eval`, should suffix to use `BetaML` from R. If you run into problems using BetaML from R, [open an issue](https://github.com/sylvaticus/BetaML.jl/issues/new) specifying your set-up.
 
