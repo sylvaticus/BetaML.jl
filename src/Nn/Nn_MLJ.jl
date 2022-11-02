@@ -57,11 +57,10 @@ For the `verbosity` parameter see [`Verbosity`](@ref))
 """
 function MMI.fit(m::NeuralNetworkRegressor, verbosity, X, y)
     x = MMI.matrix(X)                     # convert table to matrix   
-    if !(verbosity == 0 || verbosity == 10 || verbosity == 20 || verbosity == 30 || verbosity == 40) 
-        error("Wrong verbosity level. Verbosity must be either 0, 10, 20, 30 or 40.")
-    end
+    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
     ndims(y) > 1 && error("The label should have only 1 dimensions. Use `MultitargetNeuralNetworkRegressor` or `NeuralNetworkClassifier` for multi_dimensional outputs.")
-    mi = NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=Verbosity(verbosity))
+    mi = NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=verbosity)
     fit!(mi,x,y)
     fitresults = mi
     cache      = nothing
@@ -126,11 +125,10 @@ For the `verbosity` parameter see [`Verbosity`](@ref))
 """
 function MMI.fit(m::MultitargetNeuralNetworkRegressor, verbosity, X, y)
     x = MMI.matrix(X)                     # convert table to matrix   
-    if !(verbosity == 0 || verbosity == 10 || verbosity == 20 || verbosity == 30 || verbosity == 40) 
-        error("Wrong verbosity level. Verbosity must be either 0, 10, 20, 30 or 40.")
-    end
+    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
     ndims(y) > 1 || error("The label should have multiple dimensions. Use `NeuralNetworkRegressor` for single-dimensional outputs.")
-    mi = NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=Verbosity(verbosity))
+    mi = NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=verbosity)
     fit!(mi,x,y)
     fitresults = mi
     cache      = nothing
@@ -201,9 +199,8 @@ For the `verbosity` parameter see [`Verbosity`](@ref))
 """
 function MMI.fit(m::NeuralNetworkClassifier, verbosity, X, y)
     x = MMI.matrix(X)                     # convert table to matrix   
-    if !(verbosity == 0 || verbosity == 10 || verbosity == 20 || verbosity == 30 || verbosity == 40) 
-        error("Wrong verbosity level. Verbosity must be either 0, 10, 20, 30 or 40.")
-    end
+    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
     categories = deepcopy(m.categories)
     if categories == nothing
         #if occursin("CategoricalVector",string(typeof(y))) # to avoid dependency to CategoricalArrays or MLJBase 
@@ -212,7 +209,7 @@ function MMI.fit(m::NeuralNetworkClassifier, verbosity, X, y)
         end
     end
 
-    ohmod = OneHotEncoder(categories=categories,handle_unknown=m.handle_unknown,other_categories_name=m.other_categories_name)
+    ohmod = OneHotEncoder(categories=categories,handle_unknown=m.handle_unknown,other_categories_name=m.other_categories_name, verbosity=verbosity)
     Y_oh = fit!(ohmod,y)
 
     nR,nD       = size(x)
@@ -226,7 +223,7 @@ function MMI.fit(m::NeuralNetworkClassifier, verbosity, X, y)
         layers = deepcopy(m.layers)
         push!(layers,VectorFunctionLayer(nDy,f=softmax))
     end
-    mi = NeuralNetworkEstimator(;layers=layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=Verbosity(verbosity))
+    mi = NeuralNetworkEstimator(;layers=layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=verbosity)
     fit!(mi,x,Y_oh)
     fitresults = (mi,ohmod)
     cache      = nothing

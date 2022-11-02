@@ -457,7 +457,7 @@ The given tree is then returned.
 
 Missing data (in the feature dataset) are supported.
 """
-function buildTree(x, y::AbstractArray{Ty,1}; max_depth = size(x,1), min_gain=0.0, min_records=2, max_features=size(x,2), force_classification=false, splitting_criterion = (Ty <: Number && !force_classification) ? variance : gini, integer_encoded_cols=nothing, fast_algorithm=false, mCols=nothing, rng = Random.GLOBAL_RNG) where {Ty}
+function buildTree(x, y::AbstractArray{Ty,1}; max_depth = size(x,1), min_gain=0.0, min_records=2, max_features=size(x,2), force_classification=false, splitting_criterion = (Ty <: Number && !force_classification) ? variance : gini, integer_encoded_cols=nothing, fast_algorithm=false, mCols=nothing, rng = Random.GLOBAL_RNG, verbosity=NONE) where {Ty}
 
 
     #println(depth)

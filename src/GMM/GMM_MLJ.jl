@@ -199,8 +199,10 @@ function MMI.fit(m::GaussianMixtureClusterer, verbosity, X)
         error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
     =#
+    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
     mixtures = m.mixtures
-    res        = gmm(x,m.n_classes,initial_probmixtures=deepcopy(m.initial_probmixtures),mixtures=mixtures, minimum_variance=m.minimum_variance, minimum_covariance=m.minimum_covariance,initialisation_strategy=m.initialisation_strategy,verbosity=NONE,maximum_iterations=m.maximum_iterations,rng=m.rng)
+    res        = gmm(x,m.n_classes,initial_probmixtures=deepcopy(m.initial_probmixtures),mixtures=mixtures, minimum_variance=m.minimum_variance, minimum_covariance=m.minimum_covariance,initialisation_strategy=m.initialisation_strategy,verbosity=verbosity,maximum_iterations=m.maximum_iterations,rng=m.rng)
     fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
@@ -210,6 +212,8 @@ MMI.fitted_params(model::GaussianMixtureClusterer, fitresult) = (weights=fitesul
 
 function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
     x  = MMI.matrix(X) # convert table to matrix
+    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
     ndims(y) < 2 || error("Trying to fit `GaussianMixtureRegressor` with a multidimensional target. Use `MultitargetGaussianMixtureRegressor` instead.")
     #=
     if typeof(y) <: AbstractMatrix
@@ -235,7 +239,7 @@ function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
         minimum_variance  = m.minimum_variance,
         initialisation_strategy = m.initialisation_strategy,
         maximum_iterations      = m.maximum_iterations,
-        verbosity    = NONE,
+        verbosity    = verbosity,
         rng          = m.rng
     )
     fit!(betamod,x,y)
@@ -244,6 +248,8 @@ function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
 end
 function MMI.fit(m::MultitargetGaussianMixtureRegressor, verbosity, X, y)
     x  = MMI.matrix(X) # convert table to matrix
+    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
     ndims(y) >= 2 || @warn "Trying to fit `MultitargetGaussianMixtureRegressor` with a single-dimensional target. You may want to consider `GaussianMixtureRegressor` instead."
     #=
     if typeof(y) <: AbstractMatrix
@@ -269,7 +275,7 @@ function MMI.fit(m::MultitargetGaussianMixtureRegressor, verbosity, X, y)
         minimum_variance  = m.minimum_variance,
         initialisation_strategy = m.initialisation_strategy,
         maximum_iterations      = m.maximum_iterations,
-        verbosity    = NONE,
+        verbosity    = verbosity,
         rng          = m.rng
     )
     fit!(betamod,x,y)

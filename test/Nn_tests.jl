@@ -4,10 +4,9 @@ using DelimitedFiles, LinearAlgebra, Statistics #, MLDatasets
 #using StableRNGs
 #rng = StableRNG(123)
 using BetaML
-import MLJBase
-const Mlj = MLJBase
 
-using BetaML.Nn: buildNetwork, forward, loss, backward, train!, get_nparams
+import BetaML.Nn: buildNetwork, forward, loss, backward, train!, get_nparams
+import BetaML.Nn: ConvLayer # todo: to export it and remove this when completed
 
 TESTRNG = FIXEDRNG # This could change...
 #TESTRNG = StableRNG(123)
@@ -317,7 +316,15 @@ if VERSION >= v"1.6"
     @test rmeTrain  < 0.14
 end
 
-
+# ==================================
+# NEW TEST
+#println("Testing ConvLayer....")
+#d2convl = ConvLayer((7,5),(4,3),3,2,stride=2)
+#@test length(d2convl.weight) == 2
+#@test size(d2convl.weight[1]) == (2,2) 
+#@test d2convl.stride == (1,1)
+#d2convl.padding
+# todo: yes the defualt must be sizeout = sizein/padding not sizeout=sizein
 # ==================================
 # NEW TEST
 println("Testing MLJ interface for FeedfordwarNN....")
@@ -326,7 +333,7 @@ const Mlj = MLJBase
 X, y                           = Mlj.@load_boston
 model                          = NeuralNetworkRegressor(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
-(fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
+(fitresult, cache, report)     = Mlj.fit(model, -1, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
 @test relative_mean_error(y,yhat,normrec=true) < 0.2
 
@@ -334,14 +341,14 @@ X, y                           = Mlj.@load_boston
 y2d = [y y]
 model                          = MultitargetNeuralNetworkRegressor(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y2d)
-(fitresult, cache, report)     = Mlj.fit(model, 0, X, y2d)
+(fitresult, cache, report)     = Mlj.fit(model, -1, X, y2d)
 yhat                           = Mlj.predict(model, fitresult, X)
 @test relative_mean_error(y2d,yhat,normrec=true) < 0.2
 
 X, y                           = Mlj.@load_iris
 model                          = NeuralNetworkClassifier(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
-(fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
+(fitresult, cache, report)     = Mlj.fit(model, -1, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
 #@test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat, y)) < 0.25
 @test sum(Mlj.mode.(yhat) .== y)/length(y) >= 0.98

@@ -60,8 +60,6 @@ mutable struct GaussianMixtureImputer <: MMI.Unsupervised
     Note that currently "random" and "shuffle" initialisations are not supported in gmm-based algorithms.
     """
     initialisation_strategy::String
-    "The verbosity level to be used in training or prediction: `NONE` [default], `LOW`, `STD`, `HIGH` or `FULL`"
-    verbosity::Verbosity
     "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
@@ -73,13 +71,12 @@ function GaussianMixtureImputer(;
     minimum_variance   = 0.05,
     minimum_covariance = 0.0,
     initialisation_strategy  = "kmeans",
-    verbosity     = NONE,
     rng           = Random.GLOBAL_RNG,
 )
     if typeof(mixtures) <: UnionAll
         mixtures = [mixtures() for i in 1:n_classes]
     end
-    return GaussianMixtureImputer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,verbosity,rng)
+    return GaussianMixtureImputer(n_classes,initial_probmixtures,mixtures, tol, minimum_variance, minimum_covariance,initialisation_strategy,rng)
 end
 
 """
@@ -107,8 +104,6 @@ mutable struct RandomForestImputer <: MMI.Unsupervised
     splitting_criterion::Union{Nothing,Function}
     "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
     recursive_passages::Int64                  
-    "The verbosity level to be used in training or prediction: `NONE` [default], `LOW`, `STD`, `HIGH` or `FULL`"
-    verbosity::Verbosity
     "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
@@ -122,9 +117,8 @@ RandomForestImputer(;
     splitting_criterion     = nothing,
     recursive_passages      = 1,
     #multiple_imputations    = 1,
-    verbosity              = STD,
     rng                    = Random.GLOBAL_RNG,
-) = RandomForestImputer(n_trees, max_depth, min_gain, min_records, max_features, forced_categorical_cols, splitting_criterion, recursive_passages, verbosity, rng)
+) = RandomForestImputer(n_trees, max_depth, min_gain, min_records, max_features, forced_categorical_cols, splitting_criterion, recursive_passages, rng)
 
 """
 $(TYPEDEF)
@@ -139,8 +133,6 @@ mutable struct GeneralImputer <: MMI.Unsupervised
     estimators::Union{Vector,Nothing}
     "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
     recursive_passages::Int64                  
-    "The verbosity level to be used in training or prediction: `NONE` [default], `LOW`, `STD`, `HIGH` or `FULL`"
-    verbosity::Verbosity
     "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
@@ -148,9 +140,8 @@ GeneralImputer(;
     estimators               = nothing,
     recursive_passages    = 1,
     #multiple_imputations  = 1,
-    verbosity            = STD,
     rng                  = Random.GLOBAL_RNG,
-) = GeneralImputer(estimators, recursive_passages, verbosity, rng)
+) = GeneralImputer(estimators, recursive_passages, rng)
 
 
 # ------------------------------------------------------------------------------
@@ -158,9 +149,12 @@ GeneralImputer(;
 
 function MMI.fit(m::SimpleImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
+    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
     mod = FeatureBasedImputer(
         statistic = m.statistic,
         norm      = m.norm,
+        verbosity = verbosity,
     )
     fit!(mod,x)
     #fitResults = MMI.table(predict(mod))
@@ -172,6 +166,8 @@ end
 
 function MMI.fit(m::GaussianMixtureImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
+    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
     #=if m.mixtures == :diag_gaussian
         mixtures = [DiagonalGaussian() for i in 1:m.n_classes]
     elseif m.mixtures == :full_gaussian
@@ -191,7 +187,7 @@ function MMI.fit(m::GaussianMixtureImputer, verbosity, X)
         minimum_variance   = m.minimum_variance,
         minimum_covariance = m.minimum_covariance,
         initialisation_strategy  = m.initialisation_strategy,
-        verbosity     = m.verbosity,
+        verbosity     = verbosity,
         rng           = m.rng
     )
     fit!(mod,x)
@@ -205,7 +201,8 @@ end
 
 function MMI.fit(m::RandomForestImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
-
+    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
     mod = RFImputer(
         n_trees                 = m.n_trees, 
         max_depth               = m.max_depth,
@@ -214,7 +211,7 @@ function MMI.fit(m::RandomForestImputer, verbosity, X)
         max_features            = m.max_features,
         forced_categorical_cols  = m.forced_categorical_cols,
         splitting_criterion     = m.splitting_criterion,
-        verbosity              = m.verbosity,
+        verbosity              = verbosity,
         recursive_passages      = m.recursive_passages,
         #multiple_imputations    = m.multiple_imputations,
         rng                    = m.rng,
@@ -233,10 +230,11 @@ end
 
 function MMI.fit(m::GeneralImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
-
+    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
     mod =  UniversalImputer(
-        estimators                 = m.estimators,
-        verbosity              = m.verbosity,
+        estimators             = m.estimators,
+        verbosity              = verbosity,
         recursive_passages      = m.recursive_passages,
         #multiple_imputations    = m.multiple_imputations,
         rng                    = m.rng,

@@ -40,10 +40,23 @@ julia> model = perceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 julia> ŷ     = predict([2.1 3.1; 7.3 5.2], model.θ, model.θ₀, model.classes)
 ```
 """
-function perceptron(x::AbstractMatrix, y::AbstractVector; θ=nothing,θ₀=nothing, T=1000, nMsgs=0, shuffle=false, force_origin=false, return_mean_hyperplane=false, rng = Random.GLOBAL_RNG)
+function perceptron(x::AbstractMatrix, y::AbstractVector; θ=nothing,θ₀=nothing, T=1000, nMsgs=0, shuffle=false, force_origin=false, return_mean_hyperplane=false, rng = Random.GLOBAL_RNG, verbosity=NONE)
 yclasses = unique(y)
 nCl      = length(yclasses)
 nD       = size(x,2)
+
+if verbosity == NONE
+    nMsgs = 0
+elseif verbosity <= LOW
+    nMsgs = 5
+elseif verbosity <= STD
+    nMsgs = 10
+elseif verbosity <= HIGH
+    nMsgs = 100
+else
+    nMsgs = 100000
+end
+
 #if nCl == 2
 #    outθ        = Array{Vector{Float64},1}(undef,1)
 #    outθ₀       = Array{Float64,1}(undef,1)
@@ -62,7 +75,7 @@ end
 
 for (i,c) in enumerate(yclasses)
     ybin = ((y .== c) .*2 .-1)  # conversion to -1/+1
-    outBinary = perceptronBinary(x, ybin; θ=θ[i],θ₀=θ₀[i], T=T, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, rng=rng)
+    outBinary = perceptronBinary(x, ybin; θ=θ[i],θ₀=θ₀[i], T=T, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, rng=rng, verbosity=verbosity)
     if return_mean_hyperplane
         outθ[i]  = outBinary.avgθ
         outθ₀[i] = outBinary.avgθ₀
@@ -119,8 +132,21 @@ Train the binary classifier "perceptron" algorithm based on x and y (labels)
 julia> model = perceptronBinary([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 """
-function perceptronBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=10, shuffle=false, force_origin=false, rng = Random.GLOBAL_RNG)
-if nMsgs != 0
+function perceptronBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, T=1000, nMsgs=10, shuffle=false, force_origin=false, rng = Random.GLOBAL_RNG, verbosity=NONE)
+
+if verbosity == NONE
+    nMsgs = 0
+elseif verbosity <= LOW
+    nMsgs = 5
+elseif verbosity <= STD
+    nMsgs = 10
+elseif verbosity <= HIGH
+    nMsgs = 100
+else
+    nMsgs = 100000
+end
+
+if nMsgs > 5
    @codelocation
    println("***\n*** Training perceptron for maximum $T iterations. Random shuffle: $shuffle")
 end
@@ -149,7 +175,7 @@ sumθ = θ; sumθ₀ = θ₀
        end
    end
    if (ϵ == 0)
-       if nMsgs != 0
+       if nMsgs > 0
            println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified")
        end
        return (θ=θ,θ₀=θ₀,avgθ=sumθ/(n*T),avgθ₀=sumθ₀/(n*T),errors=0,besterrors=0,iterations=t,separated=true)
@@ -157,7 +183,7 @@ sumθ = θ; sumθ₀ = θ₀
        bestϵ = ϵ
    end
    lastϵ = ϵ
-   if nMsgs != 0 && (t % ceil(T/nMsgs) == 0 || t == 1 || t == T)
+   if nMsgs > 5 && (t % ceil(T/nMsgs) == 0 || t == 1 || t == T)
      println("Avg. error after iteration $t : $(ϵ/size(x)[1])")
    end
 end
@@ -357,7 +383,7 @@ function fit!(m::PerceptronClassifier,X,Y)
         nMsgs = 100000
     end
 
-    out = perceptron(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[c,2:end] for c in 1:nCl], T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng)
+    out = perceptron(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[c,2:end] for c in 1:nCl], T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng, verbosity=verbosity)
 
     weights = hcat(out.θ₀,vcat(out.θ' ...))
     m.par = PerceptronClassifierLearnableParameters(weights,out.classes)

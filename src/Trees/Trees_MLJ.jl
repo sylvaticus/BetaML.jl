@@ -172,14 +172,16 @@ MMI.hyperparameter_ranges(::Type{<:DecisionTreeRegressor}) = (
 
 function MMI.fit(model::Union{DecisionTreeRegressor,RandomForestRegressor}, verbosity, X, y)
    x = MMI.matrix(X)                     # convert table to matrix
+   typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+   verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
    max_depth         = model.max_depth == 0 ? size(x,1) : model.max_depth
    # Using low level API here. We could switch to APIV2...
    if (typeof(model) == DecisionTreeRegressor)
        max_features = model.max_features == 0 ? size(x,2) : model.max_features
-       fitresult   = buildTree(x, y, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion,rng=model.rng)
+       fitresult   = buildTree(x, y, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion,rng=model.rng, verbosity=verbosity)
    else
        max_features = model.max_features == 0 ? Int(round(sqrt(size(x,2)))) : model.max_features
-       fitresult   = buildForest(x, y, model.n_trees, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, β=model.β,rng=model.rng)
+       fitresult   = buildForest(x, y, model.n_trees, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, β=model.β,rng=model.rng,verbosity=verbosity)
    end
    cache=nothing
    report=nothing
@@ -191,14 +193,16 @@ function MMI.fit(model::Union{DecisionTreeClassifier,RandomForestClassifier}, ve
    a_target_element = y[1]                                 # a CategoricalValue or CategoricalString
    #y_plain          = MMI.int(y) .- 1                     # integer relabeling should start at 0
    yarray           = convert(Vector{eltype(levels(y))},y) # convert to a simple Array{T}
+   typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+   verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
    max_depth         = model.max_depth == 0 ? size(x,1) : model.max_depth
    # Using low level API here. We could switch to APIV2...
    if (typeof(model) == DecisionTreeClassifier)
        max_features   = model.max_features == 0 ? size(x,2) : model.max_features
-       fittedmodel   = buildTree(x, yarray, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, force_classification=true,rng=model.rng)
+       fittedmodel   = buildTree(x, yarray, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, force_classification=true,rng=model.rng, verbosity=verbosity)
    else
        max_features   = model.max_features == 0 ? Int(round(sqrt(size(x,2)))) : model.max_features
-       fittedmodel   = buildForest(x, yarray, model.n_trees, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, force_classification=true, β=model.β,rng=model.rng)
+       fittedmodel   = buildForest(x, yarray, model.n_trees, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, force_classification=true, β=model.β,rng=model.rng, verbosity=verbosity)
    end
    cache            = nothing
    report           = nothing

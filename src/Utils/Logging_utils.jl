@@ -26,3 +26,44 @@ macro codelocation()
         println("Type `]dev BetaML` to modify the source code (this would change its location on disk)")
     end
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Convert any integer to one of the defined betaml verbosity levels.
+Currently "steps" are 0, 10, 20 and 30
+"""
+function to_betaml_verbosity(i::Integer)
+    if i <= 0
+        return NONE
+    elseif i <= 10
+        return LOW
+    elseif i <= 20
+        return STD
+    elseif i <= 30
+        return HIGH
+    else
+        return FULL
+    end
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Convert any integer (short scale) to one of the defined betaml verbosity levels
+Currently "steps" are 0, 1, 2 and 3
+"""
+function mljverbosity_to_betaml_verbosity(i::Integer)
+    if i <= 0
+        return NONE
+    elseif i == 1
+        return LOW
+    elseif i == 2
+        return STD
+    elseif i == 3
+        return HIGH
+    else
+        return FULL
+    end
+end
+

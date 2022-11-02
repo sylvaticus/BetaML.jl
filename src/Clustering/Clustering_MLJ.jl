@@ -94,10 +94,12 @@ Similar to K-Means, but the "representatives" (the cetroids) are guaranteed to b
 function MMI.fit(m::Union{KMeans,KMedoids}, verbosity, X)
     x  = MMI.matrix(X)                        # convert table to matrix
     # Using low level API here. We could switch to APIV2...
+    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
     if typeof(m) == KMeans
-        (assignedClasses,representatives) = kmeans(x,m.n_classes,dist=m.dist,initialisation_strategy=m.initialisation_strategy,initial_representatives=m.initial_representatives,rng=m.rng)
+        (assignedClasses,representatives) = kmeans(x,m.n_classes,dist=m.dist,initialisation_strategy=m.initialisation_strategy,initial_representatives=m.initial_representatives,rng=m.rng,verbosity=verbosity)
     else
-        (assignedClasses,representatives) = kmedoids(x,m.n_classes,dist=m.dist,initialisation_strategy=m.initialisation_strategy,initial_representatives=m.initial_representatives,rng=m.rng)
+        (assignedClasses,representatives) = kmedoids(x,m.n_classes,dist=m.dist,initialisation_strategy=m.initialisation_strategy,initial_representatives=m.initial_representatives,rng=m.rng, verbosity=verbosity)
     end
     cache=nothing
     report=nothing

@@ -37,36 +37,48 @@ julia> model = kernelPerceptron([1.1 1.1; 5.3 4.2; 1.8 1.7; 7.5 5.2;], ["a","c",
 julia> ŷtest = Perceptron.predict([10 10; 2.2 2.5; 1 1],model.x,model.y,model.α, model.classes,K=model.K)
 ```
 """
-function kernelPerceptron(x, y; K=radial_kernel, T=100, α=nothing, nMsgs=0, shuffle=false, rng = Random.GLOBAL_RNG)
- x         = makematrix(x)
- yclasses  = unique(y)
- nCl       = length(yclasses)
- nModels   = Int((nCl  * (nCl - 1)) / 2)
- (n,d) = size(x)
- ny = size(y,1)
- ny == n || error("y and x have differnt number of records (rows)!")
- outX = Array{typeof(x),1}(undef,nModels)
- outY = Array{Array{Int64,1},1}(undef,nModels)
- outα = Array{Array{Int64,1},1}(undef,nModels)
- α = (α == nothing) ? [zeros(Int64,length(y)) for i in 1:nModels] : α
+function kernelPerceptron(x, y; K=radial_kernel, T=100, α=nothing, nMsgs=0, shuffle=false, rng = Random.GLOBAL_RNG, verbosity=NONE)
 
- modelCounter = 1
- for (i,c) in enumerate(yclasses)
-     for (i2,c2) in enumerate(yclasses)
-         if i2 <= i continue end # never false with a single class (always "continue")
-         ids = ( (y .== c) .| (y .== c2) )
-         thisx = x[ids,:]
-         thisy = y[ids]
-         thisα = α[modelCounter][ids]
-         ybin = ((thisy .== c) .*2 .-1)  # conversion to +1 (if c) or -1 (if c2)
-         outBinary = kernelPerceptronBinary(thisx, ybin; K=K, T=T, α=thisα, nMsgs=nMsgs, shuffle=shuffle, rng = rng)
-         outX[modelCounter] = outBinary.x
-         outY[modelCounter] = outBinary.y
-         outα[modelCounter] = outBinary.α
-         modelCounter += 1
-     end
- end
- return (x=outX,y=outY,α=outα,classes=yclasses,K=K)
+    if verbosity == NONE
+        nMsgs = 0
+    elseif verbosity <= LOW
+        nMsgs = 5
+    elseif verbosity <= STD
+        nMsgs = 10
+    elseif verbosity <= HIGH
+        nMsgs = 100
+    else
+        nMsgs = 100000
+    end
+    x         = makematrix(x)
+    yclasses  = unique(y)
+    nCl       = length(yclasses)
+    nModels   = Int((nCl  * (nCl - 1)) / 2)
+    (n,d) = size(x)
+    ny = size(y,1)
+    ny == n || error("y and x have differnt number of records (rows)!")
+    outX = Array{typeof(x),1}(undef,nModels)
+    outY = Array{Array{Int64,1},1}(undef,nModels)
+    outα = Array{Array{Int64,1},1}(undef,nModels)
+    α = (α == nothing) ? [zeros(Int64,length(y)) for i in 1:nModels] : α
+
+    modelCounter = 1
+    for (i,c) in enumerate(yclasses)
+        for (i2,c2) in enumerate(yclasses)
+            if i2 <= i continue end # never false with a single class (always "continue")
+            ids = ( (y .== c) .| (y .== c2) )
+            thisx = x[ids,:]
+            thisy = y[ids]
+            thisα = α[modelCounter][ids]
+            ybin = ((thisy .== c) .*2 .-1)  # conversion to +1 (if c) or -1 (if c2)
+            outBinary = kernelPerceptronBinary(thisx, ybin; K=K, T=T, α=thisα, nMsgs=nMsgs, shuffle=shuffle, rng = rng, verbosity=verbosity)
+            outX[modelCounter] = outBinary.x
+            outY[modelCounter] = outBinary.y
+            outα[modelCounter] = outBinary.α
+            modelCounter += 1
+        end
+    end
+    return (x=outX,y=outY,α=outα,classes=yclasses,K=K)
 end
 
 """
@@ -105,60 +117,71 @@ Train a binary kernel classifier "perceptron" algorithm based on x and y
 julia> model = kernelPerceptronBinary([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 """
-function kernelPerceptronBinary(x, y; K=radial_kernel, T=1000, α=zeros(Int64,length(y)), nMsgs=10, shuffle=false, rng = Random.GLOBAL_RNG)
- if nMsgs != 0
-     @codelocation
-     println("***\n*** Training kernel perceptron for maximum $T iterations. Random shuffle: $shuffle")
- end
- x = makematrix(x)
- α = deepcopy(α) # let's not modify the argument !
- (n,d) = size(x)
- ny = size(y,1)
- ny == n || error("y and x have different number of records (rows)!")
- bestϵ = Inf
- lastϵ = Inf
- 
-  if nMsgs == 0
-    showTime = typemax(Float64)
-  elseif nMsgs < 5
-    showTime = 50
-  elseif nMsgs < 10
-    showTime = 1
-  elseif nMsgs < 100
-    showTime = 0.5
-  else
-    showTime = 0.2
-  end
+function kernelPerceptronBinary(x, y; K=radial_kernel, T=1000, α=zeros(Int64,length(y)), nMsgs=10, shuffle=false, rng = Random.GLOBAL_RNG, verbosity = NONE)
+    if verbosity == NONE
+        nMsgs = 0
+    elseif verbosity <= LOW
+        nMsgs = 5
+    elseif verbosity <= STD
+        nMsgs = 10
+    elseif verbosity <= HIGH
+        nMsgs = 100
+    else
+        nMsgs = 100000
+    end
+    if nMsgs > 5
+        @codelocation
+        println("***\n*** Training kernel perceptron for maximum $T iterations. Random shuffle: $shuffle")
+    end
+    x = makematrix(x)
+    α = deepcopy(α) # let's not modify the argument !
+    (n,d) = size(x)
+    ny = size(y,1)
+    ny == n || error("y and x have different number of records (rows)!")
+    bestϵ = Inf
+    lastϵ = Inf
+    
+    if nMsgs == 0
+        showTime = typemax(Float64)
+    elseif nMsgs < 5
+        showTime = 50
+    elseif nMsgs < 10
+        showTime = 1
+    elseif nMsgs < 100
+        showTime = 0.5
+    else
+        showTime = 0.2
+    end
 
- @showprogress showTime "Training Kernel Perceptron..." for t in 1:T
-     ϵ = 0
-     if shuffle
-        # random shuffle x, y and alpha
-        ridx = Random.shuffle(rng, 1:size(x)[1])
-        x = x[ridx, :]
-        y = y[ridx]
-        α = α[ridx]
-     end
-     @inbounds for i in 1:n
-         if y[i]*sum([α[j]*y[j]*K(x[j,:],x[i,:]) for j in 1:n]) <= 0 + eps()
-             α[i] += 1
-             ϵ += 1
-         end
-     end
-     if (ϵ == 0)
-         if nMsgs != 0
-             println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified")
-         end
-         return (x=x,y=y,α=α,errors=0,besterrors=0,iterations=t,separated=true,K=K)
-     elseif ϵ < bestϵ
-         bestϵ = ϵ
-     end
-     lastϵ = ϵ
-     if nMsgs != 0 && (t % ceil(T/nMsgs) == 0 || t == 1 || t == T)
-       println("Avg. error after iteration $t : $(ϵ/size(x)[1])")
-     end
- end
- return  (x=x,y=y,α=α,errors=lastϵ,besterrors=bestϵ,iterations=T,separated=false)
+    @showprogress showTime "Training Kernel Perceptron..." for t in 1:T
+        ϵ = 0
+        if shuffle
+            # random shuffle x, y and alpha
+            ridx = Random.shuffle(rng, 1:size(x)[1])
+            x = x[ridx, :]
+            y = y[ridx]
+            α = α[ridx]
+        end
+        @inbounds for i in 1:n
+            if y[i]*sum([α[j]*y[j]*K(x[j,:],x[i,:]) for j in 1:n]) <= 0 + eps()
+                α[i] += 1
+                ϵ += 1
+            end
+        end
+        if (ϵ == 0)
+            if nMsgs > 0
+                println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified")
+            end
+            return (x=x,y=y,α=α,errors=0,besterrors=0,iterations=t,separated=true,K=K)
+        elseif ϵ < bestϵ
+            bestϵ = ϵ
+        end
+        lastϵ = ϵ
+        if nMsgs != 0 && (t % ceil(T/nMsgs) == 0 || t == 1 || t == T)
+        println("Avg. error after iteration $t : $(ϵ/size(x)[1])")
+        end
+    end
+    return  (x=x,y=y,α=α,errors=lastϵ,besterrors=bestϵ,iterations=T,separated=false)
 end
 
 """
@@ -390,7 +413,7 @@ function fit!(m::KernelPerceptronClassifier,X,Y)
         nMsgs = 100000
     end
 
-    out = kernelPerceptron(X, Y; K=kernel, T=epochs, α=initial_errors, nMsgs=nMsgs, shuffle=shuffle, rng = rng)
+    out = kernelPerceptron(X, Y; K=kernel, T=epochs, α=initial_errors, nMsgs=nMsgs, shuffle=shuffle, rng = rng, verbosity=verbosity)
 
     m.par = KernelPerceptronClassifierLearnableParameters(out.x,out.y,out.α,out.classes)
 

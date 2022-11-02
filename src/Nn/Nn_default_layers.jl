@@ -593,3 +593,155 @@ end
 function size(layer::RNNLayer)
     return size(layer.w')
 end
+
+# ------------------------------------------------------------------------------
+# Conv layer
+
+"""
+   ConvLayer
+
+Representation of a convolutional layer in the network
+
+# Fields:
+
+"""
+mutable struct ConvLayer{nD} <: AbstractLayer
+   "Input size"
+   input_size::Array{Float64,nD}
+   "Weights matrix with respect to the input from previous layer or data (nchannels_out array of nr_filter x nc_filter x nchannels_in)"
+   weight::Array{Array{Float64,nD},1}
+   "Wether to use (and learn) a bias weigth [def: true]"
+   usebias::Bool
+   "Bias (nchannels_out array"
+   bias::Array{Float64,1}
+   "Padding"
+   padding::NTuple{nD,Int64}
+   "Stride"
+   stride::NTuple{nD,Int64}
+   "Number of dimensions"
+   ndims::Int64
+   "Activation function"
+   f::Function
+   "Derivative of the activation function"
+   df::Union{Function,Nothing}
+   """
+   ConvLayer(input_size,kernel_size,nchannels_in,nchannels_out;stride,padding,weight_init,usebias,bias_init,f,df,rand)
+
+   Instantiate a new nD-dimensional, possibly multichannel ConvolutionalLayer
+
+   The input data is either a column vector (in which case is reshaped) or an array of `input_size` augmented by the `n_channels` dimension, the output size depends on the `input_size`, `kernel_size`, `padding` and `striding` but has always `nchannels_out` as its last dimention.  
+
+   # Positional arguments:
+   * `input_size`:    Shape of the input layer (integer for 1D convolution, tuple otherwise)
+   * `kernel_size`:   Size of the kernel (aka filter) (integer for 1D or hypercube kernels or nD-sized tuple for assymmetric kernels)
+   * `nchannels_in`:  Number of channels in input
+   * `nchannels_out`: Number of channels in output
+   # Keyword arguments:
+   * `weight_init`:   Initial weigths with respect to the input [default: Xavier initialisation]. Should be a `nchannels_out` vector of `kernel_size` augmented by `nchannels_in` arrays.
+   * `bias_init`:     Initial weigths with respect to the bias [default: Xavier initialisation] Should be a `nchannels_out` vector of scalars.
+   * `f`:   Activation function [def: `relu`]
+   * `df`:  Derivative of the activation function [default: `nothing` (i.e. use AD)]
+   * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+
+   # Notes:
+   - Xavier initialization is sampled from a `Uniform` distribution between `⨦ sqrt(6/(prod(input_size)*nchannels_in))`
+   - to retrieve the output size of the layer, use `size(ConvLayer[2])`. The output size on each dimension _d_ (except the last one that is given by `nchannels_out`) is given by the following formula (ceiled): `output_size[d] = 1 + (input_size[d]+2*padding[d]-kernel_size[d])/stride[d]`
+
+   """
+   function ConvLayer(input_size,kernel_size,nchannels_in,nchannels_out;
+            stride  = (ones(Int64,length(input_size))...,),
+            rng     = Random.GLOBAL_RNG,
+            padding = nothing, # zeros(Int64,length(input_size)),
+            weight  = [rand(rng, Uniform(-sqrt(6/(prod(input_size)*nchannels_in)),sqrt(6/(prod(input_size)*nchannels_in))),(kernel_size...,nchannels_in)...) for i in 1:nchannels_out],
+            usebias = true,
+            bias    = usebias ? rand(rng, Uniform(-sqrt(6/(prod(input_size)*nchannels_in)),sqrt(6/(prod(input_size)*nchannels_in))),nchannels_out) : zeros(Float64,nchannels_out),
+            f       = identity,
+            df      = nothing)
+      # be sure all are tuples of right dimension...
+      if typeof(input_size) <: Integer
+         input_size = (input_size,)
+      end
+      nD = length(input_size)
+      if typeof(kernel_size) <: Integer
+         kernel_size = ([kernel_size for d in 1:nD]...,)
+      end
+      length(input_size) == length(kernel_size) || error("Number of dimensions of the kernel must equate number of dimensions of input data")
+      if typeof(stride) <: Integer
+         stride = ([stride for d in 1:nD]...,)
+      end
+      if typeof(padding) <: Integer
+         padding = ([padding for d in 1:nD]...,)
+      end
+      # compute padding to keep same size/stride if not provided 
+      if isnothing(padding)
+         padding = ([Int(round((kernel_size[d]-stride[d])/2)) for d in 1:length(input_size)]...,)
+      end
+      nD == length(stride) == length(padding) || error("`stride` and `padding` must be either scalar or tuples that equate the number of dimensions of input data")
+      new{nD}(input_size,weight,usebias,bias,padding,stride,nD,f,df)
+   end
+end
+
+function _zComp(layer::ConvLayer,x)
+    w  = layer.w
+    wb = layer.wb
+    z  = zeros(eltype(x),size(w,1))
+    @inbounds for n in axes(w,1)
+        zn = zero(eltype(x))
+        @turbo for nl in axes(x,1)
+            zn += w[n,nl] * x[nl]
+        end
+        zn   += wb[n]
+        z[n]  = zn
+    end
+    return z
+end
+
+
+function forward(layer::ConvLayer,x)
+  z =  _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) #layer.w * x + layer.wb # _zComp(layer,x) #   layer.w * x + layer.wb # testd @avx
+  return layer.f.(z)
+end
+
+function backward(layer::ConvLayer,x,next_gradient)
+   z = _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) # layer.w * x + layer.wb # _zComp(layer,x) # @avx layer.w * x + layer.wb               # tested @avx
+   if layer.df != nothing
+      dfz = layer.df.(z)
+    else
+      dfz = layer.f'.(z) # using AD
+    end
+   dϵ_dz = @turbo dfz .* next_gradient
+   dϵ_dI = @turbo layer.w' * dϵ_dz # @avx
+   return dϵ_dI
+end
+
+function get_params(layer::ConvLayer)
+  return Learnable((layer.w,layer.wb))
+end
+
+function get_gradient(layer::ConvLayer,x,next_gradient)
+   z      =  _zComp(layer,x) #@avx layer.w * x + layer.wb #  _zComp(layer,x) #layer.w * x + layer.wb # @avx
+   if layer.df != nothing
+      dfz = layer.df.(z)  
+   else
+      dfz =  layer.f'.(z) # using AD
+   end
+   dϵ_dz  = @turbo  dfz .* next_gradient
+   dϵ_dw  = @turbo dϵ_dz * x' # @avx
+   dϵ_dwb = dϵ_dz
+   return Learnable((dϵ_dw,dϵ_dwb))
+end
+
+function set_params!(layer::ConvLayer,w)
+   layer.w  = w.data[1]
+   layer.wb = w.data[2]
+end
+"""
+$(TYPEDSIGNATURES)
+
+Get the dimensions of the layers in terms of (dimensions in input, dimensions in output)
+"""
+function size(layer::ConvLayer)
+   in_size     = (layer.input_size...,layer.nchannels_in)
+   out_size = ([1 + Int(ceil((layer.input_size[d]+2*padding[d]-kernel_size[d])/stride[d]))   for d in layer.ndims]...,)
+   return size(in_size,out_size)
+end

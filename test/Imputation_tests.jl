@@ -238,7 +238,7 @@ println("Testing MLJ Interface for GeneralImputer...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
 trng = copy(TESTRNG)
-model                       =  GeneralImputer(estimators=[GMMRegressor1(rng=trng,verbosity=NONE),RandomForestEstimator(n_trees=40,rng=copy(TESTRNG),verbosity=NONE)],rng=copy(TESTRNG),recursive_passages=2,verbosity=NONE)
+model                       =  GeneralImputer(estimators=[GMMRegressor1(rng=trng,verbosity=NONE),RandomForestEstimator(n_trees=40,rng=copy(TESTRNG),verbosity=NONE)],rng=copy(TESTRNG),recursive_passages=2)
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)

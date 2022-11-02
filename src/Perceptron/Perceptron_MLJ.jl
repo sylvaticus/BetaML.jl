@@ -118,8 +118,10 @@ Pegasos(;
 function MMI.fit(model::LinearPerceptron, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
+ typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+ verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
  #initial_coefficients  = length(model.initial_coefficients) == 0 ? zeros(size(x,2)) : model.initial_coefficients
- fitresult = perceptron(x, y; θ=model.initial_coefficients, θ₀=model.initial_constant, T=model.epochs, nMsgs=0, shuffle=model.shuffle, force_origin=model.force_origin, return_mean_hyperplane=model.return_mean_hyperplane,rng=model.rng)
+ fitresult = perceptron(x, y; θ=model.initial_coefficients, θ₀=model.initial_constant, T=model.epochs, nMsgs=0, shuffle=model.shuffle, force_origin=model.force_origin, return_mean_hyperplane=model.return_mean_hyperplane,rng=model.rng, verbosity=verbosity)
  cache=nothing
  report=nothing
  return (fitresult,allClasses), cache, report
@@ -128,8 +130,10 @@ end
 function MMI.fit(model::KernelPerceptron, verbosity, X, y)
  x          = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
+ typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+ verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
  #initial_errors   = length(model.initial_errors) == 0 ? zeros(Int64,length(y)) : model.initial_errors
- fitresult  = kernelPerceptron(x, y; K=model.kernel, T=model.epochs, α=model.initial_errors, nMsgs=0, shuffle=model.shuffle,rng=model.rng)
+ fitresult  = kernelPerceptron(x, y; K=model.kernel, T=model.epochs, α=model.initial_errors, nMsgs=0, shuffle=model.shuffle,rng=model.rng, verbosity=verbosity)
  cache      = nothing
  report     = nothing
  return (fitresult,allClasses), cache, report
@@ -138,8 +142,10 @@ end
 function MMI.fit(model::Pegasos, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
+ typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+ verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
  #initial_coefficients  = length(model.initial_coefficients) == 0 ? zeros(size(x,2)) : model.initial_coefficients
- fitresult = pegasos(x, y; θ=model.initial_coefficients,θ₀=model.initial_constant, λ=model.learning_rate_multiplicative,η=model.learning_rate, T=model.epochs, nMsgs=0, shuffle=model.shuffle, force_origin=model.force_origin, return_mean_hyperplane=model.return_mean_hyperplane,rng=model.rng)
+ fitresult = pegasos(x, y; θ=model.initial_coefficients,θ₀=model.initial_constant, λ=model.learning_rate_multiplicative,η=model.learning_rate, T=model.epochs, nMsgs=0, shuffle=model.shuffle, force_origin=model.force_origin, return_mean_hyperplane=model.return_mean_hyperplane,rng=model.rng, verbosity=verbosity)
  cache=nothing
  report=nothing
  return (fitresult,allClasses), cache, report

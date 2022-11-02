@@ -40,10 +40,21 @@ julia> model = pegasos([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 julia> ŷ     = predict([2.1 3.1; 7.3 5.2], model.θ, model.θ₀, model.classes)
 ```
 """
-function pegasos(x, y; θ=nothing,θ₀=nothing, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=0, shuffle=false, force_origin=false,return_mean_hyperplane=false, rng = Random.GLOBAL_RNG)
+function pegasos(x, y; θ=nothing,θ₀=nothing, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=0, shuffle=false, force_origin=false,return_mean_hyperplane=false, rng = Random.GLOBAL_RNG, verbosity=NONE)
 yclasses = unique(y)
 nCl      = length(yclasses)
 nD       = size(x,2)
+if verbosity == NONE
+    nMsgs = 0
+elseif verbosity <= LOW
+    nMsgs = 5
+elseif verbosity <= STD
+    nMsgs = 10
+elseif verbosity <= HIGH
+    nMsgs = 100
+else
+    nMsgs = 100000
+end
 #if nCl == 2
 #    outθ        = Array{Vector{Float64},1}(undef,1)
 #    outθ₀       = Array{Float64,1}(undef,1)
@@ -62,7 +73,7 @@ end
 
 for (i,c) in enumerate(yclasses)
     ybin = ((y .== c) .*2 .-1)  # conversion to -1/+1
-    outBinary = pegasosBinary(x, ybin; θ=θ[i],θ₀=θ₀[i], λ=λ,η=η, T=T, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, rng=rng)
+    outBinary = pegasosBinary(x, ybin; θ=θ[i],θ₀=θ₀[i], λ=λ,η=η, T=T, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, rng=rng, verbosity=verbosity)
     if return_mean_hyperplane
         outθ[i]  = outBinary.avgθ
         outθ₀[i] = outBinary.avgθ₀
@@ -120,52 +131,63 @@ Train the peagasos algorithm based on x and y (labels)
 julia> pegasos([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 """
-function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, shuffle=false, force_origin=false, rng = Random.GLOBAL_RNG)
-if nMsgs != 0
-  @codelocation
-  println("***\n*** Training pegasos for maximum $T iterations. Random shuffle: $shuffle")
-end
-x = makematrix(x)
-(n,d) = size(x)
-ny = size(y,1)
-ny == n || error("y and x have different number of rows (records) !")
-bestϵ = Inf
-lastϵ = Inf
-if force_origin θ₀ = 0.0; end
-sumθ = θ; sumθ₀ = θ₀
-@showprogress 1 "Training PegasosClassifier..." for t in 1:T
-  ϵ = 0
-  ηₜ = η(t)
-  if shuffle
-     # random shuffle x and y
-     ridx = Random.shuffle(rng, 1:size(x)[1])
-     x = x[ridx, :]
-     y = y[ridx]
-  end
-  @inbounds for i in 1:n
-      if y[i]*(θ' * x[i,:] + θ₀) <= eps()
-          θ  = (1-ηₜ*λ) * θ + ηₜ * y[i] * x[i,:]
-          θ₀ = force_origin ? 0.0 : θ₀ + ηₜ * y[i]
-          sumθ += θ; sumθ₀ += θ₀
-          ϵ += 1
-      else
-          θ  = (1-ηₜ*λ) * θ
-      end
-  end
-  if (ϵ == 0)
-      if nMsgs != 0
-          println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified")
-      end
-      return (θ=θ,θ₀=θ₀,avgθ=sumθ/(n*T),avgθ₀=sumθ₀/(n*T),errors=0,besterrors=0,iterations=t,separated=true)
-  elseif ϵ < bestϵ
-      bestϵ = ϵ
-  end
-  lastϵ = ϵ
-  if nMsgs != 0 && (t % ceil(T/nMsgs) == 0 || t == 1 || t == T)
-    println("Avg. error after iteration $t : $(ϵ/size(x)[1])")
-  end
-end
-return  (θ=θ,θ₀=θ₀,avgθ=sumθ/(n*T),avgθ₀=sumθ₀/(n*T),errors=lastϵ,besterrors=bestϵ,iterations=T,separated=false)
+function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, shuffle=false, force_origin=false, rng = Random.GLOBAL_RNG, verbosity=verbosity)
+    if verbosity == NONE
+        nMsgs = 0
+    elseif verbosity <= LOW
+        nMsgs = 5
+    elseif verbosity <= STD
+        nMsgs = 10
+    elseif verbosity <= HIGH
+        nMsgs = 100
+    else
+        nMsgs = 100000
+    end
+    if nMsgs > 5
+    @codelocation
+    println("***\n*** Training pegasos for maximum $T iterations. Random shuffle: $shuffle")
+    end
+    x = makematrix(x)
+    (n,d) = size(x)
+    ny = size(y,1)
+    ny == n || error("y and x have different number of rows (records) !")
+    bestϵ = Inf
+    lastϵ = Inf
+    if force_origin θ₀ = 0.0; end
+    sumθ = θ; sumθ₀ = θ₀
+    @showprogress 1 "Training PegasosClassifier..." for t in 1:T
+    ϵ = 0
+    ηₜ = η(t)
+    if shuffle
+        # random shuffle x and y
+        ridx = Random.shuffle(rng, 1:size(x)[1])
+        x = x[ridx, :]
+        y = y[ridx]
+    end
+    @inbounds for i in 1:n
+        if y[i]*(θ' * x[i,:] + θ₀) <= eps()
+            θ  = (1-ηₜ*λ) * θ + ηₜ * y[i] * x[i,:]
+            θ₀ = force_origin ? 0.0 : θ₀ + ηₜ * y[i]
+            sumθ += θ; sumθ₀ += θ₀
+            ϵ += 1
+        else
+            θ  = (1-ηₜ*λ) * θ
+        end
+    end
+    if (ϵ == 0)
+        if nMsgs > 5
+            println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified")
+        end
+        return (θ=θ,θ₀=θ₀,avgθ=sumθ/(n*T),avgθ₀=sumθ₀/(n*T),errors=0,besterrors=0,iterations=t,separated=true)
+    elseif ϵ < bestϵ
+        bestϵ = ϵ
+    end
+    lastϵ = ϵ
+    if nMsgs != 0 && (t % ceil(T/nMsgs) == 0 || t == 1 || t == T)
+        println("Avg. error after iteration $t : $(ϵ/size(x)[1])")
+    end
+    end
+    return  (θ=θ,θ₀=θ₀,avgθ=sumθ/(n*T),avgθ₀=sumθ₀/(n*T),errors=lastϵ,besterrors=bestϵ,iterations=T,separated=false)
 end
 
 # ----------------------------------------------
@@ -280,7 +302,7 @@ function fit!(m::PegasosClassifier,X,Y)
         nMsgs = 100000
     end
 
-    out = pegasos(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[c,2:end] for c in 1:nCl], λ=learning_rate_multiplicative, η=learning_rate, T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng)
+    out = pegasos(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[c,2:end] for c in 1:nCl], λ=learning_rate_multiplicative, η=learning_rate, T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng, verbosity=verbosity)
 
     weights = hcat(out.θ₀,vcat(out.θ' ...))
     m.par = PegasosClassifierLearnableParameters(weights,out.classes)
