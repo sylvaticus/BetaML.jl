@@ -9,8 +9,6 @@ Provided layers
 - VectorFunctionLayer
 """
 
-using LoopVectorization
-
 #using Random, Zygote
 #import ..Utils
 #import Base.size
@@ -605,11 +603,11 @@ Representation of a convolutional layer in the network
 # Fields:
 
 """
-mutable struct ConvLayer{nD} <: AbstractLayer
-   "Input size"
-   input_size::Array{Float64,nD}
+mutable struct ConvLayer{nD,nDp1} <: AbstractLayer
+   "Input size (including nchannel_in as last dimension"
+   input_size::NTuple{nDp1,Int64}
    "Weights matrix with respect to the input from previous layer or data (nchannels_out array of nr_filter x nc_filter x nchannels_in)"
-   weight::Array{Array{Float64,nD},1}
+   weight::Array{Array{Float64,nDp1},1}
    "Wether to use (and learn) a bias weigth [def: true]"
    usebias::Bool
    "Bias (nchannels_out array"
@@ -647,16 +645,18 @@ mutable struct ConvLayer{nD} <: AbstractLayer
    - Xavier initialization is sampled from a `Uniform` distribution between `⨦ sqrt(6/(prod(input_size)*nchannels_in))`
    - to retrieve the output size of the layer, use `size(ConvLayer[2])`. The output size on each dimension _d_ (except the last one that is given by `nchannels_out`) is given by the following formula (ceiled): `output_size[d] = 1 + (input_size[d]+2*padding[d]-kernel_size[d])/stride[d]`
 
+   TODO: consider assymmetric padding to keep constant layer size !
    """
    function ConvLayer(input_size,kernel_size,nchannels_in,nchannels_out;
             stride  = (ones(Int64,length(input_size))...,),
             rng     = Random.GLOBAL_RNG,
             padding = nothing, # zeros(Int64,length(input_size)),
-            weight  = [rand(rng, Uniform(-sqrt(6/(prod(input_size)*nchannels_in)),sqrt(6/(prod(input_size)*nchannels_in))),(kernel_size...,nchannels_in)...) for i in 1:nchannels_out],
+            weight_init  = [rand(rng, Uniform(-sqrt(6/(prod(input_size)*nchannels_in)),sqrt(6/(prod(input_size)*nchannels_in))),(kernel_size...,nchannels_in)...) for i in 1:nchannels_out],
             usebias = true,
-            bias    = usebias ? rand(rng, Uniform(-sqrt(6/(prod(input_size)*nchannels_in)),sqrt(6/(prod(input_size)*nchannels_in))),nchannels_out) : zeros(Float64,nchannels_out),
+            bias_init    = usebias ? rand(rng, Uniform(-sqrt(6/(prod(input_size)*nchannels_in)),sqrt(6/(prod(input_size)*nchannels_in))),nchannels_out) : zeros(Float64,nchannels_out),
             f       = identity,
             df      = nothing)
+      
       # be sure all are tuples of right dimension...
       if typeof(input_size) <: Integer
          input_size = (input_size,)
@@ -674,10 +674,14 @@ mutable struct ConvLayer{nD} <: AbstractLayer
       end
       # compute padding to keep same size/stride if not provided 
       if isnothing(padding)
-         padding = ([Int(round((kernel_size[d]-stride[d])/2)) for d in 1:length(input_size)]...,)
+         padding = ([Int(ceil(((round(input_size[d]/stride[d])-1)*stride[d] - input_size[d]+kernel_size[d] )/2)) for d in 1:length(input_size)]...,)
       end
       nD == length(stride) == length(padding) || error("`stride` and `padding` must be either scalar or tuples that equate the number of dimensions of input data")
-      new{nD}(input_size,weight,usebias,bias,padding,stride,nD,f,df)
+      #println(typeof(weight_init))
+      #println(weight_init)
+
+      #new{nD,nD+1}(weight_init,usebias,bias_init,padding,stride,nD,f,df)
+      new{nD,nD+1}((input_size...,nchannels_in),weight_init,usebias,bias_init,padding,stride,nD,f,df)
    end
 end
 
@@ -696,10 +700,43 @@ function _zComp(layer::ConvLayer,x)
     return z
 end
 
-
+"""
+TODO: look for stride !!
+"""
 function forward(layer::ConvLayer,x)
-  z =  _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) #layer.w * x + layer.wb # _zComp(layer,x) #   layer.w * x + layer.wb # testd @avx
-  return layer.f.(z)
+  if ndims(x) == 1
+    reshape(x,size(layer[1])) 
+  end
+  input_size, output_size = size(layer)
+
+  # input padding
+  padding     = Int64[layer.padding...,0]
+  padded_size = Int64[input_size...] .+ 2 .* padding
+  xstart      = padding .+ 1
+  xends       = Int64[input_size...] .+ padding
+  xpadded     = zeros(eltype(x), padded_size...)
+  xpadded[[range(s,e) for (s,e) in zip(xstart,xends)]...] = x
+ 
+  y = zeros(eltype(x),output_size)
+
+  for yi in CartesianIndices(y)
+   yiarr         = convert(SVector{layer.ndims+1,Int64},yi)
+   nchannel_out  = yiarr[end]
+   starti   = vcat(yiarr[1:end-1],1)
+   #println(yi)
+   #println("starti: ", starti)
+ 
+   #println(size(layer.weight))
+   #println("wsize: ", convert(SVector{layer.ndims+1,Int64},size(layer.weight[1])))
+   endi   = starti .+  convert(SVector{layer.ndims+1,Int64},size(layer.weight[1])) .- 1
+   #println(starti) 
+   #println("endi: ",endi) 
+   y[yi] = layer.bias[nchannel_out] .+ dot(layer.weight[nchannel_out], xpadded[[range(s,e) for (s,e) in zip(starti,endi)]...])
+  end
+
+  return y
+  #z =  _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) #layer.w * x + layer.wb # _zComp(layer,x) #   layer.w * x + layer.wb # testd @avx
+  #return layer.f.(z)
 end
 
 function backward(layer::ConvLayer,x,next_gradient)
@@ -738,10 +775,13 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Get the dimensions of the layers in terms of (dimensions in input, dimensions in output)
+Get the dimensions of the layers in terms of (dimensions in input, dimensions in output) including channels as last dimension
 """
 function size(layer::ConvLayer)
-   in_size     = (layer.input_size...,layer.nchannels_in)
-   out_size = ([1 + Int(ceil((layer.input_size[d]+2*padding[d]-kernel_size[d])/stride[d]))   for d in layer.ndims]...,)
-   return size(in_size,out_size)
+   nchannels_in  = layer.input_size[end]
+   nchannels_out = length(layer.weight)
+   in_size  = layer.input_size
+   out_size = ([1 + Int(floor((layer.input_size[d]+2*layer.padding[d]-size(layer.weight[1],d))/layer.stride[d])) for d in 1:layer.ndims]...,nchannels_out)
+   #println(size(layer.weight[1],2))
+   return (in_size,out_size)
 end

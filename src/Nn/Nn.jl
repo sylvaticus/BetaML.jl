@@ -49,7 +49,7 @@ module Nn
 
 #import Base.Threads.@spawn
 
-using Random, Zygote, ProgressMeter, Reexport, DocStringExtensions
+using Random, LinearAlgebra, StaticArrays, LoopVectorization, Zygote, ProgressMeter, Reexport, DocStringExtensions
 import Distributions: Uniform
 
 using ForceImport
