@@ -320,44 +320,42 @@ end
 # NEW TEST
 println("Testing ConvLayer....")
 d2convl = ConvLayer((14,8),(6,3),3,2,stride=3)
-@test d2convl.padding == (2,1)
+@test d2convl.padding_start == [2,1]
+@test d2convl.padding_end   == [2,0]
+
 @test size(d2convl) == ((14, 8, 3), (5, 3, 2))
+d2convl = ConvLayer((14,8),(6,3),3,2,stride=3, padding=((2,1),(1,0)))
+@test size(d2convl) == ((14, 8, 3), (4, 3, 2))
+
 d2convl = ConvLayer((13,8),(6,3),3,2,stride=3)
-@test d2convl.padding == (1,1)
+@test d2convl.padding_start == [1,1]
+@test d2convl.padding_end   == [1,0]
 @test size(d2convl) == ((13, 8, 3), (4, 3, 2))
 
 d2convl = ConvLayer((7,5),(4,3),3,2,stride=2)
-@test d2convl.input_size == (7,5,3)
+@test d2convl.input_size == [7,5,3]
 @test d2convl.ndims == 2
 @test length(d2convl.weight) == 2
 @test size(d2convl.weight[1]) == (4,3,3) 
-@test d2convl.stride == (2,2)
+@test d2convl.stride == [2,2]
 
-d2conv = ConvLayer((4,4),(2,2),3,2)
-d2conv.padding
+d2conv = ConvLayer((4,4),(2,2),3,2,weight_init=[reshape(1:12,(2,2,3)),reshape(11:22,(2,2,3))],bias_init=[1,1])
+d2conv.padding_start
+d2conv.padding_end
 x = ones(4,4,3)
-forward(d2conv,x)
+y = forward(d2conv,x)
+@test y[1,1,1] == dot([0 0; 0 1;;; 0 0; 0 1;;; 0 0; 0 1 ],d2conv.weight[1]) + d2conv.bias[1] == 25
+@test y[2,3,1] == dot([1 1; 1 1;;; 1 1; 1 1;;; 1 1; 1 1 ],d2conv.weight[1]) + d2conv.bias[1] == 79
 
+d1conv = ConvLayer(8,3,1,1,stride=3,weight_init=[reshape(1:3,(3,1)),],bias_init=[10,])
+d1conv.padding_start
+d1conv.padding_end
+size(d1conv)
+x = collect(1:8)
+y = forward(d1conv,x)
+@test y[1,1] == dot([0,1,2],[1,2,3]) + 10
+@test y[3,1] == dot([6,7,8],[1,2,3]) + 10
 
-input_size  = size(x)
-padding     = [2,2,0]
-padded_size = Int64[input_size...] .+ 2 .* padding
-xstart      = padding .+ 1
-xends       = Int64[input_size...] .+ padding
-xpadded     = zeros(eltype(x), padded_size...)
-xpadded[[range(s,e) for (s,e) in zip(xstart,xends)]...] = x
-
-x = [1 2 3 4 5 6 7 8 9 0
-1 2 3 4 5 6 7 8 9 0
-1 2 3 4 5 6 7 8 9 0
-1 2 3 4 5 6 7 8 9 0
-1 2 3 4 5 6 7 8 9 0
-1 2 3 4 5 6 7 8 9 0
-1 2 3 4 5 6 7 8 9 0
-1 2 3 4 5 6 7 8 9 0
-1 2 3 4 5 6 7 8 9 0
-]
-x[[range(2,4),range(3,4)]...]
 
 # ==================================
 # NEW TEST
