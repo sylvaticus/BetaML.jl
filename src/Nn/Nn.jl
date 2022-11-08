@@ -150,7 +150,13 @@ Base.length(iter::Learnable) = length(iter.data)
 abstract type AbstractLayer end
 abstract type RecursiveLayer <: AbstractLayer end
 
-include("Nn_default_layers.jl")
+
+include("default_layers/DenseLayer.jl")
+include("default_layers/DenseNoBiasLayer.jl")
+include("default_layers/VectorFunctionLayer.jl")
+include("default_layers/ScalarFunctionLayer.jl")
+include("default_layers/ConvLayer.jl")
+include("default_layers/RNNLayer.jl")
 
 """
     forward(layer,x)
