@@ -3,36 +3,37 @@
 # Experimental
 
 """
-   ConvLayer
+$(TYPEDEF)
 
 Representation of a convolutional layer in the network
 
 # Fields:
-
+$(TYPEDFIELDS)
 """
-mutable struct ConvLayer{nD,nDp1} <: AbstractLayer
-   "Input size (including nchannel_in as last dimension"
-   input_size::SVector{nDp1,Int64}
-   "Weights matrix with respect to the input from previous layer or data (nchannels_out array of nr_filter x nc_filter x nchannels_in)"
-   weight::Array{Array{Float64,nDp1},1}
+mutable struct ConvLayer{ND,NDPLUS1,NDPLUS2} <: AbstractLayer
+   "Input size (including nchannel_in as last dimension)"
+   input_size::SVector{NDPLUS1,Int64}
+   "Weight tensor (aka \"filter\" or \"kernel\") with respect to the input from previous layer or data (kernel_size array augmented by the nchannels_in and nchannels_out dimensions)"
+   weight::Array{Float64,NDPLUS2}
    "Wether to use (and learn) a bias weigth [def: true]"
    usebias::Bool
-   "Bias (nchannels_out array"
+   "Bias (nchannels_out array)"
    bias::Array{Float64,1}
    "Padding (initial)"
-   padding_start::SVector{nD,Int64}
+   padding_start::SVector{ND,Int64}
    "Padding (ending)"
-   padding_end::SVector{nD,Int64}
+   padding_end::SVector{ND,Int64}
    "Stride"
-   stride::SVector{nD,Int64}
+   stride::SVector{ND,Int64}
    "Number of dimensions"
    ndims::Int64
    "Activation function"
    f::Function
    "Derivative of the activation function"
    df::Union{Function,Nothing}
+
    """
-   ConvLayer(input_size,kernel_size,nchannels_in,nchannels_out;stride,padding,weight_init,usebias,bias_init,f,df,rand)
+   $(TYPEDSIGNATURES)
 
    Instantiate a new nD-dimensional, possibly multichannel ConvolutionalLayer
 
@@ -40,11 +41,11 @@ mutable struct ConvLayer{nD,nDp1} <: AbstractLayer
 
    # Positional arguments:
    * `input_size`:    Shape of the input layer (integer for 1D convolution, tuple otherwise). Do not consider the channels number here.
-   * `kernel_size`:   Size of the kernel (aka filter) (integer for 1D or hypercube kernels or nD-sized tuple for assymmetric kernels). Do not consider the channels number here.
+   * `kernel_size`:   Size of the kernel (aka filter or learnable weights) (integer for 1D or hypercube kernels or nD-sized tuple for assymmetric kernels). Do not consider the channels number here.
    * `nchannels_in`:  Number of channels in input
    * `nchannels_out`: Number of channels in output
    # Keyword arguments:
-   * `weight_init`:   Initial weigths with respect to the input [default: Xavier initialisation]. If given, it should be a `nchannels_out` vector of `kernel_size` augmented by `nchannels_in` arrays.
+   * `kernel_init`:   Initial weigths with respect to the input [default: Xavier initialisation]. If given, it should be a multidimensional array of `kernel_size` augmented by `nchannels_in` and `nchannels_out` dimensions
    * `bias_init`:     Initial weigths with respect to the bias [default: Xavier initialisation]. If given it should be a `nchannels_out` vector of scalars.
    * `f`:   Activation function [def: `relu`]
    * `df`:  Derivative of the activation function [default: `nothing` (i.e. use AD)]
@@ -58,7 +59,7 @@ mutable struct ConvLayer{nD,nDp1} <: AbstractLayer
             stride  = (ones(Int64,length(input_size))...,),
             rng     = Random.GLOBAL_RNG,
             padding = nothing, # zeros(Int64,length(input_size)),
-            weight_init  = [rand(rng, Uniform(-sqrt(6/(prod(input_size)*nchannels_in)),sqrt(6/(prod(input_size)*nchannels_in))),(kernel_size...,nchannels_in)...) for i in 1:nchannels_out],
+            kernel_init  = rand(rng, Uniform(-sqrt(6/(prod(input_size)*nchannels_in)),sqrt(6/(prod(input_size)*nchannels_in))),(kernel_size...,nchannels_in,nchannels_out)...),
             usebias = true,
             bias_init    = usebias ? rand(rng, Uniform(-sqrt(6/(prod(input_size)*nchannels_in)),sqrt(6/(prod(input_size)*nchannels_in))),nchannels_out) : zeros(Float64,nchannels_out),
             f       = identity,
@@ -95,7 +96,7 @@ mutable struct ConvLayer{nD,nDp1} <: AbstractLayer
       #println(weight_init)
 
       #new{nD,nD+1}(weight_init,usebias,bias_init,padding,stride,nD,f,df)
-      new{nD,nD+1}((input_size...,nchannels_in),weight_init,usebias,bias_init,padding_start,padding_end,stride,nD,f,df)
+      new{nD,nD+1,nD+2}((input_size...,nchannels_in),kernel_init,usebias,bias_init,padding_start,padding_end,stride,nD,f,df)
    end
 end
 
@@ -121,8 +122,9 @@ function _zComp(layer::ConvLayer,x)
      nchannel_out  = yiarr[end]
      starti        = yiarr[1:end-1] .* layer.stride .- layer.stride .+ 1
      starti        = vcat(starti,1)
-     endi   = starti .+  convert(SVector{layer.ndims+1,Int64},size(layer.weight[1])) .- 1
-     y[yi] = layer.bias[nchannel_out] .+ dot(layer.weight[nchannel_out], xpadded[[range(s,e) for (s,e) in zip(starti,endi)]...])
+     endi   = starti .+  convert(SVector{layer.ndims+1,Int64},size(layer.weight)[1:end-1]) .- 1
+     weight = selectdim(layer.weight,layer.ndims+2,nchannel_out)
+     y[yi]  = layer.bias[nchannel_out] .+ dot(weight, xpadded[[range(s,e) for (s,e) in zip(starti,endi)]...])
     end
   
     return y
@@ -153,7 +155,11 @@ function backward(layer::ConvLayer,x,next_gradient)
 end
 
 function get_params(layer::ConvLayer)
-  return Learnable((layer.weight,layer.bias))
+  if layer.usebias
+    return Learnable((layer.weight,layer.bias))
+  else 
+    return Learnable((layer.weight,))
+  end
 end
 
 function get_gradient(layer::ConvLayer,x,next_gradient)
@@ -170,8 +176,8 @@ function get_gradient(layer::ConvLayer,x,next_gradient)
 end
 
 function set_params!(layer::ConvLayer,w)
-   layer.weight  = w.data[1]
-   layer.bias    = w.data[2]
+   layer.weight                 = w.data[1]
+   layer.usebias && (layer.bias = w.data[2])
 end
 
 """
@@ -181,9 +187,9 @@ Get the dimensions of the layers in terms of (dimensions in input, dimensions in
 """
 function size(layer::ConvLayer)
    nchannels_in  = layer.input_size[end]
-   nchannels_out = length(layer.weight)
+   nchannels_out = size(layer.weight)[end]
    in_size  = (layer.input_size...,)
-   out_size = ([1 + Int(floor((layer.input_size[d]+layer.padding_start[d]+layer.padding_end[d]-size(layer.weight[1],d))/layer.stride[d])) for d in 1:layer.ndims]...,nchannels_out)
+   out_size = ([1 + Int(floor((layer.input_size[d]+layer.padding_start[d]+layer.padding_end[d]-size(layer.weight,d))/layer.stride[d])) for d in 1:layer.ndims]...,nchannels_out)
    #println(size(layer.weight[1],2))
    return (in_size,out_size)
 end
