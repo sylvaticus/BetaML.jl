@@ -113,10 +113,10 @@ function _zComp(layer::ConvLayer,x)
     xstart        = padding_start .+ 1
     xends         = padding_start .+ input_size
     xpadded       = zeros(eltype(x), padded_size...)
-    xpadded[[range(s,e) for (s,e) in zip(xstart,xends)]...] = x
-  
+    xpadded[[range(s,e,step=1) for (s,e) in zip(xstart,xends)]...] = x
+
     y = zeros(output_size)
-  
+
     for yi in CartesianIndices(y)
      yiarr         = convert(SVector{layer.ndims+1,Int64},yi)
      nchannel_out  = yiarr[end]
@@ -124,7 +124,7 @@ function _zComp(layer::ConvLayer,x)
      starti        = vcat(starti,1)
      endi   = starti .+  convert(SVector{layer.ndims+1,Int64},size(layer.weight)[1:end-1]) .- 1
      weight = selectdim(layer.weight,layer.ndims+2,nchannel_out)
-     y[yi]  = layer.bias[nchannel_out] .+ dot(weight, xpadded[[range(s,e) for (s,e) in zip(starti,endi)]...])
+     y[yi]  = layer.bias[nchannel_out] .+ dot(weight, xpadded[[range(s,e,step=1) for (s,e) in zip(starti,endi)]...])
     end
   
     return y
