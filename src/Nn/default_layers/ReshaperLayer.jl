@@ -52,5 +52,5 @@ function set_params!(layer::ReshaperLayer,w)
     return nothing
 end
 function size(layer::ReshaperLayer)
-    return size(layer.input_size,layer.output_size)
+    return (layer.input_size,layer.output_size)
 end

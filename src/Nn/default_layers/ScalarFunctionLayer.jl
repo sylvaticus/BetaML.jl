@@ -115,5 +115,5 @@ end
 function size(layer::ScalarFunctionLayer{N}) where {N}
     # Output size for the ScalarFunctionLayer is given by its activation function
     # We test its length with dummy values
-    return (layer.n,layer.n)
+    return ((layer.n,),(layer.n,))
 end

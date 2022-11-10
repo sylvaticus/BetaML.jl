@@ -134,5 +134,5 @@ end
 function size(layer::VectorFunctionLayer{N}) where {N}
     # Output size for the VectorFunctionLayer is given by its activation function
     # We test its length with dummy values
-    return (layer.nₗ,layer.n)
+    return ((layer.nₗ,),(layer.n,))
 end

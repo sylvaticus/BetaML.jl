@@ -244,7 +244,7 @@ end
 """
     size(layer)
 
-Get the dimensions of the layers in terms of (dimensions in input , dimensions in output)
+Get the size of the layers in terms of (size in input, size in output) - both as tuples
 
 # Notes:
 * You need to use `import Base.size` before defining this function for your layer
@@ -325,7 +325,9 @@ function predict(nn::NN,x)
     x = makematrix(x)
     # get the output dimensions
     n = size(x)[1]
-    d = size(nn.layers[end])[2] # todo: this is dangerous
+    lastlayer_size = size(nn.layers[end])[2]
+    length(lastlayer_size) == 1 || error("The last NN layer should always ve a single dimension vector. Eventually use `ReshaperLayer` to reshape its output as a vector.")
+    d = lastlayer_size[1]
     out = zeros(n,d)
     for i in 1:size(x)[1]
         values = x[i,:]
@@ -906,8 +908,12 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
             end
         end
         # Check that the first layer has the dimensions of X and the last layer has the output dimensions of Y
-        nn_isize = size(layers[1])[1]
-        nn_osize = size(layers[end])[2]
+        nn_isize_tuple = size(layers[1])[1]
+        nn_osize_tuple = size(layers[end])[2]
+        length(nn_isize_tuple) == 1 || error("The input of a neural network should always be a single dimensional vector. Use eventually `ReshaperLayer` to reshape it to a vector.")
+        length(nn_osize_tuple) == 1 || error("The last neural network layer should always return a single dimensional vector. Use eventually `ReshaperLayer` to reshape it to a vector.")
+        nn_isize = nn_isize_tuple[1]
+        nn_osize = nn_osize_tuple[1]
 
         nn_isize == nD || error("The first layer of the network must have the ndims of the input data ($nD) instead of $(nn_isize).")
         nn_osize == nDy || error("The last layer of the network must have the ndims of the output data ($nDy) instead of $(nn_osize). For classification tasks, this is normally the number of possible categories.")
@@ -937,7 +943,7 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
    
     if cache
        ŷ  = predict(nnstruct,X)
-       if ndims(ŷ) > 1 && size(layers[end])[2] == 1
+       if ndims(ŷ) > 1 && size(layers[end])[2][1] == 1
           m.cres = dropdims(ŷ,dims=2)
        else
           m.cres = ŷ
@@ -952,7 +958,7 @@ end
 
 function predict(m::NeuralNetworkEstimator,X)
     ŷ        = predict(m.par.nnstruct,X)
-    nn_osize = size(m.par.nnstruct.layers[end])[2]
+    nn_osize = size(m.par.nnstruct.layers[end])[2][1]
     if ndims(ŷ) > 1 && nn_osize == 1
         return dropdims(ŷ,dims=2)
     else

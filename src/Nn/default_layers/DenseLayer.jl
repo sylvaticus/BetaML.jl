@@ -99,5 +99,6 @@ function set_params!(layer::DenseLayer,w)
    layer.wb = w.data[2]
 end
 function size(layer::DenseLayer)
-    return size(layer.w')
+   w_size =  size(layer.w')
+   return ((w_size[1],),(w_size[2],))
 end

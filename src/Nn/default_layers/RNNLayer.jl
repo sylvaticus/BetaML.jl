@@ -111,5 +111,6 @@ function set_params!(layer::RNNLayer,w)
    layer.ws = w.data[3]
 end
 function size(layer::RNNLayer)
-    return size(layer.w')
+   w_size =  size(layer.w')
+   return ((w_size[1],),(w_size[2],))
 end
