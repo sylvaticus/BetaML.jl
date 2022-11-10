@@ -142,7 +142,8 @@ function forward(layer::ConvLayer,x)
 end
 
 
-function backward(layer::ConvLayer,x,next_gradient)
+function backward(layer::ConvLayer,x,next_gradient) # with respect to inputs
+   #=
    z = _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) # layer.w * x + layer.wb # _zComp(layer,x) # @avx layer.w * x + layer.wb               # tested @avx
    if layer.df != nothing
       dfz = layer.df.(z)
@@ -152,6 +153,8 @@ function backward(layer::ConvLayer,x,next_gradient)
    dϵ_dz = @turbo dfz .* next_gradient
    dϵ_dI = @turbo layer.w' * dϵ_dz # @avx
    return dϵ_dI
+   =#
+   return ones(input_size)
 end
 
 function get_params(layer::ConvLayer)
@@ -163,6 +166,7 @@ function get_params(layer::ConvLayer)
 end
 
 function get_gradient(layer::ConvLayer,x,next_gradient)
+   #=
    z      =  _zComp(layer,x) #@avx layer.w * x + layer.wb #  _zComp(layer,x) #layer.w * x + layer.wb # @avx
    if layer.df != nothing
       dfz = layer.df.(z)  
@@ -173,6 +177,14 @@ function get_gradient(layer::ConvLayer,x,next_gradient)
    dϵ_dw  = @turbo dϵ_dz * x' # @avx
    dϵ_dwb = dϵ_dz
    return Learnable((dϵ_dw,dϵ_dwb))
+   =#
+   dw    = zeros(size(layer.weigth))
+   dbias = zeros(length(layer.bias))
+   if layer.usebias
+      return Learnable((dw,dbias))
+   else 
+      return Learnable((dwb,))
+    end
 end
 
 function set_params!(layer::ConvLayer,w)

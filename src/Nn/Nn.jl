@@ -77,7 +77,7 @@ Learnable(data)
 Structure representing the learnable parameters of a layer or its gradient.
 
 The learnable parameters of a layers are given in the form of a N-tuple of Array{Float64,N2} where N2 can change (e.g. we can have a layer with the first parameter being a matrix, and the second one being a scalar).
-We wrap the tuple on its own structure a bit for some efficiency gain, but above all to define standard mathematic operations on the gradients without doing "type pyracy" with respect to Base tuples.
+We wrap the tuple on its own structure a bit for some efficiency gain, but above all to define standard mathematic operations on the gradients without doing "type piracy" with respect to Base tuples.
 """
 mutable struct Learnable
     data::Tuple{Vararg{Array{Float64,N} where N}}
@@ -177,7 +177,7 @@ end
 """
     backward(layer,x,next_gradient)
 
-Compute backpropagation for this layer
+Compute backpropagation for this layer with respect to its inputs
 
 # Parameters:
 * `layer`:        Worker layer
@@ -210,7 +210,7 @@ end
 """
     get_gradient(layer,x,next_gradient)
 
-Compute backpropagation for this layer
+Compute backpropagation for this layer with respect to the layer weigths
 
 # Parameters:
 * `layer`:        Worker layer
@@ -325,7 +325,7 @@ function predict(nn::NN,x)
     x = makematrix(x)
     # get the output dimensions
     n = size(x)[1]
-    d = size(nn.layers[end])[2]
+    d = size(nn.layers[end])[2] # todo: this is dangerous
     out = zeros(n,d)
     for i in 1:size(x)[1]
         values = x[i,:]
