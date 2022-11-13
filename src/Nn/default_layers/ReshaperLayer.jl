@@ -14,7 +14,7 @@ mutable struct ReshaperLayer{NDIN,NDOUT} <: AbstractLayer
     "Input size"
     input_size::SVector{NDIN,Int64}
     "Output size"
-    input_size::SVector{NDOUT,Int64}
+    output_size::SVector{NDOUT,Int64}
     """
     $(TYPEDSIGNATURES)
 
@@ -22,10 +22,13 @@ mutable struct ReshaperLayer{NDIN,NDOUT} <: AbstractLayer
 
     # Positional arguments:
     * `input_size`:    Shape of the input layer (tuple).
-    * `output_size`:   Shape of the input layer (tuple).
+    * `output_size`:   Shape of the input layer (tuple) [def: `prod([input_size...]))`, i.e. reshape to a vector of appropriate lenght].
     """
-    function ReshaperLayer(input_size, output_size)
+    function ReshaperLayer(input_size, output_size=prod([input_size...]))
         NDIN = length(input_size)
+        if typeof(output_size) <: Integer
+            output_size = (output_size,)
+        end
         NDOUT = length(output_size)
         return new{NDIN,NDOUT}(input_size,output_size)
      end
@@ -33,11 +36,11 @@ end
 
 
 function forward(layer::ReshaperLayer,x)
-  return reshape(x,layer.output_size)
+  return reshape(x,layer.output_size...)
 end
 
 function backward(layer::ReshaperLayer,x,next_gradient)
-   return reshape(next_gradient,layer.input_size)
+   return reshape(next_gradient,layer.input_size...)
 end
 
 function get_params(layer::ReshaperLayer)

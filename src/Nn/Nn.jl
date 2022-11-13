@@ -156,6 +156,7 @@ include("default_layers/DenseNoBiasLayer.jl")
 include("default_layers/VectorFunctionLayer.jl")
 include("default_layers/ScalarFunctionLayer.jl")
 include("default_layers/ConvLayer.jl")
+include("default_layers/ReshaperLayer.jl")
 include("default_layers/RNNLayer.jl")
 
 """

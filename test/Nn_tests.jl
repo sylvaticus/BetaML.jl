@@ -6,7 +6,7 @@ using DelimitedFiles, LinearAlgebra, Statistics #, MLDatasets
 using BetaML
 
 import BetaML.Nn: buildNetwork, forward, loss, backward, train!, get_nparams
-import BetaML.Nn: ConvLayer # todo: to export it and remove this when completed
+import BetaML.Nn: ConvLayer, ReshaperLayer # todo: to export it and remove this when completed
 
 TESTRNG = FIXEDRNG # This could change...
 #TESTRNG = StableRNG(123)
@@ -351,6 +351,23 @@ x = collect(1:8)
 y = forward(d1conv,x)
 @test y[1,1] == dot([0,1,2],[1,2,3]) + 10
 @test y[3,1] == dot([6,7,8],[1,2,3]) + 10
+
+
+
+x     = collect(1:12)
+l1    = ReshaperLayer((24,1),(3,2,2))
+l2    = ConvLayer((3,2),(2,2),2,1,kernel_init=ones(2,2,2,1),bias_init=[1])
+l3    = ConvLayer((3,2),(2,2),1,1,kernel_init=ones(2,2,1,1),bias_init=[1])
+l4    = ReshaperLayer((3,2,1))
+l1y   = forward(l1,x)
+l2y   = forward(l2,l1y)
+l3y   = forward(l3,l2y)
+l4y   = forward(l4,l3y)
+truey =  [8.0, 31.0, 43.0, 33.0, 101.0, 149.0]
+
+mynn  = buildNetwork([l1,l2,l3,l4],squared_cost)
+ŷ     = predict(mynn,x')
+e     = loss(mynn,x',truey')
 
 
 # ==================================
