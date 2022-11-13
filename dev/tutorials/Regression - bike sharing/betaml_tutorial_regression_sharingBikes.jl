@@ -405,7 +405,7 @@ println(now(), " ", "- Flux.jl..." )  #src
 # We now apply the same Neural Network model using the [Flux](https://fluxml.ai/) framework, a dedicated neural network library, reusing the optimal parameters that we did learn from tuning `NeuralNetworkEstimator`:
 
 hp_opt         = hyperparameters(nnm)
-opt_size       = size(hp_opt.layers[1])[2]
+opt_size       = size(hp_opt.layers[1])[2][1]
 opt_batch_size = hp_opt.batch_size
 opt_epochs     = hp_opt.epochs
 
