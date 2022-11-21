@@ -11,27 +11,24 @@ For more information see [JuliaAI/DecisionTree.jl](https://github.com/JuliaAI/De
 The file `src/abstract_trees.jl` in that repo serves as a model implementation.
 """
 
-export InfoNode, InfoLeaf, wrap, AbstractTree
-
-#### temporal construct until an `AbstractTree` type is available elsewhere
-abstract type AbstractTree end      # will be placed elsewhere in the future
-
-####
+export InfoNode, InfoLeaf, wrap, DecisionNode, Leaf
 
 """
 These types are introduced so that additional information currently not present in 
 a `DecisionTree`-structure -- namely the feature names  -- 
 can be used for visualization.
 """
-struct InfoNode{T} <: AbstractTree
+struct InfoNode{T} <: AbstractTrees.AbstractNode{DecisionNode{T}}
     node    :: DecisionNode{T}
     info    :: NamedTuple
 end
+AbstractTrees.nodevalue(n::InfoNode) = n.node
 
-struct InfoLeaf{T} <: AbstractTree
+struct InfoLeaf{T} <: AbstractTrees.AbstractNode{Leaf{T}}
     leaf    :: Leaf{T}
     info    :: NamedTuple
 end
+AbstractTrees.nodevalue(l::InfoLeaf) = l.leaf
 
 """
     wrap(node:: DecisionNode, ...)
