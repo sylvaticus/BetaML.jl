@@ -3242,47 +3242,47 @@ D               = size(xtrain,2)</code></pre><pre class="documenter-example-outp
   &quot;batch_size&quot; =&gt; [4, 8, 16]
   &quot;layers&quot;     =&gt; Vector{DenseLayer}[[DenseLayer([-0.295313 -0.0154703 … 0.2269…
   &quot;opt_alg&quot;    =&gt; BetaML.Nn.OptimisationAlgorithm[SGD(#60, 2.0), SGD(#60, 1.0),…</code></pre><p>Finally we can build &quot;neural network&quot; <a href="../../Nn.html#BetaML.Nn.NeuralNetworkEstimator"><code>NeuralNetworkEstimator</code></a> model where we &quot;chain&quot; the layers together and we assign a final loss function (again, you can provide your own loss function, if those available in BetaML don&#39;t suit your needs):</p><pre><code class="language-julia hljs">nnm = NeuralNetworkEstimator(loss=squared_cost, descr=&quot;Bike sharing regression model&quot;, tunemethod=SuccessiveHalvingSearch(hpranges = hpranges), autotune=true,rng=copy(AFIXEDRNG)) # Build the NN model and use the squared cost (aka MSE) as error function by default</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">NeuralNetworkEstimator - A Feed-forward neural network (unfitted)</code></pre><p>We can now fit and autotune the model:</p><pre><code class="language-julia hljs">ŷtrain_scaled = fit!(nnm,xtrain_scaled,ytrain_scaled)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">548-element Vector{Float64}:
- 1.6276179640617519
- 1.6262044395781052
- 2.076117276579201
- 1.8405431771565224
- 1.935612440526542
- 1.5636071679418537
- 1.9302085633254233
- 2.0974152546824727
- 2.173954358117637
- 2.0608896521431026
+ 1.6276179640617492
+ 1.6262044395781026
+ 2.0761172765792084
+ 1.8405431771565215
+ 1.9356124405265456
+ 1.5636071679418515
+ 1.9302085633254211
+ 2.097415254682465
+ 2.1739543581176344
+ 2.0608896521430995
  ⋮
- 6.401749823084937
- 6.136690161454258
- 5.853918032156248
- 5.881135603594053
- 6.0014196261579125
- 6.15678691404039
- 6.3213426409425715
- 6.4412702727723765
- 6.292419392193327</code></pre><p>The model training is one order of magnitude slower than random forests, altought the memory requirement is approximatly the same.</p><p>To obtain the neural network predictions we apply the function <code>predict</code> to the feature matrix X for which we want to generate previsions, and then we rescale y. Normally we would apply here the <code>inverse_predict</code> function, but as we simple divided by 1000, we multiply ŷ by the same amount:</p><pre><code class="language-julia hljs">ŷtrain = ŷtrain_scaled .* 1000
+ 6.401749823084935
+ 6.136690161454254
+ 5.853918032156251
+ 5.8811356035940525
+ 6.001419626157915
+ 6.156786914040386
+ 6.321342640942571
+ 6.4412702727723845
+ 6.2924193921933265</code></pre><p>The model training is one order of magnitude slower than random forests, altought the memory requirement is approximatly the same.</p><p>To obtain the neural network predictions we apply the function <code>predict</code> to the feature matrix X for which we want to generate previsions, and then we rescale y. Normally we would apply here the <code>inverse_predict</code> function, but as we simple divided by 1000, we multiply ŷ by the same amount:</p><pre><code class="language-julia hljs">ŷtrain = ŷtrain_scaled .* 1000
 ŷtest  = predict(nnm,xtest_scaled) .* 1000</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">183-element Vector{Float64}:
  6071.248677131905
- 6162.579566245745
- 5866.734380139832
- 6329.305353565079
- 6378.723890849182
- 6793.32950166408
- 6494.632970792893
- 5484.620719230333
- 5603.586480928077
- 5978.904009425076
+ 6162.579566245752
+ 5866.734380139827
+ 6329.305353565087
+ 6378.72389084917
+ 6793.329501664085
+ 6494.632970792892
+ 5484.620719230337
+ 5603.586480928078
+ 5978.904009425075
     ⋮
  4627.658649482946
- 3628.785532010526
- 2872.657227464452
- 1642.0360089958053
- 2925.4122022733804
- 4233.449896021087
- 3614.9192092260205
- 3534.3393968342457
- 3449.2829592663848</code></pre><pre><code class="language-julia hljs">(rme_train, rme_test) = relative_mean_error.([ŷtrain,ŷtest],[ytrain,ytest])
+ 3628.7855320105305
+ 2872.657227464455
+ 1642.0360089958097
+ 2925.4122022733854
+ 4233.449896021089
+ 3614.9192092260214
+ 3534.3393968342484
+ 3449.2829592663875</code></pre><pre><code class="language-julia hljs">(rme_train, rme_test) = relative_mean_error.([ŷtrain,ŷtest],[ytrain,ytest])
 push!(results,[&quot;NN&quot;,rme_train,rme_test]);</code></pre><p>The error is much lower. Let&#39;s plot our predictions:</p><p>Again, we can start by plotting the estimated vs the observed value:</p><pre><code class="language-julia hljs">scatter(ytrain,ŷtrain,xlabel=&quot;daily rides&quot;,ylabel=&quot;est. daily rides&quot;,label=nothing,title=&quot;Est vs. obs in training period (NN)&quot;)</code></pre><?xml version="1.0" encoding="utf-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="600" height="400" viewBox="0 0 2400 1600">
 <defs>
@@ -5925,4 +5925,4 @@ push!(results,[&quot;GMM&quot;,rme_train,rme_test]);</code></pre><h2 id="Summary
    3 │ RF (DecisionTree.jl)  0.079862   0.273917
    4 │ NN                    0.149393   0.166221
    5 │ NN (Flux.jl)          0.0876482  0.167596
-   6 │ GMM                   0.216144   0.26681</code></pre><p>You may ask how stable are these results? How much do they depend from the specific RNG seed ? We re-evaluated a couple of times the whole script but changing random seeds (to <code>1000</code> and <code>10000</code>):</p><table><tr><th style="text-align: left">Model</th><th style="text-align: center">Train rme1</th><th style="text-align: center">Test rme1</th><th style="text-align: center">Train rme2</th><th style="text-align: center">Test rme2</th><th style="text-align: center">Train rme3</th><th style="text-align: center">Test rme3</th></tr><tr><td style="text-align: left">DT</td><td style="text-align: center">0.1366960</td><td style="text-align: center">0.154720</td><td style="text-align: center">0.0233044</td><td style="text-align: center">0.249329</td><td style="text-align: center">0.0621571</td><td style="text-align: center">0.161657</td></tr><tr><td style="text-align: left">RF</td><td style="text-align: center">0.0421267</td><td style="text-align: center">0.180186</td><td style="text-align: center">0.0535776</td><td style="text-align: center">0.136920</td><td style="text-align: center">0.0386144</td><td style="text-align: center">0.141606</td></tr><tr><td style="text-align: left">RF (DecisionTree.jl)</td><td style="text-align: center">0.0230439</td><td style="text-align: center">0.235823</td><td style="text-align: center">0.0801040</td><td style="text-align: center">0.243822</td><td style="text-align: center">0.0168764</td><td style="text-align: center">0.219011</td></tr><tr><td style="text-align: left">NN</td><td style="text-align: center">0.1604000</td><td style="text-align: center">0.169952</td><td style="text-align: center">0.1091330</td><td style="text-align: center">0.121496</td><td style="text-align: center">0.1481440</td><td style="text-align: center">0.150458</td></tr><tr><td style="text-align: left">NN (Flux.jl)</td><td style="text-align: center">0.0931161</td><td style="text-align: center">0.166228</td><td style="text-align: center">0.0920796</td><td style="text-align: center">0.167047</td><td style="text-align: center">0.0907810</td><td style="text-align: center">0.122469</td></tr><tr><td style="text-align: left">GMMRegressor2*</td><td style="text-align: center">0.1432800</td><td style="text-align: center">0.293891</td><td style="text-align: center">0.1380340</td><td style="text-align: center">0.295470</td><td style="text-align: center">0.1477570</td><td style="text-align: center">0.284567</td></tr></table><ul><li>GMM is a deterministic model, the variations are due to the different random sampling in choosing the best hyperparameters</li></ul><p>Neural networks can be more precise than random forests models, but are more computationally expensive (and tricky to set up). When we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less versatile). GMM_based regressors are very computationally cheap and a good compromise if accuracy can be traded off for performances.</p><p><a href="https://github.com/sylvaticus/BetaML.jl/blob/master/docs/src/tutorials/Regression - bike sharing/betaml_tutorial_regression_sharingBikes.jl">View this file on Github</a>.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Classification - cars/betaml_tutorial_classification_cars.html">« A classification task when labels are known - determining the country of origin of cars given the cars characteristics</a><a class="docs-footer-nextpage" href="../Clustering - Iris/betaml_tutorial_cluster_iris.html">A clustering task: the prediction of  plant species from floreal measures (the iris dataset) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Monday 21 November 2022 09:09">Monday 21 November 2022</span>. Using Julia version 1.6.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+   6 │ GMM                   0.216144   0.26681</code></pre><p>You may ask how stable are these results? How much do they depend from the specific RNG seed ? We re-evaluated a couple of times the whole script but changing random seeds (to <code>1000</code> and <code>10000</code>):</p><table><tr><th style="text-align: left">Model</th><th style="text-align: center">Train rme1</th><th style="text-align: center">Test rme1</th><th style="text-align: center">Train rme2</th><th style="text-align: center">Test rme2</th><th style="text-align: center">Train rme3</th><th style="text-align: center">Test rme3</th></tr><tr><td style="text-align: left">DT</td><td style="text-align: center">0.1366960</td><td style="text-align: center">0.154720</td><td style="text-align: center">0.0233044</td><td style="text-align: center">0.249329</td><td style="text-align: center">0.0621571</td><td style="text-align: center">0.161657</td></tr><tr><td style="text-align: left">RF</td><td style="text-align: center">0.0421267</td><td style="text-align: center">0.180186</td><td style="text-align: center">0.0535776</td><td style="text-align: center">0.136920</td><td style="text-align: center">0.0386144</td><td style="text-align: center">0.141606</td></tr><tr><td style="text-align: left">RF (DecisionTree.jl)</td><td style="text-align: center">0.0230439</td><td style="text-align: center">0.235823</td><td style="text-align: center">0.0801040</td><td style="text-align: center">0.243822</td><td style="text-align: center">0.0168764</td><td style="text-align: center">0.219011</td></tr><tr><td style="text-align: left">NN</td><td style="text-align: center">0.1604000</td><td style="text-align: center">0.169952</td><td style="text-align: center">0.1091330</td><td style="text-align: center">0.121496</td><td style="text-align: center">0.1481440</td><td style="text-align: center">0.150458</td></tr><tr><td style="text-align: left">NN (Flux.jl)</td><td style="text-align: center">0.0931161</td><td style="text-align: center">0.166228</td><td style="text-align: center">0.0920796</td><td style="text-align: center">0.167047</td><td style="text-align: center">0.0907810</td><td style="text-align: center">0.122469</td></tr><tr><td style="text-align: left">GMMRegressor2*</td><td style="text-align: center">0.1432800</td><td style="text-align: center">0.293891</td><td style="text-align: center">0.1380340</td><td style="text-align: center">0.295470</td><td style="text-align: center">0.1477570</td><td style="text-align: center">0.284567</td></tr></table><ul><li>GMM is a deterministic model, the variations are due to the different random sampling in choosing the best hyperparameters</li></ul><p>Neural networks can be more precise than random forests models, but are more computationally expensive (and tricky to set up). When we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less versatile). GMM_based regressors are very computationally cheap and a good compromise if accuracy can be traded off for performances.</p><p><a href="https://github.com/sylvaticus/BetaML.jl/blob/master/docs/src/tutorials/Regression - bike sharing/betaml_tutorial_regression_sharingBikes.jl">View this file on Github</a>.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Classification - cars/betaml_tutorial_classification_cars.html">« A classification task when labels are known - determining the country of origin of cars given the cars characteristics</a><a class="docs-footer-nextpage" href="../Clustering - Iris/betaml_tutorial_cluster_iris.html">A clustering task: the prediction of  plant species from floreal measures (the iris dataset) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Monday 21 November 2022 10:09">Monday 21 November 2022</span>. Using Julia version 1.6.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
