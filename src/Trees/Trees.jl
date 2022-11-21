@@ -43,9 +43,10 @@ export RandomForestEstimator, RFHyperParametersSet
 # export buildForest
 # updateTreesWeights! # TODO:to remove
 
-include("DecisionTrees.jl") # Decision Trees algorithm and API
-include("RandomForests.jl") # Random Forests algorithm and API
-include("Trees_MLJ.jl")     # MLJ interface
+include("DecisionTrees.jl")                  # Decision Trees algorithm and API
+include("AbstractTrees_BetaML_interface.jl") # Code to allow plotting of a DecisionTree
+include("RandomForests.jl")                  # Random Forests algorithm and API
+include("Trees_MLJ.jl")                      # MLJ interface
 
 
 end # end module
