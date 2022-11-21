@@ -357,7 +357,7 @@ y = forward(d1conv,x)
 x     = collect(1:12)
 l1    = ReshaperLayer((24,1),(3,2,2))
 l2    = ConvLayer((3,2),(2,2),2,1,kernel_init=ones(2,2,2,1),bias_init=[1])
-l3    = ConvLayer((3,2),(2,2),1,1,kernel_init=ones(2,2,1,1),bias_init=[1])
+l3    = ConvLayer(size(l2)[2],(2,2),1,kernel_init=ones(2,2,1,1),bias_init=[1]) # alternative constructor
 l4    = ReshaperLayer((3,2,1))
 l1y   = forward(l1,x)
 l2y   = forward(l2,l1y)
@@ -368,7 +368,7 @@ truey =  [8.0, 31.0, 43.0, 33.0, 101.0, 149.0]
 mynn  = buildNetwork([l1,l2,l3,l4],squared_cost)
 ŷ     = predict(mynn,x')
 e     = loss(mynn,x',truey')
-
+@test e ≈ 4
 
 # ==================================
 # NEW TEST

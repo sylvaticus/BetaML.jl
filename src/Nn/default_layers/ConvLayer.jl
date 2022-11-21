@@ -100,6 +100,26 @@ mutable struct ConvLayer{ND,NDPLUS1,NDPLUS2} <: AbstractLayer
    end
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Alternative constructor for a `ConvLayer` where the number of channels in input is specified as a further dimension in the input size instead of as a separate parameter, so to use `size(previous_layer)[2]` if one wish.
+
+For arguments and default values see the documentation of the main constructor.
+"""
+function ConvLayer(input_size_with_channel,kernel_size,nchannels_out;
+     stride  = (ones(Int64,length(input_size_with_channel)-1)...,),
+     rng     = Random.GLOBAL_RNG,
+     padding = nothing, # zeros(Int64,length(input_size)),
+     kernel_init  = rand(rng, Uniform(-sqrt(6/prod(input_size_with_channel)),sqrt(6/prod(input_size_with_channel))),(kernel_size...,input_size_with_channel[end],nchannels_out)...),
+     usebias = true,
+     bias_init    = usebias ? rand(rng, Uniform(-sqrt(6/prod(input_size_with_channel)),sqrt(6/prod(input_size_with_channel))),nchannels_out) : zeros(Float64,nchannels_out),
+     f       = identity,
+     df      = nothing)
+
+     return ConvLayer(input_size_with_channel[1:end-1],kernel_size,input_size_with_channel[end],nchannels_out; stride=stride,rng=rng,padding=padding,kernel_init=kernel_init,usebias=usebias,bias_init=bias_init,f=f,df=df)
+
+end
 function _zComp(layer::ConvLayer,x)
    if ndims(x) == 1
       reshape(x,size(layer)[1]) 
