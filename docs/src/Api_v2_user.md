@@ -1,7 +1,7 @@
 # [BetaML Api v2](@id api_usage)
 
 !!! note
-    The API described below is the default one starting from BetaML v0.8, with most of low-level functions now deprecated and possibly removed in further versions.
+    The API described below is the default one starting from BetaML v0.8.
 
 The following API is designed to further simply the usage of the various ML models provided by BetaML introducing a common workflow. This is the _user_ documentation. Refer to the [developer documentation](@ref api_implementation) to learn how the API is implemented. 
 

@@ -673,86 +673,6 @@ function inverse_predict(m::Scaler,x)
     return _predict(m.hpar.method,m.par.scalerpars,m.hpar.skip,x;inverse=true)
 end  
 
-
-"""
-pca(X;K,error)
-
-Perform Principal Component Analysis returning the matrix reprojected among the dimensions of maximum variance.
-
-!!! warning
-    This function is deprecated and will possibly be removed in BetaML 0.9. Use the model PCA() instead.
-
-
-# Parameters:
-- `X` : The (N,D) data to reproject
-- `K` : The number of dimensions to maintain (with K<=D) [def: `nothing`]
-- `error`: The maximum approximation error that we are willing to accept [def: `0.05`]
-
-# Return:
-- A named tuple with:
-  - `X`: The reprojected (NxK) matrix with the column dimensions organized in descending order of of the proportion of explained variance
-  - `K`: The number of dimensions retieved
-  - `error`: The actual proportion of variance not explained in the reprojected dimensions
-  - `P`: The (D,K) matrix of the eigenvectors associated to the K-largest eigenvalues used to reproject the data matrix
-  - `explVarByDim`: An array of dimensions D with the share of the cumulative variance explained by dimensions (the last element being always 1.0)
-
-# Notes:
-- If `K` is provided, the parameter `error` has no effect.
-- If one doesn't know _a priori_ the error that she/he is willling to accept, nor the wished number of dimensions, he/she can run this pca function with `out = pca(X,K=size(X,2))` (i.e. with K=D), analise the proportions of explained cumulative variance by dimensions in `out.explVarByDim`, choose the number of dimensions K according to his/her needs and finally pick from the reprojected matrix only the number of dimensions needed, i.e. `out.X[:,1:K]`.
-
-# Example:
-```julia
-julia> X = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95]
-6×3 Matrix{Float64}:
- 1.0   10.0  100.0
- 1.1   15.0  120.0
- 0.95  23.0   90.0
- 0.99  17.0  120.0
- 1.05   8.0   90.0
- 1.1   12.0   95.0
-julia> X = pca(X,error=0.05).X
-6×2 Matrix{Float64}:
- 100.449    3.1783
- 120.743    6.80764
-  91.3551  16.8275
- 120.878    8.80372
-  90.3363   1.86179
-  95.5965   5.51254
-```
-
-"""
-function pca(X;K=nothing,error=0.05)
-    # debug
-    #X = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95]
-    #K = nothing
-    #error=0.05
-
-    (N,D) = size(X)
-    if !isnothing(K) && K > D
-        @error("The parameter K must be ≤ D")
-    end
-    Σ = (1/N) * X'*(I-(1/N)*ones(N)*ones(N)')*X
-    E = eigen(Σ) # eigenvalues are ordered from the smallest to the largest
-    totVar  = sum(E.values)
-    explVarByDim = [sum(E.values[D-k+1:end])/totVar for k in 1:D] # or: cumsum(reverse(E.values)) ./ totVar
-    propVarExplained = 0.0
-    if K == nothing
-        for k in 1:D
-            if explVarByDim[k] >= (1 - error)
-                propVarExplained  = explVarByDim[k]
-                K                 = k
-                break
-            end
-        end
-    else
-        propVarExplained = explVarByDim[K]
-    end
-
-    P = E.vectors[:,end:-1:D-K+1] # bug corrected 2/9/2021
-
-    return (X=X*P,K=K,error=1-propVarExplained,P=P,explVarByDim=explVarByDim)
-end
-
 """
 $(TYPEDEF)
 
@@ -760,10 +680,13 @@ Hyperparameters for the PCA transformer
 
 ## Parameters
 $(FIELDS)
+
 """
 Base.@kwdef mutable struct PCAHyperParametersSet <: BetaMLHyperParametersSet
+   "The number of dimensions to maintain (with `outdims <= size(X,2)` ) [def: `nothing`, i.e. the number of output dimensions is determined from the parameter `max_unexplained_var`]"
    outdims::Union{Nothing,Int64} = nothing
-   max_prop_unexplained_var::Float64  = 0.05
+   "The maximum proportion of variance that we are willing to accept when reducing the number of dimensions in our data [def: 0.05]. It doesn't have any effect when the output number of dimensions is explicitly chosen with the parameter `outdims`"
+   max_unexplained_var::Float64  = 0.05
 end
 
 Base.@kwdef mutable struct PCALearnableParameters <: BetaMLLearnableParametersSet
@@ -780,9 +703,42 @@ PCA returns the matrix reprojected among the dimensions of maximum variance.
 
 For the parameters see [`PCAHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref) 
 
+## Example :
+```julia
+julia> X = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95]
+6×3 Matrix{Float64}:
+ 1.0   10.0  100.0
+ 1.1   15.0  120.0
+ 0.95  23.0   90.0
+ 0.99  17.0  120.0
+ 1.05   8.0   90.0
+ 1.1   12.0   95.0
+
+julia> mod = PCA(max_unexplained_var=0.05) # the default
+A PCA BetaMLModel (unfitted)
+
+julia> reproj_X = fit!(mod,X)
+6×2 Matrix{Float64}:
+ 100.449    3.1783
+ 120.743    6.80764
+  91.3551  16.8275
+ 120.878    8.80372
+  90.3363   1.86179
+  95.5965   5.51254
+
+julia> info(mod)
+Dict{String, Any} with 5 entries:
+  "explained_var_by_dim" => [0.873992, 0.999989, 1.0]
+  "fitted_records"       => 6
+  "prop_explained_var"   => 0.999989
+  "retained_dims"        => 2
+  "xndims"               => 3
+```
+
 ## Notes:
 - PCA doesn't automatically scale the data. It is suggested to apply the `Scaler` model before running it. 
-- missing data are not supported. Impute them first, see the [`Imputation`](Imputation.html) module.
+- Missing data are not supported. Impute them first, see the [`Imputation`](Imputation.html) module.
+- If one doesn't know _a priori_ the maximum unexplained variance that she/he is willling to accept, nor the wished number of dimensions, she can run the model with all the dimensions in output (i.e. with `outdims=size(X,2)`), analise the proportions of explained cumulative variance by dimensions in `info(mod,""explained_var_by_dim")`, choose the number of dimensions K according to his/her needs and finally pick from the reprojected matrix only the number of dimensions required, i.e. `out.X[:,1:K]`.
 """
 mutable struct PCA <: BetaMLUnsupervisedModel
     hpar::PCAHyperParametersSet
@@ -816,7 +772,7 @@ function fit!(m::PCA,X)
 
     # Parameter alias..
     outdims                  = m.hpar.outdims
-    max_prop_unexplained_var = m.hpar.max_prop_unexplained_var
+    max_unexplained_var = m.hpar.max_unexplained_var
     cache                    = m.opt.cache
     verbosity                = m.opt.verbosity
     rng                      = m.opt.rng
@@ -834,7 +790,7 @@ function fit!(m::PCA,X)
     # Finding oudims_actual
     totvar  = sum(E.values)
     explained_var_by_dim = cumsum(reverse(E.values)) ./ totvar
-    outdims_actual = isnothing(outdims) ? findfirst(x -> x >= (1-max_prop_unexplained_var), explained_var_by_dim)  : outdims
+    outdims_actual = isnothing(outdims) ? findfirst(x -> x >= (1-max_unexplained_var), explained_var_by_dim)  : outdims
     m.par.eigen_out = E
     m.par.outdims_actual = outdims_actual
 

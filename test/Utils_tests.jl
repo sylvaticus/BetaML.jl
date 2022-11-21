@@ -263,25 +263,19 @@ avgϵRel = (sum(abs.(ŷ-y).^p)^(1/p) / (n*d)) / (sum( abs.(y) .^p)^(1/p) / (n*d
 # New test
 println("** Testing pca()...")
 
-X = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95]
-out = pca(X,error=0.05)
-@test out.error ≈ 1.0556269747774571e-5
-@test sum(out.X) ≈ 662.3492034128955
-#X2 = out.X*out.P'
-@test out.explVarByDim ≈ [0.873992272007021,0.9999894437302522,1.0]
-X2 = [1 8; 4.5 5.5; 9.5 0.5]
-out2 = pca(X2;K=2)
+X = [1 8; 4.5 5.5; 9.5 0.5]
 expectedX = [-4.58465   6.63182;-0.308999  7.09961; 6.75092   6.70262]
-expectedP = [0.745691  0.666292;-0.666292  0.745691]
-@test isapprox(out2.X,expectedX,atol=0.00001) || isapprox(out2.X, (.- expectedX),atol=0.00001) 
-@test isapprox(out2.P,expectedP,atol=0.00001) || isapprox(out2.P, (.- expectedP),atol=0.00001)
-
-m = PCA(max_prop_unexplained_var=0.05)
+m = PCA(outdims=2)
 fit!(m,X)
 ŷ = predict(m)
-@test ŷ == out.X
+@test isapprox(ŷ,expectedX,atol=0.00001) || isapprox(ŷ, (.- expectedX),atol=0.00001)
+
+X = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95]
+m = PCA(max_unexplained_var=0.05)
+fit!(m,X)
+ŷ = predict(m)
 @test 1-m.info["prop_explained_var"] ≈ 1.0556269747774571e-5
-@test sum(out.X) ≈ 662.3492034128955
+@test sum(ŷ) ≈ 662.3492034128955
 ŷ2 = predict(m,X)
 @test ŷ ≈ ŷ2
 
