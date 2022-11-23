@@ -12,14 +12,45 @@ $(TYPEDEF)
 
 Impute missing values using feature (column) mean, with optional record normalisation (using l-`norm` norms), from the Beta Machine Learning Toolkit (BetaML).
 
-## Hyperparameters:
+# Hyperparameters:
 $(TYPEDFIELDS)
+
+# Example:
+```julia
+julia> using MLJ
+
+julia> X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4] |> table ;
+
+julia> modelType                   = @load SimpleImputer pkg = "BetaML" verbosity=0
+BetaML.Imputation.SimpleImputer
+
+julia> model                       = modelType(norm=1)
+SimpleImputer(
+  statistic = Statistics.mean, 
+  norm = 1)
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X);
+
+julia> X_full                      = transform(model, fitResults, X) |> MLJ.matrix
+9×2 Matrix{Float64}:
+ 1.0        10.5
+ 1.5         0.295466
+ 1.8         8.0
+ 1.7        15.0
+ 3.2        40.0
+ 0.280952    1.69524
+ 3.3        38.0
+ 0.0750839  -2.3
+ 5.2        -2.4
+```
+
+
 """
 mutable struct SimpleImputer <: MMI.Unsupervised
     "The descriptive statistic of the column (feature) to use as imputed value [def: `mean`]"
     statistic::Function
     "Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries)."
-    norm::Int64
+    norm::Union{Nothing,Int64}
 end
 SimpleImputer(;
     statistic::Function              = mean,
@@ -31,8 +62,44 @@ $(TYPEDEF)
 
 Impute missing values using a probabilistic approach (Gaussian Mixture Models) fitted using the Expectation-Maximisation algorithm, from the Beta Machine Learning Toolkit (BetaML).
 
-## Hyperparameters:
+# Hyperparameters:
 $(TYPEDFIELDS)
+
+# Example :
+```julia
+julia> using MLJ
+
+julia> X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4] |> table ;
+
+julia> modelType                   = @load GaussianMixtureImputer pkg = "BetaML" verbosity=0
+BetaML.Imputation.GaussianMixtureImputer
+
+julia> model                       = modelType(initialisation_strategy="grid")
+GaussianMixtureImputer(
+  n_classes = 3, 
+  initial_probmixtures = Float64[], 
+  mixtures = BetaML.GMM.DiagonalGaussian{Float64}[BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing), BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing), BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing)], 
+  tol = 1.0e-6, 
+  minimum_variance = 0.05, 
+  minimum_covariance = 0.0, 
+  initialisation_strategy = "grid", 
+  rng = Random._GLOBAL_RNG())
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X);
+
+julia> X_full                      = transform(model, fitResults, X) |> MLJ.matrix
+9×2 Matrix{Float64}:
+ 1.0      10.5
+ 1.5      14.7366
+ 1.8       8.0
+ 1.7      15.0
+ 3.2      40.0
+ 2.51842  15.1747
+ 3.3      38.0
+ 2.47412  -2.3
+ 5.2      -2.4
+```
+
 """
 mutable struct GaussianMixtureImputer <: MMI.Unsupervised
     "Number of mixtures (latent classes) to consider [def: 3]"
@@ -84,8 +151,45 @@ $(TYPEDEF)
 
 Impute missing values using Random Forests, from the Beta Machine Learning Toolkit (BetaML).
 
-## Hyperparameters:
+# Hyperparameters:
 $(TYPEDFIELDS)
+
+# Example:
+```julia
+julia> using MLJ
+
+julia> X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4] |> table ;
+
+julia> modelType                   = @load RandomForestImputer pkg = "BetaML" verbosity=0
+BetaML.Imputation.RandomForestImputer
+
+julia> model                       = modelType(n_trees=40)
+RandomForestImputer(
+  n_trees = 40, 
+  max_depth = nothing, 
+  min_gain = 0.0, 
+  min_records = 2, 
+  max_features = nothing, 
+  forced_categorical_cols = Int64[], 
+  splitting_criterion = nothing, 
+  recursive_passages = 1, 
+  rng = Random._GLOBAL_RNG())
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X);
+
+julia> X_full                      = transform(model, fitResults, X) |> MLJ.matrix
+9×2 Matrix{Float64}:
+ 1.0    10.5
+ 1.5    10.3333
+ 1.8     8.0
+ 1.7    15.0
+ 3.2    40.0
+ 2.415   8.6545
+ 3.3    38.0
+ 3.72   -2.3
+ 5.2    -2.4
+```
+
 """
 mutable struct RandomForestImputer <: MMI.Unsupervised
     "Number of (decision) trees in the forest [def: `30`]"
@@ -123,10 +227,46 @@ RandomForestImputer(;
 """
 $(TYPEDEF)
 
-Impute missing values using a vector (one per column) of arbitrary learning models (classifiers/regressors) that implement `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)` (default to Random Forests), from the Beta Machine Learning Toolkit (BetaML).
+Impute missing values using arbitrary learning models, from the Beta Machine Learning Toolkit (BetaML).
 
-## Hyperparameters:
+Impute missing values using a vector (one per column) of arbitrary learning models (classifiers/regressors, not necessarily from BetaML) that:
+- implement the interface `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)`;
+- accept missing data in the feature matrix.
+(default to Random Forests)
+
+
+# Hyperparameters:
 $(TYPEDFIELDS)
+
+# Example :
+```julia
+julia> using MLJ
+
+julia> X = ["a" 10.5;"a" missing; "b" 8; "b" 15; "c" 40; missing missing; "c" 38; missing -2.3; "c" -2.4] |> table ;
+
+julia> modelType                   = @load GeneralImputer pkg = "BetaML" verbosity=0
+GeneralImputer
+
+julia> model                       = modelType(estimators=[BetaML.DecisionTreeEstimator(),BetaML.RandomForestEstimator(n_trees=40)],recursive_passages=2)
+GeneralImputer(
+  estimators = BetaMLSupervisedModel[DecisionTreeEstimator - A Decision Tree model (unfitted), RandomForestEstimator - A 40 trees Random Forest model (unfitted)], 
+  recursive_passages = 2, 
+  rng = Random._GLOBAL_RNG())
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X);
+
+julia> X_full                      = transform(model, fitResults, X) |> MLJ.matrix
+9×2 Matrix{Any}:
+ "a"  10.5
+ "a"  10.5
+ "b"   8
+ "b"  15
+ "c"  40
+ "a"  10.5
+ "c"  38
+ "c"  -2.3
+ "c"  -2.4
+```
 """
 mutable struct GeneralImputer <: MMI.Unsupervised
     "A D-dimensions vector of regressor or classifier models (and eventually their respective options/hyper-parameters) to be used to impute the various columns of the matrix [default: `nothing`, i.e. use random forests]."

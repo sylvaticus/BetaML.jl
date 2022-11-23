@@ -91,7 +91,7 @@ $(TYPEDFIELDS)
 julia> options = BetaMLDefaultOptionsSet(cache=false,descr="My model")
 ```
 """
-Base.@kwdef mutable struct BetaMLDefaultOptionsSet
+Base.@kwdef mutable struct BetaMLDefaultOptionsSet <: BetaMLOptionsSet
    "Cache the results of the fitting stage, as to allow predict(mod) [default: `true`]. Set it to `false` to save memory for large data."
    cache::Bool = true
    "An optional title and/or description for this model"
@@ -205,6 +205,52 @@ function show(io::IO, m::BetaMLModel)
           println(io,v)
       end
    end
+end
+
+
+function show(io::IO, ::MIME"text/plain", m::BetaMLHyperParametersSet)
+    fields = fieldnames(typeof(m))
+    println(io,"$(typeof(m)) (a BetaMLHyperParametersSet struct)")
+    for f in fields
+        println(io,"- ",f,": ",getfield(m,f))
+    end
+end
+function show(io::IO, m::BetaMLHyperParametersSet)
+    fields = fieldnames(typeof(m))
+    println(io,"$(typeof(m)) (a BetaMLHyperParametersSet struct)")
+    for f in fields
+        println(io,"- ",f, " (", typeof(getfield(m,f)),"): ",getfield(m,f))
+    end
+end
+
+function show(io::IO, ::MIME"text/plain", m::BetaMLLearnableParametersSet)
+    fields = fieldnames(typeof(m))
+    println(io,"$(typeof(m)) (a BetaMLLearnableParametersSet struct)")
+    for f in fields
+        println(io,"- ",f,": ",getfield(m,f))
+    end
+end
+function show(io::IO, m::BetaMLLearnableParametersSet)
+    fields = fieldnames(typeof(m))
+    println(io,"$(typeof(m)) (a BetaMLLearnableParametersSet struct)")
+    for f in fields
+        println(io,"- ",f, " (", typeof(getfield(m,f)),"): ",getfield(m,f))
+    end
+end
+
+function show(io::IO, ::MIME"text/plain", m::BetaMLOptionsSet)
+    fields = fieldnames(typeof(m))
+    println(io,"$(typeof(m)) (a BetaMLOptionsSet struct)")
+    for f in fields
+        println(io,"- ",f,": ",getfield(m,f))
+    end
+end
+function show(io::IO, m::BetaMLOptionsSet)
+    fields = fieldnames(typeof(m))
+    println(io,"$(typeof(m)) (a BetaMLOptionsSet struct)")
+    for f in fields
+        println(io,"- ",f, " (", typeof(getfield(m,f)),"): ",getfield(m,f))
+    end
 end
 
 #partition()            = nothing

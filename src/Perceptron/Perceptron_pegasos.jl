@@ -343,7 +343,7 @@ end
 function show(io::IO, m::PegasosClassifier)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"PegasosClassifier - A $(m.info["xndims"])-dimensions $(m.info["n_classes"])-classes a loss-based linear classifier without regularisation term (unfitted)")
+        println(io,"PegasosClassifier - A loss-based linear classifier without regularisation term (unfitted)")
     else
         println(io,"PegasosClassifier - A $(m.info["xndims"])-dimensions $(m.info["n_classes"])-classes a loss-based linear classifier without regularisation term (fitted on $(m.info["fitted_records"]) records)")
         println(io,"Weights:")

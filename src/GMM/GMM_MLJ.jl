@@ -17,6 +17,45 @@ A Expectation-Maximisation clustering algorithm with customisable mixtures, from
 
 # Hyperparameters:
 $(TYPEDFIELDS)
+
+# Example:
+```julia
+julia> using MLJ
+
+julia> modelType                   = @load GaussianMixtureClusterer pkg = "BetaML"
+[ Info: For silent loading, specify `verbosity=0`. 
+import BetaML ✔
+BetaML.GMM.GaussianMixtureClusterer
+
+julia> model                       = modelType()
+GaussianMixtureClusterer(
+  n_classes = 3, 
+  initial_probmixtures = Float64[], 
+  mixtures = BetaML.GMM.DiagonalGaussian{Float64}[BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing), BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing), BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing)], 
+  tol = 1.0e-6, 
+  minimum_variance = 0.05, 
+  minimum_covariance = 0.0, 
+  initialisation_strategy = "kmeans", 
+  maximum_iterations = 9223372036854775807, 
+  rng = Random._GLOBAL_RNG())
+
+julia> X, y                        = @load_iris;
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X);
+
+julia> est_classes                 = predict(model, fitResults, X)
+150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, Int64, UInt32, Float64}:
+ UnivariateFinite{Multiclass{3}}(1=>1.0, 2=>4.17e-15, 3=>2.1900000000000003e-31)
+ UnivariateFinite{Multiclass{3}}(1=>1.0, 2=>1.25e-13, 3=>5.87e-31)
+ UnivariateFinite{Multiclass{3}}(1=>1.0, 2=>4.5e-15, 3=>1.55e-32)
+ ⋮
+ UnivariateFinite{Multiclass{3}}(1=>5.39e-25, 2=>0.0167, 3=>0.983)
+ UnivariateFinite{Multiclass{3}}(1=>7.5e-29, 2=>0.000106, 3=>1.0)
+ UnivariateFinite{Multiclass{3}}(1=>1.6e-20, 2=>0.594, 3=>0.406)
+
+julia> 
+```
+
 """
 mutable struct GaussianMixtureClusterer <: MMI.Unsupervised
   "Number of mixtures (latent classes) to consider [def: 3]"  
@@ -75,6 +114,42 @@ This is the single-target version of the model. If you want to predict several l
 
 # Hyperparameters:
 $(TYPEDFIELDS)
+
+# Example:
+```julia
+julia> using MLJ
+
+julia> modelType                   = @load GaussianMixtureRegressor pkg = "BetaML"
+[ Info: For silent loading, specify `verbosity=0`. 
+import BetaML ✔
+BetaML.GMM.GaussianMixtureRegressor
+
+julia> model                       = modelType()
+GaussianMixtureRegressor(
+n_classes = 3, 
+initial_probmixtures = Float64[], 
+mixtures = BetaML.GMM.DiagonalGaussian{Float64}[BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing), BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing), BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing)], 
+tol = 1.0e-6, 
+minimum_variance = 0.05, 
+minimum_covariance = 0.0, 
+initialisation_strategy = "kmeans", 
+maximum_iterations = 9223372036854775807, 
+rng = Random._GLOBAL_RNG())
+
+julia> X, y                        = @load_boston;
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+
+julia> y_est                       = predict(model, fitResults, X)
+506-element Vector{Float64}:
+24.703442835305577
+24.70344283512716
+24.70344283528249
+⋮
+17.172486989759676
+17.172486989759676
+17.172486989759644
+```
 """
 mutable struct GaussianMixtureRegressor <: MMI.Deterministic
     "Number of mixtures (latent classes) to consider [def: 3]"
@@ -133,6 +208,43 @@ This is the multi-target version of the model. If you want to predict a single l
 
 # Hyperparameters:
 $(TYPEDFIELDS)
+
+# Example:
+```julia
+julia> using MLJ
+
+julia> modelType                   = @load MultitargetGaussianMixtureRegressor pkg = "BetaML"
+[ Info: For silent loading, specify `verbosity=0`. 
+import BetaML ✔
+BetaML.GMM.MultitargetGaussianMixtureRegressor
+julia> model                       = modelType()
+MultitargetGaussianMixtureRegressor(
+  n_classes = 3, 
+  initial_probmixtures = Float64[], 
+  mixtures = BetaML.GMM.DiagonalGaussian{Float64}[BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing), BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing), BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing)], 
+  tol = 1.0e-6, 
+  minimum_variance = 0.05, 
+  minimum_covariance = 0.0, 
+  initialisation_strategy = "kmeans", 
+  maximum_iterations = 9223372036854775807, 
+  rng = Random._GLOBAL_RNG())
+
+julia> X, y                        = @load_boston;
+
+julia> ydouble = hcat(y,y);
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, ydouble);
+
+julia> y_est                       = predict(model, fitResults, X)
+506×2 Matrix{Float64}:
+ 24.5785  24.5785
+ 24.5785  24.5785
+ 24.5785  24.5785
+  ⋮       
+ 17.0039  17.0039
+ 17.0039  17.0039
+ 17.0039  17.0039
+```
 """
 mutable struct MultitargetGaussianMixtureRegressor <: MMI.Deterministic
     "Number of mixtures (latent classes) to consider [def: 3]"
@@ -334,5 +446,5 @@ MMI.metadata_model(MultitargetGaussianMixtureRegressor,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Infinite}),
     target_scitype   = AbstractMatrix{<: MMI.Continuous},           # for a supervised model, what target?
     supports_weights = false,                                       # does the model support sample weights?
-	load_path        = "BetaML.GMM.GaussianMixtureRegressor"
+	load_path        = "BetaML.GMM.MultitargetGaussianMixtureRegressor"
 )

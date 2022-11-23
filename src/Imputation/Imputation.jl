@@ -695,7 +695,12 @@ end
 """
 $(TYPEDEF)
 
-Impute missing data using any regressor/classifier (not necessarily from BetaML) that implements `m=Model([options])`, `fit!(m,X,Y)` and `predict(m,X)`
+Impute missing values using arbitrary learning models.
+
+Impute missing values using a vector (one per column) of arbitrary learning models (classifiers/regressors, not necessarily from BetaML) that:
+- implement the interface `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)`;
+- accept missing data in the feature matrix.
+(default to Random Forests)
 
 See [`UniversalImputerHyperParametersSet`](@ref) for the hyper-parameters.
 
@@ -879,6 +884,9 @@ function predict(m::UniversalImputer,X)
                     continue
                 end
                 xrow = permutedims(Vector(Xout[i,[1:(d-1);(d+1):end]]))
+                #println(i)
+                #println(dmod)
+                #println(xrow)
                 yest = predict(dmod,xrow)
                 # handling some particualr cases... 
                 if typeof(yest) <: AbstractMatrix

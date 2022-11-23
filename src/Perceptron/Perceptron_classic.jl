@@ -424,7 +424,7 @@ end
 function show(io::IO, m::PerceptronClassifier)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"PerceptronClassifier - A $(m.info["xndims"])-dimensions $(m.info["n_classes"])-classes linear perceptron classifier (unfitted)")
+        println(io,"PerceptronClassifier - A linear perceptron classifier (unfitted)")
     else
         println(io,"PerceptronClassifier - A $(m.info["xndims"])-dimensions $(m.info["n_classes"])-classes linear perceptron classifier (fitted on $(m.info["fitted_records"]) records)")
         println(io,"Weights:")

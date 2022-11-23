@@ -20,6 +20,39 @@ $(TYPEDFIELDS)
 # Notes:
 - data must be numerical
 - online fitting (re-fitting with new data) is supported
+
+# Example:
+```julia
+julia> using MLJ
+
+julia> modelType                   = @load KMeans pkg = "BetaML"
+[ Info: For silent loading, specify `verbosity=0`. 
+import BetaML ✔
+BetaML.Clustering.KMeans
+
+julia> model                       = modelType()
+KMeans(
+ n_classes = 3, 
+ dist = BetaML.Clustering.var"#25#27"(), 
+ initialisation_strategy = "shuffle", 
+ initial_representatives = nothing, 
+ rng = Random._GLOBAL_RNG())
+
+julia> X, y                        = @load_iris;
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X);
+
+julia> est_classes                 = predict(model, fitResults, X)
+150-element CategoricalArrays.CategoricalArray{Int64,1,UInt32}:
+3
+3
+3
+⋮
+1
+1
+2
+```
+
 """
 mutable struct KMeans <: MMI.Unsupervised
     "Number of classes to discriminate the data [def: 3]"
@@ -61,6 +94,38 @@ Similar to K-Means, but the "representatives" (the cetroids) are guaranteed to b
 # Notes:
 - data must be numerical
 - online fitting (re-fitting with new data) is supported
+
+# Example: 
+```julia
+julia> using MLJ
+
+julia> modelType                   = @load KMedoids pkg = "BetaML"
+[ Info: For silent loading, specify `verbosity=0`. 
+import BetaML ✔
+BetaML.Clustering.KMedoids
+
+julia> model                       = modelType()
+KMedoids(
+  n_classes = 3, 
+  dist = BetaML.Clustering.var"#49#51"(), 
+  initialisation_strategy = "shuffle", 
+  initial_representatives = nothing, 
+  rng = Random._GLOBAL_RNG())
+
+julia> X, y                        = @load_iris;
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X);
+
+julia> est_classes                 = predict(model, fitResults, X)
+150-element CategoricalArrays.CategoricalArray{Int64,1,UInt32}:
+ 2
+ 3
+ 3
+ ⋮
+ 1
+ 1
+ 1
+```
 """
  mutable struct KMedoids <: MMI.Unsupervised
     "Number of classes to discriminate the data [def: 3]"
@@ -82,11 +147,11 @@ Similar to K-Means, but the "representatives" (the cetroids) are guaranteed to b
     rng::AbstractRNG
  end
  KMedoids(;
-    n_classes            = 3,
-    dist         = dist=(x,y) -> norm(x-y),
+    n_classes               = 3,
+    dist                    = (x,y) -> norm(x-y),
     initialisation_strategy = "shuffle",
-    initial_representatives           = nothing,
-    rng          = Random.GLOBAL_RNG,
+    initial_representatives = nothing,
+    rng                     = Random.GLOBAL_RNG,
   ) = KMedoids(n_classes,dist,initialisation_strategy,initial_representatives,rng)
 
 # ------------------------------------------------------------------------------

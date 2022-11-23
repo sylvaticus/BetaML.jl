@@ -454,7 +454,7 @@ end
 function show(io::IO, m::KernelPerceptronClassifier)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        println(io,"KernelPerceptronClassifier - A $(m.info["xndims"])-dimensions $(m.info["n_classes"])-classes \"kernelised\" version of the perceptron classifier (unfitted)")
+        println(io,"KernelPerceptronClassifier - A  \"kernelised\" version of the perceptron classifier (unfitted)")
     else
         println(io,"KernelPerceptronClassifier - A $(m.info["xndims"])-dimensions $(m.info["n_classes"])-classes \"kernelised\" version of the perceptron classifier (fitted on $(m.info["fitted_records"]) records)")
         print(io,"Kernel: ")

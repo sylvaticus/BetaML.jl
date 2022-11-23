@@ -54,9 +54,13 @@ ŷ2 = predict(mod,xtrain)
 
 ### Other functions
 
-Models can be resetted to lose the learned information with `reset!(mod)` and training information (other than the algorithm learned parameters) can be retrieved with `info(mod)`.
+Models can be resetted to lose the learned information with `reset!(mod)` and training information (other than the algorithm learned parameters, see below) can be retrieved with `info(mod)`.
 
 Hyperparameters, options and learned parameters can be retrieved with the functions `hyperparameters`, `parameters` and `options` respectively. Note that they can be used also to set new values to the model as they return a reference to the required objects.
+
+!!! note
+    Which is the difference between the output of `info`, `parameters` and the `predict` function ?
+    The `predict` function (and, when cache is used, the `fit!` one too) returns the main information required from the model.. the prediceted label for supervised models, the class assignment for clusters or the reprojected data for PCA.... `info` returns complementary information like the number of dimensions of the data or the number of data emploied for training. It doesn't include information that is necessary for the training itself, like the centroids in cluser analysis. These can be retrieved instead using `parameters` that include all and only the information required to compute `predict`. 
 
 Some models allow an inverse transformation, that using the parameters learned at trainign time (e.g. the scale factors) perform an inverse tranformation of new data to the space of the training data (e.g. the unscaled space). Use `inverse_predict(mod,xnew)`.
 

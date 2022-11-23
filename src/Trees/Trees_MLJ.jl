@@ -19,6 +19,38 @@ A simple Decision Tree model for regression with support for Missing data, from 
 # Hyperparameters:
 $(TYPEDFIELDS)
 
+# Example:
+
+```julia
+julia> using MLJ
+
+julia> X, y                        = @load_boston;
+
+julia> modelType                   = @load DecisionTreeRegressor pkg = "BetaML" verbosity=0
+BetaML.Trees.DecisionTreeRegressor
+
+julia> model                       = modelType()
+DecisionTreeRegressor(
+  max_depth = 0, 
+  min_gain = 0.0, 
+  min_records = 2, 
+  max_features = 0, 
+  splitting_criterion = BetaML.Utils.variance, 
+  rng = Random._GLOBAL_RNG())
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+
+julia> y_est                       = predict(model, fitResults, X)
+506-element Vector{Float64}:
+ 26.35
+ 21.6
+ 34.8
+  ⋮
+ 23.75
+ 22.2
+ 13.2
+```
+
 """
 mutable struct DecisionTreeRegressor <: MMI.Deterministic
     "The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `0`, i.e. no limits]"
@@ -50,6 +82,38 @@ A simple Decision Tree model for classification with support for Missing data, f
 
 # Hyperparameters:
 $(TYPEDFIELDS)
+
+# Example:
+```julia
+
+julia> using MLJ
+
+julia> X, y                        = @load_iris;
+
+julia> modelType                   = @load DecisionTreeClassifier pkg = "BetaML" verbosity=0
+BetaML.Trees.DecisionTreeClassifier
+
+julia> model                       = modelType()
+DecisionTreeClassifier(
+  max_depth = 0, 
+  min_gain = 0.0, 
+  min_records = 2, 
+  max_features = 0, 
+  splitting_criterion = BetaML.Utils.gini, 
+  rng = Random._GLOBAL_RNG())
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+
+julia> class_est                   = predict(model, fitResults, X)
+150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, String, UInt32, Float64}:
+ UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>0.0, virginica=>0.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>0.0, virginica=>0.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>0.0, virginica=>0.0)
+ ⋮
+ UnivariateFinite{Multiclass{3}}(setosa=>0.0, versicolor=>0.0, virginica=>1.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.0, versicolor=>0.0, virginica=>1.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.0, versicolor=>0.0, virginica=>1.0)
+```
 
 """
 mutable struct DecisionTreeClassifier <: MMI.Probabilistic
@@ -83,6 +147,39 @@ A simple Random Forest model for regression with support for Missing data, from 
 # Hyperparameters:
 $(TYPEDFIELDS)
 
+# Example: 
+```julia
+julia> using MLJ
+
+julia> X, y                        = @load_boston;
+
+julia> modelType                   = @load RandomForestRegressor pkg = "BetaML" verbosity=0
+BetaML.Trees.RandomForestRegressor
+
+julia> model                       = modelType()
+RandomForestRegressor(
+  n_trees = 30, 
+  max_depth = 0, 
+  min_gain = 0.0, 
+  min_records = 2, 
+  max_features = 0, 
+  splitting_criterion = BetaML.Utils.variance, 
+  β = 0.0, 
+  rng = Random._GLOBAL_RNG())
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+
+julia> y_est                       = predict(model, fitResults, X)
+506-element Vector{Float64}:
+ 25.283333333333335
+ 22.700999999999997
+ 36.67500000000002
+  ⋮
+ 19.378333333333334
+ 24.191666666666663
+ 23.726666666666674
+ 15.393333333333327
+ ```
 """
 mutable struct RandomForestRegressor <: MMI.Deterministic
    "Number of (decision) trees in the forest [def: `30`]"
@@ -121,6 +218,38 @@ A simple Random Forest model for classification with support for Missing data, f
 # Hyperparameters:
 $(TYPEDFIELDS)
 
+# Example :
+```julia
+julia> using MLJ
+
+julia> X, y                        = @load_iris;
+
+julia> modelType                   = @load RandomForestClassifier pkg = "BetaML" verbosity=0
+BetaML.Trees.RandomForestClassifier
+
+julia> model                       = modelType()
+RandomForestClassifier(
+  n_trees = 30, 
+  max_depth = 0, 
+  min_gain = 0.0, 
+  min_records = 2, 
+  max_features = 0, 
+  splitting_criterion = BetaML.Utils.gini, 
+  β = 0.0, 
+  rng = Random._GLOBAL_RNG())
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+
+julia> class_est                   = predict(model, fitResults, X)
+150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, String, UInt32, Float64}:
+ UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>0.0, virginica=>0.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>0.0, virginica=>0.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>0.0, virginica=>0.0)
+ ⋮
+ UnivariateFinite{Multiclass{3}}(setosa=>0.0, versicolor=>0.0, virginica=>1.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.0, versicolor=>0.0, virginica=>1.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.0, versicolor=>0.0, virginica=>1.0)
+```
 """
 mutable struct RandomForestClassifier <: MMI.Probabilistic
     n_trees::Int64

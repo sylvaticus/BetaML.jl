@@ -736,9 +736,9 @@ Dict{String, Any} with 5 entries:
 ```
 
 ## Notes:
-- PCA doesn't automatically scale the data. It is suggested to apply the `Scaler` model before running it. 
+- PCA doesn't automatically scale the data. It is suggested to apply the [`Scaler`](@ref) model before running it. 
 - Missing data are not supported. Impute them first, see the [`Imputation`](Imputation.html) module.
-- If one doesn't know _a priori_ the maximum unexplained variance that she/he is willling to accept, nor the wished number of dimensions, she can run the model with all the dimensions in output (i.e. with `outdims=size(X,2)`), analise the proportions of explained cumulative variance by dimensions in `info(mod,""explained_var_by_dim")`, choose the number of dimensions K according to his/her needs and finally pick from the reprojected matrix only the number of dimensions required, i.e. `out.X[:,1:K]`.
+- If one doesn't know _a priori_ the maximum unexplained variance that he is willling to accept, nor the wished number of dimensions, he can run the model with all the dimensions in output (i.e. with `outdims=size(X,2)`), analise the proportions of explained cumulative variance by dimensions in `info(mod,""explained_var_by_dim")`, choose the number of dimensions K according to his needs and finally pick from the reprojected matrix only the number of dimensions required, i.e. `out.X[:,1:K]`.
 """
 mutable struct PCA <: BetaMLUnsupervisedModel
     hpar::PCAHyperParametersSet

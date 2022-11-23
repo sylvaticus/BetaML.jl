@@ -275,11 +275,49 @@ $(TYPEDEF)
 
 The classical "K-Means" clustering algorithm (unsupervised).
 
+Learn to partition the data and assign each record to one of the `n_classes` classes according to a distance metric (default Euclidean).
+
 For the parameters see [`?KMeansMedoidsHyperParametersSet`](@ref KMeansMedoidsHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
 
 # Notes:
 - data must be numerical
 - online fitting (re-fitting with new data) is supported
+
+# Example :
+
+```julia
+julia> X = [1.1 10.1; 0.9 9.8; 10.0 1.1; 12.1 0.8; 0.8 9.8]
+5×2 Matrix{Float64}:
+  1.1  10.1
+  0.9   9.8
+ 10.0   1.1
+ 12.1   0.8
+  0.8   9.8
+
+julia> mod = KMeansClusterer(n_classes=2)
+KMeansClusterer - A K-Means Model (unfitted)
+
+julia> classes = fit!(mod,X)
+5-element Vector{Int64}:
+ 1
+ 1
+ 2
+ 2
+ 1
+
+julia> newclasses = fit!(mod,[11 0.9])
+1-element Vector{Int64}:
+ 2
+
+julia> info(mod)
+Dict{String, Any} with 2 entries:
+  "fitted_records" => 6
+  "xndims"         => 2
+
+julia> parameters(mod)
+BetaML.Clustering.KMeansMedoidsLearnableParameters (a BetaMLLearnableParametersSet struct)
+- representatives: [1.13366 9.7209; 11.0 0.9]
+```
 
 """
 mutable struct KMeansClusterer <: BetaMLUnsupervisedModel
@@ -296,13 +334,47 @@ $(TYPEDEF)
 
 The classical "K-Medoids" clustering algorithm (unsupervised).
 
-Similar to K-Means, but the "representatives" (the cetroids) are guaranteed to be one of the training points. The algorithm work with any arbitrary distance measure.
+Similar to K-Means, learn to partition the data and assign each record to one of the `n_classes` classes according to a distance metric, but the "representatives" (the cetroids) are guaranteed to be one of the training points. The algorithm work with any arbitrary distance measure (default Euclidean).
 
 For the parameters see [`?KMeansMedoidsHyperParametersSet`](@ref KMeansMedoidsHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
 
 # Notes:
 - data must be numerical
 - online fitting (re-fitting with new data) is supported
+
+# Example:
+
+julia> X = [1.1 10.1; 0.9 9.8; 10.0 1.1; 12.1 0.8; 0.8 9.8]
+5×2 Matrix{Float64}:
+  1.1  10.1
+  0.9   9.8
+ 10.0   1.1
+ 12.1   0.8
+  0.8   9.8
+
+julia> mod = KMedoidsClusterer(n_classes=2)
+KMedoidsClusterer - A K-Medoids Model (unfitted)
+
+julia> classes = fit!(mod,X)
+5-element Vector{Int64}:
+ 1
+ 1
+ 2
+ 2
+ 1
+
+julia> newclasses = fit!(mod,[11 0.9])
+1-element Vector{Int64}:
+ 2
+
+julia> info(mod)
+Dict{String, Any} with 2 entries:
+  "fitted_records" => 6
+  "xndims"         => 2
+
+julia> parameters(mod)
+BetaML.Clustering.KMeansMedoidsLearnableParameters (a BetaMLLearnableParametersSet struct)
+- representatives: [0.9 9.8; 11.0 0.9]
 
 """
 mutable struct KMedoidsClusterer <: BetaMLUnsupervisedModel
@@ -369,7 +441,7 @@ function fit!(m::KMeansClusterer,x)
     if m.fitted
         # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee fitted with milions of records.
         # So, training 1000 records doesn't give the same output as training 990 records and then training again with 10 records
-        verbosity >= STD && @warn "Continuing training of a pre-fitted model"
+        verbosity >= FULL && @warn "Continuing training of a pre-fitted model"
         (clIdx,Z) = kmeans(x,K,dist=dist,initial_representatives=m.par.representatives,initialisation_strategy="given",verbosity=verbosity,rng=rng)
 
     else
@@ -403,7 +475,7 @@ function fit!(m::KMedoidsClusterer,x)
     if m.fitted
         # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee fitted with milions of records.
         # So, training 1000 records doesn't give the same output as training 990 records and then training again with 10 records
-        verbosity >= STD && @warn "Continuing training of a pre-fitted model"
+        verbosity >= FULL && @warn "Continuing training of a pre-fitted model"
         (clIdx,Z) = kmedoids(x,K,dist=dist,initial_representatives=m.par.representatives,initialisation_strategy="given",verbosity=verbosity,rng=rng)
 
     else

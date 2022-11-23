@@ -15,8 +15,42 @@ $(TYPEDEF)
 
 The classical perceptron algorithm using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML).
 
-## Hyperparameters:
+# Hyperparameters:
 $(TYPEDFIELDS)
+
+# Example:
+```julia
+julia> using MLJ
+
+julia> X, y                        = @load_iris;
+
+julia> modelType                   = @load LinearPerceptron pkg = "BetaML"
+[ Info: For silent loading, specify `verbosity=0`. 
+import BetaML ✔
+BetaML.Perceptron.LinearPerceptron
+
+julia> model                       = modelType()
+LinearPerceptron(
+  initial_coefficients = nothing, 
+  initial_constant = nothing, 
+  epochs = 1000, 
+  shuffle = true, 
+  force_origin = false, 
+  return_mean_hyperplane = false, 
+  rng = Random._GLOBAL_RNG())
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+
+julia> est_classes                 = predict(model, fitResults, X)
+150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, String, UInt8, Float64}:
+ UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>2.44e-35, virginica=>4.91e-306)
+ UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>6.18e-20, virginica=>1.81e-280)
+ ⋮
+ UnivariateFinite{Multiclass{3}}(setosa=>1.26e-69, versicolor=>7.77e-89, virginica=>1.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>2.65e-102, versicolor=>1.45e-137, virginica=>1.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>6.79e-64, versicolor=>2.8400000000000003e-75, virginica=>1.0)
+```
+
 """
 mutable struct LinearPerceptron <: MMI.Probabilistic
    "N-classes by D-dimensions matrix of initial linear coefficients [def: `nothing`, i.e. zeros]"
@@ -49,8 +83,39 @@ $(TYPEDEF)
 
 The kernel perceptron algorithm using one-vs-one for multiclass, from the Beta Machine Learning Toolkit (BetaML).
 
-## Hyperparameters:
+# Hyperparameters:
 $(TYPEDFIELDS)
+
+# Example:
+```julia
+julia> using MLJ
+
+julia> X, y                        = @load_iris;
+
+julia> modelType                   = @load KernelPerceptron pkg = "BetaML"
+[ Info: For silent loading, specify `verbosity=0`. 
+import BetaML ✔
+BetaML.Perceptron.KernelPerceptron
+
+julia> model                       = modelType()
+KernelPerceptron(
+  kernel = BetaML.Utils.radial_kernel, 
+  epochs = 100, 
+  initial_errors = nothing, 
+  shuffle = true, 
+  rng = Random._GLOBAL_RNG())
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+
+julia> est_classes                 = predict(model, fitResults, X)
+150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, String, UInt8, Float64}:
+ UnivariateFinite{Multiclass{3}}(setosa=>0.665, versicolor=>0.245, virginica=>0.09)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.665, versicolor=>0.245, virginica=>0.09)
+ ⋮
+ UnivariateFinite{Multiclass{3}}(setosa=>0.09, versicolor=>0.245, virginica=>0.665)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.09, versicolor=>0.245, virginica=>0.665)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.09, versicolor=>0.245, virginica=>0.665)
+```
 
 """
 mutable struct KernelPerceptron <: MMI.Probabilistic
@@ -77,8 +142,42 @@ $(TYPEDEF)
 
 The gradient-based linear "pegasos" classifier using one-vs-all for multiclass, from the Beta Machine Learning Toolkit (BetaML).
 
-## Hyperparameters:
+# Hyperparameters:
 $(TYPEDFIELDS)
+
+# Example:
+```julia
+julia> using MLJ
+
+julia> X, y                        = @load_iris;
+
+julia> modelType                   = @load Pegasos pkg = "BetaML" verbosity=0
+BetaML.Perceptron.Pegasos
+
+julia> model                       = modelType()
+Pegasos(
+  initial_coefficients = nothing, 
+  initial_constant = nothing, 
+  learning_rate = BetaML.Perceptron.var"#71#73"(), 
+  learning_rate_multiplicative = 0.5, 
+  epochs = 1000, 
+  shuffle = true, 
+  force_origin = false, 
+  return_mean_hyperplane = false, 
+  rng = Random._GLOBAL_RNG())
+
+julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+
+julia> est_classes                 = predict(model, fitResults, X)
+150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, String, UInt8, Float64}:
+ UnivariateFinite{Multiclass{3}}(setosa=>0.867, versicolor=>0.0554, virginica=>0.0772)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.852, versicolor=>0.0691, virginica=>0.0785)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.865, versicolor=>0.0645, virginica=>0.0705)
+ ⋮
+ UnivariateFinite{Multiclass{3}}(setosa=>0.299, versicolor=>0.0667, virginica=>0.635)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.28, versicolor=>0.0598, virginica=>0.66)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.34, versicolor=>0.0798, virginica=>0.58)
+```
 """
 mutable struct Pegasos <: MMI.Probabilistic
     "N-classes by D-dimensions matrix of initial linear coefficients [def: `nothing`, i.e. zeros]"
