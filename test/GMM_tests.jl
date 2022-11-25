@@ -85,6 +85,20 @@ probsx2 = predict(m)
 reset!(m)
 @test sprint(print,m) == "GMMClusterer - A 3-classes Generative Mixture Model (unfitted)"
 
+m = GMMClusterer(mixtures=[SphericalGaussian() for i in 1:2])
+x_full = fit!(m,X)
+m = GMMClusterer(mixtures=SphericalGaussian,n_classes=2)
+x_full2 = fit!(m,X)
+@test x_full == x_full2
+m = GMMClusterer(mixtures=SphericalGaussian)
+x_full = fit!(m,X)
+@test hyperparameters(m).n_classes == 3 
+@test length(hyperparameters(m).mixtures) == 3
+m = GMMClusterer(n_classes=2)
+x_full = fit!(m,X)
+@test length(hyperparameters(m).mixtures) == 2
+
+
 # Testing GMM Regressor 1
 ϵtrain = [1.023,1.08,0.961,0.919,0.933,0.993,1.011,0.923,1.084,1.037,1.012]
 ϵtest  = [1.056,0.902,0.998,0.977]

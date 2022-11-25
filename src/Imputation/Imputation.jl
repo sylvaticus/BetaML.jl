@@ -134,6 +134,34 @@ Simple imputer using the missing data's feature (column) statistic (def: `mean`)
 
 # Limitations:
 - data must be numerical
+
+# Example:
+```julia
+julia> using BetaML
+
+julia> X = [2.0 missing 10; 20 40 100]
+2×3 Matrix{Union{Missing, Float64}}:
+  2.0    missing   10.0
+ 20.0  40.0       100.0
+
+julia> mod = FeatureBasedImputer(norm=1)
+FeatureBasedImputer - A simple feature-stat based imputer (unfitted)
+
+julia> X_full = fit!(mod,X)
+2×3 Matrix{Float64}:
+  2.0   4.04494   10.0
+ 20.0  40.0      100.0
+
+julia> info(mod)
+Dict{String, Any} with 1 entry:
+  "n_imputed_values" => 1
+
+julia> parameters(mod)
+BetaML.Imputation.FeatureBasedImputerLearnableParameters (a BetaMLLearnableParametersSet struct)
+- cStats: [11.0, 40.0, 55.0]
+- norms: [6.0, 53.333333333333336]
+```
+
 """
 mutable struct FeatureBasedImputer <: Imputer
     hpar::FeatureBasedImputerHyperParametersSet
@@ -253,6 +281,42 @@ For the parameters (`n_classes`,`mixtures`,..) see  [`GMMHyperParametersSet`](@r
 - data must be numerical
 - the resulted matrix is a Matrix{Float64}
 - currently the Mixtures available do not support random initialisation for missing imputation, and the rest of the algorithm (Expectation-Maximisation) is deterministic, so there is no random component involved (i.e. no multiple imputations)
+
+# Example: 
+```julia
+julia> using BetaML
+
+julia> X = [1 2.5; missing 20.5; 0.8 18; 12 22.8; 0.4 missing; 1.6 3.7];
+
+julia> mod = GMMImputer(mixtures=[SphericalGaussian() for i in 1:2])
+GMMImputer - A Gaussian Mixture Model based imputer (unfitted)
+
+julia> X_full = fit!(mod,X)
+Iter. 1:        Var. of the post  2.373498171519511       Log-likelihood -29.111866299189792
+6×2 Matrix{Float64}:
+  1.0       2.5
+  6.14905  20.5
+  0.8      18.0
+ 12.0      22.8
+  0.4       4.61314
+  1.6       3.7
+
+julia> info(mod)
+Dict{String, Any} with 7 entries:
+  "xndims"           => 2
+  "error"            => [2.3735, 0.17527, 0.0283747, 0.0053147, 0.000981885]
+  "AIC"              => 57.798
+  "fitted_records"   => 6
+  "lL"               => -21.899
+  "n_imputed_values" => 2
+  "BIC"              => 56.3403
+
+julia> parameters(mod)
+BetaML.Imputation.GMMImputerLearnableParameters (a BetaMLLearnableParametersSet struct)
+- mixtures: AbstractMixture[SphericalGaussian{Float64}([1.0179819950570768, 3.0999990977255845], 0.2865287884295908), SphericalGaussian{Float64}([6.149053737674149, 20.43331198167713], 15.18664378248651)]
+- initial_probmixtures: [0.48544987084082347, 0.5145501291591764]
+- probRecords: [0.9999996039918224 3.9600817749531375e-7; 2.3866922376272767e-229 1.0; … ; 0.9127030246369684 0.08729697536303167; 0.9999965964161501 3.403583849794472e-6]
+```
 """
 mutable struct GMMImputer <: Imputer
     hpar::GMMHyperParametersSet
@@ -276,6 +340,23 @@ function GMMImputer(;kwargs...)
           end
         end
         found || error("Keyword \"$kw\" is not part of this model.")
+    end
+    # Special correction for GMMHyperParametersSet
+    kwkeys = keys(kwargs) #in(2,[1,2,3])
+    if !in(:mixtures,kwkeys) && !in(:n_classes,kwkeys)
+        m.hpar.n_classes = 3
+        m.hpar.mixtures = [DiagonalGaussian() for i in 1:3]
+    elseif !in(:mixtures,kwkeys) && in(:n_classes,kwkeys)
+        m.hpar.mixtures = [DiagonalGaussian() for i in 1:kwargs[:n_classes]]
+    elseif typeof(kwargs[:mixtures]) <: UnionAll && !in(:n_classes,kwkeys)
+        m.hpar.n_classes = 3
+        m.hpar.mixtures = [kwargs[:mixtures]() for i in 1:3]
+    elseif typeof(kwargs[:mixtures]) <: UnionAll && in(:n_classes,kwkeys)
+        m.hpar.mixtures = [kwargs[:mixtures]() for i in 1:kwargs[:n_classes]]
+    elseif typeof(kwargs[:mixtures]) <: AbstractVector && !in(:n_classes,kwkeys)
+        m.hpar.n_classes = length(kwargs[:mixtures])
+    elseif typeof(kwargs[:mixtures]) <: AbstractVector && in(:n_classes,kwkeys)
+        kwargs[:n_classes] == length(kwargs[:mixtures]) || error("The length of the mixtures vector must be equal to the number of classes")
     end
     return m
 end
@@ -423,6 +504,34 @@ See [`RFImputerHyperParametersSet`](@ref), [`RFHyperParametersSet`](@ref) and [`
 # Notes:
 - Given a certain RNG and its status (e.g. `RFImputer(...,rng=StableRNG(FIXEDSEED))`), the algorithm is completely deterministic, i.e. replicable. 
 - The algorithm accepts virtually any kind of data, sortable or not
+
+# Example:
+```julia
+julia> using BetaML
+
+julia> X = [1.4 2.5 "a"; missing 20.5 "b"; 0.6 18 missing; 0.7 22.8 "b"; 0.4 missing "b"; 1.6 3.7 "a"]
+6×3 Matrix{Any}:
+ 1.4        2.5       "a"
+  missing  20.5       "b"
+ 0.6       18         missing
+ 0.7       22.8       "b"
+ 0.4         missing  "b"
+ 1.6        3.7       "a"
+
+julia> mod = RFImputer(n_trees=20,max_depth=10,recursive_passages=2)
+RFImputer - A Random-Forests based imputer (unfitted)
+
+julia> X_full = fit!(mod,X)
+** Processing imputation 1
+6×3 Matrix{Any}:
+ 1.4        2.5     "a"
+ 0.504167  20.5     "b"
+ 0.6       18       "b"
+ 0.7       22.8     "b"
+ 0.4       20.0837  "b"
+ 1.6        3.7     "a"
+```
+
 """
 mutable struct RFImputer <: Imputer
     hpar::RFImputerHyperParametersSet
@@ -528,7 +637,7 @@ function fit!(m::RFImputer,X)
                     splitting_criterion = splitting_criterion
                 end
                 nmy  = nonMissingMask[:,d]
-                y    = X[nmy,d]
+                y    = catCols[d] ? X[nmy,d] : identity.(X[nmy,d]) # witout the identity it remains any and force always a classification
                 ty   = nonmissingtype(eltype(y))
                 y    = convert(Vector{ty},y)
                 Xd   = Matrix(Xout[nmy,[1:(d-1);(d+1):end]])
@@ -615,8 +724,10 @@ function predict(m::RFImputer,X)
         Xout    = copy(X)
         for d in 1:nC
             verbosity >= FULL && println("  - processing dimension $d")
+            dfor = forests[imputation,d]
+            is_regression = dfor.is_regression
             nmy  = nonMissingMask[:,d]
-            y    = X[nmy,d]
+            y    = is_regression ? identity.(X[nmy,d]) : X[nmy,d]
             ty   = nonmissingtype(eltype(y))
             y    = convert(Vector{ty},y)
             Xd   = Matrix(Xout[nmy,[1:(d-1);(d+1):end]])
@@ -630,7 +741,7 @@ function predict(m::RFImputer,X)
                 yest = predict(dfor,xrow)[1]
                 
                 if ty <: Int 
-                    if catCols[d]
+                    if ! is_regression
                         yest = parse(ty,mode(yest))
                     else
                         yest = Int(round(yest))
@@ -703,6 +814,37 @@ Impute missing values using a vector (one per column) of arbitrary learning mode
 (default to Random Forests)
 
 See [`UniversalImputerHyperParametersSet`](@ref) for the hyper-parameters.
+
+# Example:
+```julia
+julia> using BetaML
+
+julia> X = [1.4 2.5 "a"; missing 20.5 "b"; 0.6 18 missing; 0.7 22.8 "b"; 0.4 missing "b"; 1.6 3.7 "a"]
+6×3 Matrix{Any}:
+ 1.4        2.5       "a"
+  missing  20.5       "b"
+ 0.6       18         missing
+ 0.7       22.8       "b"
+ 0.4         missing  "b"
+ 1.6        3.7       "a"
+
+julia> mod = UniversalImputer(estimators=[DecisionTreeEstimator(),RandomForestEstimator(n_trees=40), RandomForestEstimator()],recursive_passages=2)
+UniversalImputer - A imputer based on an arbitrary regressor/classifier(unfitted)
+
+julia> X_full = fit!(mod,X)
+** Processing imputation 1
+6×3 Matrix{Any}:
+ 1.4   2.5     "a"
+ 0.5  20.5     "b"
+ 0.6  18       "a"
+ 0.7  22.8     "b"
+ 0.4  19.9035  "b"
+ 1.6   3.7     "a"
+
+julia> info(mod)
+Dict{String, Any} with 1 entry:
+  "n_imputed_values" => 3
+```
 
 """
 mutable struct UniversalImputer <: Imputer
@@ -784,7 +926,7 @@ function fit!(m::UniversalImputer,X)
             for d in sortedDims
                 verbosity >= FULL && println("  - processing dimension $d")
                 nmy  = nonMissingMask[:,d]
-                y    = X[nmy,d]
+                y    = identity.(X[nmy,d]) # otherwise for some models it remains a classification
                 ty   = nonmissingtype(eltype(y))
                 y    = convert(Vector{ty},y)
                 Xd   = Matrix(Xout[nmy,[1:(d-1);(d+1):end]])

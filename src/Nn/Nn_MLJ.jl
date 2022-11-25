@@ -289,13 +289,13 @@ Base.@kwdef mutable struct NeuralNetworkClassifier <: MMI.Probabilistic
     epochs::Int64 = 100
     "Size of each individual batch [def: `32`]"
     batch_size::Int64 = 32
-    "The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]"
+    "The optimisation algorithm to update the gradient at each batch [def: `BetaML.ADAM()`]"
     opt_alg::OptimisationAlgorithm = ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool = true  
     "An optional title and/or description for this model"
     descr::String = "" 
-    "A call back function to provide information during training [def: `fitting_info`"
+    "A call back function to provide information during training [def: `BetaML.fitting_info`"
     cb::Function=fitting_info
     "The categories to represent as columns. [def: `nothing`, i.e. unique training values]."  
     categories::Union{Vector,Nothing} = nothing

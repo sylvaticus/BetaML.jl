@@ -286,6 +286,8 @@ For the parameters see [`?KMeansMedoidsHyperParametersSet`](@ref KMeansMedoidsHy
 # Example :
 
 ```julia
+julia> using BetaML
+
 julia> X = [1.1 10.1; 0.9 9.8; 10.0 1.1; 12.1 0.8; 0.8 9.8]
 5×2 Matrix{Float64}:
   1.1  10.1
@@ -343,6 +345,8 @@ For the parameters see [`?KMeansMedoidsHyperParametersSet`](@ref KMeansMedoidsHy
 - online fitting (re-fitting with new data) is supported
 
 # Example:
+
+julia> using BetaML
 
 julia> X = [1.1 10.1; 0.9 9.8; 10.0 1.1; 12.1 0.8; 0.8 9.8]
 5×2 Matrix{Float64}:
@@ -441,7 +445,7 @@ function fit!(m::KMeansClusterer,x)
     if m.fitted
         # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee fitted with milions of records.
         # So, training 1000 records doesn't give the same output as training 990 records and then training again with 10 records
-        verbosity >= FULL && @warn "Continuing training of a pre-fitted model"
+        verbosity >= HIGH  && @info "Continuing training of a pre-fitted model"
         (clIdx,Z) = kmeans(x,K,dist=dist,initial_representatives=m.par.representatives,initialisation_strategy="given",verbosity=verbosity,rng=rng)
 
     else
@@ -475,7 +479,7 @@ function fit!(m::KMedoidsClusterer,x)
     if m.fitted
         # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee fitted with milions of records.
         # So, training 1000 records doesn't give the same output as training 990 records and then training again with 10 records
-        verbosity >= FULL && @warn "Continuing training of a pre-fitted model"
+        verbosity >= HIGH  && @info "Continuing training of a pre-fitted model"
         (clIdx,Z) = kmedoids(x,K,dist=dist,initial_representatives=m.par.representatives,initialisation_strategy="given",verbosity=verbosity,rng=rng)
 
     else

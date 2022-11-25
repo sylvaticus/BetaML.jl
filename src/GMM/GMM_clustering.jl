@@ -171,24 +171,25 @@ Hyperparameters for GMM clusters and other GMM-based algorithms
 
 ## Parameters:
 $(FIELDS)
+
 """
-Base.@kwdef mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
+mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
     "Number of mixtures (latent classes) to consider [def: 3]"
-    n_classes::Int64                   = 3
+    n_classes::Int64
     "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
-    initial_probmixtures::Vector{Float64}     = Float64[]
+    initial_probmixtures::Vector{Float64}
     """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
     Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\"`
     This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
     Note that mixing of different mixture types is not currently supported and that currently implemented mixtures are `SphericalGaussian`, `DiagonalGaussian` and `FullGaussian`.
     [def: `DiagonalGaussian`]"""
-    mixtures::Union{Type,Vector{<: AbstractMixture}} = DiagonalGaussian
+    mixtures::Union{Type,Vector{<: AbstractMixture}}
     "Tolerance to stop the algorithm [default: 10^(-6)]"
-    tol::Float64                      = 10^(-6)
+    tol::Float64
     "Minimum variance for the mixtures [default: 0.05]"
-    minimum_variance::Float64              = 0.05
+    minimum_variance::Float64
     "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minimum_variance."
-    minimum_covariance::Float64            = 0.0
+    minimum_covariance::Float64
     """
     The computation method of the vector of the initial mixtures.
     One of the following:
@@ -197,15 +198,51 @@ Base.@kwdef mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
     - "kmeans": use first kmeans (itself initialised with a "grid" strategy) to set the initial mixture centers [default]
     Note that currently "random" and "shuffle" initialisations are not supported in gmm-based algorithms.
     """
-    initialisation_strategy::String              = "kmeans"
+    initialisation_strategy::String
     "Maximum number of iterations [def: 5000]"
-    maximum_iterations::Int64                    = 5000
+    maximum_iterations::Int64
     """
     The method - and its parameters - to employ for hyperparameters autotuning.
     See [`SuccessiveHalvingSearch](@ref) for the default method (suitable for the GMM-based regressors)
     To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
-    tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("n_classes" =>[2,3,4,5,6],"mixtures"=>[SphericalGaussian,DiagonalGaussian,FullGaussian], "initialisation_strategy"=>["grid","kmeans"],"minimum_covariance"=>[0.01,0.02],"minimum_variance"=>[0.05,0.07,0.1]),multithreads=true)
+    tunemethod::AutoTuneMethod
+
+    function GMMHyperParametersSet(;
+        n_classes::Union{Nothing,Int64}                  = nothing, # def: 3
+        initial_probmixtures::Vector{Float64}            = Float64[],
+        mixtures::Union{Type,Vector{<: AbstractMixture},Nothing} = nothing, # DiagonalGaussian
+        tol::Float64                                     = 10^(-6),
+        minimum_variance::Float64                        = 0.05,
+        minimum_covariance::Float64                      = 0.0,
+        initialisation_strategy::String                  = "kmeans",
+        maximum_iterations::Int64                        = 5000,
+        tunemethod::AutoTuneMethod                       = SuccessiveHalvingSearch(
+            hpranges = Dict("n_classes" =>[2,3,4,5,6],
+                            "mixtures"=>[SphericalGaussian,DiagonalGaussian,FullGaussian],
+                            "initialisation_strategy"=>["grid","kmeans"],
+                            "minimum_covariance"=>[0.01,0.02],
+                            "minimum_variance"=>[0.05,0.07,0.1])
+            ,multithreads=true)
+        )
+        if isnothing(mixtures) && isnothing(n_classes)
+            n_classes = 3
+            mixtures = [DiagonalGaussian() for i in 1:3]
+        elseif isnothing(mixtures) && !isnothing(n_classes)
+            mixtures = [DiagonalGaussian() for i in 1:n_classes]
+        elseif typeof(mixtures) <: UnionAll && isnothing(n_classes)
+            n_classes = 3
+            mixtures = [mixtures() for i in 1:n_classes]
+        elseif typeof(mixtures) <: UnionAll && !isnothing(n_classes)
+            mixtures = [mixtures() for i in 1:n_classes]
+        elseif typeof(mixtures) <: AbstractVector && isnothing(n_classes)
+            println("sfsdfsdf")
+            n_classes = length(mixtures)
+        elseif typeof(mixtures) <: AbstractVector && !isnothing(n_classes)
+            n_classes == length(mixtures) || error("The length of the mixtures vector must be equal to the number of classes")
+        end
+        return new(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,tunemethod)        
+    end
 end
 
 
@@ -227,6 +264,44 @@ For the parameters see [`?GMMHyperParametersSet`](@ref GMMHyperParametersSet) an
 - Mixtures can be user defined: see the [`?GMM`](@ref GMM) module documentation for a discussion on provided vs custom mixtures.
 - Online fitting (re-fitting with new data) is supported by setting the old learned mixtrures as the starting values
 - The model is fitted using an Expectation-Minimisation (EM) algorithm that supports Missing data and is implemented in the log-domain for better numerical accuracy with many dimensions
+
+# Example: 
+```julia
+julia> using BetaML
+
+julia> X = [1.1 10.1; 0.9 9.8; 10.0 1.1; 12.1 0.8; 0.8 9.8];
+
+julia> mod = GMMClusterer(n_classes=2)
+GMMClusterer - A Generative Mixture Model (unfitted)
+
+julia> prob_belong_classes = fit!(mod,X)
+Iter. 1:        Var. of the post  2.15612140465882        Log-likelihood -29.06452054772657
+5×2 Matrix{Float64}:
+ 1.0  0.0
+ 1.0  0.0
+ 0.0  1.0
+ 0.0  1.0
+ 1.0  0.0
+
+julia> new_probs = fit!(mod,[11 0.9])
+Iter. 1:        Var. of the post  1.0     Log-likelihood -1.3312256125240092
+1×2 Matrix{Float64}:
+ 0.0  1.0
+
+julia> info(mod)
+Dict{String, Any} with 6 entries:
+  "xndims"         => 2
+  "error"          => [1.0, 0.0, 0.0]
+  "AIC"            => 15.7843
+  "fitted_records" => 6
+  "lL"             => 1.10786
+  "BIC"            => -2.21571
+
+julia> parameters(mod)
+BetaML.GMM.GMMClusterLearnableParameters (a BetaMLLearnableParametersSet struct)
+- mixtures: DiagonalGaussian{Float64}[DiagonalGaussian{Float64}([0.9333333333333332, 9.9], [0.05, 0.05]), DiagonalGaussian{Float64}([11.05, 0.9500000000000001], [0.05, 0.05])]
+- initial_probmixtures: [0.0, 1.0]
+```
 """
 mutable struct GMMClusterer <: BetaMLUnsupervisedModel
     hpar::GMMHyperParametersSet
@@ -251,6 +326,25 @@ function GMMClusterer(;kwargs...)
         end
         found || error("Keyword \"$kw\" is not part of this model.")
     end
+    
+    # Special correction for GMMHyperParametersSet
+    kwkeys = keys(kwargs) #in(2,[1,2,3])
+    if !in(:mixtures,kwkeys) && !in(:n_classes,kwkeys)
+        m.hpar.n_classes = 3
+        m.hpar.mixtures = [DiagonalGaussian() for i in 1:3]
+    elseif !in(:mixtures,kwkeys) && in(:n_classes,kwkeys)
+        m.hpar.mixtures = [DiagonalGaussian() for i in 1:kwargs[:n_classes]]
+    elseif typeof(kwargs[:mixtures]) <: UnionAll && !in(:n_classes,kwkeys)
+        m.hpar.n_classes = 3
+        m.hpar.mixtures = [kwargs[:mixtures]() for i in 1:3]
+    elseif typeof(kwargs[:mixtures]) <: UnionAll && in(:n_classes,kwkeys)
+        m.hpar.mixtures = [kwargs[:mixtures]() for i in 1:kwargs[:n_classes]]
+    elseif typeof(kwargs[:mixtures]) <: AbstractVector && !in(:n_classes,kwkeys)
+        m.hpar.n_classes = length(kwargs[:mixtures])
+    elseif typeof(kwargs[:mixtures]) <: AbstractVector && in(:n_classes,kwkeys)
+        kwargs[:n_classes] == length(kwargs[:mixtures]) || error("The length of the mixtures vector must be equal to the number of classes")
+    end
+
     return m
 end
 
@@ -281,7 +375,7 @@ function fit!(m::GMMClusterer,x)
     rng           = m.opt.rng
 
     if m.fitted
-        verbosity >= STD && @warn "Continuing training of a pre-fitted model"
+        verbosity >= HIGH  && @info "Continuing training of a pre-fitted model"
         gmmOut = gmm(x,K;initial_probmixtures=m.par.initial_probmixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy="given",maximum_iterations=maximum_iterations,rng = rng)
     else
         gmmOut = gmm(x,K;initial_probmixtures=initial_probmixtures,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)

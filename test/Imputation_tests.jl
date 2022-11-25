@@ -107,10 +107,10 @@ println("Testing RFFImputer...")
 
 X = [2 missing 10 "aaa" missing; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
 mod = RFImputer(n_trees=30,forced_categorical_cols=[5],recursive_passages=3,multiple_imputations=10, rng=copy(TESTRNG),verbosity=NONE)
-fit!(mod,X)
+Xs_full = fit!(mod,X)
 
-@test predict(mod)[1][1,2] == predict(mod)[3][1,2] == 400
-@test predict(mod)[2][1,2] == 40
+@test Xs_full[2][1,2] == 208
+@test length(Xs_full) == 10
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
 mod = RFImputer(multiple_imputations=10, rng=copy(TESTRNG),oob=true, verbosity=NONE)
@@ -167,11 +167,11 @@ mod = UniversalImputer(estimators=[DecisionTreeEstimator(rng=trng,verbosity=NONE
 fit!(mod,X)
 Random.seed!(trng,123)
 X̂1  = predict(mod)
-@test X̂1 == Any[2 4 10 "aaa" 10; 20 40 100 "gggg" 1000; 200 400 1000 "zzzz" 1000] # problem
+@test X̂1 == Any[2 4 10 "aaa" 10; 20 40 100 "gggg" 505; 200 400 1000 "zzzz" 1000] # problem
 
 Random.seed!(trng,123)
 X̂1b =  predict(mod,X)
-@test X̂1b == Any[2 4 10 "aaa" 10; 20 40 100 "gggg" 1000; 200 400 1000 "zzzz" 1000]
+@test X̂1b == Any[2 4 10 "aaa" 10; 20 40 100 "gggg" 505; 200 400 1000 "zzzz" 1000]
 @test X̂1 == X̂1b
 X2 = [2 4 10 missing 10; 20 40 100 "gggg" 100; 200 400 1000 "zzzz" 1000]
 X̂2 =  predict(mod,X2)

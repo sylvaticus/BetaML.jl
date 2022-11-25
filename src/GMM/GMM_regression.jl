@@ -26,7 +26,47 @@ Once the data has been probabilistically assigned to the various classes, a mean
 At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm to obtain the probabilistic assignment of each record to the various mixtures. Then these probabilities are multiplied to the mixture averages for the Y dimensions learned at training time to obtain the predicted value(s) for each record. 
 
 # Notes:
-- the predicted values are always a matrix, even when a single variable is predicted (use `dropdims(ŷ,dims=2)` to get a single vector).
+- Predicted values are always a matrix, even when a single variable is predicted (use `dropdims(ŷ,dims=2)` to get a single vector).
+
+# Example:
+```julia
+julia> using BetaML
+
+julia> X = [1.1 10.1; 0.9 9.8; 10.0 1.1; 12.1 0.8; 0.8 9.8];
+
+julia> Y = X[:,1] .* 2 - X[:,2]
+5-element Vector{Float64}:
+ -7.8999999999999995
+ -8.0
+ 18.9
+ 23.4
+ -8.200000000000001
+
+julia> mod = GMMRegressor1(n_classes=2)
+GMMRegressor1 - A regressor based on Generative Mixture Model (unfitted)
+
+julia> ŷ = fit!(mod,X,Y)
+Iter. 1:        Var. of the post  2.15612140465882        Log-likelihood -29.06452054772657
+5×1 Matrix{Float64}:
+ -8.033333333333333
+ -8.033333333333333
+ 21.15
+ 21.15
+ -8.033333333333333
+
+julia> new_probs = predict(mod,[11 0.9])
+1×1 Matrix{Float64}:
+ 21.15
+
+julia> info(mod)
+Dict{String, Any} with 6 entries:
+  "xndims"         => 2
+  "error"          => [2.15612, 0.118848, 4.19495e-7, 0.0, 0.0]
+  "AIC"            => 32.7605
+  "fitted_records" => 5
+  "lL"             => -7.38023
+  "BIC"            => 29.2454
+```
 
 """
 mutable struct GMMRegressor1 <: BetaMLUnsupervisedModel
@@ -51,6 +91,24 @@ function GMMRegressor1(;kwargs...)
           end
         end
         found || error("Keyword \"$kw\" is not part of this model.")
+    end
+
+    # Special correction for GMMHyperParametersSet
+    kwkeys = keys(kwargs) #in(2,[1,2,3])
+    if !in(:mixtures,kwkeys) && !in(:n_classes,kwkeys)
+        m.hpar.n_classes = 3
+        m.hpar.mixtures = [DiagonalGaussian() for i in 1:3]
+    elseif !in(:mixtures,kwkeys) && in(:n_classes,kwkeys)
+        m.hpar.mixtures = [DiagonalGaussian() for i in 1:kwargs[:n_classes]]
+    elseif typeof(kwargs[:mixtures]) <: UnionAll && !in(:n_classes,kwkeys)
+        m.hpar.n_classes = 3
+        m.hpar.mixtures = [kwargs[:mixtures]() for i in 1:3]
+    elseif typeof(kwargs[:mixtures]) <: UnionAll && in(:n_classes,kwkeys)
+        m.hpar.mixtures = [kwargs[:mixtures]() for i in 1:kwargs[:n_classes]]
+    elseif typeof(kwargs[:mixtures]) <: AbstractVector && !in(:n_classes,kwkeys)
+        m.hpar.n_classes = length(kwargs[:mixtures])
+    elseif typeof(kwargs[:mixtures]) <: AbstractVector && in(:n_classes,kwkeys)
+        kwargs[:n_classes] == length(kwargs[:mixtures]) || error("The length of the mixtures vector must be equal to the number of classes")
     end
     return m
 end
@@ -163,6 +221,51 @@ For hyperparameters see [`GMMHyperParametersSet`](@ref) and [`BetaMLDefaultOptio
 
 Thsi strategy (`GMMRegressor2`) works by training the EM algorithm on a combined (hcat) matrix of X and Y.
 At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm (and using missing values for the dimensions belonging to Y) to obtain the probabilistic assignment of each record to the various mixtures. Then these probabilities are multiplied to the mixture averages for the Y dimensions to obtain the predicted value(s) for each record. 
+
+# Example:
+```julia
+julia> using BetaML
+
+julia> X = [1.1 10.1; 0.9 9.8; 10.0 1.1; 12.1 0.8; 0.8 9.8];
+
+julia> Y = X[:,1] .* 2 - X[:,2]
+5-element Vector{Float64}:
+ -7.8999999999999995
+ -8.0
+ 18.9
+ 23.4
+ -8.200000000000001
+
+julia> mod = GMMRegressor2(n_classes=2)
+GMMRegressor2 - A regressor based on Generative Mixture Model (unfitted)
+
+julia> ŷ = fit!(mod,X,Y)
+Iter. 1:        Var. of the post  2.2191120060614065      Log-likelihood -47.70971887023561
+5×1 Matrix{Float64}:
+ -8.033333333333333
+ -8.033333333333333
+ 21.15
+ 21.15
+ -8.033333333333333
+
+julia> new_probs = predict(mod,[11 0.9])
+1×1 Matrix{Float64}:
+ 21.15
+
+julia> info(mod)
+Dict{String, Any} with 6 entries:
+  "xndims"         => 3
+  "error"          => [2.21911, 0.0260833, 3.19141e-39, 0.0]
+  "AIC"            => 60.0684
+  "fitted_records" => 5
+  "lL"             => -17.0342
+  "BIC"            => 54.9911
+
+julia> parameters(mod)
+BetaML.GMM.GMMClusterLearnableParameters (a BetaMLLearnableParametersSet struct)
+- mixtures: DiagonalGaussian{Float64}[DiagonalGaussian{Float64}([0.9333333333333332, 9.9, -8.033333333333333], [1.1024999999999996, 0.05, 5.0625]), DiagonalGaussian{Float64}([11.05, 0.9500000000000001, 21.15], [1.1024999999999996, 0.05, 5.0625])]
+- initial_probmixtures: [0.6, 0.4]
+```
 """
 mutable struct GMMRegressor2 <: BetaMLUnsupervisedModel
     hpar::GMMHyperParametersSet
@@ -186,6 +289,23 @@ function GMMRegressor2(;kwargs...)
           end
         end
         found || error("Keyword \"$kw\" is not part of this model.")
+    end
+    # Special correction for GMMHyperParametersSet
+    kwkeys = keys(kwargs) #in(2,[1,2,3])
+    if !in(:mixtures,kwkeys) && !in(:n_classes,kwkeys)
+        m.hpar.n_classes = 3
+        m.hpar.mixtures = [DiagonalGaussian() for i in 1:3]
+    elseif !in(:mixtures,kwkeys) && in(:n_classes,kwkeys)
+        m.hpar.mixtures = [DiagonalGaussian() for i in 1:kwargs[:n_classes]]
+    elseif typeof(kwargs[:mixtures]) <: UnionAll && !in(:n_classes,kwkeys)
+        m.hpar.n_classes = 3
+        m.hpar.mixtures = [kwargs[:mixtures]() for i in 1:3]
+    elseif typeof(kwargs[:mixtures]) <: UnionAll && in(:n_classes,kwkeys)
+        m.hpar.mixtures = [kwargs[:mixtures]() for i in 1:kwargs[:n_classes]]
+    elseif typeof(kwargs[:mixtures]) <: AbstractVector && !in(:n_classes,kwkeys)
+        m.hpar.n_classes = length(kwargs[:mixtures])
+    elseif typeof(kwargs[:mixtures]) <: AbstractVector && in(:n_classes,kwkeys)
+        kwargs[:n_classes] == length(kwargs[:mixtures]) || error("The length of the mixtures vector must be equal to the number of classes")
     end
     return m
 end
@@ -225,7 +345,7 @@ function fit!(m::GMMRegressor2,x,y)
     rng           = m.opt.rng
 
     if m.fitted
-        verbosity >= STD && @warn "Continuing training of a pre-fitted model"
+        verbosity >= HIGH && @info "Continuing training of a pre-fitted model"
         gmmOut = gmm(x,K;initial_probmixtures=m.par.initial_probmixtures,mixtures=m.par.mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy="given",maximum_iterations=maximum_iterations,rng = rng)
     else
         gmmOut = gmm(x,K;initial_probmixtures=initial_probmixtures,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)
