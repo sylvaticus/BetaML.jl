@@ -90,6 +90,54 @@ For the parameters see [`?RFHyperParametersSet`](@ref RFHyperParametersSet) and 
 - Online fitting (re-fitting with new data) is not supported
 - Missing data (in the feature dataset) is supported.
 
+# Examples:
+
+- Classification...
+```julia
+julia> X   = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
+
+julia> y   = ["a","b","b","b","b","a"];
+
+julia> mod = RandomForestEstimator(n_trees=5)
+RandomForestEstimator - A 5 trees Random Forest model (unfitted)
+
+julia> ŷ   = fit!(mod,X,y) |> mode
+6-element Vector{String}:
+ "a"
+ "b"
+ "b"
+ "b"
+ "b"
+ "a"
+
+julia> println(mod)
+RandomForestEstimator - A 5 trees Random Forest classifier (fitted on 6 records)
+Dict{String, Any}("job_is_regression" => 0, "avg_avg_depth" => 1.8, "fitted_records" => 6, "avg_mmax_reached_depth" => 1.8, "oob_errors" => Inf, "xndims" => 2)
+```
+- Regression...
+```julia
+julia> X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
+
+julia> y = 2 .* X[:,1] .- X[:,2] .+ 3;
+
+julia> mod = RandomForestEstimator(n_trees=5)
+RandomForestEstimator - A 5 trees Random Forest model (unfitted)
+
+julia> ŷ   = fit!(mod,X,y);
+
+julia> hcat(y,ŷ)
+6×2 Matrix{Float64}:
+   4.1    2.98
+ -16.5  -18.37
+ -13.8  -14.61
+ -18.4  -17.37
+ -27.2  -20.78
+   2.7    2.98
+
+julia> println(mod)
+RandomForestEstimator - A 5 trees Random Forest regressor (fitted on 6 records)
+Dict{String, Any}("job_is_regression" => 1, "fitted_records" => 6, "avg_avg_depth" => 2.8833333333333333, "oob_errors" => Inf, "avg_max_reached_depth" => 3.4, "xndims" => 2)
+```
 """
 mutable struct RandomForestEstimator <: BetaMLSupervisedModel
     hpar::RFHyperParametersSet
@@ -156,7 +204,7 @@ function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1
 
     errors = Float64[]
 
-    jobIsRegression = (force_classification || !(eltype(y) <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
+    job_is_regression = (force_classification || !(eltype(y) <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
     (N,D) = size(x)
 
     if isnothing(integer_encoded_cols)
@@ -189,13 +237,13 @@ function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1
 
     weights = ones(Float64,n_trees)
     if β > 0
-        weights = updateTreesWeights!(Forest{Ty}(trees,jobIsRegression,notSampledByTree,0.0,weights), x, y, β=β, rng=rng)
+        weights = updateTreesWeights!(Forest{Ty}(trees,job_is_regression,notSampledByTree,0.0,weights), x, y, β=β, rng=rng)
     end
     oobe = +Inf
     if oob
-        oobe = ooberror(Forest{Ty}(trees,jobIsRegression,notSampledByTree,0.0,weights),x,y,rng=rng)
+        oobe = ooberror(Forest{Ty}(trees,job_is_regression,notSampledByTree,0.0,weights),x,y,rng=rng)
     end
-    return Forest{Ty}(trees,jobIsRegression,notSampledByTree,oobe,weights)
+    return Forest{Ty}(trees,job_is_regression,notSampledByTree,oobe,weights)
 end
 
 # API V2
@@ -260,11 +308,11 @@ function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
     m.fitted = true
     
     m.info["fitted_records"]   = size(x,1)
-    m.info["xndims"]           = max_features
-    m.info["jobIsRegression"]  = m.par.forest.is_regression ? 1 : 0
+    m.info["xndims"]           = size(x,2)
+    m.info["job_is_regression"]  = m.par.forest.is_regression ? 1 : 0
     m.info["oob_errors"]       = m.par.forest.ooberror
     depths = vcat([transpose([computeDepths(tree)[1],computeDepths(tree)[2]]) for tree in m.par.forest.trees]...)
-    (m.info["avgAvgDepth"],m.info["avgMmax_depth"]) = mean(depths,dims=1)[1], mean(depths,dims=1)[2]
+    (m.info["avg_avg_depth"],m.info["avg_max_reached_depth"]) = mean(depths,dims=1)[1], mean(depths,dims=1)[2]
     return cache ? m.cres : nothing
 end
 
@@ -343,13 +391,13 @@ As training a forest is expensive, this function can be used to "just" upgrade t
 function updateTreesWeights!(forest::Forest{Ty},x,y;β=50,rng = Random.GLOBAL_RNG) where {Ty}
     trees            = forest.trees
     notSampledByTree = forest.oobData
-    jobIsRegression  = forest.is_regression
+    job_is_regression  = forest.is_regression
     weights          = Float64[]
     for (i,tree) in enumerate(trees)
         yoob = y[notSampledByTree[i]]
         if length(yoob) > 0
             ŷ = predict(tree,x[notSampledByTree[i],:],rng=rng)
-            if jobIsRegression
+            if job_is_regression
                 push!(weights,exp(- β*relative_mean_error(yoob,ŷ)))
             else
                 push!(weights,accuracy(yoob,ŷ)*β)
@@ -372,13 +420,13 @@ The oob error reported is the mismatching error for classification and the relat
 """
 function ooberror(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
     trees            = forest.trees
-    jobIsRegression  = forest.is_regression
+    job_is_regression  = forest.is_regression
     notSampledByTree = forest.oobData
     weights          = forest.weights
     B                = length(trees)
     N                = size(x,1)
 
-    if jobIsRegression
+    if job_is_regression
         ŷ = Array{Float64,1}(undef,N)
     else
         ŷ = Array{Dict{Ty,Float64},1}(undef,N)
@@ -394,13 +442,13 @@ function ooberror(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
         end
         unseenTrees = trees[(1:B)[unseenTreesBools]]
         unseenTreesWeights = weights[(1:B)[unseenTreesBools]]
-        ŷi   = predictSingle(Forest{Ty}(unseenTrees,jobIsRegression,forest.oobData,0.0,unseenTreesWeights),x,rng=rng)
-        if !jobIsRegression && Ty <: Number # we are in the ugly case where we want integers but we have dict of Strings, need to convert
+        ŷi   = predictSingle(Forest{Ty}(unseenTrees,job_is_regression,forest.oobData,0.0,unseenTreesWeights),x,rng=rng)
+        if !job_is_regression && Ty <: Number # we are in the ugly case where we want integers but we have dict of Strings, need to convert
             ŷi   = Dict(map((k,v) -> parse(Int,k)=>v, keys(ŷi), values(ŷi)))
         end
         ŷ[n] = ŷi
     end
-    if jobIsRegression
+    if job_is_regression
         return relative_mean_error(y[nMask],ŷ[nMask],normdim=false,normrec=false)
     else
         return error(y[nMask],ŷ[nMask])
@@ -411,7 +459,7 @@ function show(io::IO, ::MIME"text/plain", m::RandomForestEstimator)
     if m.fitted == false
         print(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest model (unfitted)")
     else
-        job = m.info["jobIsRegression"] == 1 ? "regressor" : "classifier"
+        job = m.info["job_is_regression"] == 1 ? "regressor" : "classifier"
         print(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest $job (fitted on $(m.info["fitted_records"]) records)")
     end
 end
@@ -421,7 +469,7 @@ function show(io::IO, m::RandomForestEstimator)
     if m.fitted == false
         print(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest model (unfitted)")
     else
-        job = m.info["jobIsRegression"] == 1 ? "regressor" : "classifier"
+        job = m.info["job_is_regression"] == 1 ? "regressor" : "classifier"
         println(io,"RandomForestEstimator - A $(m.hpar.n_trees) trees Random Forest $job (fitted on $(m.info["fitted_records"]) records)")
         println(io,m.info)
     end

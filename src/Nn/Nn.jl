@@ -836,8 +836,10 @@ For the parameters see [`NNHyperParametersSet`](@ref).
   - For classification tasks the columns should normally be interpreted as the probabilities for each categories
 
 # Examples:
+
+- Classification...
+
 ```julia
-# Classification...
 julia> X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
 
 julia> y = ["a","b","b","b","b","a"];
@@ -880,8 +882,10 @@ julia> ŷ      = inverse_predict(ohmod,ŷ_prob)
  "b"
  "b"
  "a"
+```
+- Regression...
 
-# Regression...
+```julia
 julia> X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
 
 julia> y = 2 .* X[:,1] .- X[:,2] .+ 3;

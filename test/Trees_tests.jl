@@ -79,7 +79,7 @@ ŷtest2 = predict(m, xtest)
 
 @test accuracy(ytest,ŷtest,rng=copy(TESTRNG)) >= 0.8
 @test ŷtest == ŷtest2
-@test info(m) == Dict{String,Any}("jobIsRegression" => 0,"fitted_records" => 5,"xndims" => 2,"avgDepth" => 2.6666666666666665, "max_depth" => 3)
+@test info(m) == Dict{String,Any}("job_is_regression" => 0,"fitted_records" => 5,"xndims" => 2,"avg_depth" => 2.6666666666666665, "max_reached_depth" => 3)
 
 
 #print(myTree)

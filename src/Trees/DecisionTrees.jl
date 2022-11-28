@@ -161,6 +161,71 @@ For the parameters see [`?DTHyperParametersSet`](@ref DTHyperParametersSet) and 
 - Online fitting (re-fitting with new data) is not supported
 - Missing data (in the feature dataset) is supported.
 
+# Examples:
+- Classification...
+
+```julia
+julia> X   = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
+
+julia> y   = ["a","b","b","b","b","a"];
+
+julia> mod = DecisionTreeEstimator(max_depth=5)
+DecisionTreeEstimator - A Decision Tree model (unfitted)
+
+julia> ŷ   = fit!(mod,X,y) |> mode
+6-element Vector{String}:
+ "a"
+ "b"
+ "b"
+ "b"
+ "b"
+ "a"
+
+julia> println(mod)
+DecisionTreeEstimator - A Decision Tree classifier (fitted on 6 records)
+Dict{String, Any}("job_is_regression" => 0, "fitted_records" => 6, "max_reached_depth" => 2, "avg_depth" => 2.0, "xndims" => 2)
+*** Printing Decision Tree: ***
+
+1. Is col 2 >= 18.0 ?
+--> True :  Dict("b" => 1.0)
+--> False:  Dict("a" => 1.0)
+```
+
+- Regression...
+```julia
+julia> X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
+
+julia> y = 2 .* X[:,1] .- X[:,2] .+ 3;
+
+julia> mod = DecisionTreeEstimator(max_depth=10)
+DecisionTreeEstimator - A Decision Tree model (unfitted)
+
+julia> ŷ   = fit!(mod,X,y);
+
+julia> hcat(y,ŷ)
+6×2 Matrix{Float64}:
+   4.1    3.4
+ -16.5  -17.45
+ -13.8  -13.8
+ -18.4  -17.45
+ -27.2  -27.2
+   2.7    3.4
+
+julia> println(mod)
+DecisionTreeEstimator - A Decision Tree regressor (fitted on 6 records)
+Dict{String, Any}("job_is_regression" => 1, "fitted_records" => 6, "max_reached_depth" => 4, "avg_depth" => 3.25, "xndims" => 2)
+*** Printing Decision Tree: ***
+
+1. Is col 2 >= 18.0 ?
+--> True :
+                1.2. Is col 2 >= 31.0 ?
+                --> True :  -27.2
+                --> False:
+                        1.2.3. Is col 2 >= 20.5 ?
+                        --> True :  -17.450000000000003
+                        --> False:  -13.8
+--> False:  3.3999999999999995
+```
 """
 mutable struct DecisionTreeEstimator <: BetaMLSupervisedModel
     hpar::DTHyperParametersSet
@@ -591,12 +656,12 @@ function fit!(m::DecisionTreeEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
 
     m.fitted = true
 
-    jobIsRegression = (force_classification || ! (Tynm <: Number) ) ? false : true
+    job_is_regression = (force_classification || ! (Tynm <: Number) ) ? false : true
     
     m.info["fitted_records"]             = size(x,1)
     m.info["xndims"]                 = size(x,2)
-    m.info["jobIsRegression"]            = jobIsRegression ? 1 : 0
-    (m.info["avgDepth"],m.info["max_depth"]) = computeDepths(m.par.tree)
+    m.info["job_is_regression"]            = job_is_regression ? 1 : 0
+    (m.info["avg_depth"],m.info["max_reached_depth"]) = computeDepths(m.par.tree)
     return cache ? m.cres : nothing
 end
 
@@ -738,7 +803,7 @@ function show(io::IO, ::MIME"text/plain", m::DecisionTreeEstimator)
     if m.fitted == false
         print(io,"DecisionTreeEstimator - A Decision Tree model (unfitted)")
     else
-        job = m.info["jobIsRegression"] == 1 ? "regressor" : "classifier"
+        job = m.info["job_is_regression"] == 1 ? "regressor" : "classifier"
         print(io,"DecisionTreeEstimator - A Decision Tree $job (fitted on $(m.info["fitted_records"]) records)")
     end
 end
@@ -748,7 +813,7 @@ function show(io::IO, m::DecisionTreeEstimator)
     if m.fitted == false
         print(io,"DecisionTreeEstimator - A Decision Tree model (unfitted)")
     else
-        job = m.info["jobIsRegression"] == 1 ? "regressor" : "classifier"
+        job = m.info["job_is_regression"] == 1 ? "regressor" : "classifier"
         println(io,"DecisionTreeEstimator - A Decision Tree $job (fitted on $(m.info["fitted_records"]) records)")
         println(io,m.info)
         _printNode(m.par.tree)
