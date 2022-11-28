@@ -35,3 +35,34 @@ MLJ.models(MLJ.matching(X,y))
 Tree = @load DecisionTreeRegressor pkg=BetaML
 tree = Tree()
 =#
+
+@testset "PlotTree" begin
+    println("Testing 'TreeRecipe' for plotting of Trees models....")
+
+    using Plots 
+    using TreeRecipe
+
+    println("--> train (and build) a decision tree")
+    xtrain = [
+        "Green"  3.0;
+        "Yellow" 3.0;
+        "Red"    1.0;
+        "Red"    1.0;
+        "Yellow" 3.0;
+    ]
+    ytrain = ["Apple",  "Apple", "Grape", "Grape", "Lemon"]
+
+    model = DecisionTreeEstimator()
+    yhat_train = Trees.fit!(model, xtrain, ytrain)
+    dtree = model.par.tree
+
+    println("--> add information about feature names")
+    feature_names = ["Color", "Intensity"]
+    wrapped_tree = Trees.wrap(dtree, (featurenames = feature_names, ))
+
+    println("--> plot the tree using the `TreeRecipe`")
+    plt = plot(wrapped_tree)        # this calls automatically the `TreeRecipe`
+    display(plt)                    # show the plot in a window (in VS Code a tab will be opened)
+    # plot & display will plot the tree `wrapped_tree`. 
+    # It has to be visually checked, if that plot is correct.
+end
