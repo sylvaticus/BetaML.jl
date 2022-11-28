@@ -94,6 +94,8 @@ For the parameters see [`?RFHyperParametersSet`](@ref RFHyperParametersSet) and 
 
 - Classification...
 ```julia
+julia> using BetaML
+
 julia> X   = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
 
 julia> y   = ["a","b","b","b","b","a"];
@@ -115,7 +117,10 @@ RandomForestEstimator - A 5 trees Random Forest classifier (fitted on 6 records)
 Dict{String, Any}("job_is_regression" => 0, "avg_avg_depth" => 1.8, "fitted_records" => 6, "avg_mmax_reached_depth" => 1.8, "oob_errors" => Inf, "xndims" => 2)
 ```
 - Regression...
+
 ```julia
+julia> using BetaML
+
 julia> X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
 
 julia> y = 2 .* X[:,1] .- X[:,2] .+ 3;

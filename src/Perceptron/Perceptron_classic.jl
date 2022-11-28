@@ -321,6 +321,8 @@ For the parameters see [`?PerceptronClassifierHyperParametersSet`](@ref Perceptr
 
 # Example:
 ```julia
+julia> using BetaML
+
 julia> X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
 
 julia> y = ["a","b","b","b","b","a"];

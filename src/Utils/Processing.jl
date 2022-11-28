@@ -105,6 +105,38 @@ The algorithm distinguishes between _missing_ values, for which it returns a one
 
 For the parameters see [`OneHotEncoderHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).  This model supports `inverse_predict`.
 
+# Example:
+```julia
+julia> using BetaML
+
+julia> x       = ["a","d","e","c","d"];
+
+julia> mod     = OneHotEncoder(handle_unknown="infrequent",other_categories_name="zz")
+A OneHotEncoder BetaMLModel (unfitted)
+
+julia> x_oh    = fit!(mod,x)  # last col is for the "infrequent" category
+5×5 Matrix{Bool}:
+ 1  0  0  0  0
+ 0  1  0  0  0
+ 0  0  1  0  0
+ 0  0  0  1  0
+ 0  1  0  0  0
+
+julia> x2      = ["a","b","c"];
+
+julia> x2_oh   = predict(mod,x2)
+3×5 Matrix{Bool}:
+ 1  0  0  0  0
+ 0  0  0  0  1
+ 0  0  0  1  0
+
+julia> x2_back = inverse_predict(mod,x2_oh)
+3-element Vector{String}:
+ "a"
+ "zz"
+ "c"
+```
+
 """
 mutable struct OneHotEncoder <: BetaMLUnsupervisedModel
     hpar::OneHotEncoderHyperParametersSet
@@ -124,6 +156,39 @@ The algorithm distinguishes between _missing_ values, for which it propagate the
 
 For the parameters see [`OneHotEncoderHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref). This model supports `inverse_predict`.
 
+# Example:
+```julia
+julia> using BetaML
+
+julia> x       = ["a","d","e","c","d"];
+
+julia> mod     = OrdinalEncoder(handle_unknown="infrequent",other_categories_name="zz")
+A OrdinalEncoder BetaMLModel (unfitted)
+
+julia> x_int   = fit!(mod,x)
+5-element Vector{Int64}:
+ 1
+ 2
+ 3
+ 4
+ 2
+
+julia> x2      = ["a","b","c","g"];
+
+julia> x2_int  = predict(mod,x2) # 5 is for the "infrequent" category
+4-element Vector{Int64}:
+ 1
+ 5
+ 4
+ 5
+
+julia> x2_back = inverse_predict(mod,x2_oh)
+4-element Vector{String}:
+ "a"
+ "zz"
+ "c"
+ "zz"
+```
 """
 mutable struct OrdinalEncoder <: BetaMLUnsupervisedModel
     hpar::OneHotEncoderHyperParametersSet
@@ -455,8 +520,38 @@ $(TYPEDEF)
 
 Scale the data to a given (def: unit) hypercube
 
-# Parameters
+# Parameters:
 $(FIELDS)
+
+# Example:
+
+```julia
+julia> using BetaML
+
+julia> x       = [[4000,1000,2000,3000] ["a", "categorical", "variable", "not to scale"] [4,1,2,3] [0.4, 0.1, 0.2, 0.3]]
+4×4 Matrix{Any}:
+ 4000  "a"             4  0.4
+ 1000  "categorical"   1  0.1
+ 2000  "variable"      2  0.2
+ 3000  "not to scale"  3  0.3
+
+julia> mod     = Scaler(MinMaxScaler(outputRange=(0,10)), skip=[2])
+A Scaler BetaMLModel (unfitted)
+
+julia> xscaled = fit!(mod,x)
+4×4 Matrix{Any}:
+ 10.0      "a"             10.0      10.0
+  0.0      "categorical"    0.0       0.0
+  3.33333  "variable"       3.33333   3.33333
+  6.66667  "not to scale"   6.66667   6.66667
+
+julia> xback   = inverse_predict(mod, xscaled)
+4×4 Matrix{Any}:
+ 4000.0  "a"             4.0  0.4
+ 1000.0  "categorical"   1.0  0.1
+ 2000.0  "variable"      2.0  0.2
+ 3000.0  "not to scale"  3.0  0.3
+```
 
 """
 Base.@kwdef mutable struct MinMaxScaler <: AbstractScaler
@@ -475,8 +570,45 @@ $(TYPEDEF)
 Standardise the input to zero mean and unit standard deviation, aka "Z-score". 
 Note that missing values are skipped.
 
-# Parameters
+# Parameters:
 $(FIELDS)
+
+# Example:
+```julia
+julia> using BetaML, Statistics
+
+julia> x         = [[4000,1000,2000,3000] [400,100,200,300] [4,1,2,3] [0.4, 0.1, 0.2, 0.3]]
+4×4 Matrix{Float64}:
+ 4000.0  400.0  4.0  0.4
+ 1000.0  100.0  1.0  0.1
+ 2000.0  200.0  2.0  0.2
+ 3000.0  300.0  3.0  0.3
+
+julia> mod       = Scaler() # equiv to `Scaler(StandardScaler(scale=true, center=true))`
+A Scaler BetaMLModel (unfitted)
+
+julia> xscaled   = fit!(mod,x)
+4×4 Matrix{Float64}:
+  1.34164    1.34164    1.34164    1.34164
+ -1.34164   -1.34164   -1.34164   -1.34164
+ -0.447214  -0.447214  -0.447214  -0.447214
+  0.447214   0.447214   0.447214   0.447214
+
+julia> col_means = mean(xscaled, dims=1)
+1×4 Matrix{Float64}:
+ 0.0  0.0  0.0  5.55112e-17
+
+julia> col_var   = var(xscaled, dims=1, corrected=false)
+1×4 Matrix{Float64}:
+ 1.0  1.0  1.0  1.0
+
+julia> xback     = inverse_predict(mod, xscaled)
+4×4 Matrix{Float64}:
+ 4000.0  400.0  4.0  0.4
+ 1000.0  100.0  1.0  0.1
+ 2000.0  200.0  2.0  0.2
+ 3000.0  300.0  3.0  0.3
+```
 
 """
 Base.@kwdef mutable struct StandardScaler <: AbstractScaler
@@ -597,10 +729,76 @@ Scale the data according to the specific chosen method (def: `StandardScaler`)
 
 For the parameters see [`ScalerHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref) 
 
-```
-julia>m = Scaler(MinMaxScaler(inputRange=(x->minimum(x)*0.8,maximum),outputRange=(0,256)),skip=[3,7,8])
+
+# Examples:
+
+- Standard scaler (default)...
+
+```julia
+julia> using BetaML, Statistics
+
+julia> x         = [[4000,1000,2000,3000] [400,100,200,300] [4,1,2,3] [0.4, 0.1, 0.2, 0.3]]
+4×4 Matrix{Float64}:
+ 4000.0  400.0  4.0  0.4
+ 1000.0  100.0  1.0  0.1
+ 2000.0  200.0  2.0  0.2
+ 3000.0  300.0  3.0  0.3
+
+julia> mod       = Scaler() # equiv to `Scaler(StandardScaler(scale=true, center=true))`
+A Scaler BetaMLModel (unfitted)
+
+julia> xscaled   = fit!(mod,x)
+4×4 Matrix{Float64}:
+  1.34164    1.34164    1.34164    1.34164
+ -1.34164   -1.34164   -1.34164   -1.34164
+ -0.447214  -0.447214  -0.447214  -0.447214
+  0.447214   0.447214   0.447214   0.447214
+
+julia> col_means = mean(xscaled, dims=1)
+1×4 Matrix{Float64}:
+ 0.0  0.0  0.0  5.55112e-17
+
+julia> col_var   = var(xscaled, dims=1, corrected=false)
+1×4 Matrix{Float64}:
+ 1.0  1.0  1.0  1.0
+
+julia> xback     = inverse_predict(mod, xscaled)
+4×4 Matrix{Float64}:
+ 4000.0  400.0  4.0  0.4
+ 1000.0  100.0  1.0  0.1
+ 2000.0  200.0  2.0  0.2
+ 3000.0  300.0  3.0  0.3
 ```
 
+- Min-max scaler...
+
+```julia
+julia> using BetaML
+
+julia> x       = [[4000,1000,2000,3000] ["a", "categorical", "variable", "not to scale"] [4,1,2,3] [0.4, 0.1, 0.2, 0.3]]
+4×4 Matrix{Any}:
+ 4000  "a"             4  0.4
+ 1000  "categorical"   1  0.1
+ 2000  "variable"      2  0.2
+ 3000  "not to scale"  3  0.3
+
+julia> mod     = Scaler(MinMaxScaler(outputRange=(0,10)),skip=[2])
+A Scaler BetaMLModel (unfitted)
+
+julia> xscaled = fit!(mod,x)
+4×4 Matrix{Any}:
+ 10.0      "a"             10.0      10.0
+  0.0      "categorical"    0.0       0.0
+  3.33333  "variable"       3.33333   3.33333
+  6.66667  "not to scale"   6.66667   6.66667
+
+julia> xback   = inverse_predict(mod,xscaled)
+4×4 Matrix{Any}:
+ 4000.0  "a"             4.0  0.4
+ 1000.0  "categorical"   1.0  0.1
+ 2000.0  "variable"      2.0  0.2
+ 3000.0  "not to scale"  3.0  0.3
+```
 """
 mutable struct Scaler <: BetaMLUnsupervisedModel
     hpar::ScalerHyperParametersSet
@@ -703,21 +901,22 @@ PCA returns the matrix reprojected among the dimensions of maximum variance.
 
 For the parameters see [`PCAHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref) 
 
-## Example :
-```julia
-julia> X = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95]
-6×3 Matrix{Float64}:
- 1.0   10.0  100.0
- 1.1   15.0  120.0
- 0.95  23.0   90.0
- 0.99  17.0  120.0
- 1.05   8.0   90.0
- 1.1   12.0   95.0
+# Notes:
+- PCA doesn't automatically scale the data. It is suggested to apply the [`Scaler`](@ref) model before running it. 
+- Missing data are not supported. Impute them first, see the [`Imputation`](Imputation.html) module.
+- If one doesn't know _a priori_ the maximum unexplained variance that he is willling to accept, nor the wished number of dimensions, he can run the model with all the dimensions in output (i.e. with `outdims=size(X,2)`), analise the proportions of explained cumulative variance by dimensions in `info(mod,""explained_var_by_dim")`, choose the number of dimensions K according to his needs and finally pick from the reprojected matrix only the number of dimensions required, i.e. `out.X[:,1:K]`.
 
-julia> mod = PCA(max_unexplained_var=0.05) # the default
+# Example:
+
+```julia
+julia> using BetaML
+
+julia> xtrain        = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95];
+
+julia> mod           = PCA(max_unexplained_var=0.05)
 A PCA BetaMLModel (unfitted)
 
-julia> reproj_X = fit!(mod,X)
+julia> xtrain_reproj = fit!(mod,xtrain)
 6×2 Matrix{Float64}:
  100.449    3.1783
  120.743    6.80764
@@ -733,12 +932,13 @@ Dict{String, Any} with 5 entries:
   "prop_explained_var"   => 0.999989
   "retained_dims"        => 2
   "xndims"               => 3
-```
 
-## Notes:
-- PCA doesn't automatically scale the data. It is suggested to apply the [`Scaler`](@ref) model before running it. 
-- Missing data are not supported. Impute them first, see the [`Imputation`](Imputation.html) module.
-- If one doesn't know _a priori_ the maximum unexplained variance that he is willling to accept, nor the wished number of dimensions, he can run the model with all the dimensions in output (i.e. with `outdims=size(X,2)`), analise the proportions of explained cumulative variance by dimensions in `info(mod,""explained_var_by_dim")`, choose the number of dimensions K according to his needs and finally pick from the reprojected matrix only the number of dimensions required, i.e. `out.X[:,1:K]`.
+julia> xtest         = [2 20 200];
+
+julia> xtest_reproj  = predict(mod,xtest)
+1×2 Matrix{Float64}:
+ 200.898  6.3566
+```
 """
 mutable struct PCA <: BetaMLUnsupervisedModel
     hpar::PCAHyperParametersSet

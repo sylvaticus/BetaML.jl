@@ -165,6 +165,8 @@ For the parameters see [`?DTHyperParametersSet`](@ref DTHyperParametersSet) and 
 - Classification...
 
 ```julia
+julia> using BetaML
+
 julia> X   = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
 
 julia> y   = ["a","b","b","b","b","a"];
@@ -192,7 +194,10 @@ Dict{String, Any}("job_is_regression" => 0, "fitted_records" => 6, "max_reached_
 ```
 
 - Regression...
+
 ```julia
+julia> using BetaML
+
 julia> X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
 
 julia> y = 2 .* X[:,1] .- X[:,2] .+ 3;
