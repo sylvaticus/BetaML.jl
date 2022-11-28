@@ -176,7 +176,7 @@ sumθ = θ; sumθ₀ = θ₀
    end
    if (ϵ == 0)
        if nMsgs > 0
-           println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified")
+           println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified)")
        end
        return (θ=θ,θ₀=θ₀,avgθ=sumθ/(n*T),avgθ₀=sumθ₀/(n*T),errors=0,besterrors=0,iterations=t,separated=true)
    elseif ϵ < bestϵ
@@ -319,6 +319,30 @@ For the parameters see [`?PerceptronClassifierHyperParametersSet`](@ref Perceptr
 - data must be numerical
 - online fitting (re-fitting with new data) is not supported
 
+# Example:
+```julia
+julia> X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
+
+julia> y = ["a","b","b","b","b","a"];
+
+julia> mod = PerceptronClassifier(epochs=100,return_mean_hyperplane=false)
+PerceptronClassifier - The classic linear perceptron classifier (unfitted)
+
+julia> ŷ = fit!(mod,X,y) |> mode
+Running function BetaML.Perceptron.#perceptronBinary#84 at /home/lobianco/.julia/dev/BetaML/src/Perceptron/Perceptron_classic.jl:150
+Type `]dev BetaML` to modify the source code (this would change its location on disk)
+***
+*** Training perceptron for maximum 100 iterations. Random shuffle: true
+Avg. error after iteration 1 : 0.5
+*** Avg. error after epoch 5 : 0.0 (all elements of the set has been correctly classified)
+6-element Vector{String}:
+ "a"
+ "b"
+ "b"
+ "b"
+ "b"
+ "a"
+```
 """
 mutable struct PerceptronClassifier <: BetaMLSupervisedModel
     hpar::PerceptronClassifierHyperParametersSet

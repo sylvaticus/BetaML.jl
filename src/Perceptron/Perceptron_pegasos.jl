@@ -142,11 +142,13 @@ function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/s
         nMsgs = 100
     else
         nMsgs = 100000
+        @codelocation
     end
     if nMsgs > 5
-    @codelocation
-    println("***\n*** Training pegasos for maximum $T iterations. Random shuffle: $shuffle")
+        println("***\n*** Training pegasos for maximum $T iterations. Random shuffle: $shuffle")
     end
+
+
     x = makematrix(x)
     (n,d) = size(x)
     ny = size(y,1)
@@ -176,7 +178,7 @@ function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/s
     end
     if (ϵ == 0)
         if nMsgs > 5
-            println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified")
+            println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified)")
         end
         return (θ=θ,θ₀=θ₀,avgθ=sumθ/(n*T),avgθ₀=sumθ₀/(n*T),errors=0,besterrors=0,iterations=t,separated=true)
     elseif ϵ < bestϵ
@@ -235,6 +237,29 @@ $(TYPEDEF)
 The `PegasosClassifier` model, a _linear_, gradient-based classifier. Multiclass is supported using a one-vs-all approach.
 
 See [`?PegasosClassifierHyperParametersSet`](@ref PegasosClassifierHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet) for applicable hyperparameters and options. 
+
+# Example:
+```julia
+julia> X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
+
+julia> y = ["a","b","b","b","b","a"];
+
+julia> mod = PegasosClassifier(epochs=100,learning_rate = (epoch -> 0.05) )
+PegasosClassifier - a loss-based linear classifier without regularisation term (unfitted)
+
+julia> ŷ = fit!(mod,X,y) |> mode
+***
+*** Training pegasos for maximum 100 iterations. Random shuffle: true
+Avg. error after iteration 1 : 0.5
+*** Avg. error after epoch 3 : 0.0 (all elements of the set has been correctly classified)
+6-element Vector{String}:
+ "a"
+ "b"
+ "b"
+ "b"
+ "b"
+ "a"
+```
 
 """
 mutable struct PegasosClassifier <: BetaMLSupervisedModel

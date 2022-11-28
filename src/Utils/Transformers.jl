@@ -174,7 +174,7 @@ aic(lL,k)   = 2*k-2*lL
 """Radial Kernel (aka _RBF kernel_) parametrised with γ=1/2. For other gammas γᵢ use
 `K = (x,y) -> radial_kernel(x,y,γ=γᵢ)` as kernel function in the supporting algorithms"""
 radial_kernel(x,y;γ=1/2) = exp(-γ*norm(x-y)^2)
-"""Polynomial kernel parametrised with `c=0` and `d=2` (i.e. a quadratic kernel).
+"""Polynomial kernel parametrised with `constant=0` and `degree=2` (i.e. a quadratic kernel).
 For other `cᵢ` and `dᵢ` use `K = (x,y) -> polynomial_kernel(x,y,c=cᵢ,d=dᵢ)` as
 kernel function in the supporting algorithms"""
-polynomial_kernel(x,y;c=0,d=2) = (dot(x,y)+c)^d
+polynomial_kernel(x,y;constant=0,degree=2) = (dot(x,y)+constant)^degree

@@ -170,7 +170,7 @@ function kernelPerceptronBinary(x, y; K=radial_kernel, T=1000, α=zeros(Int64,le
         end
         if (ϵ == 0)
             if nMsgs > 0
-                println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified")
+                println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified)")
             end
             return (x=x,y=y,α=α,errors=0,besterrors=0,iterations=t,separated=true,K=K)
         elseif ϵ < bestϵ
@@ -327,7 +327,7 @@ Base.@kwdef mutable struct KernelPerceptronClassifierHyperParametersSet <: BetaM
     See [`SuccessiveHalvingSearch`](@ref) for the default method.
     To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
-    tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("kernel" =>[radial_kernel,polynomial_kernel, (x,y) -> polynomial_kernel(x,y,d=3)], "epochs" =>[50,100,1000,10000], "shuffle"=>[true,false]),multithreads=true)
+    tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("kernel" =>[radial_kernel,polynomial_kernel, (x,y) -> polynomial_kernel(x,y,degree=3)], "epochs" =>[50,100,1000,10000], "shuffle"=>[true,false]),multithreads=true)
 end
 
 Base.@kwdef mutable struct KernelPerceptronClassifierLearnableParameters <: BetaMLLearnableParametersSet
@@ -344,10 +344,37 @@ A "kernel" version of the `Perceptron` model (supervised) with user configurable
 
 For the parameters see [`?KernelPerceptronClassifierHyperParametersSet`](@ref KernelPerceptronClassifierHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet)
 
-## Limitations:
+# Limitations:
 - data must be numerical
 - online training (retraining) is not supported
 
+# Example:
+```julia
+julia> X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
+
+julia> y = ["a","b","b","b","b","a"];
+
+julia> quadratic_kernel(x,y) = polynomial_kernel(x,y;degree=2)
+quadratic_kernel (generic function with 1 method)
+
+julia> mod = KernelPerceptronClassifier(epochs=100, kernel= quadratic_kernel)
+KernelPerceptronClassifier - A "kernelised" version of the perceptron classifier (unfitted)
+
+julia> ŷ = fit!(mod,X,y) |> mode
+Running function BetaML.Perceptron.#kernelPerceptronBinary#17 at /home/lobianco/.julia/dev/BetaML/src/Perceptron/Perceptron_kernel.jl:133
+Type `]dev BetaML` to modify the source code (this would change its location on disk)
+***
+*** Training kernel perceptron for maximum 100 iterations. Random shuffle: true
+Avg. error after iteration 1 : 0.5
+Avg. error after iteration 10 : 0.16666666666666666
+*** Avg. error after epoch 13 : 0.0 (all elements of the set has been correctly classified)
+6-element Vector{String}:
+ "a"
+ "b"
+ "b"
+ "b"
+ "b"
+```
 """
 mutable struct KernelPerceptronClassifier <: BetaMLSupervisedModel
     hpar::KernelPerceptronClassifierHyperParametersSet
