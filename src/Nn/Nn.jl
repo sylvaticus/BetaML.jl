@@ -772,12 +772,10 @@ Base.@kwdef mutable struct NNHyperParametersSet <: BetaMLHyperParametersSet
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
     """Loss (cost) function [def: `squared_cost`]
     It must always assume y and ŷ as (n x d) matrices, eventually using `dropdims` inside.
-    !!! warning
-        If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
     """
     loss::Union{Nothing,Function} = squared_cost
-    "Derivative of the loss function [def: `dsquared_cost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
-    dloss::Union{Function,Nothing}  = dsquared_cost
+    "Derivative of the loss function [def: `dsquared_cost` if `loss==squared_cost`, `nothing` otherwise, i.e. use the derivative of the squared cost or autodiff]"
+    dloss::Union{Function,Nothing}  = nothing
     "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
     epochs::Int64 = 100
     "Size of each individual batch [def: `32`]"
@@ -831,11 +829,83 @@ A "feedforward" neural network (supervised).
 
 For the parameters see [`NNHyperParametersSet`](@ref).
 
-## Notes:
+# Notes:
 - data must be numerical
 - the label can be a _n-records_ vector or a _n-records_ by _n-dimensions_ matrix, but the result is always a matrix.
   - For one-dimension regressions drop the unnecessary dimension with `dropdims(ŷ,dims=2)`
   - For classification tasks the columns should normally be interpreted as the probabilities for each categories
+
+# Examples:
+```julia
+# Classification...
+julia> X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
+
+julia> y = ["a","b","b","b","b","a"];
+
+julia> ohmod = OneHotEncoder()
+A OneHotEncoder BetaMLModel (unfitted)
+
+julia> y_oh  = fit!(ohmod,y)
+6×2 Matrix{Bool}:
+ 1  0
+ 0  1
+ 0  1
+ 0  1
+ 0  1
+ 1  0
+
+julia> layers = [DenseLayer(2,6),DenseLayer(6,2),VectorFunctionLayer(2,f=softmax)];
+
+julia> m      = NeuralNetworkEstimator(layers=layers,opt_alg=ADAM(),epochs=300,verbosity=LOW)
+NeuralNetworkEstimator - A Feed-forward neural network (unfitted)
+
+julia> ŷ_prob = fit!(m,X,y_oh)
+***
+*** Training  for 300 epochs with algorithm ADAM.
+Training..       avg ϵ on (Epoch 1 Batch 1):     0.4116936481380642
+Training of 300 epoch completed. Final epoch error: 0.44308719831108734.
+6×2 Matrix{Float64}:
+ 0.853198    0.146802
+ 0.0513715   0.948629
+ 0.0894273   0.910573
+ 0.0367079   0.963292
+ 0.00548038  0.99452
+ 0.808334    0.191666
+
+julia> ŷ      = inverse_predict(ohmod,ŷ_prob)
+6-element Vector{String}:
+ "a"
+ "b"
+ "b"
+ "b"
+ "b"
+ "a"
+
+# Regression...
+julia> X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
+
+julia> y = 2 .* X[:,1] .- X[:,2] .+ 3;
+
+julia> layers = [DenseLayer(2,6),DenseLayer(6,6),DenseLayer(6,1)];
+
+julia> m      = NeuralNetworkEstimator(layers=layers,opt_alg=ADAM(),epochs=3000,verbosity=LOW)
+NeuralNetworkEstimator - A Feed-forward neural network (unfitted)
+
+julia> ŷ      = fit!(m,X,y);
+***
+*** Training  for 3000 epochs with algorithm ADAM.
+Training..       avg ϵ on (Epoch 1 Batch 1):     33.30063874270561
+Training of 3000 epoch completed. Final epoch error: 34.61265465430473.
+
+julia> hcat(y,ŷ)
+6×2 Matrix{Float64}:
+   4.1    4.11015
+ -16.5  -16.5329
+ -13.8  -13.8381
+ -18.4  -18.3876
+ -27.2  -27.1667
+   2.7    2.70542
+```  
 """
 mutable struct NeuralNetworkEstimator <: BetaMLSupervisedModel
     hpar::NNHyperParametersSet
@@ -859,6 +929,14 @@ function NeuralNetworkEstimator(;kwargs...)
           end
         end
         found || error("Keyword \"$kw\" is not part of this model.")
+    end
+    # Special correction for NNHyperParametersSet
+    kwkeys = keys(kwargs) #in(2,[1,2,3])
+    if !in(:dloss,kwkeys) # if dloss in not explicitly provided
+        if   (in(:loss,kwkeys) && kwargs[:loss] == squared_cost  ) || # loss is explicitly provided and it is equal to squared_loss
+            (!in(:loss,kwkeys) )                               # (or) loss in not explicitly provided
+            m.hpar.dloss = dsquared_cost
+        end
     end
     return m
 end
