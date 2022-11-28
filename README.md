@@ -18,28 +18,28 @@ Currently the following models are available:
 
 | BetaML name | MLJ Interface | Category |
 | ----------- | ------------- | -------- |
-| PerceptronClassifier | LinearPerceptron | _Supervised regressor_ | 
-| KernelPerceptronClassifier  | KernelPerceptron | _Supervised regressor_ | 
-| PegasosClassifier | Pegasos | _Supervised classifier_ |
-| DecisionTreeEstimator | DecisionTreeClassifier, DecisionTreeRegressor | _Supervised regressor and classifier_ |
-| RandomForestEstimator |  RandomForestClassifier, RandomForestRegressor | _Supervised regressor and classifier_ |
-| NeuralNetworkEstimator | NeuralNetworkRegressor, MultitargetNeuralNetworkRegressor, NeuralNetworkClassifier | _Supervised regressor and classifier_ |
-| GMMRegressor1 | | _Supervised regressor_ | 
-| GMMRegressor2 | GaussianMixtureRegressor, MultitargetGaussianMixtureRegressor | _Supervised regressor_ | 
-| KMeansClusterer | KMeans | _Unsupervised hard clusterer_ |
-| KMedoidsClusterer | KMedoids | _Unsupervised hard clusterer_ |
-| GMMClusterer | GaussianMixtureClusterer | _Unsupervised soft clusterer_ |
-| FeatureBasedImputer | SimpleImputer | _Unsupervised missing data imputer_ |
-| GMMImputer | GaussianMixtureImputer | _Unsupervised missing data imputer_ |
-| RFImputer | RandomForestImputer | _Unsupervised missing data imputer_ |
-| UniversalImputer | GeneralImputer | _Unsupervised missing data imputer_ |
-| MinMaxScaler | | _Data transformer_ |
-| StandardScaler | | _Data transformer_ |
-| Scaler |  | _Data transformer_ |
-| PCA |  | _Data transformer_ |
-| OneHotEncoder |  | _Data transformer_ |
-| OrdinalEncoder |  | _Data transformer_ |
-| ConfusionMatrix | | _Predictions assessment_ |
+| [`PerceptronClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.PerceptronClassifier) | [`LinearPerceptron`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.LinearPerceptron) | _Supervised regressor_ | 
+| [`KernelPerceptronClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.KernelPerceptronClassifier)  | [`KernelPerceptron`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.KernelPerceptron) | _Supervised regressor_ | 
+| [`PegasosClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.PegasosClassifier) | [`Pegasos`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.Pegasos) | _Supervised classifier_ |
+| [`DecisionTreeEstimator`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.DecisionTreeEstimator) | [`DecisionTreeClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.DecisionTreeClassifier), [`DecisionTreeRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.DecisionTreeRegressor) | _Supervised regressor and classifier_ |
+| [`RandomForestEstimator`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.RandomForestEstimator) |  [`RandomForestClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.RandomForestClassifier), [`RandomForestRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.RandomForestRegressor) | _Supervised regressor and classifier_ |
+| [`NeuralNetworkEstimator`](https://sylvaticus.github.io/BetaML.jl/stable/Nn.html#BetaML.Nn.NeuralNetworkEstimator) | [`NeuralNetworkRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/Nn.html#BetaML.Nn.NeuralNetworkRegressor), [`MultitargetNeuralNetworkRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/Nn.html#BetaML.Nn.MultitargetNeuralNetworkRegressor), [`NeuralNetworkClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Nn.html#BetaML.Nn.NeuralNetworkClassifier) | _Supervised regressor and classifier_ |
+| [`GMMRegressor1`](https://sylvaticus.github.io/BetaML.jl/stable/GMM.html#BetaML.GMM.GMMRegressor1) | | _Supervised regressor_ | 
+| [`GMMRegressor2`](https://sylvaticus.github.io/BetaML.jl/stable/GMM.html#BetaML.GMM.GMMRegressor2) | [`GaussianMixtureRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/GMM.html#BetaML.GMM.GaussianMixtureRegressor), [`MultitargetGaussianMixtureRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/GMM.html#BetaML.GMM.MultitargetGaussianMixtureRegressor) | _Supervised regressor_ | 
+| [`KMeansClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/Clustering.html#BetaML.Clustering.KMeansClusterer) | [`KMeans`](https://sylvaticus.github.io/BetaML.jl/stable/Clustering.html#BetaML.Clustering.KMeans) | _Unsupervised hard clusterer_ |
+| [`KMedoidsClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/Clustering.html#BetaML.Clustering.KMedoidsClusterer) | [`KMedoids`](https://sylvaticus.github.io/BetaML.jl/stable/Clustering.html#BetaML.Clustering.KMedoids) | _Unsupervised hard clusterer_ |
+| [`GMMClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/GMM.html#BetaML.GMM.GMMClusterer) | [`GaussianMixtureClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/GMM.html#BetaML.GMM.GaussianMixtureClusterer) | _Unsupervised soft clusterer_ |
+| [`FeatureBasedImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.FeatureBasedImputer)| [`SimpleImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.SimpleImputer) | _Unsupervised missing data imputer_ |
+| [`GMMImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.GMMImputer) | [`GaussianMixtureImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.GaussianMixtureImputer) | _Unsupervised missing data imputer_ |
+| [`RFImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.RFImputer) | [`RandomForestImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.RandomForestImputer) | _Unsupervised missing data imputer_ |
+| [`UniversalImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.UniversalImputer) | [`GeneralImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.GeneralImputer) | _Unsupervised missing data imputer_ |
+| [`MinMaxScaler`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.MinMaxScaler) | | _Data transformer_ |
+| [`StandardScaler`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.StandardScaler) | | _Data transformer_ |
+| [`Scaler`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.Scaler) |  | _Data transformer_ |
+| [`PCA`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.PCA) |  | _Data transformer_ |
+| [`OneHotEncoder`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.OneHotEncoder) |  | _Data transformer_ |
+| [`OrdinalEncoder`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.OrdinalEncoder) |  | _Data transformer_ |
+| [`ConfusionMatrix`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.ConfusionMatrix) | | _Predictions assessment_ |
 
 
 Theoretical notes describing many of these algorithms are at the companion repository https://github.com/sylvaticus/MITx_6.86x.

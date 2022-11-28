@@ -197,7 +197,7 @@ Base.@kwdef mutable struct ConfusionMatrixHyperParametersSet <: BetaMLHyperParam
   other_categories_name = nothing
   "A dictionary to map categories to some custom names. Useful for example if categories are integers, or you want to use shorter names [def: `Dict()`, i.e. not used]. This option isn't currently compatible with missing values or when some record has a value not in this provided dictionary."
   categories_names = Dict()
-  "Wheter `predict` should return the normalised scores. Note that both unnormalised and normalised scores remain available using `info`. [def: `true`]"
+  "Wether `predict` should return the normalised scores. Note that both unnormalised and normalised scores remain available using `info`. [def: `true`]"
   normalise_scores = true
 end
 
@@ -242,16 +242,92 @@ The "predicted" values are either the scores or the normalised scores (depending
   - `fitted_records`:     Number of records considered
   - `n_categories`:       Number of categories considered
 
-- The confusion matrix can also be plotted, e.g.:
+# Example:
+
+The confusion matrix can also be plotted, e.g.:
+
+```julia
+julia> using Plots, BetaML
+
+julia> y  = ["apple","mandarin","clementine","clementine","mandarin","apple","clementine","clementine","apple","mandarin","clementine"];
+
+julia> ŷ  = ["apple","mandarin","clementine","mandarin","mandarin","apple","clementine","clementine",missing,"clementine","clementine"];
+
+julia> cm = ConfusionMatrix(handle_missing="drop")
+A ConfusionMatrix BetaMLModel (unfitted)
+
+julia> normalised_scores = fit!(cm,y,ŷ)
+3×3 Matrix{Float64}:
+ 1.0  0.0       0.0
+ 0.0  0.666667  0.333333
+ 0.0  0.2       0.8
+
+julia> println(cm)
+A ConfusionMatrix BetaMLModel (fitted)
+
+-----------------------------------------------------------------
+
+*** CONFUSION MATRIX ***
+
+Scores actual (rows) vs predicted (columns):
+
+4×4 Matrix{Any}:
+ "Labels"       "apple"   "mandarin"   "clementine"
+ "apple"       2         0            0
+ "mandarin"    0         2            1
+ "clementine"  0         1            4
+Normalised scores actual (rows) vs predicted (columns):
+
+4×4 Matrix{Any}:
+ "Labels"       "apple"   "mandarin"   "clementine"
+ "apple"       1.0       0.0          0.0
+ "mandarin"    0.0       0.666667     0.333333
+ "clementine"  0.0       0.2          0.8
+
+ *** CONFUSION REPORT ***
+
+- Accuracy:               0.8
+- Misclassification rate: 0.19999999999999996
+- Number of classes:      3
+
+  N Class      precision   recall  specificity  f1score  actual_count  predicted_count
+                             TPR       TNR                 support                  
+
+  1 apple          1.000    1.000        1.000    1.000            2               2
+  2 mandarin       0.667    0.667        0.857    0.667            3               3
+  3 clementine     0.800    0.800        0.800    0.800            5               5
+
+- Simple   avg.    0.822    0.822        0.886    0.822
+- Weigthed avg.    0.800    0.800        0.857    0.800
+
+-----------------------------------------------------------------
+Output of `info(cm)`:
+- mean_precision:       (0.8222222222222223, 0.8)
+- fitted_records:       10
+- specificity:  [1.0, 0.8571428571428571, 0.8]
+- precision:    [1.0, 0.6666666666666666, 0.8]
+- misclassification:    0.19999999999999996
+- mean_recall:  (0.8222222222222223, 0.8)
+- n_categories: 3
+- normalised_scores:    [1.0 0.0 0.0; 0.0 0.6666666666666666 0.3333333333333333; 0.0 0.2 0.8]
+- tn:   [8, 6, 4]
+- mean_f1score: (0.8222222222222223, 0.8)
+- actual_count: [2, 3, 5]
+- accuracy:     0.8
+- recall:       [1.0, 0.6666666666666666, 0.8]
+- f1score:      [1.0, 0.6666666666666666, 0.8]
+- mean_specificity:     (0.8857142857142858, 0.8571428571428571)
+- predicted_count:      [2, 3, 5]
+- scores:       [2 0 0; 0 2 1; 0 1 4]
+- tp:   [2, 2, 4]
+- fn:   [0, 1, 1]
+- categories:   ["apple", "mandarin", "clementine"]
+- fp:   [0, 1, 1]
+
+
+julia> heatmap(string.(res["categories"]),string.(res["categories"]),res["normalised_scores"],seriescolor=cgrad([:white,:blue]),xlabel="Predicted",ylabel="Actual", title="Confusion Matrix (normalised scores)")
 ```
-using Plots, BetaML 
-y  = [1,2,2,1,3,2,3]
-ŷ  = [1,3,2,2,3,3,3]
-cm = ConfusionMatrix()
-fit!(cm,y,ŷ)
-res = info(cm)
-heatmap(string.(res["categories"]),string.(res["categories"]),res["normalised_scores"],seriescolor=cgrad([:white,:blue]),xlabel="Predicted",ylabel="Actual", title="Confusion Matrix (normalised scores)")
-```
+![CM plot](assets/cmClementines.png) 
 
 """
 mutable struct ConfusionMatrix <: BetaMLUnsupervisedModel
