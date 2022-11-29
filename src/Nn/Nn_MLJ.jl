@@ -24,6 +24,8 @@ $(FIELDS)
 
 # Example:
 ```julia
+julia> using MLJ
+
 julia> modelType                   = @load NeuralNetworkRegressor pkg = "BetaML"
 [ Info: For silent loading, specify `verbosity=0`. 
 import BetaML ✔
@@ -52,7 +54,6 @@ julia> y_est                       = predict(model, fitResults, X)
  27.72073250260763
   ⋮
  27.259757923962265
-
 ```
 """
 Base.@kwdef mutable struct NeuralNetworkRegressor <: MMI.Deterministic
@@ -306,8 +307,8 @@ Base.@kwdef mutable struct NeuralNetworkClassifier <: MMI.Probabilistic
     "Random Number Generator [deafult: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG = Random.GLOBAL_RNG
 end
-"""
 
+"""
 MMI.fit(model::NeuralNetworkClassifier, verbosity, X, y)
 
 For the `verbosity` parameter see [`Verbosity`](@ref))

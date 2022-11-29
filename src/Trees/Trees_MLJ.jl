@@ -179,7 +179,7 @@ julia> y_est                       = predict(model, fitResults, X)
  24.191666666666663
  23.726666666666674
  15.393333333333327
- ```
+```
 """
 mutable struct RandomForestRegressor <: MMI.Deterministic
    "Number of (decision) trees in the forest [def: `30`]"

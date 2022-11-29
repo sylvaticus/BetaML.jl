@@ -1064,7 +1064,7 @@ Note that `cross_validation` can beconveniently be employed using the `do` synta
 
 # Example
 
-```
+```julia
 julia> X = [11:19 21:29 31:39 41:49 51:59 61:69];
 julia> Y = [1:9;];
 julia> sampler = KFold(nsplits=3);

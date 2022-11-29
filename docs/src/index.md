@@ -54,7 +54,7 @@ Currently BetaML provides the following models:
 | [`KMedoidsClusterer`](@ref) | [`KMedoids`](@ref) | _Unsupervised hard clusterer_ |
 | [`GMMClusterer`](@ref) | [`GaussianMixtureClusterer`](@ref)| _Unsupervised soft clusterer_ |
 | [`FeatureBasedImputer`](@ref) | [`SimpleImputer`](@ref) | _Unsupervised missing data imputer_ |
-| [`GMMImputer`](@ref) | [`GaussianMixtureImputer`](@ref), [`MultitargetGaussianMixtureImputer`](@ref)  | _Unsupervised missing data imputer_ |
+| [`GMMImputer`](@ref) | [`GaussianMixtureImputer`](@ref) | _Unsupervised missing data imputer_ |
 | [`RFImputer`](@ref) | [`RandomForestImputer`](@ref) | _Unsupervised missing data imputer_ |
 | [`UniversalImputer`](@ref) | [`GeneralImputer`](@ref) | _Unsupervised missing data imputer_ |
 | [`MinMaxScaler`](@ref) | | _Data transformer_ |
