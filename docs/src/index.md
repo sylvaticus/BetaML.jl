@@ -42,8 +42,8 @@ Currently BetaML provides the following models:
 
 | `BetaML` name | [`MLJ`](https://github.com/alan-turing-institute/MLJ.jl) Interface | Category* |
 | ----------- | ------------- | -------- |
-| [`PerceptronClassifier`](@ref) | [`LinearPerceptron`](@ref) | _Supervised regressor_ | 
-| [`KernelPerceptronClassifier`](@ref)  | [`KernelPerceptron`](@ref) | _Supervised regressor_ | 
+| [`PerceptronClassifier`](@ref) | [`LinearPerceptron`](@ref) | _Supervised classifier_ | 
+| [`KernelPerceptronClassifier`](@ref)  | [`KernelPerceptron`](@ref) | _Supervised classifier_ | 
 | [`PegasosClassifier`](@ref) | [`Pegasos`](@ref) | _Supervised classifier_ |
 | [`DecisionTreeEstimator`](@ref) | [`DecisionTreeClassifier`](@ref), [`DecisionTreeRegressor`](@ref) | _Supervised regressor and classifier_ |
 | [`RandomForestEstimator`](@ref) |  [`RandomForestClassifier`](@ref), [`RandomForestRegressor`](@ref) | _Supervised regressor and classifier_ |
@@ -60,7 +60,7 @@ Currently BetaML provides the following models:
 | [`MinMaxScaler`](@ref) | | _Data transformer_ |
 | [`StandardScaler`](@ref) | | _Data transformer_ |
 | [`Scaler`](@ref) |  | _Data transformer_ |
-| [`PCA`](@ref) |  | _Data transformer_ |
+| [`PCA`](@ref) |  | _Unsupervised dimensionality reduction_ |
 | [`OneHotEncoder`](@ref) |  | _Data transformer_ |
 | [`OrdinalEncoder`](@ref) |  | _Data transformer_ |
 | [`ConfusionMatrix`](@ref) | | _Predictions assessment_ |

@@ -6,7 +6,7 @@
 
 <img src="assets/BetaML_logo.png" width="300" valign="middle"/> &nbsp;&nbsp;&nbsp;<img src="assets/microExample_white.png" width="500" valign="middle"/>
 
-The **Beta Machine Learning Toolkit** is a package including many algorithms and utilities to implement machine learning workflows in Julia, [Python](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#Use-BetaML-in-Python)], [R](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#Use-BetaML-in-R)] and any other language with a Julia binding.
+The **Beta Machine Learning Toolkit** is a package including many algorithms and utilities to implement machine learning workflows in Julia, [Python](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#Use-BetaML-in-Python), [R](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#Use-BetaML-in-R) and any other language with a Julia binding.
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://sylvaticus.github.io/BetaML.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sylvaticus.github.io/BetaML.jl/dev)
@@ -18,8 +18,8 @@ Currently the following models are available:
 
 | BetaML name | MLJ Interface | Category |
 | ----------- | ------------- | -------- |
-| [`PerceptronClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.PerceptronClassifier) | [`LinearPerceptron`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.LinearPerceptron) | _Supervised regressor_ | 
-| [`KernelPerceptronClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.KernelPerceptronClassifier)  | [`KernelPerceptron`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.KernelPerceptron) | _Supervised regressor_ | 
+| [`PerceptronClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.PerceptronClassifier) | [`LinearPerceptron`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.LinearPerceptron) | _Supervised classifier_ | 
+| [`KernelPerceptronClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.KernelPerceptronClassifier)  | [`KernelPerceptron`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.KernelPerceptron) | _Supervised classifier_ | 
 | [`PegasosClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.PegasosClassifier) | [`Pegasos`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.Pegasos) | _Supervised classifier_ |
 | [`DecisionTreeEstimator`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.DecisionTreeEstimator) | [`DecisionTreeClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.DecisionTreeClassifier), [`DecisionTreeRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.DecisionTreeRegressor) | _Supervised regressor and classifier_ |
 | [`RandomForestEstimator`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.RandomForestEstimator) |  [`RandomForestClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.RandomForestClassifier), [`RandomForestRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.RandomForestRegressor) | _Supervised regressor and classifier_ |
@@ -36,7 +36,7 @@ Currently the following models are available:
 | [`MinMaxScaler`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.MinMaxScaler) | | _Data transformer_ |
 | [`StandardScaler`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.StandardScaler) | | _Data transformer_ |
 | [`Scaler`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.Scaler) |  | _Data transformer_ |
-| [`PCA`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.PCA) |  | _Data transformer_ |
+| [`PCA`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.PCA) |  | _Unsupervised dimensionality reduction transformer_ |
 | [`OneHotEncoder`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.OneHotEncoder) |  | _Data transformer_ |
 | [`OrdinalEncoder`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.OrdinalEncoder) |  | _Data transformer_ |
 | [`ConfusionMatrix`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.ConfusionMatrix) | | _Predictions assessment_ |
