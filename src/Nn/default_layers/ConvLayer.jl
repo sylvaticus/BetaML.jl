@@ -25,7 +25,7 @@ mutable struct ConvLayer{ND,NDPLUS1,NDPLUS2} <: AbstractLayer
    padding_end::SVector{ND,Int64}
    "Stride"
    stride::SVector{ND,Int64}
-   "Number of dimensions"
+   "Number of dimensions (excluding input and output channels)"
    ndims::Int64
    "Activation function"
    f::Function
@@ -120,6 +120,20 @@ function ConvLayer(input_size_with_channel,kernel_size,nchannels_out;
      return ConvLayer(input_size_with_channel[1:end-1],kernel_size,input_size_with_channel[end],nchannels_out; stride=stride,rng=rng,padding=padding,kernel_init=kernel_init,usebias=usebias,bias_init=bias_init,f=f,df=df)
 
 end
+
+function _xpadComp(layer::ConvLayer,x)
+   input_size, output_size = size(layer)
+   # input padding
+   padding_start = SVector{layer.ndims+1,Int64}([layer.padding_start...,0])
+   padding_end   = SVector{layer.ndims+1,Int64}([layer.padding_end...,0])
+   padded_size   = input_size .+  padding_start .+ padding_end
+   xstart        = padding_start .+ 1
+   xends         = padding_start .+ input_size
+   xpadded       = zeros(eltype(x), padded_size...)
+   xpadded[[range(s,e,step=1) for (s,e) in zip(xstart,xends)]...] = x
+   return xpadded
+end
+
 function _zComp(layer::ConvLayer,x)
    if ndims(x) == 1
       reshape(x,size(layer)[1]) 
@@ -127,13 +141,7 @@ function _zComp(layer::ConvLayer,x)
     input_size, output_size = size(layer)
   
     # input padding
-    padding_start = SVector{layer.ndims+1,Int64}([layer.padding_start...,0])
-    padding_end   = SVector{layer.ndims+1,Int64}([layer.padding_end...,0])
-    padded_size   = input_size .+  padding_start .+ padding_end
-    xstart        = padding_start .+ 1
-    xends         = padding_start .+ input_size
-    xpadded       = zeros(eltype(x), padded_size...)
-    xpadded[[range(s,e,step=1) for (s,e) in zip(xstart,xends)]...] = x
+    xpadded = _xpadComp(layer,x)
 
     y = zeros(output_size)
 
@@ -142,9 +150,9 @@ function _zComp(layer::ConvLayer,x)
      nchannel_out  = yiarr[end]
      starti        = yiarr[1:end-1] .* layer.stride .- layer.stride .+ 1
      starti        = vcat(starti,1)
-     endi   = starti .+  convert(SVector{layer.ndims+1,Int64},size(layer.weight)[1:end-1]) .- 1
-     weight = selectdim(layer.weight,layer.ndims+2,nchannel_out)
-     y[yi]  = layer.bias[nchannel_out] .+ dot(weight, xpadded[[range(s,e,step=1) for (s,e) in zip(starti,endi)]...])
+     endi          = starti .+  convert(SVector{layer.ndims+1,Int64},size(layer.weight)[1:end-1]) .- 1
+     weight        = selectdim(layer.weight,layer.ndims+2,nchannel_out)
+     y[yi]         = layer.bias[nchannel_out] .+ dot(weight, xpadded[[range(s,e,step=1) for (s,e) in zip(starti,endi)]...])
     end
   
     return y
@@ -174,7 +182,22 @@ function backward(layer::ConvLayer,x,next_gradient) # with respect to inputs
    dϵ_dI = @turbo layer.w' * dϵ_dz # @avx
    return dϵ_dI
    =#
-   return ones(input_size)
+   z      =  _zComp(layer,x)
+   if layer.df != nothing
+      dfz = layer.df.(z)  
+   else
+      dfz =  layer.f'.(z) # using AD
+   end
+   dϵ_dz  = @turbo  dfz .* next_gradient
+   xpadded = _xpadComp(layer,x)
+
+   #println("dϵ_dz: ", dϵ_dz)
+   de_dx    = zeros(input_size)
+
+   
+
+
+   return ones(de_dx)
 end
 
 function get_params(layer::ConvLayer)
@@ -187,22 +210,62 @@ end
 
 function get_gradient(layer::ConvLayer,x,next_gradient)
    #=
-   z      =  _zComp(layer,x) #@avx layer.w * x + layer.wb #  _zComp(layer,x) #layer.w * x + layer.wb # @avx
+   dϵ_dw  = @turbo dϵ_dz * x' # @avx
+   dϵ_dwb = dϵ_dz
+   return Learnable((dϵ_dw,dϵ_dwb))
+   =#
+
+   #input_size, output_size = size(layer)
+
+   z      =  _zComp(layer,x)
    if layer.df != nothing
       dfz = layer.df.(z)  
    else
       dfz =  layer.f'.(z) # using AD
    end
    dϵ_dz  = @turbo  dfz .* next_gradient
-   dϵ_dw  = @turbo dϵ_dz * x' # @avx
-   dϵ_dwb = dϵ_dz
-   return Learnable((dϵ_dw,dϵ_dwb))
-   =#
-   dw    = zeros(size(layer.weigth))
-   dbias = zeros(length(layer.bias))
+
+   #println("dϵ_dz: ", dϵ_dz)
+   dw    = zeros(size(layer.weight))
+
+   xpadded = _xpadComp(layer,x)
+   #println("xpadded: ", xpadded)
+   # dw computation
+   for idx in CartesianIndices(dw)
+      idx = convert(SVector{layer.ndims+2,Int64},idx)
+      nchannel_out = idx[end]
+      nchannel_in  = idx[end-1]
+      wdims        = idx[1:end-2]
+      #println("***** widx: ", idx)
+      # need to compute the Ys reached by this specific weigth and the corresponding x
+      # foreach Y(oudims,co) 
+      #    add to weigth(dims,ci,co) the X(dims_trans,ci) that accompy the weigth(dims,ci,co) for this Y(oudims,co)
+      dϵ_dz_nchannelOut = selectdim(dϵ_dz,layer.ndims+1,nchannel_out)
+      xval = zeros(size(dϵ_dz_nchannelOut))
+      for yi in CartesianIndices(dϵ_dz_nchannelOut)
+         idx_y = convert(SVector{layer.ndims,Int64},yi)
+         idx_x_dest = idx_y
+         #println("- idx_y: ", idx_y)
+         #println("- idx_x_dest: ", idx_x_dest)
+         idx_x_source = wdims .+ (idx_y .- 1 ) .* layer.stride # xpadded[i] = w[i] + (Y[i] -1 ) * STRIDE
+         #println("- idx_x_source: ", idx_x_source)
+         #println("vcat(idx_x_source,nchannel_in): ",vcat(idx_x_source,nchannel_in))
+         xval[idx_x_dest] = xpadded[vcat(idx_x_source,nchannel_in)...]  
+      end
+      #println("y: ", dϵ_dz_nchannelOut)
+      #println("x: ", xval)
+      dw[idx...] = dot(xval,dϵ_dz_nchannelOut)
+   end
+
    if layer.usebias
+      dbias = zeros(length(layer.bias))
+      for bias_idx in 1:length(layer.bias)
+         nchannel_out = bias_idx
+         dϵ_dz_nchannelOut = selectdim(dϵ_dz,layer.ndims+1,nchannel_out)
+         dbias[bias_idx] = sum(dϵ_dz_nchannelOut)
+      end
       return Learnable((dw,dbias))
-   else 
+   else
       return Learnable((dwb,))
     end
 end
