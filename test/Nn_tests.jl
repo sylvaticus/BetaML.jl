@@ -347,7 +347,12 @@ if VERSION >= v"1.7"
   @test y[2,3,1] == dot([1 1; 1 1;;; 1 1; 1 1;;; 1 1; 1 1 ],selectdim(d2conv.weight,4,1)) + d2conv.bias[1] == 79
 end
 
-d1conv = ConvLayer(8,3,1,1,stride=3,kernel_init=reshape(1:3,(3,1,1)),bias_init=[10,])
+de_dy = y ./100
+de_dw = get_gradient(d2conv,x,de_dy)
+de_dx = backward(d2conv,x,de_dy)
+
+d1conv  = ConvLayer(8,3,1,1,stride=3,kernel_init=reshape(1:3,(3,1,1)),bias_init=[10,])
+d1conv2 = ConvLayer(8,3,1,1,stride=2,kernel_init=reshape(1:3,(3,1,1)),bias_init=[10,])
 x = collect(1:8)
 y = forward(d1conv,x)
 @test y[1,1] == dot([0,1,2],[1,2,3]) + 10
@@ -357,10 +362,18 @@ y = forward(d1conv,x)
 if VERSION >= v"1.7"
     de_dy = [1.0; 2.0; 3.0;;]
     de_dw = get_gradient(d1conv,x,de_dy)
+    de_dx = backward(d1conv,x,de_dy)
     @test de_dw.data[1] == [24.0; 30.0; 36.0;;;]
     @test de_dw.data[2] == [6]
+    @test de_dx == [2.0; 3; 2; 4; 6; 3; 6; 9;;]
+    # using d1conv2 (some overlapping filters for the same x)
+    de_dy = [1.0; 2.0; 3.0; 4.0;;]
+    de_dw = get_gradient(d1conv2,x,de_dy)
+    de_dx = backward(d1conv2,x,de_dy)
+    @test de_dw.data[1] == [40.0; 50.0; 60.0;;;]
+    @test de_dw.data[2] == [10.0]
+    @test de_dx == [2.0;5;4;9;6;13;8;12;;]
 end
-
 
 
 x     = collect(1:12)
@@ -378,6 +391,9 @@ mynn  = buildNetwork([l1,l2,l3,l4],squared_cost)
 ŷ     = predict(mynn,x')
 e     = loss(mynn,x',truey')
 @test e ≈ 4
+
+
+
 
 # ==================================
 # NEW TEST

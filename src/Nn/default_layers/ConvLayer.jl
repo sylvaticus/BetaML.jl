@@ -170,34 +170,65 @@ function forward(layer::ConvLayer,x)
 end
 
 
-function backward(layer::ConvLayer,x,next_gradient) # with respect to inputs
-   #=
-   z = _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) # layer.w * x + layer.wb # _zComp(layer,x) # @avx layer.w * x + layer.wb               # tested @avx
-   if layer.df != nothing
-      dfz = layer.df.(z)
-    else
-      dfz = layer.f'.(z) # using AD
-    end
-   dϵ_dz = @turbo dfz .* next_gradient
-   dϵ_dI = @turbo layer.w' * dϵ_dz # @avx
-   return dϵ_dI
-   =#
+function backward(layer::ConvLayer,x,next_gradient) # with respect to inputs: derror/dx
+   # To look at for faster conv versions:
+   #     https://arxiv.org/pdf/1312.5851.pdf 
+   #     https://discourse.julialang.org/t/computing-linear-convolution-efficiently/66496
+
    z      =  _zComp(layer,x)
+  
    if layer.df != nothing
       dfz = layer.df.(z)  
    else
       dfz =  layer.f'.(z) # using AD
    end
    dϵ_dz  = @turbo  dfz .* next_gradient
-   xpadded = _xpadComp(layer,x)
+   #xpadded = _xpadComp(layer,x)
 
    #println("dϵ_dz: ", dϵ_dz)
-   de_dx    = zeros(input_size)
+   nchannels_out = size(layer.weight)[end]
+   nchannels_in  = size(layer.weight)[end-1]
+   input_size, output_size = size(layer)
+   de_dx         = zeros(layer.input_size...)
 
-   
+   #=
+   for idx in CartesianIndices(de_dx)
+      idx = convert(SVector{layer.ndims+1,Int64},idx)
+      nch_in = idx[end]
+      w_ch_in = selectdim(layer.weight,layer.ndims+1,nch_in)
+      convdims = idx[1:end-1]
+      for nch_out in 1:nchannels_out
+         w_ch_in_out  = selectdim(w_ch_in,layer.ndims+1,nch_out)
+         dϵ_dz_ch_out = selectdim(dϵ_dz,layer.ndims+1,nch_out)
+         de_dx_ch_in  = selectdim(de_dx,layer.ndims+1,nch_in)
 
+      end
+   end
+   =#
 
-   return ones(de_dx)
+   for nch_in in 1:nchannels_in
+      w_ch_in = selectdim(layer.weight,layer.ndims+1,nch_in)
+      for nch_out in 1:nchannels_out
+         w_ch_in_out  = selectdim(w_ch_in,layer.ndims+1,nch_out)
+         dϵ_dz_ch_out = selectdim(dϵ_dz,layer.ndims+1,nch_out)
+         de_dx_ch_in  = selectdim(de_dx,layer.ndims+1,nch_in)
+         for w_idx in CartesianIndices(w_ch_in_out)
+            w_idx = convert(SVector{layer.ndims,Int64},w_idx)
+            for dey_idx in CartesianIndices(dϵ_dz_ch_out)
+               dey_idx = convert(SVector{layer.ndims,Int64},dey_idx)
+               idx_x_source_padded = w_idx .+ (dey_idx .- 1 ) .* layer.stride
+               if all(idx_x_source_padded .> layer.padding_start) && all(idx_x_source_padded .<=  layer.padding_start .+ input_size[1:end-1])
+                  idx_x_source = idx_x_source_padded .- layer.padding_start
+                  #println("idx_x_source: ", idx_x_source)
+                  #println("w_idx: ", w_idx)
+                  #println("dey_idx: ", dey_idx)
+                  de_dx_ch_in[idx_x_source...] += dϵ_dz_ch_out[dey_idx...] * w_ch_in_out[w_idx...]
+               end
+            end
+         end
+      end
+   end
+   return de_dx
 end
 
 function get_params(layer::ConvLayer)
@@ -208,7 +239,7 @@ function get_params(layer::ConvLayer)
   end
 end
 
-function get_gradient(layer::ConvLayer,x,next_gradient)
+function get_gradient(layer::ConvLayer,x,next_gradient) # derror/dw
    #=
    dϵ_dw  = @turbo dϵ_dz * x' # @avx
    dϵ_dwb = dϵ_dz
@@ -251,10 +282,13 @@ function get_gradient(layer::ConvLayer,x,next_gradient)
          #println("- idx_x_source: ", idx_x_source)
          #println("vcat(idx_x_source,nchannel_in): ",vcat(idx_x_source,nchannel_in))
          xval[idx_x_dest] = xpadded[vcat(idx_x_source,nchannel_in)...]  
+         #println(xval[idx_x_dest...])
+         #println(dϵ_dz_nchannelOut[yi])
+         #dw[idx...] += xpadded[vcat(idx_x_source,nchannel_in)...]  * dϵ_dz_nchannelOut[idx_y...]
       end
       #println("y: ", dϵ_dz_nchannelOut)
       #println("x: ", xval)
-      dw[idx...] = dot(xval,dϵ_dz_nchannelOut)
+      dw[idx...] = dot(xval,dϵ_dz_nchannelOut)  # slighly more efficient than using += on each individual product
    end
 
    if layer.usebias
