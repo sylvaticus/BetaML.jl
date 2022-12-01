@@ -152,7 +152,9 @@ function _zComp(layer::ConvLayer,x)
      starti        = vcat(starti,1)
      endi          = starti .+  convert(SVector{layer.ndims+1,Int64},size(layer.weight)[1:end-1]) .- 1
      weight        = selectdim(layer.weight,layer.ndims+2,nchannel_out)
-     y[yi]         = layer.bias[nchannel_out] .+ dot(weight, xpadded[[range(s,e,step=1) for (s,e) in zip(starti,endi)]...])
+     xpadded_in    = xpadded[[range(s,e,step=1) for (s,e) in zip(starti,endi)]...]
+     y_unbias      = @turbo dot(weight, xpadded_in)
+     y[yi]         = layer.bias[nchannel_out] .+ y_unbias
     end
   
     return y
@@ -206,15 +208,15 @@ function backward(layer::ConvLayer,x,next_gradient) # with respect to inputs: de
    end
    =#
 
-   for nch_in in 1:nchannels_in
+   @inbounds for nch_in in 1:nchannels_in
       w_ch_in = selectdim(layer.weight,layer.ndims+1,nch_in)
-      for nch_out in 1:nchannels_out
+      @inbounds for nch_out in 1:nchannels_out
          w_ch_in_out  = selectdim(w_ch_in,layer.ndims+1,nch_out)
          dϵ_dz_ch_out = selectdim(dϵ_dz,layer.ndims+1,nch_out)
          de_dx_ch_in  = selectdim(de_dx,layer.ndims+1,nch_in)
-         for w_idx in CartesianIndices(w_ch_in_out)
+         @inbounds for w_idx in CartesianIndices(w_ch_in_out)
             w_idx = convert(SVector{layer.ndims,Int64},w_idx)
-            for dey_idx in CartesianIndices(dϵ_dz_ch_out)
+            @inbounds for dey_idx in CartesianIndices(dϵ_dz_ch_out)
                dey_idx = convert(SVector{layer.ndims,Int64},dey_idx)
                idx_x_source_padded = w_idx .+ (dey_idx .- 1 ) .* layer.stride
                if all(idx_x_source_padded .> layer.padding_start) && all(idx_x_source_padded .<=  layer.padding_start .+ input_size[1:end-1])

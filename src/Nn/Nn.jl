@@ -64,7 +64,8 @@ import Base.show
 # module own functions
 export AbstractLayer, forward, backward, get_params, get_gradient, set_params!, size # layer API
 export DenseLayer, DenseNoBiasLayer, VectorFunctionLayer, ScalarFunctionLayer # Available layers
-export  init_optalg!, single_update! # Optimizers API
+export ConvLayer, ReshaperLayer
+export init_optalg!, single_update! # Optimizers API
 export SGD,ADAM, DebugOptAlg # Available optimizers
 export Learnable, fitting_info, NeuralNetworkEstimator, NNHyperParametersSet, NeuralNetworkEstimatorOptionsSet # NN API
 
@@ -392,23 +393,24 @@ Low level function that retrieve the current gradient of the weigthts (i.e. deri
 #Notes:
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
-function get_gradient(nn::NN,x::Union{T,AbstractArray{T,1}},y::Union{T2,AbstractArray{T2,1}}) where { T <: Number, T2 <: Number}
+function get_gradient(nn::NN,x::Union{T,AbstractArray{T,N1}},y::Union{T2,AbstractArray{T2,N2}}) where { T <: Number, T2 <: Number, N1, N2}
 
-  x = makecolvector(x)
-  y = makecolvector(y)
+  #x = makecolvector(x)
+  #y = makecolvector(y)
 
   nLayers = length(nn.layers)
 
   # Stap 1: Forward pass
-  forwardStack = Vector{Vector{Float64}}(undef,nLayers+1)
+  forwardStack = Vector{Array{Float64}}(undef,nLayers+1)
 
   forwardStack[1] = x
   @inbounds for (i,l) in enumerate(nn.layers)
+      #println(i)
       forwardStack[i+1] = forward(l,forwardStack[i])
   end
 
   # Step 2: Backpropagation pass
-  backwardStack = Vector{Vector{Float64}}(undef,nLayers+1)
+  backwardStack = Vector{Array{Float64}}(undef,nLayers+1)
   if nn.dcf != nothing
     backwardStack[end] = nn.dcf(y,forwardStack[end]) # adding dϵ_dHatY
   else
@@ -416,6 +418,8 @@ function get_gradient(nn::NN,x::Union{T,AbstractArray{T,1}},y::Union{T2,Abstract
   end
   @inbounds for lidx in nLayers:-1:1
      l = nn.layers[lidx]
+     #println(lidx)
+     #println(l)
      dϵ_do = backward(l,forwardStack[lidx],backwardStack[lidx+1])
      backwardStack[lidx] = dϵ_do
   end
@@ -430,7 +434,7 @@ function get_gradient(nn::NN,x::Union{T,AbstractArray{T,1}},y::Union{T2,Abstract
 end
 
 """
-   get_gradient(nn,xbatch,ybatch)
+   get_batchgradient(nn,xbatch,ybatch)
 
 Retrieve the current gradient of the weigthts (i.e. derivative of the cost with respect to the weigths)
 
@@ -442,7 +446,7 @@ Retrieve the current gradient of the weigthts (i.e. derivative of the cost with 
 #Notes:
 * The output is a vector of tuples of each layer's input weigths and bias weigths
 """
-function get_gradient(nn,xbatch::AbstractArray{T,2},ybatch::AbstractArray{T2,2}) where {T <: Number, T2 <: Number}
+function get_batchgradient(nn,xbatch::AbstractArray{T,N1},ybatch::AbstractArray{T2,N2}) where {T <: Number, T2 <: Number, N1, N2}
     #return [get_gradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:size(xbatch,1)]
     bsize = size(xbatch,1)
     gradients = Array{Vector{Learnable},1}(undef,bsize)
@@ -584,8 +588,8 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
     if verbosity > STD
         @codelocation
     end
-    x = makematrix(x)
-    y = makematrix(y)
+    #x = makematrix(x)
+    #y = makematrix(y)
     (n,d)     = size(x)
     batch_size = min(size(x,1),batch_size)
     if verbosity > NONE # Note that are two "Verbosity type" objects. To compare with numbers use Int(NONE) > 1
@@ -626,7 +630,7 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
            # note that there is no random number issue here..
            #gradients   = @spawn get_gradient(nn,xbatch,ybatch)
            #sumGradient = sum(fetch(gradients))
-           gradients   = get_gradient(nn,xbatch,ybatch)
+           gradients   = get_batchgradient(nn,xbatch,ybatch)
            sumGradient = sum(gradients)
 
            ▽   = sumGradient / length(batch)

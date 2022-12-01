@@ -375,9 +375,21 @@ if VERSION >= v"1.7"
     @test de_dx == [2.0;5;4;9;6;13;8;12;;]
 end
 
+#=
+x = reshape(1:64*64*3,64,64,3)
+l = ConvLayer((64,64,3),(4,4),5)
+y = forward(l,x)
+@btime forward($l,$x)
+de_dy = y ./ 100
+de_dw = get_gradient(l,x,de_dy)
+@btime get_gradient($l,$x,$de_dy)
+de_dx = backward(l,x,de_dy)
+@btime backward($l,$x,$de_dy)
+@profile get_gradient(l,x,de_dy)
+=#
 
 x     = collect(1:12)
-l1    = ReshaperLayer((24,1),(3,2,2))
+l1    = ReshaperLayer((12,1),(3,2,2))
 l2    = ConvLayer((3,2),(2,2),2,1,kernel_init=ones(2,2,2,1),bias_init=[1])
 l3    = ConvLayer(size(l2)[2],(2,2),1,kernel_init=ones(2,2,1,1),bias_init=[1]) # alternative constructor
 l4    = ReshaperLayer((3,2,1))
@@ -392,6 +404,26 @@ ŷ     = predict(mynn,x')
 e     = loss(mynn,x',truey')
 @test e ≈ 4
 
+get_params(mynn)
+get_gradient(mynn,x,truey)
+
+#x        = rand(copy(TESTRNG),100,3*3*2)
+x        = reshape(1:100*3*3*2,100,3*3*2) ./ 100
+y        = [norm(r[1:9])+2*norm(r[10:18],2) for r in eachrow(x) ]
+(N,D)    = size(x)
+l1       = ReshaperLayer((D,1),(3,3,2))
+l2       = ConvLayer((3,3),(2,2),2,4)
+l3       = ConvLayer(size(l2)[2],(2,2),8)
+l4       = ReshaperLayer(size(l3)[2])
+l5       = DenseLayer(size(l4)[2][1],1,f=relu, rng=copy(TESTRNG))
+layers   = [l1,l2,l3,l4,l5]
+mynn     = buildNetwork(layers,squared_cost,name="Regression with a pooled layer")
+predict(mynn,x[1,:]')
+
+train!(mynn,x,y,epochs=20,verbosity=HIGH,rng=copy(TESTRNG))
+ŷ        = predict(mynn,x)
+rmeTrain = relative_mean_error(y,ŷ,normrec=false)
+@test rmeTrain  < 0.6
 
 
 
