@@ -62,7 +62,8 @@ import Base: +, -, *, /, sum, sqrt
 import Base.show
 
 # module own functions
-export AbstractLayer, forward, backward, get_params, get_gradient, set_params!, size # layer API
+export AbstractLayer, forward, backward, get_params, get_gradient, set_params!, size, preprocess! # layer API
+export forward_old, backward_old, get_gradient_old
 export DenseLayer, DenseNoBiasLayer, VectorFunctionLayer, ScalarFunctionLayer # Available layers
 export ConvLayer, ReshaperLayer
 export init_optalg!, single_update! # Optimizers API
@@ -268,6 +269,21 @@ function get_nparams(layer::AbstractLayer)
         nP += *(size(p)...)
     end
     return nP
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Preprocess the layer with information known at layer creation (i.e. no data info used)
+
+This function is used for some layers to cache some computation that doesn't require the data and it is called at the beginning of `fit!`.
+For example, it is used in ConvLayer to store the ids of the convolution.
+
+# Notes:
+- as it doesn't depend on data, it is not reset by `reset!`
+"""
+function preprocess!(layer::AbstractLayer)
+    return nothing
 end
 
 # ------------------------------------------------------------------------------
@@ -486,6 +502,12 @@ function get_nparams(nn::NN)
     return nP
 end
 
+function preprocess!(nn::NN)
+    for l in nn.layers
+        preprocess!(l)
+    end
+end
+
 
 Base.getindex(n::NN, i::AbstractArray) = NN(n.layers[i]...)
 
@@ -590,6 +612,9 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
     end
     #x = makematrix(x)
     #y = makematrix(y)
+
+    preprocess!(nn)
+
     (n,d)     = size(x)
     batch_size = min(size(x,1),batch_size)
     if verbosity > NONE # Note that are two "Verbosity type" objects. To compare with numbers use Int(NONE) > 1

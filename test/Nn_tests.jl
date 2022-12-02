@@ -340,6 +340,7 @@ d2convl = ConvLayer((7,5),(4,3),3,2,stride=2)
 
 d2conv = ConvLayer((4,4),(2,2),3,2,kernel_init=reshape(1:24,(2,2,3,2)),bias_init=[1,1])
 x = ones(4,4,3)
+preprocess!(d2conv)
 y = forward(d2conv,x)
 # The syntax for tensor hard coded in this way wants Julia >= 1.7
 if VERSION >= v"1.7"
@@ -354,9 +355,13 @@ de_dx = backward(d2conv,x,de_dy)
 d1conv  = ConvLayer(8,3,1,1,stride=3,kernel_init=reshape(1:3,(3,1,1)),bias_init=[10,])
 d1conv2 = ConvLayer(8,3,1,1,stride=2,kernel_init=reshape(1:3,(3,1,1)),bias_init=[10,])
 x = collect(1:8)
+preprocess!(d1conv)
+preprocess!(d1conv2)
+#@btime preprocess!(d1conv)
 y = forward(d1conv,x)
 @test y[1,1] == dot([0,1,2],[1,2,3]) + 10
 @test y[3,1] == dot([6,7,8],[1,2,3]) + 10
+
 
 # The syntax for tensor hard coded in this way wants Julia >= 1.7
 if VERSION >= v"1.7"
@@ -376,8 +381,10 @@ if VERSION >= v"1.7"
 end
 
 #=
-x = reshape(1:64*64*3,64,64,3)
-l = ConvLayer((64,64,3),(4,4),5)
+x = reshape(1:12*12*3,12,12,3)
+l = ConvLayer((12,12,3),(4,4),5)
+preprocess!(l)
+@btime preprocess!(l)
 y = forward(l,x)
 @btime forward($l,$x)
 de_dy = y ./ 100
@@ -393,6 +400,7 @@ l1    = ReshaperLayer((12,1),(3,2,2))
 l2    = ConvLayer((3,2),(2,2),2,1,kernel_init=ones(2,2,2,1),bias_init=[1])
 l3    = ConvLayer(size(l2)[2],(2,2),1,kernel_init=ones(2,2,1,1),bias_init=[1]) # alternative constructor
 l4    = ReshaperLayer((3,2,1))
+preprocess!.([l2,l3])
 l1y   = forward(l1,x)
 l2y   = forward(l2,l1y)
 l3y   = forward(l3,l2y)
@@ -404,26 +412,24 @@ ŷ     = predict(mynn,x')
 e     = loss(mynn,x',truey')
 @test e ≈ 4
 
-get_params(mynn)
-get_gradient(mynn,x,truey)
 
 #x        = rand(copy(TESTRNG),100,3*3*2)
 x        = reshape(1:100*3*3*2,100,3*3*2) ./ 100
 y        = [norm(r[1:9])+2*norm(r[10:18],2) for r in eachrow(x) ]
 (N,D)    = size(x)
 l1       = ReshaperLayer((D,1),(3,3,2))
-l2       = ConvLayer((3,3),(2,2),2,4)
-l3       = ConvLayer(size(l2)[2],(2,2),8)
+l2       = ConvLayer((3,3),(2,2),2,3,rng=copy(TESTRNG))
+l3       = ConvLayer(size(l2)[2],(2,2),8,rng=copy(TESTRNG))
 l4       = ReshaperLayer(size(l3)[2])
 l5       = DenseLayer(size(l4)[2][1],1,f=relu, rng=copy(TESTRNG))
 layers   = [l1,l2,l3,l4,l5]
 mynn     = buildNetwork(layers,squared_cost,name="Regression with a pooled layer")
 predict(mynn,x[1,:]')
 
-train!(mynn,x,y,epochs=20,verbosity=HIGH,rng=copy(TESTRNG))
+train!(mynn,x,y,epochs=60,verbosity=HIGH,rng=copy(TESTRNG))
 ŷ        = predict(mynn,x)
 rmeTrain = relative_mean_error(y,ŷ,normrec=false)
-@test rmeTrain  < 0.6
+@test rmeTrain  < 0.01
 
 
 
