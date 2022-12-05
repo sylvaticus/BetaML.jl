@@ -94,9 +94,9 @@ mutable struct ConvLayer{ND,NDPLUS1,NDPLUS2} <: AbstractLayer
       elseif isnothing(padding) # compute padding to keep same size/stride if not provided
          target_out_size = [Int(ceil(input_size[d]/stride[d])) for d in 1:length(input_size)]
          #target_out_size = [input_size[d]/stride[d] for d in 1:length(input_size)]
-         println(target_out_size)
+         #println(target_out_size)
          padding_total   = [(target_out_size[d]-1)*stride[d] - input_size[d]+kernel_size[d] for d in 1:length(input_size)]
-         println(padding_total)
+         #println(padding_total)
          padding_start   =  Int.(ceil.(padding_total ./ 2))
          padding_end     =  padding_total .- padding_start  
       else
@@ -294,7 +294,7 @@ function get_gradient(layer::ConvLayer{ND,NDPLUS1,NDPLUS2},x, next_gradient) whe
    ly_ids  = layer.y_ids
    lw_ids  = layer.w_ids
 
-   @simd for idx in 1:length(layer.y_ids)
+   for idx in 1:length(layer.y_ids)
       de_dw[lw_ids[idx]...] += dϵ_dz[ly_ids[idx]...] * x[lx_ids[idx]...] 
    end
 

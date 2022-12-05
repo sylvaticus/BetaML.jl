@@ -429,6 +429,7 @@ l4       = ReshaperLayer(size(l3)[2])
 l5       = DenseLayer(size(l4)[2][1],1,f=relu, rng=copy(TESTRNG))
 layers   = [l1,l2,l3,l4,l5]
 mynn     = buildNetwork(layers,squared_cost,name="Regression with a convolutional layer")
+preprocess!(mynn)
 predict(mynn,x[1,:]')
 
 train!(mynn,x,y,epochs=60,verbosity=NONE,rng=copy(TESTRNG))
@@ -458,11 +459,73 @@ d2pooll = PoolingLayer((7,5),(4,3),3,stride=2)
 @test d2pooll.kernel_size == [4,3,3,3] 
 @test d2pooll.stride == [2,2]
 
-d2pool = PoolingLayer((4,4),(2,2),3)
+d2pool = PoolingLayer((4,4),(2,2),3,f=mean)
 x = reshape(1:(4*4*3),4,4,3)
 preprocess!(d2pool)
 @test d2pool.y_to_x_ids[2,2,2] == [(3,3,2),(4,3,2),(3,4,2),(4,4,2)]
 y = forward(d2pool,x)
+@test y[1,2,1] == 11.5
+
+de_dy = y ./10
+de_dw = get_gradient(d2pool,x,de_dy)
+de_dx = backward(d2pool,x,de_dy)
+@test de_dx[2,3,3] == (de_dy ./ 4)[1,2,3]
+
+# full example - x as classical tabular data
+x        = reshape(1:100*6*6*2,100,6*6*2) ./ 100
+y        = [norm(r[1:36])+2*norm(r[37:72],2) for r in eachrow(x) ]
+(N,D)    = size(x)
+l1       = ReshaperLayer((D,1),(6,6,2))
+l2       = ConvLayer((6,6),(2,2),2,4,rng=copy(TESTRNG))
+l3       = PoolingLayer((6,6,4),(2,2))
+l4       = ConvLayer(size(l3)[2],(2,2),8,rng=copy(TESTRNG))
+l5       = ReshaperLayer(size(l4)[2])
+l6       = DenseLayer(size(l5)[2][1],1,f=identity, rng=copy(TESTRNG))
+layers   = [l1,l2,l3,l4,l5,l6]
+mynn     = buildNetwork(layers,squared_cost,name="Regression with a convolutional layer")
+preprocess!(mynn)
+dummyx   = x[1,:]
+nnout    = predict(mynn,dummyx')
+l1y = forward(l1,dummyx)
+l2y = forward(l2,l1y)
+l3y = forward(l3,l2y)
+l4y = forward(l4,l3y)
+l5y = forward(l5,l4y)
+l6y = forward(l6,l5y)
+@test l6y[1] == nnout[1,1]
+train!(mynn,x,y,epochs=40,verbosity=NONE,rng=copy(TESTRNG))
+ŷ        = predict(mynn,x)
+rmeTrain = relative_mean_error(y,ŷ,normrec=false)
+@test rmeTrain  < 0.1
+
+#=
+# x organised as multidimensional array TODO
+x        = reshape(1:100*6*6*2,100,6,6,2) ./ 100
+y        = collect(1:100)
+(N,D)    = size(x)
+l2       = ConvLayer((6,6),(2,2),2,4,rng=copy(TESTRNG))
+l3       = PoolingLayer((6,6,4),(2,2))
+l4       = ConvLayer(size(l3)[2],(2,2),8,rng=copy(TESTRNG))
+l5       = ReshaperLayer(size(l4)[2])
+l6       = DenseLayer(size(l5)[2][1],1,f=identity, rng=copy(TESTRNG))
+layers   = [l2,l3,l4,l5,l6]
+mynn     = buildNetwork(layers,squared_cost,name="Regression with a convolutional layer")
+preprocess!(mynn)
+dummyx = selectdim(x,1,1)
+nnout  = predict(mynn,dummyx)
+l1y = forward(l1,dummyx)
+l2y = forward(l2,l1y)
+l3y = forward(l3,l2y)
+l4y = forward(l4,l3y)
+l5y = forward(l5,l4y)
+l6y = forward(l6,l5y)
+@test l6y == nnout
+train!(mynn,x,y,epochs=10,verbosity=FULL,rng=copy(TESTRNG))
+ŷ        = predict(mynn,x)
+rmeTrain = relative_mean_error(y,ŷ,normrec=false)
+@test rmeTrain  < 0.01
+=#
+
 
 # ==================================
 # NEW TEST

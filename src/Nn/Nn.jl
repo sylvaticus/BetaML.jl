@@ -341,7 +341,7 @@ Low-level network predictions. Use instead `predict(m::NeuralNetworkEstimator)`
 * `x`:   Input to the network (n × d)
 """
 function predict(nn::NN,x)
-    x = makematrix(x)
+    #x = makematrix(x)
     # get the output dimensions
     n = size(x)[1]
     lastlayer_size = size(nn.layers[end])[2]
@@ -349,7 +349,7 @@ function predict(nn::NN,x)
     d = lastlayer_size[1]
     out = zeros(n,d)
     for i in 1:size(x)[1]
-        values = x[i,:]
+        values = selectdim(x,1,i) # x[i,:]
         for l in nn.layers
             values = forward(l,values)
         end
@@ -369,7 +369,7 @@ Low level funciton that compute the avg. network loss on a test set (or a single
 * `y`:   Label input (n) or (n x d)
 """
 function loss(nn::NN,x,y)
-    x = makematrix(x)
+    #x = makematrix(x) # TODO: check these two lines
     y = makematrix(y)
     (n,d) = size(x)
     #(nn.trained || n == 1) ? "" : @warn "Seems you are trying to test a neural network that has not been tested. Use first `train!(nn,x,y)`"
@@ -1029,8 +1029,9 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
         end
         # Check that the first layer has the dimensions of X and the last layer has the output dimensions of Y
         nn_isize_tuple = size(layers[1])[1]
+        #println(nn_isize_tuple)
         nn_osize_tuple = size(layers[end])[2]
-        length(nn_isize_tuple) == 1 || error("The input of a neural network should always be a single dimensional vector. Use eventually `ReshaperLayer` to reshape it to a vector.")
+        #length(nn_isize_tuple) == 1 || error("The input of a neural network should always be a single dimensional vector. Use eventually `ReshaperLayer` to reshape it to a vector.")
         length(nn_osize_tuple) == 1 || error("The last neural network layer should always return a single dimensional vector. Use eventually `ReshaperLayer` to reshape it to a vector.")
         nn_isize = nn_isize_tuple[1]
         nn_osize = nn_osize_tuple[1]
