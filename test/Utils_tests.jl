@@ -91,7 +91,7 @@ A = [3 2 1; 2 3 1; 1 2 3]
 @test findfirst(2,A;returnTuple=false) == CartesianIndex(2,1)
 
 # ==================================
-# TEST 2: softMax
+# TEST 2: softmax
 println("** Going through Test2 (softmax and other activation functions)...")
 @test isapprox(softmax([2,3,4],β=0.1),[0.3006096053557272,0.3322249935333472,0.36716540111092544])
 
@@ -122,7 +122,7 @@ manualGrad = dsoftmax([2,3,4],β=1/2)
 @test isapprox(manualGrad[:,2],realG2,atol=0.000001)
 
 # Manual way is hundred of times faster
-#@benchmark autojacobian(softMax2,[2,3,4])
+#@benchmark autojacobian(softmax2,[2,3,4])
 #@benchmark dSoftMax([2,3,4],β=1/2)
 
 # ==================================

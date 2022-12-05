@@ -54,7 +54,7 @@ mutable struct VectorFunctionLayer{N} <: AbstractLayer
      * `wsize`: A tuple or array specifying the size (number of elements) of the
        learnable parameter [def: empty array]
      * `w`:   Initial weigths with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
-     * `f`:  Activation function [def: `softMax`]
+     * `f`:  Activation function [def: `softmax`]
      * `dfx`: Derivative of the activation function with respect to the data
               [default: `nothing` (i.e. use AD)]
      * `dfw`: Derivative of the activation function with respect to the
@@ -70,7 +70,7 @@ mutable struct VectorFunctionLayer{N} <: AbstractLayer
        it if it doesn't match with the activation function you are setting
      - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(sum(wsize...)),sqrt(6)/sqrt(sum(wsize...))))`
      """
-     function VectorFunctionLayer(nₗ;rng = Random.GLOBAL_RNG,wsize=Int64[],w=rand(rng,Uniform(-sqrt(6)/sqrt(sum(wsize)),sqrt(6)/sqrt(sum(wsize))),Tuple(wsize)), f=softMax,dfx=nothing,dfw=nothing,dummyDataToTestOutputSize=ones(nₗ))
+     function VectorFunctionLayer(nₗ;rng = Random.GLOBAL_RNG,wsize=Int64[],w=rand(rng,Uniform(-sqrt(6)/sqrt(sum(wsize)),sqrt(6)/sqrt(sum(wsize))),Tuple(wsize)), f=softmax,dfx=match_known_derivatives(f),dfw=nothing,dummyDataToTestOutputSize=ones(nₗ))
         nw = length(wsize) 
         if nw ==0 
           n  = length(f(dummyDataToTestOutputSize))

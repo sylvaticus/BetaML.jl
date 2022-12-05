@@ -44,7 +44,7 @@ mutable struct RNNLayer <: RecursiveLayer
      - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n))`
 
      """
-     function RNNLayer(nₗ,n;rng = Random.GLOBAL_RNG,wx=rand(rng, Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n)),n,nₗ),ws=rand(rng, Uniform(-sqrt(6)/sqrt(n+n),sqrt(6)/sqrt(n+n)),n,n),wb=rand(rng, Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n)),n),s=zeros(n),f=relu,df=nothing)
+     function RNNLayer(nₗ,n;rng = Random.GLOBAL_RNG,wx=rand(rng, Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n)),n,nₗ),ws=rand(rng, Uniform(-sqrt(6)/sqrt(n+n),sqrt(6)/sqrt(n+n)),n,n),wb=rand(rng, Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n)),n),s=zeros(n),f=relu,df=match_known_derivatives(f))
          # To be sure w is a matrix and wb a column vector..
          wx  = reshape(w,n,nₗ)
          ws  = reshape(w,n,n)

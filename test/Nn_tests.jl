@@ -57,7 +57,7 @@ lossOrig = loss(mynn,x',y')
 dϵ_do2 = dsquared_cost(y,o2)
 @test dϵ_do2 == [-0.4750208125210601,0.47502081252106]
 #@code_warntype dsquared_cost(o2,y)
-dϵ_do1 = backward(l2,o1,dϵ_do2) # here takes long as needs Zygote
+dϵ_do1 = backward(l2,o1,dϵ_do2) # here takes long as needs Zygote (because Vector Function layer has dfw that stil luse zygote)
 @test dϵ_do1 ≈ [-0.23691761847142412, 0.23691761847142412]
 #@code_warntype backward(l2,o1,dϵ_do2)
 dϵ_dX = backward(l1,x,dϵ_do1)
@@ -247,9 +247,9 @@ testAccuracy  = accuracy(ytest,ŷtest,tol=1)
 
 # With ADAM
 l1   = DenseLayer(4,10, w=ones(10,4), wb=zeros(10),f=celu,rng=copy(TESTRNG))
-l2   = DenseLayer(10,3, w=ones(3,10), wb=zeros(3),rng=copy(TESTRNG))
+l2   = DenseLayer(10,3, w=ones(3,10), wb=zeros(3),rng=copy(TESTRNG),df=nothing) # testing AD
 l3   = VectorFunctionLayer(3,f=softmax)
-mynn = buildNetwork(deepcopy([l1,l2,l3]),squared_cost,name="Multinomial logistic regression Model Sepal")
+mynn = buildNetwork(deepcopy([l1,l2,l3]),squared_cost,name="Multinomial logistic regression Model Sepal",dcf=nothing)
 train!(mynn,xtrain,ytrain_oh,epochs=10,batch_size=8,sequential=true,verbosity=NONE,opt_alg=ADAM(η=t -> 1/(1+t), λ=0.5),rng=copy(TESTRNG))
 ŷtrain = predict(mynn,xtrain)
 ŷtest  = predict(mynn,xtest)
@@ -319,6 +319,10 @@ end
 # ==================================
 # NEW TEST
 println("Testing ConvLayer....")
+d2convl = ConvLayer((14,8),(6,3),3,2,stride=(6,3))
+@test d2convl.padding_start == [2,1]
+@test d2convl.padding_end   == [2,0]
+
 d2convl = ConvLayer((14,8),(6,3),3,2,stride=3)
 @test d2convl.padding_start == [2,1]
 @test d2convl.padding_end   == [2,0]
@@ -328,9 +332,9 @@ d2convl = ConvLayer((14,8),(6,3),3,2,stride=3, padding=((2,1),(1,0)))
 @test size(d2convl) == ((14, 8, 3), (4, 3, 2))
 
 d2convl = ConvLayer((13,8),(6,3),3,2,stride=3)
-@test d2convl.padding_start == [1,1]
-@test d2convl.padding_end   == [1,0]
-@test size(d2convl) == ((13, 8, 3), (4, 3, 2))
+@test d2convl.padding_start == [3,1]
+@test d2convl.padding_end   == [2,0]
+@test size(d2convl) == ((13, 8, 3), (5, 3, 2))
 
 d2convl = ConvLayer((7,5),(4,3),3,2,stride=2)
 @test d2convl.input_size == [7,5,3]
@@ -395,6 +399,7 @@ de_dx = backward(l,x,de_dy)
 @profile get_gradient(l,x,de_dy)
 =#
 
+
 x     = collect(1:12)
 l1    = ReshaperLayer((12,1),(3,2,2))
 l2    = ConvLayer((3,2),(2,2),2,1,kernel_init=ones(2,2,2,1),bias_init=[1])
@@ -423,15 +428,41 @@ l3       = ConvLayer(size(l2)[2],(2,2),8,rng=copy(TESTRNG))
 l4       = ReshaperLayer(size(l3)[2])
 l5       = DenseLayer(size(l4)[2][1],1,f=relu, rng=copy(TESTRNG))
 layers   = [l1,l2,l3,l4,l5]
-mynn     = buildNetwork(layers,squared_cost,name="Regression with a pooled layer")
+mynn     = buildNetwork(layers,squared_cost,name="Regression with a convolutional layer")
 predict(mynn,x[1,:]')
 
-train!(mynn,x,y,epochs=60,verbosity=HIGH,rng=copy(TESTRNG))
+train!(mynn,x,y,epochs=60,verbosity=NONE,rng=copy(TESTRNG))
 ŷ        = predict(mynn,x)
 rmeTrain = relative_mean_error(y,ŷ,normrec=false)
 @test rmeTrain  < 0.01
 
+# ==================================
+# NEW TEST
+println("Testing PoolingLayer....")
+d2pooll = PoolingLayer((14,8),(6,3),3)
+@test d2pooll.padding_start == [2,1]
+@test d2pooll.padding_end   == [2,0]
 
+@test size(d2pooll) == ((14, 8, 3), (3, 3, 3))
+d2pooll = PoolingLayer((14,8),(6,3),3,stride=3, padding=((2,1),(1,0)))
+@test size(d2pooll) == ((14, 8, 3), (4, 3, 3))
+
+d2pooll = PoolingLayer((13,8),(6,3),3,stride=3)
+@test d2pooll.padding_start == [3,1]
+@test d2pooll.padding_end   == [2,0]
+@test size(d2pooll) == ((13, 8, 3), (5, 3, 3))
+
+d2pooll = PoolingLayer((7,5),(4,3),3,stride=2)
+@test d2pooll.input_size == [7,5,3]
+@test d2pooll.ndims == 2
+@test d2pooll.kernel_size == [4,3,3,3] 
+@test d2pooll.stride == [2,2]
+
+d2pool = PoolingLayer((4,4),(2,2),3)
+x = reshape(1:(4*4*3),4,4,3)
+preprocess!(d2pool)
+@test d2pool.y_to_x_ids[2,2,2] == [(3,3,2),(4,3,2),(3,4,2),(4,4,2)]
+y = forward(d2pool,x)
 
 # ==================================
 # NEW TEST

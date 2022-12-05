@@ -211,7 +211,7 @@ l2   = DenseLayer(ls,nCl,f=relu,rng=copy(AFIXEDRNG))
 
 # For a classification task, the last layer is a [`VectorFunctionLayer`](@ref) that has no learnable parameters but whose activation function is applied to the ensemble of the neurons, rather than individually on each neuron. In particular, for classification we pass the [`softmax`](@ref) function whose output has the same size as the input (i.e. the number of classes to predict), but we can use the `VectorFunctionLayer` with any function, including the [`pool1d`](@ref) function to create a "pooling" layer (using maximum, mean or whatever other sub-function we pass to `pool1d`)
 
-l3   = VectorFunctionLayer(nCl,f=softmax) ## Add a (parameterless) layer whose activation function (softMax in this case) is defined to all its nodes at once
+l3   = VectorFunctionLayer(nCl,f=softmax) ## Add a (parameterless) layer whose activation function (softmax in this case) is defined to all its nodes at once
 
 # Finally we _chain_ the layers and assign a loss function and the number of epochs we want to train the model to the constructor of [`NeuralNetworkEstimator`](@ref):
 nn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=crossentropy,rng=copy(AFIXEDRNG),epochs=500)

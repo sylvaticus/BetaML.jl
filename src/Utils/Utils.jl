@@ -46,9 +46,9 @@ export @codelocation, generate_parallel_rngs,
        cols_with_missing, 
        batch, partition, consistent_shuffle,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
-       dtanh, sigmoid, dsigmoid, softmax, dsoftmax, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions
+       dtanh, sigmoid, dsigmoid, softmax, dsoftmax, dmaximum, dmean, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
-       autojacobian,
+       autojacobian, match_known_derivatives,
        squared_cost, dsquared_cost, mse, crossentropy, dcrossentropy, class_counts, class_counts_with_labels, mean_dicts, mode, gini, entropy, variance,
        error, accuracy, relative_mean_error,
        ConfusionMatrix, ConfusionMatrixHyperParametersSet,

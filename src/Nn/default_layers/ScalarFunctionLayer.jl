@@ -45,7 +45,7 @@ mutable struct ScalarFunctionLayer{N} <: AbstractLayer
      * `wsize`: A tuple or array specifying the size (number of elements) of the
        learnable parameter [def: empty array]
      * `w`:   Initial weigths with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
-     * `f`:  Activation function [def: `softMax`]
+     * `f`:  Activation function [def: `softmax`]
      * `dfx`: Derivative of the activation function with respect to the data
               [default: `nothing` (i.e. use AD)]
      * `dfw`: Derivative of the activation function with respect to the
@@ -55,7 +55,7 @@ mutable struct ScalarFunctionLayer{N} <: AbstractLayer
      - If the derivative is provided, it should return the gradient as a (n,n) matrix (i.e. the Jacobian)
      - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(sum(wsize...)),sqrt(6)/sqrt(sum(wsize...))))`
      """
-     function ScalarFunctionLayer(nₗ;rng = Random.GLOBAL_RNG,wsize=Int64[],w=rand(rng,Uniform(-sqrt(6)/sqrt(sum(wsize)),sqrt(6)/sqrt(sum(wsize))),Tuple(wsize)), f=softMax,dfx=nothing,dfw=nothing)
+     function ScalarFunctionLayer(nₗ;rng = Random.GLOBAL_RNG,wsize=Int64[],w=rand(rng,Uniform(-sqrt(6)/sqrt(sum(wsize)),sqrt(6)/sqrt(sum(wsize))),Tuple(wsize)), f=softmax,dfx=match_known_derivatives(f),dfw=nothing)
         nw = length(wsize) 
         return new{nw}(w,nₗ,f,dfx,dfw)
      end

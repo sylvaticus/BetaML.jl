@@ -33,7 +33,7 @@ dplu(x;α=0.1,c=one(x)) = ( ( x >= (α*(x+c)-c)  &&  x <= (α*(x+c)+c) ) ? one(x
 Apply funtion `f` to a rolling poolsize contiguous (in 1d) neurons.
 
 Applicable to `VectorFunctionLayer`, e.g. `layer2  = VectorFunctionLayer(nₗ,f=(x->pool1d(x,4,f=mean))`
-**Attention**: to apply this funciton as activation function in a neural network you will need Julia version >= 1.6, otherwise you may experience a segmentation fault (see [this bug report](https://github.com/FluxML/Zygote.jl/issues/943))
+**Attention**: to apply this function as activation function in a neural network you will need Julia version >= 1.6, otherwise you may experience a segmentation fault (see [this bug report](https://github.com/FluxML/Zygote.jl/issues/943))
 """
 pool1d(x,poolsize=3;f=mean) = [f(x[i:i+poolsize-1]) for i in 1:length(x)-poolsize+1] # we may try to use CartesianIndices/LinearIndices for a n-dimensional generalisation
 
@@ -76,6 +76,15 @@ mish(x)               = x*tanh(softplus(x))
 """ dmish(x) \n\n https://arxiv.org/pdf/1908.08681v1.pdf"""
 dmish(x) = x*(1 - tanh(log(exp(x) + 1))^2)*exp(x)/(exp(x) + 1) + tanh(log(exp(x) + 1))
 
+""" dmaximum(x) \n\n Multidimensional verison of the derivative of `maximum`"""
+function dmaximum(x)
+    dy_dx = zeros(size(x))
+    dy_dx[argmax(x)] = 1.0
+    return dy_dx
+end
+dmean(x) = ones(size(x)) ./ length(x)
+
+
 
 """
    autojacobian(f,x;nY)
@@ -107,6 +116,58 @@ function autojacobian(f,x;nY=length(f(x)))
     return j
 end
 
+"generalisation of autojacobian to ndimensional in/out
+
+TODO experimantal
+
+Given ndims_x input dimensions and ndims_y dimensions the output will have ndims-x + ndims_y output dimensions
+"
+function ndderivative(f,x;y=f(x),ysize=size(y))
+    xsize   = size(x)
+    outsize = ((xsize...),(ysize...))
+    out     = zeros(outsize)
+
+    for yi in CartesianIndices(ysize)
+        yi = Tuple(yi)
+        for xi in CartesianIndices(xsize)
+            xi = Tuple(xi)
+            out[(xi...,yi...)] = gradient(x -> f(x)[yi], x)[1]
+
+        end
+    end
+    #j = Array{Float64, 2}(undef, size(x,1), nY)
+    #for i in 1:nY
+    #    j[:, i] .= gradient(x -> f(x)[i], x)[1]
+    #end
+    #return j'
+    j = Array{Float64, 2}(undef, nY, size(x,1))
+    for i in 1:nY
+        j[i,:] = gradient(x -> f(x)[i], x)[1]'
+    end
+    return j
+end
+
+function match_known_derivatives(f)
+    map = Dict(
+        # Scalar input functions..
+        identity => didentity,
+        relu     => drelu,
+        elu      => delu,
+        celu     => dcelu,
+        plu      => dplu,
+        tanh     => dtanh,
+        sigmoid  => dsigmoid,
+        softplus => dsoftplus,
+        mish     => dmish,
+        # Vector input functions..
+        softmax  => dsoftmax,
+        maximum  => dmaximum,
+        mean     => dmean,
+        squared_cost => dsquared_cost,
+        crossentropy => dcrossentropy,
+    )
+    return get(map,f,nothing)
+end
 
 # ------------------------------------------------------------------------------
 # Partition tasks..

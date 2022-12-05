@@ -63,9 +63,9 @@ import Base.show
 
 # module own functions
 export AbstractLayer, forward, backward, get_params, get_gradient, set_params!, size, preprocess! # layer API
-export forward_old, backward_old, get_gradient_old
+#export forward_old, backward_old, get_gradient_old
 export DenseLayer, DenseNoBiasLayer, VectorFunctionLayer, ScalarFunctionLayer # Available layers
-export ConvLayer, ReshaperLayer
+export ConvLayer, ReshaperLayer, PoolingLayer
 export init_optalg!, single_update! # Optimizers API
 export SGD,ADAM, DebugOptAlg # Available optimizers
 export Learnable, fitting_info, NeuralNetworkEstimator, NNHyperParametersSet, NeuralNetworkEstimatorOptionsSet # NN API
@@ -158,6 +158,7 @@ include("default_layers/DenseNoBiasLayer.jl")
 include("default_layers/VectorFunctionLayer.jl")
 include("default_layers/ScalarFunctionLayer.jl")
 include("default_layers/ConvLayer.jl")
+include("default_layers/PoolingLayer.jl")
 include("default_layers/ReshaperLayer.jl")
 include("default_layers/RNNLayer.jl")
 
@@ -325,7 +326,7 @@ Parameters:
 # Notes:
 * Even if the network ends with a single output note, the cost function and its derivative should always expect y and ŷ as column vectors.
 """
-function buildNetwork(layers,cf;dcf=nothing,name="Neural Network")
+function buildNetwork(layers,cf;dcf=match_known_derivatives(cf),name="Neural Network")
     return NN(layers,cf,dcf,false,name)
 end
 
@@ -969,11 +970,14 @@ function NeuralNetworkEstimator(;kwargs...)
     end
     # Special correction for NNHyperParametersSet
     kwkeys = keys(kwargs) #in(2,[1,2,3])
+    #if !in(:dloss,kwkeys) # if dloss in not explicitly provided
+    #    if   (in(:loss,kwkeys) && kwargs[:loss] == squared_cost  ) || # loss is explicitly provided and it is equal to squared_loss
+    #        (!in(:loss,kwkeys) )                               # (or) loss in not explicitly provided
+    #        m.hpar.dloss = dsquared_cost
+    #    end
+    #end
     if !in(:dloss,kwkeys) # if dloss in not explicitly provided
-        if   (in(:loss,kwkeys) && kwargs[:loss] == squared_cost  ) || # loss is explicitly provided and it is equal to squared_loss
-            (!in(:loss,kwkeys) )                               # (or) loss in not explicitly provided
-            m.hpar.dloss = dsquared_cost
-        end
+        m.hpar.dloss = match_known_derivatives(m.hpar.loss)
     end
     return m
 end
@@ -1081,6 +1085,7 @@ function predict(m::NeuralNetworkEstimator,X)
         return ŷ
     end    
 end
+
 
 function show(io::IO, ::MIME"text/plain", m::NeuralNetworkEstimator)
     if m.fitted == false
