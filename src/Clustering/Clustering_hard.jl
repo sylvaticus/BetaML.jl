@@ -338,8 +338,9 @@ julia> newclasses = fit!(mod,[11 0.9])
 
 julia> info(mod)
 Dict{String, Any} with 2 entries:
-  "fitted_records" => 6
-  "xndims"         => 2
+  "fitted_records"       => 6
+  "av_distance_last_fit" => 0.0
+  "xndims"               => 2
 
 julia> parameters(mod)
 BetaML.Clustering.KMeansMedoidsLearnableParameters (a BetaMLLearnableParametersSet struct)
@@ -399,8 +400,9 @@ julia> newclasses = fit!(mod,[11 0.9])
 
 julia> info(mod)
 Dict{String, Any} with 2 entries:
-  "fitted_records" => 6
-  "xndims"         => 2
+"fitted_records"       => 6
+"av_distance_last_fit" => 0.0
+"xndims"               => 2
 
 julia> parameters(mod)
 BetaML.Clustering.KMeansMedoidsLearnableParameters (a BetaMLLearnableParametersSet struct)
