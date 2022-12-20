@@ -242,12 +242,12 @@ end
 """
 $(TYPEDEF)
 
-Hyperparameters for both the [`KMeansClusterer`](@ref) and [`KMedoidsClusterer`](@ref) models
+Hyperparameters for the [`KMeansClusterer`](@ref) model
 
 # Parameters:
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct KMeansMedoidsHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct KMeansHyperParametersSet <: BetaMLHyperParametersSet
     "Number of classes to discriminate the data [def: 3]"
     n_classes::Int64                  = 3
     "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
@@ -265,6 +265,31 @@ Base.@kwdef mutable struct KMeansMedoidsHyperParametersSet <: BetaMLHyperParamet
     initial_representatives::Union{Nothing,Matrix{Float64}} = nothing
 end
 
+"""
+$(TYPEDEF)
+
+Hyperparameters for the and [`KMedoidsClusterer`](@ref) models
+
+# Parameters:
+$(TYPEDFIELDS)
+"""
+Base.@kwdef mutable struct KMedoidsHyperParametersSet <: BetaMLHyperParametersSet
+    "Number of classes to discriminate the data [def: 3]"
+    n_classes::Int64                  = 3
+    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
+    dist::Function                    = (x,y) -> norm(x-y)
+    """
+    The computation method of the vector of the initial representatives.
+    One of the following:
+    - "random": randomly in the X space
+    - "grid": using a grid approach
+    - "shuffle": selecting randomly within the available points [default]
+    - "given": using a provided set of initial representatives provided in the `initial_representatives` parameter
+    """
+    initialisation_strategy::String              = "shuffle"
+    "Provided (K x D) matrix of initial representatives (useful only with `initialisation_strategy=\"given\"`) [default: `nothing`]"
+    initial_representatives::Union{Nothing,Matrix{Float64}} = nothing
+end
 
 Base.@kwdef mutable struct KMeansMedoidsLearnableParameters <: BetaMLLearnableParametersSet
     representatives::Union{Nothing,Matrix{Float64}}  = nothing
@@ -277,11 +302,11 @@ The classical "K-Means" clustering algorithm (unsupervised).
 
 Learn to partition the data and assign each record to one of the `n_classes` classes according to a distance metric (default Euclidean).
 
-For the parameters see [`?KMeansMedoidsHyperParametersSet`](@ref KMeansMedoidsHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
+For the parameters see [`?KMeansHyperParametersSet`](@ref KMeansHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
 
 # Notes:
 - data must be numerical
-- online fitting (re-fitting with new data) is supported
+- online fitting (re-fitting with new data) is supported by using the "old" representatives as init ones
 
 # Example :
 
@@ -323,7 +348,7 @@ BetaML.Clustering.KMeansMedoidsLearnableParameters (a BetaMLLearnableParametersS
 
 """
 mutable struct KMeansClusterer <: BetaMLUnsupervisedModel
-    hpar::KMeansMedoidsHyperParametersSet
+    hpar::KMeansHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,KMeansMedoidsLearnableParameters}
     cres::Union{Nothing,Vector{Int64}}
@@ -338,11 +363,12 @@ The classical "K-Medoids" clustering algorithm (unsupervised).
 
 Similar to K-Means, learn to partition the data and assign each record to one of the `n_classes` classes according to a distance metric, but the "representatives" (the cetroids) are guaranteed to be one of the training points. The algorithm work with any arbitrary distance measure (default Euclidean).
 
-For the parameters see [`?KMeansMedoidsHyperParametersSet`](@ref KMeansMedoidsHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
+For the parameters see [`?KMedoidsHyperParametersSet`](@ref KMedoidsHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
 
 # Notes:
 - data must be numerical
-- online fitting (re-fitting with new data) is supported
+- online fitting (re-fitting with new data) is supported by using the "old" representatives as init ones
+- with `initialisation_strategy` different than `shuffle` (the default initialisation for K-Medoids) the representatives may not be one of the training points when the algorithm doesn't perform enought iterations. This can happen for example when the number of classes is close to the number of records to cluster.
 
 # Example:
 ```julia
@@ -382,7 +408,7 @@ BetaML.Clustering.KMeansMedoidsLearnableParameters (a BetaMLLearnableParametersS
 ```
 """
 mutable struct KMedoidsClusterer <: BetaMLUnsupervisedModel
-    hpar::KMeansMedoidsHyperParametersSet
+    hpar::KMedoidsHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,KMeansMedoidsLearnableParameters}
     cres::Union{Nothing,Vector{Int64}}
@@ -392,7 +418,7 @@ end
 
 
 function KMeansClusterer(;kwargs...)
-    m = KMeansClusterer(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = KMeansClusterer(KMeansHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -409,7 +435,7 @@ function KMeansClusterer(;kwargs...)
 end
 
 function KMedoidsClusterer(;kwargs...)
-    m = KMedoidsClusterer(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = KMedoidsClusterer(KMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -434,13 +460,13 @@ Fit the [`KMeansClusterer`](@ref) model to data
 function fit!(m::KMeansClusterer,x)
 
     # Parameter alias..
-    K                      = m.hpar.n_classes
-    dist                   = m.hpar.dist
-    initialisation_strategy           = m.hpar.initialisation_strategy
+    K                       = m.hpar.n_classes
+    dist                    = m.hpar.dist
+    initialisation_strategy = m.hpar.initialisation_strategy
     initial_representatives = m.hpar.initial_representatives
-    cache                  = m.opt.cache
-    verbosity              = m.opt.verbosity
-    rng                    = m.opt.rng
+    cache                   = m.opt.cache
+    verbosity               = m.opt.verbosity
+    rng                     = m.opt.rng
 
     if m.fitted
         # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee fitted with milions of records.
@@ -455,6 +481,7 @@ function fit!(m::KMeansClusterer,x)
     m.cres = cache ? clIdx : nothing
     m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
     m.info["xndims"]     = size(x,2)
+    m.info["av_distance_last_fit"] = sum(dist(x[i,:],Z[clIdx[i],:]) for i in 1:size(x,1)) / size(x,1)
     m.fitted=true
     return cache ? m.cres : nothing
 end   
@@ -468,13 +495,13 @@ Fit the [`KMedoidsClusterer`](@ref) model to data
 function fit!(m::KMedoidsClusterer,x)
 
     # Parameter alias..
-    K                      = m.hpar.n_classes
-    dist                   = m.hpar.dist
-    initialisation_strategy           = m.hpar.initialisation_strategy
+    K                       = m.hpar.n_classes
+    dist                    = m.hpar.dist
+    initialisation_strategy = m.hpar.initialisation_strategy
     initial_representatives = m.hpar.initial_representatives
-    cache                  = m.opt.cache
-    verbosity              = m.opt.verbosity
-    rng                    = m.opt.rng
+    cache                   = m.opt.cache
+    verbosity               = m.opt.verbosity
+    rng                     = m.opt.rng
 
     if m.fitted
         # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee fitted with milions of records.
@@ -489,6 +516,7 @@ function fit!(m::KMedoidsClusterer,x)
     m.cres = cache ? clIdx : nothing
     m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
     m.info["xndims"]     = size(x,2)
+    m.info["av_distance_last_fit"] = sum(dist(x[i,:],Z[clIdx[i],:]) for i in 1:size(x,1)) / size(x,1)
     m.fitted=true
     return cache ? m.cres : nothing
 end  

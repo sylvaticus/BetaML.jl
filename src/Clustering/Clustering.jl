@@ -28,7 +28,7 @@ import Base.print
 import Base.show
 
 # export kmeans, kmedoids
-export KMeansMedoidsHyperParametersSet, KMeansClusterer, KMedoidsClusterer 
+export KMeansHyperParametersSet, KMedoidsHyperParametersSet, KMeansClusterer, KMedoidsClusterer 
 
 include("Clustering_hard.jl") # K-means and k-medoids
 # MLJ interface
