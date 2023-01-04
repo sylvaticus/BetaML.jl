@@ -173,10 +173,12 @@ Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl)
 ### Short term
 
 - Implement autotuning of `GMMClusterer` using  `BIC` or `AIC`
+- Add Silhouette method to check cluster validity
+- Implement PAM and/or variants for kmedoids
 
 ### Mid/Long term
 
-- Add convolutional layers and RNN support
+- Add RNN support and improve convolutional layers speed
 - Reinforcement learning (Markov decision processes)
 
 ## Contribute
