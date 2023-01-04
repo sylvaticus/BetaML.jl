@@ -42,7 +42,7 @@ In case of a `BetaML/DecisionTree` this is typically a list of feature names as 
 wrap(node::DecisionNode, info::NamedTuple = NamedTuple()) = InfoNode(node, info)
 wrap(leaf::Leaf,         info::NamedTuple = NamedTuple()) = InfoLeaf(leaf, info)
 wrap(mod::DecisionTreeEstimator, info::NamedTuple = NamedTuple()) = wrap(mod.par.tree, info)
-wrap(m::Union{DecisionNode,Leaf,DecisionTreeEstimator};feature_names=[]) = wrap(m,(featurenames=feature_names,))
+wrap(m::Union{DecisionNode,Leaf,DecisionTreeEstimator};features_names=[]) = wrap(m,(features_names=features_names,))
 
 
 
@@ -58,7 +58,7 @@ AbstractTrees.children(node::InfoLeaf) = ()
 function AbstractTrees.printnode(io::IO, node::InfoNode)
     q = node.node.question
     condition = isa(q.value, Number) ?  ">=" : "=="
-    col = :featurenames ∈ keys(node.info) ? node.info.featurenames[q.column] : q.column
+    col = :features_names ∈ keys(node.info) ? node.info.features_names[q.column] : q.column
     print(io, "$(col) $condition $(q.value)?")
 end
 

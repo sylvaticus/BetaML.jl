@@ -56,8 +56,8 @@ tree = Tree()
     yhat_train = Trees.fit!(model, xtrain, ytrain)
 
     println("--> add information about feature names")
-    feature_names = ["Color", "Size"]
-    wrapped_tree = wrap(model, feature_names = feature_names)
+    features_names = ["Color", "Size"]
+    wrapped_tree = wrap(model, features_names = features_names)
 
     println("--> plot the tree using the `TreeRecipe`")
     plt = plot(wrapped_tree)        # this calls automatically the `TreeRecipe`
