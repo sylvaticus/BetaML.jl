@@ -4,7 +4,7 @@ import MLJBase
 const Mlj = MLJBase
 using StableRNGs
 #rng = StableRNG(123)
-using BetaML.Trees
+using BetaML
 
 println("*** Additional testing for the Testing Decision trees/Random Forest algorithms...")
 
@@ -54,11 +54,10 @@ tree = Tree()
 
     model = DecisionTreeEstimator()
     yhat_train = Trees.fit!(model, xtrain, ytrain)
-    dtree = model.par.tree
 
     println("--> add information about feature names")
-    feature_names = ["Color", "Intensity"]
-    wrapped_tree = Trees.wrap(dtree, (featurenames = feature_names, ))
+    feature_names = ["Color", "Size"]
+    wrapped_tree = wrap(model, feature_names = feature_names)
 
     println("--> plot the tree using the `TreeRecipe`")
     plt = plot(wrapped_tree)        # this calls automatically the `TreeRecipe`

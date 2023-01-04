@@ -231,6 +231,34 @@ Dict{String, Any}("job_is_regression" => 1, "fitted_records" => 6, "max_reached_
                         --> False:  -13.8
 --> False:  3.3999999999999995
 ```
+
+- Visualisation...
+
+You can either text-print or plot a decision tree..
+
+```julia
+julia> println(mod)
+DecisionTreeEstimator - A Decision Tree regressor (fitted on 6 records)
+Dict{String, Any}("job_is_regression" => 1, "fitted_records" => 6, "max_reached_depth" => 4, "avg_depth" => 3.25, "xndims" => 2)
+*** Printing Decision Tree: ***
+
+1. Is col 2 >= 18.0 ?
+--> True :
+                1.2. Is col 2 >= 31.0 ?
+                --> True :  -27.2
+                --> False:
+                        1.2.3. Is col 2 >= 20.5 ?
+                        --> True :  -17.450000000000003
+                        --> False:  -13.8
+--> False:  3.3999999999999995
+
+using Plots, TreeRecipe
+feature_names = ["Something", "Som else"]
+wrapped_tree  = wrap(dtree, feature_names = feature_names) # feature_names is otional
+plot(wrapped_tree)    
+````
+![DT plot](assets/dtplot.png) 
+
 """
 mutable struct DecisionTreeEstimator <: BetaMLSupervisedModel
     hpar::DTHyperParametersSet
@@ -758,13 +786,6 @@ function computeDepths(node::AbstractNode)
     return (mean(leafDepths),maximum(leafDepths))
 end
 
-function show(io::IO,question::Question)
-    condition = "=="
-    if isa(question.value, Number)
-        condition = ">="
-    end
-    print(io, "Is col $(question.column) $condition $(question.value) ?")
-end
 
 """
   print(node)

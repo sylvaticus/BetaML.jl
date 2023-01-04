@@ -38,8 +38,13 @@ In case of a `BetaML/DecisionTree` this is typically a list of feature names as 
 
 `wdc = wrap(dc, (featurenames = feature_names, ))`
 """
+
 wrap(node::DecisionNode, info::NamedTuple = NamedTuple()) = InfoNode(node, info)
 wrap(leaf::Leaf,         info::NamedTuple = NamedTuple()) = InfoLeaf(leaf, info)
+wrap(mod::DecisionTreeEstimator, info::NamedTuple = NamedTuple()) = wrap(mod.par.tree, info)
+wrap(m::Union{DecisionNode,Leaf,DecisionTreeEstimator};feature_names=[]) = wrap(m,(featurenames=feature_names,))
+
+
 
 
 #### Implementation of the `AbstractTrees`-interface
@@ -61,4 +66,13 @@ function AbstractTrees.printnode(io::IO, leaf::InfoLeaf)
     for p in leaf.leaf.predictions
         println(io, p)
     end
+end
+
+function show(io::IO,node::Union{InfoNode,InfoLeaf})
+    #print(io, "Is col $(question.column) $condition $(question.value) ?")
+    print(io, "A wrapped Decision Tree")
+end
+
+function show(io::IO, ::MIME"text/plain", node::Union{InfoNode,InfoLeaf})
+    print(io, "A wrapped Decision Tree")
 end
