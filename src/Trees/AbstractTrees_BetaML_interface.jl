@@ -36,13 +36,13 @@ AbstractTrees.nodevalue(l::InfoLeaf) = l.leaf
 Called on the root node of a `DecsionTree` `dc` in order to add visualization information.
 In case of a `BetaML/DecisionTree` this is typically a list of feature names as follows:
 
-`wdc = wrap(dc, (featurenames = feature_names, ))`
+`wdc = wrap(dc, featurenames = ["Colour","Size"])`
 """
 
 wrap(node::DecisionNode, info::NamedTuple = NamedTuple()) = InfoNode(node, info)
 wrap(leaf::Leaf,         info::NamedTuple = NamedTuple()) = InfoLeaf(leaf, info)
 wrap(mod::DecisionTreeEstimator, info::NamedTuple = NamedTuple()) = wrap(mod.par.tree, info)
-wrap(m::Union{DecisionNode,Leaf,DecisionTreeEstimator};features_names=[]) = wrap(m,(features_names=features_names,))
+wrap(m::Union{DecisionNode,Leaf,DecisionTreeEstimator};featurenames=[]) = wrap(m,(featurenames=featurenames,))
 
 
 
@@ -58,7 +58,7 @@ AbstractTrees.children(node::InfoLeaf) = ()
 function AbstractTrees.printnode(io::IO, node::InfoNode)
     q = node.node.question
     condition = isa(q.value, Number) ?  ">=" : "=="
-    col = :features_names ∈ keys(node.info) ? node.info.features_names[q.column] : q.column
+    col = :featurenames ∈ keys(node.info) ? node.info.featurenames[q.column] : q.column
     print(io, "$(col) $condition $(q.value)?")
 end
 

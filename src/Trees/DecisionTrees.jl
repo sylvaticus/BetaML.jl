@@ -253,8 +253,8 @@ Dict{String, Any}("job_is_regression" => 1, "fitted_records" => 6, "max_reached_
 --> False:  3.3999999999999995
 
 using Plots, TreeRecipe
-features_names = ["Something", "Som else"]
-wrapped_tree   = wrap(dtree, features_names = features_names) # feature_names is otional
+featurenames = ["Something", "Som else"]
+wrapped_tree   = wrap(dtree, featurenames = featurenames) # featurenames is otional
 plot(wrapped_tree)    
 ````
 ![DT plot](assets/dtplot.png) 
