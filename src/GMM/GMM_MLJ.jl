@@ -62,9 +62,9 @@ mutable struct GaussianMixtureClusterer <: MMI.Unsupervised
   n_classes::Int64
   "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
   initial_probmixtures::AbstractArray{Float64,1}
-  """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
-    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\"`
-    This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
+  """An array (of length `n_classes`) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
+    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is set to \"gived\".
+    This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes` mixtures of the specified type.
     Note that mixing of different mixture types is not currently supported.
     [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
   mixtures::Union{Type,Vector{<: AbstractMixture}}

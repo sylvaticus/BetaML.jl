@@ -324,6 +324,7 @@ Output of `info(cm)`:
 - categories:   ["apple", "mandarin", "clementine"]
 - fp:   [0, 1, 1]
 
+julia> res = info(cm);
 
 julia> heatmap(string.(res["categories"]),string.(res["categories"]),res["normalised_scores"],seriescolor=cgrad([:white,:blue]),xlabel="Predicted",ylabel="Actual", title="Confusion Matrix (normalised scores)")
 ```
