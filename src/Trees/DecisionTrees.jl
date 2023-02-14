@@ -234,7 +234,7 @@ Dict{String, Any}("job_is_regression" => 1, "fitted_records" => 6, "max_reached_
 
 - Visualisation...
 
-You can either text-print or plot a decision tree..
+You can either text-print or plot a decision tree using the `AbstractTree` and `TreeRecipe` package..
 
 ```julia
 julia> println(mod)
@@ -252,10 +252,21 @@ Dict{String, Any}("job_is_regression" => 1, "fitted_records" => 6, "max_reached_
                         --> False:  -13.8
 --> False:  3.3999999999999995
 
-using Plots, TreeRecipe
-featurenames = ["Something", "Som else"]
-wrapped_tree   = wrap(dtree, featurenames = featurenames) # featurenames is otional
-plot(wrapped_tree)    
+julia> using Plots, TreeRecipe, AbstractTrees
+julia> featurenames = ["Something", "Som else"];
+julia> wrapped_tree   = wrap(dtree, featurenames = featurenames); # featurenames is otional
+julia> print_tree(wrapped_tree)
+Som else >= 18.0?
+├─ Som else >= 31.0?
+│  ├─ -27.2
+│  │  
+│  └─ Som else >= 20.5?
+│     ├─ -17.450000000000003
+│     │  
+│     └─ -13.8
+│        
+└─ 3.3999999999999995
+julia> plot(wrapped_tree)    
 ````
 ![DT plot](assets/dtplot.png) 
 
