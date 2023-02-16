@@ -7,6 +7,9 @@ using StableRNGs
 using BetaML
 import BetaML.Trees: predictSingle, updateTreesWeights!
 import BetaML.Trees: buildTree, buildForest
+import BetaML.Trees: findbestgain_sortedvector
+import AbstractTrees: printnode
+import AbstractTrees: print_tree
 
 #TESTRNG = FIXEDRNG # This could change...
 TESTRNG = StableRNG(123)
@@ -38,8 +41,6 @@ ŷtrain3 = predict(m) # using cached elements
 @test accuracy(ytrain,ŷtrain,rng=copy(TESTRNG)) >= 0.8
 @test ŷtrain == ŷtrain2 ==  ŷtrain3
 
-
-
 ytrainI = fit!(OrdinalEncoder(),ytrain)
 mi = DecisionTreeEstimator(rng=copy(TESTRNG),force_classification=true)
 ŷtrainI =   fit!(mi,xtrain,ytrainI)
@@ -53,13 +54,8 @@ predict(mi,xtrain)
 
 x = [1 0.1; 2 0.2; 3 0.3; 4 0.4; 5 0.5]
 y = ["a","a","b","b","b"]
-import BetaML.Trees: findbestgain_sortedvector
 @test findbestgain_sortedvector(x,y,2,x[:,2];mCols=[],currentUncertainty=gini(y),splitting_criterion=gini,rng=copy(TESTRNG)) == 0.3
 
-
-
-using AbstractTrees
-import AbstractTrees: printnode
 wrappedNode = BetaML.wrap(myTree)
 print("Node printing: ")
 printnode(stdout,wrappedNode)
@@ -81,6 +77,18 @@ ŷtest2 = predict(m, xtest)
 @test ŷtest == ŷtest2
 @test info(m) == Dict{String,Any}("job_is_regression" => 0,"fitted_records" => 5,"xndims" => 2,"avg_depth" => 2.6666666666666665, "max_reached_depth" => 3)
 
+# Testing print_tree
+X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
+y = 2 .* X[:,1] .- X[:,2] .+ 3;
+mod = DecisionTreeEstimator(max_depth=2)
+ŷ   = fit!(mod,X,y);
+wmod = wrap(mod,featurenames=["dim1","dim2"])
+print_tree(wmod)
+y2 = ["a","b","b","c","b","a"]
+mod2 = DecisionTreeEstimator(max_depth=2)
+ŷ2   = fit!(mod2,X,y2);
+wmod2 = wrap(mod2,featurenames=["dim1","dim2"])
+print_tree(wmod2)
 
 #print(myTree)
 

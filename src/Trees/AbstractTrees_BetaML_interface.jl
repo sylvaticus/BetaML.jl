@@ -22,13 +22,13 @@ struct InfoNode{T} <: AbstractTrees.AbstractNode{DecisionNode{T}}
     node    :: DecisionNode{T}
     info    :: NamedTuple
 end
-AbstractTrees.nodevalue(n::InfoNode) = n.node
+AbstractTrees.nodevalue(n::InfoNode) = n.node # round(n.node,sigdigits=4)
 
 struct InfoLeaf{T} <: AbstractTrees.AbstractNode{Leaf{T}}
     leaf    :: Leaf{T}
     info    :: NamedTuple
 end
-AbstractTrees.nodevalue(l::InfoLeaf) = l.leaf
+AbstractTrees.nodevalue(l::InfoLeaf) = l.leaf # round(l.leaf,sigdigits=4)
 
 """
     wrap(node:: DecisionNode, ...)
@@ -59,12 +59,18 @@ function AbstractTrees.printnode(io::IO, node::InfoNode)
     q = node.node.question
     condition = isa(q.value, Number) ?  ">=" : "=="
     col = :featurenames ∈ keys(node.info) ? node.info.featurenames[q.column] : q.column
-    print(io, "$(col) $condition $(q.value)?")
+    print(io, "$(col) $condition $(q.value))?")
 end
 
-function AbstractTrees.printnode(io::IO, leaf::InfoLeaf)
+function AbstractTrees.printnode(io::IO, leaf::InfoLeaf) 
     for p in leaf.leaf.predictions
-        println(io, p)
+        if isa(p, Pair)
+            println(io, Pair(p[1],round(p[2],sigdigits=4)))
+        elseif isa(p,Number)
+            println(io, round(p,sigdigits=4))
+        else
+            println(io, p)
+        end
     end
 end
 
