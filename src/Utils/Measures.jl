@@ -70,7 +70,7 @@ Categorical accuracy with probabilistic prediction of a single datapoint (PMF vs
 
 Use the parameter tol [def: `1`] to determine the tollerance of the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values.
 """
-function accuracy(y_pos::Int64,ŷ::Array{T,1};tol=1,rng=Random.GLOBAL_RNG) where {T <: Number}
+function accuracy(y_pos::Int64,ŷ::AbstractArray{T,1};tol=1,rng=Random.GLOBAL_RNG) where {T <: Number}
     #if  length(Set(ŷ) == 1                         # all classes the same prob
     #    return rand(rng) < (1 / length(y)) ? 1 : 0 # If all values have the same prob, it returns 1 with prob 1/n_classes
     #end
@@ -92,7 +92,7 @@ Categorical accuracy with probabilistic prediction of a single datapoint given i
 - `ŷ`: The returned probability mass function in terms of a Dictionary(Item1 => Prob1, Item2 => Prob2, ...)
 - `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
 """
-function accuracy(y::T,ŷ::Dict{T,Float64};tol=1,rng=Random.GLOBAL_RNG) where {T}
+function accuracy(y::T,ŷ::AbstractDict{T,Float64};tol=1,rng=Random.GLOBAL_RNG) where {T}
     if !(y in keys(ŷ)) return 0 end
     tol > 1 || return (mode(ŷ;rng=rng) == y) ? 1 : 0 # if tol is one we delegate the choice of a single prediction to mode, that handles multimodal pmfs
     sIdx  = sortperm(collect(values(ŷ)))[end:-1:1]            # sort by decreasing values of the dictionary values
@@ -112,7 +112,7 @@ Categorical accuracy with probabilistic predictions of a dataset (PMF vs Int).
 - `ignorelabels`: Whether to ignore the specific label order in y. Useful for unsupervised learning algorithms where the specific label order don't make sense [def: false]
 
 """
-function accuracy(y::Array{Int64,1},ŷ::Array{T,2};tol=1,ignorelabels=false,rng=Random.GLOBAL_RNG) where {T <: Number}
+function accuracy(y::AbstractArray{Int64,1},ŷ::AbstractArray{T,2};tol=1,ignorelabels=false,rng=Random.GLOBAL_RNG) where {T <: Number}
     (N,D) = size(ŷ)
     pSet = ignorelabels ? collect(permutations(1:D)) : [collect(1:D)]
     bestAcc = -Inf
@@ -137,7 +137,7 @@ Categorical accuracy with probabilistic predictions of a dataset given in terms 
 - `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
 
 """
-function accuracy(y::Array{T,1},ŷ::Array{Dict{T,Float64},1};tol=1,rng=Random.GLOBAL_RNG) where {T}
+function accuracy(y::AbstractArray{T,1},ŷ::AbstractArray{Dict{T,Float64},1};tol=1,rng=Random.GLOBAL_RNG) where {T}
     N = size(ŷ,1)
     acc = sum([accuracy(y[i],ŷ[i];tol=tol,rng=rng) for i in 1:N])/N
     return acc
