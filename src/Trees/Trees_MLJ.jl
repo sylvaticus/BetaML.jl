@@ -24,12 +24,12 @@ $(TYPEDFIELDS)
 ```julia
 julia> using MLJ
 
-julia> X, y                        = @load_boston;
+julia> X, y        = @load_boston;
 
-julia> modelType                   = @load DecisionTreeRegressor pkg = "BetaML" verbosity=0
+julia> modelType   = @load DecisionTreeRegressor pkg = "BetaML" verbosity=0
 BetaML.Trees.DecisionTreeRegressor
 
-julia> model                       = modelType()
+julia> model       = modelType()
 DecisionTreeRegressor(
   max_depth = 0, 
   min_gain = 0.0, 
@@ -38,17 +38,22 @@ DecisionTreeRegressor(
   splitting_criterion = BetaML.Utils.variance, 
   rng = Random._GLOBAL_RNG())
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+julia> mach        = machine(model, X, y);
 
-julia> y_est                       = predict(model, fitResults, X)
-506-element Vector{Float64}:
- 26.35
- 21.6
- 34.8
-  ⋮
- 23.75
- 22.2
- 13.2
+julia> fit!(mach);
+[ Info: Training machine(DecisionTreeRegressor(max_depth = 0, …), …).
+
+julia> ŷ           = predict(mach, X);
+
+julia> hcat(y,ŷ)
+506×2 Matrix{Float64}:
+ 24.0  26.35
+ 21.6  21.6
+ 34.7  34.8
+  ⋮    
+ 23.9  23.75
+ 22.0  22.2
+ 11.9  13.2
 ```
 
 """
@@ -85,15 +90,14 @@ $(TYPEDFIELDS)
 
 # Example:
 ```julia
-
 julia> using MLJ
 
-julia> X, y                        = @load_iris;
+julia> X, y        = @load_iris;
 
-julia> modelType                   = @load DecisionTreeClassifier pkg = "BetaML" verbosity=0
+julia> modelType   = @load DecisionTreeClassifier pkg = "BetaML" verbosity=0
 BetaML.Trees.DecisionTreeClassifier
 
-julia> model                       = modelType()
+julia> model       = modelType()
 DecisionTreeClassifier(
   max_depth = 0, 
   min_gain = 0.0, 
@@ -102,11 +106,13 @@ DecisionTreeClassifier(
   splitting_criterion = BetaML.Utils.gini, 
   rng = Random._GLOBAL_RNG())
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+julia> mach        = machine(model, X, y);
 
-julia> class_est                   = predict(model, fitResults, X)
+julia> fit!(mach);
+[ Info: Training machine(DecisionTreeClassifier(max_depth = 0, …), …).
+
+julia> cat_est    = predict(mach, X)
 150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, String, UInt32, Float64}:
- UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>0.0, virginica=>0.0)
  UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>0.0, virginica=>0.0)
  UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>0.0, virginica=>0.0)
  ⋮
@@ -151,12 +157,12 @@ $(TYPEDFIELDS)
 ```julia
 julia> using MLJ
 
-julia> X, y                        = @load_boston;
+julia> X, y        = @load_boston;
 
-julia> modelType                   = @load RandomForestRegressor pkg = "BetaML" verbosity=0
+julia> modelType   = @load RandomForestRegressor pkg = "BetaML" verbosity=0
 BetaML.Trees.RandomForestRegressor
 
-julia> model                       = modelType()
+julia> model       = modelType()
 RandomForestRegressor(
   n_trees = 30, 
   max_depth = 0, 
@@ -167,18 +173,23 @@ RandomForestRegressor(
   β = 0.0, 
   rng = Random._GLOBAL_RNG())
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+julia> mach        = machine(model, X, y);
 
-julia> y_est                       = predict(model, fitResults, X)
-506-element Vector{Float64}:
- 25.283333333333335
- 22.700999999999997
- 36.67500000000002
-  ⋮
- 19.378333333333334
- 24.191666666666663
- 23.726666666666674
- 15.393333333333327
+julia> fit!(mach);
+[ Info: Training machine(RandomForestRegressor(n_trees = 30, …), …).
+
+julia> ŷ           = predict(mach, X);
+
+julia> hcat(y,ŷ)
+506×2 Matrix{Float64}:
+ 24.0  25.8433
+ 21.6  22.4317
+ 34.7  35.5742
+ 33.4  33.9233
+  ⋮    
+ 23.9  24.42
+ 22.0  22.4433
+ 11.9  15.5833
 ```
 """
 mutable struct RandomForestRegressor <: MMI.Deterministic
@@ -222,12 +233,12 @@ $(TYPEDFIELDS)
 ```julia
 julia> using MLJ
 
-julia> X, y                        = @load_iris;
+julia> X, y        = @load_iris;
 
-julia> modelType                   = @load RandomForestClassifier pkg = "BetaML" verbosity=0
+julia> modelType   = @load RandomForestClassifier pkg = "BetaML" verbosity=0
 BetaML.Trees.RandomForestClassifier
 
-julia> model                       = modelType()
+julia> model       = modelType()
 RandomForestClassifier(
   n_trees = 30, 
   max_depth = 0, 
@@ -238,17 +249,18 @@ RandomForestClassifier(
   β = 0.0, 
   rng = Random._GLOBAL_RNG())
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+julia> mach        = machine(model, X, y);
 
-julia> class_est                   = predict(model, fitResults, X)
+julia> fit!(mach);
+[ Info: Training machine(RandomForestClassifier(n_trees = 30, …), …).
+
+julia> cat_est    = predict(mach, X)
 150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, String, UInt32, Float64}:
- UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>0.0, virginica=>0.0)
  UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>0.0, virginica=>0.0)
  UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>0.0, virginica=>0.0)
  ⋮
  UnivariateFinite{Multiclass{3}}(setosa=>0.0, versicolor=>0.0, virginica=>1.0)
- UnivariateFinite{Multiclass{3}}(setosa=>0.0, versicolor=>0.0, virginica=>1.0)
- UnivariateFinite{Multiclass{3}}(setosa=>0.0, versicolor=>0.0, virginica=>1.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.0, versicolor=>0.0667, virginica=>0.933)
 ```
 """
 mutable struct RandomForestClassifier <: MMI.Probabilistic

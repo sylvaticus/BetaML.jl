@@ -22,14 +22,14 @@ $(TYPEDFIELDS)
 ```julia
 julia> using MLJ
 
-julia> X, y                        = @load_iris;
+julia> X, y        = @load_iris;
 
-julia> modelType                   = @load LinearPerceptron pkg = "BetaML"
+julia> modelType   = @load LinearPerceptron pkg = "BetaML"
 [ Info: For silent loading, specify `verbosity=0`. 
 import BetaML ✔
 BetaML.Perceptron.LinearPerceptron
 
-julia> model                       = modelType()
+julia> model       = modelType()
 LinearPerceptron(
   initial_coefficients = nothing, 
   initial_constant = nothing, 
@@ -39,16 +39,18 @@ LinearPerceptron(
   return_mean_hyperplane = false, 
   rng = Random._GLOBAL_RNG())
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+julia> mach        = machine(model, X, y);
 
-julia> est_classes                 = predict(model, fitResults, X)
+julia> fit!(mach);
+[ Info: Training machine(LinearPerceptron(initial_coefficients = nothing, …), …).
+*** Avg. error after epoch 2 : 0.0 (all elements of the set has been correctly classified)
+julia> est_classes = predict(mach, X)
 150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, String, UInt8, Float64}:
- UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>2.44e-35, virginica=>4.91e-306)
- UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>6.18e-20, virginica=>1.81e-280)
+ UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>2.53e-34, virginica=>0.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>1.27e-18, virginica=>1.86e-310)
  ⋮
- UnivariateFinite{Multiclass{3}}(setosa=>1.26e-69, versicolor=>7.77e-89, virginica=>1.0)
- UnivariateFinite{Multiclass{3}}(setosa=>2.65e-102, versicolor=>1.45e-137, virginica=>1.0)
- UnivariateFinite{Multiclass{3}}(setosa=>6.79e-64, versicolor=>2.8400000000000003e-75, virginica=>1.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>2.77e-57, versicolor=>1.1099999999999999e-82, virginica=>1.0)
+ UnivariateFinite{Multiclass{3}}(setosa=>3.09e-22, versicolor=>4.03e-25, virginica=>1.0)
 ```
 
 """
@@ -90,14 +92,14 @@ $(TYPEDFIELDS)
 ```julia
 julia> using MLJ
 
-julia> X, y                        = @load_iris;
+julia> X, y        = @load_iris;
 
-julia> modelType                   = @load KernelPerceptron pkg = "BetaML"
+julia> modelType   = @load KernelPerceptron pkg = "BetaML"
 [ Info: For silent loading, specify `verbosity=0`. 
 import BetaML ✔
 BetaML.Perceptron.KernelPerceptron
 
-julia> model                       = modelType()
+julia> model       = modelType()
 KernelPerceptron(
   kernel = BetaML.Utils.radial_kernel, 
   epochs = 100, 
@@ -105,16 +107,17 @@ KernelPerceptron(
   shuffle = true, 
   rng = Random._GLOBAL_RNG())
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+julia> mach        = machine(model, X, y);
 
-julia> est_classes                 = predict(model, fitResults, X)
+julia> fit!(mach);
+
+julia> est_classes = predict(mach, X)
 150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, String, UInt8, Float64}:
  UnivariateFinite{Multiclass{3}}(setosa=>0.665, versicolor=>0.245, virginica=>0.09)
  UnivariateFinite{Multiclass{3}}(setosa=>0.665, versicolor=>0.245, virginica=>0.09)
  ⋮
  UnivariateFinite{Multiclass{3}}(setosa=>0.09, versicolor=>0.245, virginica=>0.665)
- UnivariateFinite{Multiclass{3}}(setosa=>0.09, versicolor=>0.245, virginica=>0.665)
- UnivariateFinite{Multiclass{3}}(setosa=>0.09, versicolor=>0.245, virginica=>0.665)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.09, versicolor=>0.665, virginica=>0.245)
 ```
 
 """
@@ -149,12 +152,12 @@ $(TYPEDFIELDS)
 ```julia
 julia> using MLJ
 
-julia> X, y                        = @load_iris;
+julia> X, y        = @load_iris;
 
-julia> modelType                   = @load Pegasos pkg = "BetaML" verbosity=0
+julia> modelType   = @load Pegasos pkg = "BetaML" verbosity=0
 BetaML.Perceptron.Pegasos
 
-julia> model                       = modelType()
+julia> model       = modelType()
 Pegasos(
   initial_coefficients = nothing, 
   initial_constant = nothing, 
@@ -166,17 +169,17 @@ Pegasos(
   return_mean_hyperplane = false, 
   rng = Random._GLOBAL_RNG())
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+julia> mach        = machine(model, X, y);
 
-julia> est_classes                 = predict(model, fitResults, X)
+julia> fit!(mach);
+
+julia> est_classes = predict(mach, X)
 150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, String, UInt8, Float64}:
- UnivariateFinite{Multiclass{3}}(setosa=>0.867, versicolor=>0.0554, virginica=>0.0772)
- UnivariateFinite{Multiclass{3}}(setosa=>0.852, versicolor=>0.0691, virginica=>0.0785)
- UnivariateFinite{Multiclass{3}}(setosa=>0.865, versicolor=>0.0645, virginica=>0.0705)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.817, versicolor=>0.153, virginica=>0.0301)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.791, versicolor=>0.177, virginica=>0.0318)
  ⋮
- UnivariateFinite{Multiclass{3}}(setosa=>0.299, versicolor=>0.0667, virginica=>0.635)
- UnivariateFinite{Multiclass{3}}(setosa=>0.28, versicolor=>0.0598, virginica=>0.66)
- UnivariateFinite{Multiclass{3}}(setosa=>0.34, versicolor=>0.0798, virginica=>0.58)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.254, versicolor=>0.5, virginica=>0.246)
+ UnivariateFinite{Multiclass{3}}(setosa=>0.283, versicolor=>0.51, virginica=>0.207)
 ```
 """
 mutable struct Pegasos <: MMI.Probabilistic
