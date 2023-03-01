@@ -397,12 +397,40 @@ You can use your own function as the metric. We provide the following built-in m
 
 """
 function infoGain(leftY, rightY, parentUncertainty; splitting_criterion=gini)
+    n_left = length(leftY)
+    n_right = length(rightY)
+    n_total = n_left + n_right
+    p = n_left / n_total
+    left_score = splitting_criterion(leftY)
+    right_score = splitting_criterion(rightY)
+    return parentUncertainty - p * left_score - (1 - p) * right_score
+end
+function infoGainOld(leftY, rightY, parentUncertainty; splitting_criterion=gini)
     p = size(leftY,1) / (size(leftY,1) + size(rightY,1))
     return parentUncertainty - p * splitting_criterion(leftY) - (1 - p) * splitting_criterion(rightY)
 end
 
+function findbestgain_sortedvector(x, y, d, candidates; mCols, currentUncertainty, splitting_criterion, rng)
+    n = length(candidates)
+    if n < 2
+        return candidates[1]
+    end
+    
+    l = max(1, div(n, 4)) # lower bound candidate
+    u = min(n, div(3 * n, 4)) # upper bound candidate
+    
+    lquestion = Question(d, candidates[l])
+    ltrueIdx = partition(lquestion, x, mCols, sorted=true, rng=rng)
+    lgain = (any(ltrueIdx) && !all(ltrueIdx)) ? infoGain(y[ltrueIdx], y[.!ltrueIdx], currentUncertainty, splitting_criterion=splitting_criterion) : 0.0
+    
+    uquestion = Question(d, candidates[u])
+    utrueIdx = partition(uquestion, x, mCols, sorted=true, rng=rng)
+    ugain = (any(utrueIdx) && !all(utrueIdx)) ? infoGain(y[utrueIdx], y[.!utrueIdx], currentUncertainty, splitting_criterion=splitting_criterion) : 0.0
 
-function findbestgain_sortedvector(x,y,d,candidates;mCols,currentUncertainty,splitting_criterion,rng)
+    return (lgain > ugain) ? findbestgain_sortedvector(x, y, d, candidates[1:u-1]; mCols=mCols, currentUncertainty=currentUncertainty, splitting_criterion=splitting_criterion, rng=rng) :
+                            findbestgain_sortedvector(x, y, d, candidates[l+1:end]; mCols=mCols, currentUncertainty=currentUncertainty, splitting_criterion=splitting_criterion, rng=rng)
+end
+function findbestgain_sortedvectorOLD(x,y,d,candidates;mCols,currentUncertainty,splitting_criterion,rng)
     #println(splitting_criterion)
     #println("HERE I AM CALLED ! Dimension $d, candidates: ", candidates)
     n = size(candidates,1)
@@ -454,6 +482,87 @@ Find the best question to ask by iterating over every feature / value and calcul
 
 """
 function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_criterion=gini, integer_encoded_cols, fast_algorithm, rng = Random.GLOBAL_RNG) where {Ty}
+    bestGain           = 0.0             # keep track of the best information gain
+    bestQuestion       = Question(1,1.0) # keep track of the feature / value that produced it
+    currentUncertainty = splitting_criterion(y)
+    (N,D)              = size(x)  # number of columns (the last column is the label)
+
+    featuresToConsider = (max_features >= D) ? (1:D) : sample(1:D, max_features, replace=false)
+
+    for d in featuresToConsider      # for each feature (we consider only max_features features randomly)
+        values = unique(skipmissing(x[:,d]))  # unique values in the column
+        sortable = Utils.issortable(x[:,d])
+        if(sortable && !in(d,integer_encoded_cols))
+            sortIdx = sortperm(x[:,d])
+            sortedx = x[sortIdx,:]
+            sortedy = y[sortIdx]
+
+            if fast_algorithm
+                bestvalue     = findbestgain_sortedvector(sortedx,sortedy,d,sortedx;mCols=mCols,currentUncertainty=currentUncertainty,splitting_criterion=splitting_criterion,rng=rng)
+                bestQuestionD = Question(d,bestvalue)
+                btrueIdx      = partition(bestQuestionD,sortedx,mCols,sorted=true,rng=rng)
+                bestGainD     = 0.0             # keep track of the best information gain
+                if !all(btrueIdx) && any(btrueIdx)
+                    bestGainD  = infoGain(sortedy[btrueIdx], sortedy[map(!,btrueIdx)], currentUncertainty, splitting_criterion=splitting_criterion)
+                end
+                if bestGainD >= bestGain
+                    bestGain, bestQuestion = bestGainD, bestQuestionD
+                end
+            else
+                for val in values  # for each value- it is this one that I can optimize (when it is sortable)!
+                    # try splitting the dataset
+                    #println(question)
+                    question = Question(d, val)
+                    trueIdx = partition(question,sortedx,mCols,sorted=true,rng=rng)
+                    # Skip this split if it doesn't divide the
+                    # dataset.
+                    if all(trueIdx) || ! any(trueIdx)
+                        continue
+                    end
+                    # Calculate the information gain from this split
+                    gain = infoGain(sortedy[trueIdx], sortedy[map(!,trueIdx)], currentUncertainty, splitting_criterion=splitting_criterion)
+                    # You actually can use '>' instead of '>=' here
+                    # but I wanted the tree to look a certain way for our
+                    # toy dataset.
+                    if gain >= bestGain
+                    #    println("*** New best gain: ", question)
+                        bestGain, bestQuestion = gain, question
+                    #else
+                    #    println("    bad gain: ", question)
+                    end
+                end
+            end
+
+        else
+            sortIdx = 1:N
+            sortedx = x
+            sortedy = y
+
+            for val in values  # for each value - not optimisable
+                # try splitting the dataset
+                #println(question)
+                question = Question(d, val)
+                trueIdx = partition(question,sortedx,mCols,sorted=false,rng=rng)
+                # Skip this split if it doesn't divide the
+                # dataset.
+                if all(trueIdx) || ! any(trueIdx)
+                    continue
+                end
+                # Calculate the information gain from this split
+                gain = infoGain(sortedy[trueIdx], sortedy[map(!,trueIdx)], currentUncertainty, splitting_criterion=splitting_criterion)
+                # You actually can use '>' instead of '>=' here
+                # but I wanted the tree to look a certain way for our
+                # toy dataset.
+                if gain >= bestGain
+                    bestGain, bestQuestion = gain, question
+                end
+            end
+
+        end
+    end
+    return bestGain, bestQuestion
+end
+function findBestSplitOLD(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_criterion=gini, integer_encoded_cols, fast_algorithm, rng = Random.GLOBAL_RNG) where {Ty}
     bestGain           = 0.0             # keep track of the best information gain
     bestQuestion       = Question(1,1.0) # keep track of the feature / value that produced it
     currentUncertainty = splitting_criterion(y)

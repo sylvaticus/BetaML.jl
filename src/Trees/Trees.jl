@@ -22,7 +22,7 @@ Acknowlegdments: originally based on the [Josh Gordon's code](https://www.youtub
 """
 module Trees
 
-using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays, DocStringExtensions
+using LinearAlgebra, Random, Statistics, StatsBase, Reexport, CategoricalArrays, DocStringExtensions
 import AbstractTrees
 
 using  ForceImport

@@ -20,14 +20,15 @@ $(TYPEDFIELDS)
 
 # Example:
 ```julia
+
 julia> using MLJ
 
-julia> modelType                   = @load GaussianMixtureClusterer pkg = "BetaML"
-[ Info: For silent loading, specify `verbosity=0`. 
-import BetaML ✔
+julia> X, y        = @load_iris;
+
+julia> modelType   = @load GaussianMixtureClusterer pkg = "BetaML" verbosity=0
 BetaML.GMM.GaussianMixtureClusterer
 
-julia> model                       = modelType()
+julia> model       = modelType()
 GaussianMixtureClusterer(
   n_classes = 3, 
   initial_probmixtures = Float64[], 
@@ -39,23 +40,23 @@ GaussianMixtureClusterer(
   maximum_iterations = 9223372036854775807, 
   rng = Random._GLOBAL_RNG())
 
-julia> X, y                        = @load_iris;
+julia> mach        = machine(model, X);
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X);
+julia> fit!(mach);
+[ Info: Training machine(GaussianMixtureClusterer(n_classes = 3, …), …).
+Iter. 1:        Var. of the post  10.800150114964184      Log-likelihood -650.0186451891216
 
-julia> est_classes                 = predict(model, fitResults, X)
+julia> classes_est = predict(mach, X)
 150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, Int64, UInt32, Float64}:
  UnivariateFinite{Multiclass{3}}(1=>1.0, 2=>4.17e-15, 3=>2.1900000000000003e-31)
  UnivariateFinite{Multiclass{3}}(1=>1.0, 2=>1.25e-13, 3=>5.87e-31)
  UnivariateFinite{Multiclass{3}}(1=>1.0, 2=>4.5e-15, 3=>1.55e-32)
+ UnivariateFinite{Multiclass{3}}(1=>1.0, 2=>6.93e-14, 3=>3.37e-31)
  ⋮
  UnivariateFinite{Multiclass{3}}(1=>5.39e-25, 2=>0.0167, 3=>0.983)
  UnivariateFinite{Multiclass{3}}(1=>7.5e-29, 2=>0.000106, 3=>1.0)
  UnivariateFinite{Multiclass{3}}(1=>1.6e-20, 2=>0.594, 3=>0.406)
-
-julia> 
 ```
-
 """
 mutable struct GaussianMixtureClusterer <: MMI.Unsupervised
   "Number of mixtures (latent classes) to consider [def: 3]"  
@@ -108,7 +109,7 @@ end
 """
 $(TYPEDEF)
 
-A non-linear regressor derived from fitting the data on a probabilistic model (Gaussian Mixture Model). Relatively fast.
+A non-linear regressor derived from fitting the data on a probabilistic model (Gaussian Mixture Model). Relatively fast but generally not very precise, except for data with a structure matching the chosen underlying mixture.
 
 This is the single-target version of the model. If you want to predict several labels (y) at once, use the MLJ model [`MultitargetGaussianMixtureRegressor`](@ref).
 
@@ -119,36 +120,36 @@ $(TYPEDFIELDS)
 ```julia
 julia> using MLJ
 
-julia> modelType                   = @load GaussianMixtureRegressor pkg = "BetaML"
-[ Info: For silent loading, specify `verbosity=0`. 
-import BetaML ✔
+julia> X, y      = @load_boston;
+
+julia> modelType = @load GaussianMixtureRegressor pkg = "BetaML" verbosity=0
 BetaML.GMM.GaussianMixtureRegressor
 
-julia> model                       = modelType()
+julia> model     = modelType()
 GaussianMixtureRegressor(
-n_classes = 3, 
-initial_probmixtures = Float64[], 
-mixtures = BetaML.GMM.DiagonalGaussian{Float64}[BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing), BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing), BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing)], 
-tol = 1.0e-6, 
-minimum_variance = 0.05, 
-minimum_covariance = 0.0, 
-initialisation_strategy = "kmeans", 
-maximum_iterations = 9223372036854775807, 
-rng = Random._GLOBAL_RNG())
+  n_classes = 3, 
+  initial_probmixtures = Float64[], 
+  mixtures = BetaML.GMM.DiagonalGaussian{Float64}[BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing), BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing), BetaML.GMM.DiagonalGaussian{Float64}(nothing, nothing)], 
+  tol = 1.0e-6, 
+  minimum_variance = 0.05, 
+  minimum_covariance = 0.0, 
+  initialisation_strategy = "kmeans", 
+  maximum_iterations = 9223372036854775807, 
+  rng = Random._GLOBAL_RNG())
 
-julia> X, y                        = @load_boston;
+julia> mach      = machine(model, X, y);
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, y);
+julia> fit!(mach);
+[ Info: Training machine(GaussianMixtureRegressor(n_classes = 3, …), …).
+Iter. 1:        Var. of the post  21.74887448784976       Log-likelihood -21687.09917379566
 
-julia> y_est                       = predict(model, fitResults, X)
+julia> ŷ         = predict(mach, X)
 506-element Vector{Float64}:
-24.703442835305577
-24.70344283512716
-24.70344283528249
-⋮
-17.172486989759676
-17.172486989759676
-17.172486989759644
+ 24.703442835305577
+ 24.70344283512716
+  ⋮
+ 17.172486989759676
+ 17.172486989759644
 ```
 """
 mutable struct GaussianMixtureRegressor <: MMI.Deterministic
@@ -202,7 +203,7 @@ end
 """
 $(TYPEDEF)
 
-A non-linear regressor derived from fitting the data on a probabilistic model (Gaussian Mixture Model). Relatively fast.
+A non-linear regressor derived from fitting the data on a probabilistic model (Gaussian Mixture Model). Relatively fast but generally not very precise, except for data with a structure matching the chosen underlying mixture.
 
 This is the multi-target version of the model. If you want to predict a single label (y), use the MLJ model [`GaussianMixtureRegressor`](@ref).
 
@@ -213,11 +214,14 @@ $(TYPEDFIELDS)
 ```julia
 julia> using MLJ
 
-julia> modelType                   = @load MultitargetGaussianMixtureRegressor pkg = "BetaML"
-[ Info: For silent loading, specify `verbosity=0`. 
-import BetaML ✔
+julia> X, y        = @load_boston;
+
+julia> ydouble     = hcat(y, y .*2  .+5);
+
+julia> modelType   = @load MultitargetGaussianMixtureRegressor pkg = "BetaML" verbosity=0
 BetaML.GMM.MultitargetGaussianMixtureRegressor
-julia> model                       = modelType()
+
+julia> model       = modelType()
 MultitargetGaussianMixtureRegressor(
   n_classes = 3, 
   initial_probmixtures = Float64[], 
@@ -229,21 +233,19 @@ MultitargetGaussianMixtureRegressor(
   maximum_iterations = 9223372036854775807, 
   rng = Random._GLOBAL_RNG())
 
-julia> X, y                        = @load_boston;
+julia> mach        = machine(model, X, ydouble);
 
-julia> ydouble = hcat(y,y);
+julia> fit!(mach);
+[ Info: Training machine(MultitargetGaussianMixtureRegressor(n_classes = 3, …), …).
+Iter. 1:        Var. of the post  20.46947926187522       Log-likelihood -23662.72770575145
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X, ydouble);
-
-julia> y_est                       = predict(model, fitResults, X)
+julia> ŷdouble    = predict(mach, X)
 506×2 Matrix{Float64}:
- 24.5785  24.5785
- 24.5785  24.5785
- 24.5785  24.5785
+ 23.3358  51.6717
+ 23.3358  51.6717
   ⋮       
- 17.0039  17.0039
- 17.0039  17.0039
- 17.0039  17.0039
+ 16.6843  38.3686
+ 16.6843  38.3686
 ```
 """
 mutable struct MultitargetGaussianMixtureRegressor <: MMI.Deterministic
