@@ -21,17 +21,20 @@ julia> using MLJ
 
 julia> X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4] |> table ;
 
-julia> modelType                   = @load SimpleImputer pkg = "BetaML" verbosity=0
+julia> modelType   = @load SimpleImputer  pkg = "BetaML" verbosity=0
 BetaML.Imputation.SimpleImputer
 
-julia> model                       = modelType(norm=1)
+julia> model     = modelType(norm=1)
 SimpleImputer(
   statistic = Statistics.mean, 
   norm = 1)
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X);
+julia> mach      = machine(model, X);
 
-julia> X_full                      = transform(model, fitResults, X) |> MLJ.matrix
+julia> fit!(mach);
+[ Info: Training machine(SimpleImputer(statistic = mean, …), …).
+
+julia> X_full       = transform(mach) |> MLJ.matrix
 9×2 Matrix{Float64}:
  1.0        10.5
  1.5         0.295466
@@ -43,8 +46,6 @@ julia> X_full                      = transform(model, fitResults, X) |> MLJ.matr
  0.0750839  -2.3
  5.2        -2.4
 ```
-
-
 """
 mutable struct SimpleImputer <: MMI.Unsupervised
     "The descriptive statistic of the column (feature) to use as imputed value [def: `mean`]"
@@ -71,10 +72,10 @@ julia> using MLJ
 
 julia> X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4] |> table ;
 
-julia> modelType                   = @load GaussianMixtureImputer pkg = "BetaML" verbosity=0
+julia> modelType   = @load GaussianMixtureImputer  pkg = "BetaML" verbosity=0
 BetaML.Imputation.GaussianMixtureImputer
 
-julia> model                       = modelType(initialisation_strategy="grid")
+julia> model     = modelType(initialisation_strategy="grid")
 GaussianMixtureImputer(
   n_classes = 3, 
   initial_probmixtures = Float64[], 
@@ -85,9 +86,13 @@ GaussianMixtureImputer(
   initialisation_strategy = "grid", 
   rng = Random._GLOBAL_RNG())
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X);
+julia> mach      = machine(model, X);
 
-julia> X_full                      = transform(model, fitResults, X) |> MLJ.matrix
+julia> fit!(mach);
+[ Info: Training machine(GaussianMixtureImputer(n_classes = 3, …), …).
+Iter. 1:        Var. of the post  2.0225921341714286      Log-likelihood -42.96100103213314
+
+julia> X_full       = transform(mach) |> MLJ.matrix
 9×2 Matrix{Float64}:
  1.0      10.5
  1.5      14.7366
@@ -99,7 +104,6 @@ julia> X_full                      = transform(model, fitResults, X) |> MLJ.matr
  2.47412  -2.3
  5.2      -2.4
 ```
-
 """
 mutable struct GaussianMixtureImputer <: MMI.Unsupervised
     "Number of mixtures (latent classes) to consider [def: 3]"
@@ -160,10 +164,10 @@ julia> using MLJ
 
 julia> X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4] |> table ;
 
-julia> modelType                   = @load RandomForestImputer pkg = "BetaML" verbosity=0
+julia> modelType   = @load RandomForestImputer  pkg = "BetaML" verbosity=0
 BetaML.Imputation.RandomForestImputer
 
-julia> model                       = modelType(n_trees=40)
+julia> model     = modelType(n_trees=40)
 RandomForestImputer(
   n_trees = 40, 
   max_depth = nothing, 
@@ -175,21 +179,23 @@ RandomForestImputer(
   recursive_passages = 1, 
   rng = Random._GLOBAL_RNG())
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X);
+julia> mach      = machine(model, X);
 
-julia> X_full                      = transform(model, fitResults, X) |> MLJ.matrix
+julia> fit!(mach);
+[ Info: Training machine(RandomForestImputer(n_trees = 40, …), …).
+
+julia> X_full       = transform(mach) |> MLJ.matrix
 9×2 Matrix{Float64}:
- 1.0    10.5
- 1.5    10.3333
- 1.8     8.0
- 1.7    15.0
- 3.2    40.0
- 2.415   8.6545
- 3.3    38.0
- 3.72   -2.3
- 5.2    -2.4
+ 1.0      10.5
+ 1.5      10.3909
+ 1.8       8.0
+ 1.7      15.0
+ 3.2      40.0
+ 2.88375   8.66125
+ 3.3      38.0
+ 3.98125  -2.3
+ 5.2      -2.4
 ```
-
 """
 mutable struct RandomForestImputer <: MMI.Unsupervised
     "Number of (decision) trees in the forest [def: `30`]"
@@ -244,25 +250,28 @@ julia> using MLJ
 
 julia> X = ["a" 10.5;"a" missing; "b" 8; "b" 15; "c" 40; missing missing; "c" 38; missing -2.3; "c" -2.4] |> table ;
 
-julia> modelType                   = @load GeneralImputer pkg = "BetaML" verbosity=0
-GeneralImputer
+julia> modelType   = @load GeneralImputer  pkg = "BetaML" verbosity=0
+BetaML.Imputation.GeneralImputer
 
-julia> model                       = modelType(estimators=[BetaML.DecisionTreeEstimator(),BetaML.RandomForestEstimator(n_trees=40)],recursive_passages=2)
+julia> model     = modelType(estimators=[BetaML.DecisionTreeEstimator(),BetaML.RandomForestEstimator(n_trees=40)],recursive_passages=2)
 GeneralImputer(
-  estimators = BetaMLSupervisedModel[DecisionTreeEstimator - A Decision Tree model (unfitted), RandomForestEstimator - A 40 trees Random Forest model (unfitted)], 
+  estimators = BetaML.Api.BetaMLSupervisedModel[DecisionTreeEstimator - A Decision Tree model (unfitted), RandomForestEstimator - A 40 trees Random Forest model (unfitted)], 
   recursive_passages = 2, 
   rng = Random._GLOBAL_RNG())
 
-julia> (fitResults, cache, report) = MLJ.fit(model, 0, X);
+julia> mach      = machine(model, X);
 
-julia> X_full                      = transform(model, fitResults, X) |> MLJ.matrix
+julia> fit!(mach);
+[ Info: Training machine(GeneralImputer(estimators = BetaML.Api.BetaMLSupervisedModel[DecisionTreeEstimator - A Decision Tree model (unfitted), RandomForestEstimator - A 40 trees Random Forest model (unfitted)], …), …).
+
+julia> X_full       = transform(mach) |> MLJ.matrix
 9×2 Matrix{Any}:
  "a"  10.5
- "a"  10.5
+ "a"  10.9171
  "b"   8
  "b"  15
  "c"  40
- "a"  10.5
+ "c"  20.6587
  "c"  38
  "c"  -2.3
  "c"  -2.4
