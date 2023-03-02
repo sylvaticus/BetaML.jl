@@ -17,7 +17,7 @@ The module provides the following models. Use `?[model]` to access their documen
 """
 module Clustering
 
-using LinearAlgebra, Random, Statistics, Reexport, CategoricalArrays, DocStringExtensions
+using LinearAlgebra, Random, Statistics, StatsBase, Reexport, CategoricalArrays, DocStringExtensions
 import Distributions
 
 using  ForceImport

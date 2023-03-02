@@ -157,7 +157,7 @@ function kernelPerceptronBinary(x, y; K=radial_kernel, T=1000, α=zeros(Int64,le
         ϵ = 0
         if shuffle
             # random shuffle x, y and alpha
-            ridx = Random.shuffle(rng, 1:size(x)[1])
+            ridx = Random.shuffle(rng, 1:size(x,1))
             x = x[ridx, :]
             y = y[ridx]
             α = α[ridx]

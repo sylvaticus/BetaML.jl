@@ -50,7 +50,7 @@ function init_representatives(X,n_classes;initialisation_strategy="grid",initial
       initial_representatives = makematrix(initial_representatives)
       Z = initial_representatives
   elseif initialisation_strategy == "shuffle"
-      zIdx = shuffle(rng,1:size(X)[1])[1:K]
+      zIdx = StatsBase.sample(rng, 1:size(X,1), K, replace=false)
       Z = X[zIdx, :]
   else
       error("initialisation_strategy \"$initialisation_strategy\" not implemented")

@@ -16,6 +16,8 @@ module BetaML
 import MLJModelInterface
 const MMI = MLJModelInterface
 
+#import StatsBase
+
 using ForceImport, Reexport
 
 include("Api.jl")                   # Shared names across modules

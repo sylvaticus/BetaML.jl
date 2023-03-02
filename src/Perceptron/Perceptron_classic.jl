@@ -162,7 +162,7 @@ sumθ = θ; sumθ₀ = θ₀
    ϵ = 0
    if shuffle
       # random shuffle x and y
-      ridx = Random.shuffle(rng, 1:size(x)[1])
+      ridx = Random.shuffle(rng, 1:size(x,1))
       x = x[ridx, :]
       y = y[ridx]
    end
