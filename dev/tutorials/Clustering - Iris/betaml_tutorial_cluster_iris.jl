@@ -60,19 +60,30 @@ y  = fit!(OrdinalEncoder(categories=yLabels),iris[:,5])
 println(now(), " ", "- main analysis..." )  #src
 
 # We will try 3 BetaML models ([`KMeansClusterer`](@ref), [`KMedoidsClusterer`](@ref) and [`GMMClusterer`](@ref)) and we compare them with `kmeans` from Clusterings.jl and `GMM` from GaussianMixtures.jl
-# `KMeansClusterer` and `KMedoidsClusterer` works by first initialising the centers of the k-clusters (the "representative" (step a ) . For kmedoids they must be selected within one of the data, for kmeans they are the geometrical center) n a nutshell. Then ( b ) iterate for each point to assign the point to the cluster of the closest representative (according with a user defined distance metric, default to Euclidean), and ( c ) move each representative at the center of its newly acquired cluster (where "center" depends again from the metric). Steps ( b ) and ( c ) are reiterated until the algorithm converge, i.e. the tentative k representative points (and their relative clusters) don't move any more. The result (output of the algorithm) is that each point is assigned to one of the clusters (classes).
+#
+# `KMeansClusterer` and `KMedoidsClusterer` works by first initialising the centers of the k-clusters (step a ). These centers, also known as the "representatives", must be selected within the data for kmedoids, while for kmeans they are the geometrical centers.
+#
+# Then ( step b ) the algorithms iterates toward each point to assign the point to the cluster of the closest representative (according with a user defined distance metric, default to Euclidean), and ( step c ) moves each representative at the center of its newly acquired cluster (where "center" depends again from the metric).
+#
+# Steps _b_ and _c_ are reiterated until the algorithm converge, i.e. the tentative k representative points (and their relative clusters) don't move any more. The result (output of the algorithm) is that each point is assigned to one of the clusters (classes).
+#
 # The algorithm in `GMMClusterer` is similar in that it employs an iterative approach (the Expectation_Minimisation algorithm, "em") but here we make the hipothesis that the data points are the observed outcomes of some _mixture_ probabilistic models where we have first a k-categorical variables whose outcomes are the (unobservble) parameters of a probabilistic distribution from which the data is finally drawn. Because the parameters of each of the k-possible distributions is unobservable this is also called a model with latent variables.
+#
 # Most `gmm` models use the Gaussain distribution as the family of the mixture components, so we can tought the `gmm` acronym to indicate _Gaussian Mixture Model_. In BetaML we have currently implemented only Gaussain components, but any distribution could be used by just subclassing `AbstractMixture` and implementing a couple of methids (you are invited to contribute or just ask for a distribution family you are interested), so I prefer to think "gmm" as an acronym for _Generative Mixture Model_.
+#
 # The algorithm tries to find the mixture that maximises the likelihood that the data has been generated indeed from such mixture, where the "E" step refers to computing the probability that each point belongs to each of the k-composants (somehow similar to the step _b_ in the kmeans/kmedoids algorithms), and the "M" step estimates, giving the association probabilities in step "E", the parameters of the mixture and of the individual components (similar to step _c_).
+#
 # The result here is that each point has a categorical distribution (PMF) representing the probabilities that it belongs to any of the k-components (our classes or clusters). This is interesting, as `gmm` can be used for many other things that clustering. It forms the backbone of the [`GMMImputer`](@ref) model to impute missing values (on some or all dimensions) based to how close the record seems to its pears. For the same reasons, `GMMImputer` can also be used to predict user's behaviours (or users' appreciation) according to the behaviour/ranking made by pears ("collaborative filtering").
+#
 # While the result of `GMMClusterer` is a vector of PMFs (one for each record), error measures and reports with the true values (if known) can be directly applied, as in BetaML they internally call `mode()` to retrieve the class with the highest probability for each record.
-
-
+#
+#
 # As we are here, we also try different versions of the BetaML models, even if the default "versions" should be fine. For `KMeansClusterer` and `KMedoidsClusterer` we will try different initialisation strategies ("gird", the default one, "random" and "shuffle"), while for the `GMMClusterer` model we'll choose different distributions of the Gaussain family (`SphericalGaussian` - where the variance is a scalar, `DiagonalGaussian` - with a vector variance, and `FullGaussian`, where the covariance is a matrix).
-
+#
 # As the result would depend on stochasticity both in the data selected and in the random initialisation, we use a cross-validation approach to run our models several times (with different data) and then we average their results.
 # Cross-Validation in BetaML is very flexible and it is done using the [`cross_validation`](@ref) function. It is used by default for hyperparameters autotuning of the BetaML supervised models.
 # `cross_validation` works by calling the function `f`, defined by the user, passing to it the tuple `trainData`, `valData` and `rng` and collecting the result of the function f. The specific method for which `trainData`, and `valData` are selected at each iteration depends on the specific `sampler`.
+#
 # We start by selectign a k-fold sampler that split our data in 5 different parts, it uses 4 for training and 1 part (not used here) for validation. We run the simulations twice and, to be sure to have replicable results, we fix the random seed (at the whole crossValidaiton level, not on each iteration).
 sampler = KFold(nsplits=5,nrepeats=3,shuffle=true, rng=copy(AFIXEDRNG))
 
@@ -139,6 +150,7 @@ report = DataFrame(mName = modelLabels, avgAccuracy = dropdims(round.(μs',digit
 
 
 # Accuracies (mean and its standard dev.) running this scripts with different random seeds (`123`, `1000` and `10000`):
+#
 # | model                         | μ 1   |  σ² 1 |  μ 2  |  σ² 2 |  μ 3  |  σ² 3 |  
 # | ------------------------------| ----- | ----- | ----- | ----- | ----- | ----- |
 # │ kMeansG                       | 0.891 | 0.017 | 0.892 | 0.012 | 0.893 | 0.017 |
@@ -153,7 +165,7 @@ report = DataFrame(mName = modelLabels, avgAccuracy = dropdims(round.(μs',digit
 # │ kMeans (Clustering.jl)        | 0.856 | 0.112 | 0.873 | 0.083 | 0.873 | 0.089 |
 # │ gmmDiag (GaussianMixtures.jl) | 0.865 | 0.127 | 0.872 | 0.090 | 0.833 | 0.152 |
 # │ gmmFull (GaussianMixtures.jl) | 0.907 | 0.133 | 0.914 | 0.160 | 0.917 | 0.141 |
-
+#
 # We can see that running the script multiple times with different random seed confirm the estimated standard deviations collected with the cross_validation, with the BetaML GMM-based models and grid based ones being the most stable ones. 
 
 #src plot(modelLabels,μs',seriestype=:scatter)
@@ -218,6 +230,29 @@ plot(1:K,[μsBICS' μsAICS'], labels=["BIC" "AIC"], title="Information criteria 
 # We see that following the "lowest AIC" rule we would indeed choose three classes, while following the "lowest BIC" criteria we would have choosen only two classes. This means that there is two classes that, concerning the floreal measures used in the database, are very similar, and our models are unsure about them. Perhaps the biologists will end up one day with the conclusion that it is indeed only one specie :-).
 
 # We could study this issue more in detail by analysing the [`ConfusionMatrix`](@ref), but the one used in BetaML does not account for the ignorelabels option (yet).
+#
+# ### Analysing the silhouette of the cluster
+#
+#A further metric to analyse cluster output is the so-called [Sinhouette method](https://en.wikipedia.org/wiki/Silhouette_(clustering))
+#
+# We'll use here the [`silhouette`](@ref) function over a simple loop:
+
+x,y = consistent_shuffle([x,y],dims=1)
+pd = pairwise(x) # we compute the pairwise distances
+nclasses = 2:6
+models = [KMeansClusterer, KMedoidsClusterer, GMMClusterer]
+println("Silhouette score by model type and class number:")
+for ncl in nclasses, mtype in models
+    m = mtype(n_classes=ncl, verbosity=NONE)
+    ŷ = fit!(m,x)
+    if mtype == GMMClusterer
+        ŷ = mode(ŷ)
+    end
+    s = mean(silhouette(pd,ŷ))
+    println("$mtype \t ($ncl classes): $s")
+end
+
+# Highest levels are better. We see again that 2 classes have better scores !
 
 #src # ## Benchmarking computational efficiency
 #src 
