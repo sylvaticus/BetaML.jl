@@ -1,4 +1,4 @@
-using Test
+using Test, DelimitedFiles
 
 import MLJBase
 const Mlj = MLJBase
@@ -68,16 +68,20 @@ reset!(m)
 println("Testing hard clustering on the sepal database...")
 iris     = readdlm(joinpath(@__DIR__,"data","iris_shuffled.csv"),',',skipstart=1)
 x = convert(Array{Float64,2}, iris[:,1:4])
-y = convert(Array{String,1}, iris[:,5]) 
+y = convert(Array{String,1}, iris[:,5])
+pd = pairwise(x) 
 yi = fit!(OrdinalEncoder(),y)
 m = KMeansClusterer(n_classes=3)
 ŷ = fit!(m,x)
 acc = accuracy(yi,ŷ,ignorelabels=true)
-@test acc > 0.8
+s = mean(silhouette(pd,ŷ))
+@test s > 0.55
 m = KMedoidsClusterer(n_classes=3)
 ŷ = fit!(m,x)
 acc = accuracy(yi,ŷ,ignorelabels=true)
 @test acc > 0.8
+s = mean(silhouette(pd,ŷ))
+@test s > 0.52
 
 # ==================================
 # NEW TEST

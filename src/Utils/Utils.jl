@@ -30,12 +30,13 @@ For the complete list of functions provided see below. The main ones are:
 
 ## Measures
 - Several functions of a pair of parameters (often `y` and `ŷ`) to measure the goodness of `ŷ`, the distance between the two elements of the pair, ...
-- Includes "classical" distance functions ([`l1_distance`](@ref), [`l2_distance`](@ref), [`l2squared_distance`](@ref) [`cosine_distance`](@ref)), "cost" functions for continuous variables ([`squared_cost`](@ref), [`mean_relative_error`](@ref)) and comparision functions for multui-class variables ([`crossentropy`](@ref), [`accuracy`](@ref), [`ConfMatrix`](@ref)).
+- Includes "classical" distance functions ([`l1_distance`](@ref), [`l2_distance`](@ref), [`l2squared_distance`](@ref) [`cosine_distance`](@ref)), "cost" functions for continuous variables ([`squared_cost`](@ref), [`mean_relative_error`](@ref)) and comparision functions for multi-class variables ([`crossentropy`](@ref), [`accuracy`](@ref), [`ConfMatrix`](@ref), [`silhouette`](@ref))
+- Distances can be used to compute a pairwise distance matrix using the function [`pairwise`](@ref)
 
 """
 module Utils
 
-using LinearAlgebra, Printf, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, Random, DocStringExtensions
+using LinearAlgebra, Printf, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, LoopVectorization, DocStringExtensions
 
 using ForceImport
 @force using ..Api
@@ -51,11 +52,11 @@ export @codelocation, generate_parallel_rngs,
        autojacobian, match_known_derivatives,
        squared_cost, dsquared_cost, mse, crossentropy, dcrossentropy, class_counts, class_counts_with_labels, mean_dicts, mode, gini, entropy, variance,
        error, accuracy, relative_mean_error,
-       ConfusionMatrix, ConfusionMatrixHyperParametersSet,
+       ConfusionMatrix, ConfusionMatrixHyperParametersSet, silhouette,
        cross_validation,
        AbstractDataSampler, SamplerWithData, KFold,
        autotune!, GridSearch, SuccessiveHalvingSearch, l2loss_by_cv,
-       l1_distance,l2_distance, l2squared_distance, cosine_distance, lse, sterling,
+       l1_distance,l2_distance, l2squared_distance, cosine_distance, pairwise, lse, sterling,
        radial_kernel, polynomial_kernel,
        Scaler, MinMaxScaler, StandardScaler,
        ScalerHyperParametersSet, MinMaxScaler,StandardScaler,

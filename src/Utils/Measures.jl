@@ -14,6 +14,36 @@ l2_distance(x,y)     = norm(x-y)
 l2squared_distance(x,y)    = norm(x-y)^2
 """Cosine distance"""
 cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
+"""
+$(TYPEDSIGNATURES)
+
+Compute pairwise distance `distance` between elements of an array identified across dimension `dims`.
+
+# Parameters: 
+- `x`: the data array 
+- distance: a distance measure [def: `l2_distance`]
+- dims: the dimension of the observations [def: `1`, i.e. records on rows]
+
+# Returns:
+- a n_records by n_records simmetric matrix of the pairwise distances
+"""
+function pairwise(x::AbstractArray;distance=l2_distance,dims=1)
+    N   = size(x,dims)
+    out = zeros(N,N)
+    
+    for r in 1:N
+        for c in 1:r
+            out[r,c] =  distance(selectdim(x,dims,r),selectdim(x,dims,c))
+        end
+    end
+    for r in 1:N
+        for c in r+1:N
+            out[r,c] = out[c,r]
+        end
+    end
+    
+    return out
+end    
 
 
 ################################################################################
@@ -176,6 +206,75 @@ error(y::Int64,ŷ::Array{T,1};tol=1) where {T <: Number} = 1 - accuracy(y,ŷ;t
 error(y::Array{Int64,1},ŷ::Array{T,2};tol=1) where {T <: Number} = 1 - accuracy(y,ŷ;tol=tol)
 """ error(y,ŷ) - Categorical error with with probabilistic predictions of a dataset given in terms of a dictionary of probabilities (T vs Dict{T,Float64}). """
 error(y::Array{T,1},ŷ::Array{Dict{T,Float64},1};tol=1) where {T} = 1 - accuracy(y,ŷ;tol=tol)
+
+"""
+$(TYPEDSIGNATURES)
+
+Provide Silhouette scoring for cluster outputs
+
+# Parameters:
+- `distances`: the nrecords by nrecords pairwise distance matrix
+- `classes`: the vector of assigned classes to each record
+
+# Notes:
+- the matrix of pairwise distances can be obtained with the function [`pairwise`](@ref)
+- this function doesn't sample. Eventually sample before
+- to get the score for the cluster simply compute the `mean`
+- see also the [Wikipedia article](https://en.wikipedia.org/wiki/Silhouette_(clustering))
+
+# Example:
+```julia
+julia> x  = [1 2 3 3; 1.2 3 3.1 3.2; 2 4 6 6.2; 2.1 3.5 5.9 6.3];
+
+julia> s_scores = silhouette(pairwise(x),[1,2,2,2])
+4-element Vector{Float64}:
+  0.0
+ -0.7590778795827623
+  0.5030093571833065
+  0.4936350560759424
+```
+"""
+function silhouette(distances,classes)
+    uclasses = unique(classes)
+    K        = length(uclasses)
+    N        = size(distances,1)
+    out      = Array{Float64,1}(undef,N)
+    positions = hcat([classes .== cl for cl in uclasses]...) # N by K
+    nByClass  = reshape(sum(positions,dims=1),K)
+    #println(nByClass)
+    for n in 1:N
+       cl = classes[n]
+       a = 0.0
+       b = Inf
+       #println("---------")
+       #println("n: $n")
+       for clidx in 1:K
+            #print("- cl $clidx")
+            cldists = distances[n,positions[:,clidx]]
+            if cl == uclasses[clidx] # own cluster
+                a  = sum(cldists)/ (nByClass[clidx]-1)
+                #println(" a: $a")
+            else
+                btemp = sum(cldists) / nByClass[clidx]
+                #println(" b: $btemp")
+                if btemp < b
+                    b = btemp
+                end
+            end
+        end
+        if isnan(a)
+            out[n] = 0.0
+        elseif a < b
+            out[n] = 1-(a/b)
+        else
+            out[n] = (b/a) -1
+        end 
+        #println("- s: $(out[n])")
+    end
+    return out
+end
+
+
 
 """
 $(TYPEDEF)

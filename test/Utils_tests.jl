@@ -627,6 +627,14 @@ o = [1,2,3]
 T = get_parametric_types(o)[1]
 @test T == Int64
 
+println("Testing pairwise and silhouette...")
+
+x  = [1 2 3 3; 1.2 3 3.1 3.2; 2 4 6 6.2; 2.1 3.5 5.9 6.3]
+pd = pairwise(x)
+s1 = silhouette(pd,[1,2,2,2])
+@test s1 = [0.0, -0.7590778795827623, 0.5030093571833065, 0.4936350560759424]
+s2  = silhouette(pd,[1,1,2,2])
+@test s2 ==  [0.7846062151896173, 0.7590778795827623, 0.8860577617518799, 0.8833580446365146]
 
 #=
 using Random, StableRNGs

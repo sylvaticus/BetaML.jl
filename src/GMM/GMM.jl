@@ -23,6 +23,8 @@ All the algorithms works with arbitrary mixture distribution, altought only {Sph
 
 
 All the GMM-based algorithms works only with numerical data, but accepts also Missing one.
+
+The `GMMClusterer` algorithm reports the `BIC` and the `AIC` in its `info(model)`, but some metrics of the clustered output are also available, for example the [`silhouette`](@ref) score.
 """
 module GMM
 

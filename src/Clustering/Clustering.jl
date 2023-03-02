@@ -14,6 +14,7 @@ The module provides the following models. Use `?[model]` to access their documen
 - [`KMeansClusterer`](@ref): Classical KMean algorithm
 - [`KMedoidsClusterer`](@ref kmeans): Kmedoids algorithm with configurable distance metric
 
+Some metrics of the clustered output are available (e.g. [`silhouette`](@ref)).
 """
 module Clustering
 
