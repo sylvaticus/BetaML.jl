@@ -487,7 +487,7 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_cr
     currentUncertainty = splitting_criterion(y)
     (N,D)              = size(x)  # number of columns (the last column is the label)
 
-    featuresToConsider = (max_features >= D) ? (1:D) : sample(1:D, max_features, replace=false)
+    featuresToConsider = (max_features >= D) ? (1:D) : sample(rng, 1:D, max_features, replace=false)
 
     for d in featuresToConsider      # for each feature (we consider only max_features features randomly)
         values = unique(skipmissing(x[:,d]))  # unique values in the column
@@ -568,7 +568,7 @@ function findBestSplitOLD(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting
     currentUncertainty = splitting_criterion(y)
     (N,D)              = size(x)  # number of columns (the last column is the label)
 
-    featuresToConsider = (max_features >= D) ? (1:D) : shuffle(rng, 1:D)[1:max_features]
+    featuresToConsider = (max_features >= D) ? (1:D) : StatsBase.sample(rng, 1:D, max_features, replace=false)
 
     for d in featuresToConsider      # for each feature (we consider only max_features features randomly)
         values = Set(skipmissing(x[:,d]))  # unique values in the column

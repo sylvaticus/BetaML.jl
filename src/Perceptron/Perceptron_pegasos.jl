@@ -162,7 +162,7 @@ function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/s
     ηₜ = η(t)
     if shuffle
         # random shuffle x and y
-        ridx = Random.shuffle(rng, 1:size(x)[1])
+        ridx = Random.shuffle(rng, 1:size(x,1))
         x = x[ridx, :]
         y = y[ridx]
     end
