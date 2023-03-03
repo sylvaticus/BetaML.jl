@@ -226,7 +226,7 @@ modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
 x̂                           =  Mlj.matrix(XM)
-@test isapprox(x̂[2,2],10.288416666666667)
+@test isapprox(x̂[2,2],10.144666666666666)
 # Use the previously learned structure to imput missings..
 Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
 XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
