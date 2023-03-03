@@ -233,12 +233,16 @@ plot(1:K,[μsBICS' μsAICS'], labels=["BIC" "AIC"], title="Information criteria 
 #
 # ### Analysing the silhouette of the cluster
 #
-#A further metric to analyse cluster output is the so-called [Sinhouette method](https://en.wikipedia.org/wiki/Silhouette_(clustering))
+# A further metric to analyse cluster output is the so-called [Sinhouette method](https://en.wikipedia.org/wiki/Silhouette_(clustering))
+#
+# Silhouette is a distance-based metric and require as first argument a matrix of pairwise distances. This can be computed with the [`pairwise`](@ref) function, that default to using `l2_distance` (i.e. Euclidean). Many other distance functions are available in the [`Clustering`](@ref) sub-module or one can use the efficiently implemented distances from the [`Distances`](https://github.com/JuliaStats/Distances.jl) package, as in this example.
+
 #
 # We'll use here the [`silhouette`](@ref) function over a simple loop:
 
 x,y = consistent_shuffle([x,y],dims=1)
-pd = pairwise(x) # we compute the pairwise distances
+import Distances
+pd = pairwise(x,distance=Distances.euclidean) # we compute the pairwise distances
 nclasses = 2:6
 models = [KMeansClusterer, KMedoidsClusterer, GMMClusterer]
 println("Silhouette score by model type and class number:")
