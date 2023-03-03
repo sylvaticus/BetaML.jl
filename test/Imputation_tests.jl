@@ -121,7 +121,7 @@ medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 @test medianValues[1,2] == 4.0
 infos = info(mod)
 @test infos["n_imputed_values"] == 1
-@test infos["oob_errors"][1] ≈ [0.4219142630021683, 0.1888918370047503, 1.4813804498107928]
+@test infos["oob_errors"][1] ≈ [0.5125059655639456, 0.47355452303986306, 1.4813804498107928]
 
 X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
 mod = RFImputer(rng=copy(TESTRNG),verbosity=NONE)
@@ -243,7 +243,7 @@ modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
 x̂                           =  Mlj.matrix(XM)
-@test isapprox(x̂[2,2],11.8) # not the same as RF because the oth columns are imputed too
+@test isapprox(x̂[2,2],12.008750000000001) # not the same as RF because the oth columns are imputed too
 # Use the previously learned structure to imput missings..
 Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
 XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)

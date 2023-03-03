@@ -17,7 +17,7 @@ cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
 """
 $(TYPEDSIGNATURES)
 
-Compute pairwise distance `distance` between elements of an array identified across dimension `dims`.
+Compute pairwise distance matrix between elements of an array identified across dimension `dims`.
 
 # Parameters: 
 - `x`: the data array 
@@ -26,6 +26,9 @@ Compute pairwise distance `distance` between elements of an array identified acr
 
 # Returns:
 - a n_records by n_records simmetric matrix of the pairwise distances
+
+# Notes:
+- if performances matters, you can use something like `Distances.pairwise(Distances.euclidean,x,dims=1)` from the [`Distances`](https://github.com/JuliaStats/Distances.jl) package.
 """
 function pairwise(x::AbstractArray;distance=l2_distance,dims=1)
     N   = size(x,dims)
