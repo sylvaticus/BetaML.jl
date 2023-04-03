@@ -26,9 +26,40 @@ A few conventions applied across the library:
 
 ## [Using BetaML from other programming languages](@id using_betaml_from_other_languages)
 
-In this section we learn how to use `BetaML` in Python or R is almost as simple as to use a native library, with objects converted automatically between Julia and Python, and hence no specific package wrappers are needed. For Python we will show two separate "Julia from Python" interfaces, [PyJulia](https://github.com/JuliaPy/pyjulia) and [JuliaCall](https://github.com/cjdoris/PythonCall.jl) with the second one being the most recent one, while for R we will show the [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) R package (no relations with the homonymous Python package).
+In this section we provide two examples of using `BetaML` directly in Python or R (with automatic object conversion). Click `Details` for a more extended explanation of these examples.
+While I have no experience with, the same approach can be used to access `BetaML` from any language with a binding to Julia, like Matlab or Javascript. 
+
 
 ### Use BetaML in Python
+
+```
+$ python3 -m pip install --user juliacall
+```
+```python
+>>> from juliacall import Main as jl
+>>> import numpy as np
+>>> from sklearn import datasets
+>>> jl.seval('using Pkg; Pkg.add("BetaML")') # Only once 
+>>> jl.seval("using BetaML")
+>>> bml     = jl.BetaML
+>>> iris    = datasets.load_iris()
+>>> X       = iris.data[:, :4]
+>>> y       = iris.target + 1 # Julia arrays start from 1 not 0
+>>> (Xs,ys) = bml.consistent_shuffle([X,y])
+>>> m       = bml.KMeansClusterer(n_classes=3)
+>>> yhat    = bml.fit_ex(m,Xs) # Python doesn't allow exclamation marks in function names, so we use `fit_ex(⋅)` instead of `fit!(⋅)` (the original function name)
+>>> m._jl_display() # force a "Julian" way of displaying of Julia objects
+>>> acc     = bml.accuracy(ys,yhat,ignorelabels=True)
+>>> acc
+ 0.8933333333333333
+```
+
+```@raw html
+<details><summary>Details</summary>
+```
+
+We show for Python two separate "Julia from Python" interfaces, [PyJulia](https://github.com/JuliaPy/pyjulia) and [JuliaCall](https://github.com/cjdoris/PythonCall.jl) with the second one being the most recent one.
+
 
 #### With the classical `pyjulia` package
 
@@ -66,7 +97,7 @@ While `jl.eval('some Julia code')` evaluates any arbitrary Julia code (see below
 
 ```python
 >>> from julia import BetaML
->>> jl.seval("using BetaML")
+>>> jl.eval('using BetaML')
 ```
 
 As you can see, it is no different than importing any other Python module.
@@ -150,7 +181,7 @@ We can now call BetaML functions as we would do for any other Python library fun
 >>> (Xs,ys) = bml.consistent_shuffle([X,y])
 >>> m       = bml.KMeansClusterer(n_classes=3)
 >>> yhat    = bml.fit_ex(m,Xs)
->>> m._jl_display() # force a "Julian" way of displaing of Julia objects
+>>> m._jl_display() # force a "Julian" way of displaying of Julia objects
 >>> acc     = bml.accuracy(ys,yhat,ignorelabels=True)
 >>> acc
  0.8933333333333333
@@ -178,15 +209,44 @@ Another alternative is to "eval" only the function name and pass the (python) ob
 
 Using either the direct call or the `eval` function, wheter in `Pyjulia` or `JuliaCall`, we should be able to use all the BetaML functionalities directly from Python. If you run into problems using BetaML from Python, [open an issue](https://github.com/sylvaticus/BetaML.jl/issues/new) specifying your set-up.
 
+```@raw html
+</details>
+```
 
 ### Use BetaML in R
 
-To use `BetaML` in R we start by installing the [`JuliaCall`]() R package:
+```{r}
+> install.packages("JuliaCall") # only once
+> library(JuliaCall)
+> library(datasets)
+> julia_setup(installJulia = TRUE) # use installJulia = TRUE to let R download and install a private copy of julia, FALSE to use an existing Julia local installation
+> julia_eval('using Pkg; Pkg.add("BetaML")') # only once
+> julia_eval("using BetaML")
+> X        <- as.matrix(sapply(iris[,1:4], as.numeric))
+> y        <- sapply(iris[,5], as.integer)
+> xsize    <- dim(X)
+> shuffled <- julia_call("consistent_shuffle",list(X,y))
+> Xs       <- matrix(sapply(shuffled[1],as.numeric), nrow=xsize[1])
+> ys       <- as.vector(sapply(shuffled[2], as.integer))
+> m        <- julia_eval('KMeansClusterer(n_classes=3)')
+> yhat     <- julia_call("fit_ex",m,Xs)
+> acc      <- julia_call("accuracy",yhat,ys,ignorelabels=TRUE)
+> acc
+[1] 0.8933333
+
+```@raw html
+<details><summary>Details</summary>
+```
+
+For R, we show how to access `BetaML` functionalities using the [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) R package (no relations with the homonymous Python package).
+
+Let's start by installing [`JuliaCall`](https://cran.r-project.org/web/packages/JuliaCall/index.html) in R:
+
 
 ```{r}
 > install.packages("JuliaCall")
 > library(JuliaCall)
-> julia_setup(installJulia = FALSE) # use installJulia = FALSE to let R download and install a private copy of julia
+> julia_setup(installJulia = TRUE) # use installJulia = TRUE to let R download and install a private copy of julia, FALSE to use an existing Julia local installation
 ```
 
 Note that, differently than `PyJulia`, the "setup" function needs to be called every time we start a new R section, not just when we install the `JuliaCall` package.
@@ -242,6 +302,10 @@ We can then call the above function in R in one of the following three ways:
 3. `julia_call("accFromKmeans",Xs,3,ys)`
 
 While other "convenience" functions are provided by the package, using  `julia_call`, or `julia_assign` followed by `julia_eval`, should suffix to use `BetaML` from R. If you run into problems using BetaML from R, [open an issue](https://github.com/sylvaticus/BetaML.jl/issues/new) specifying your set-up.
+
+```@raw html
+</details>
+```
 
 ## [Dealing with stochasticity and reproducibility](@id dealing_with_stochasticity)
 
