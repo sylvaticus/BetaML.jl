@@ -185,7 +185,7 @@ report = DataFrame(mName = modelLabels, avgAccuracy = dropdims(round.(μs',digit
 println(now(), " ", "- BIC based tuning of K..." )  #src
 
 # Up to now we used the real labels to compare the model accuracies. But in real clustering examples we don't have the true classes, or we wouln't need to do clustering in the first instance, so we don't know the number of classes to use.
-# There are several methods to judge clusters algorithms goodness, perhaps the simplest one, at least for the expectation-maximisation algorithm employed in `gmm` to fit the data to the unknown mixture, is to use a information criteria that trade the goodness of the lickelyhood with the parameters used to do the fit.
+# There are several methods to judge clusters algorithms goodness. For likelyhood based algorithms as `GMMClusterer` we can use a information criteria that trade the goodness of the lickelyhood with the number of parameters used to do the fit.
 # BetaML provides by default in the gmm clustering outputs both the _Bayesian information criterion_  ([`BIC`](@ref bic)) and the _Akaike information criterion_  ([`AIC`](@ref aic)), where for both a lower value is better.
 
 # We can then run the model with different number of classes and see which one leads to the lower BIC or AIC.

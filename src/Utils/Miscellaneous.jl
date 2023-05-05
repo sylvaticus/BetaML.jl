@@ -6,6 +6,10 @@
 using Base.Threads
 using Base.Threads: threadid, threading_run
 
+@static if VERSION ≥ v"1.9-rc1"
+    # This makes the threadsif macro work
+    using Base.Threads: threadpoolsize
+end
 
 """
 $(TYPEDSIGNATURES)
