@@ -3,6 +3,7 @@
 # Part of submodule Utils of BetaML - The Beta Machine Learning Toolkit
 # Functions typically used for processing (manipulating) data, typically preprocessing data before running a ML model
 
+import StatsBase: countmap
 
 # ------------------------------------------------------------------------------
 # Various reshaping functions
@@ -1303,21 +1304,22 @@ Return a dictionary that counts the number of each unique item (rows) in a datas
 function class_counts_with_labels(x;classes=nothing)
     dims = ndims(x)
     if dims == 1
-        T = eltype(x)
-    else
-        T = Array{eltype(x),1}
+        if classes == nothing
+            return countmap(x)
+        else
+            cWithLabels = countmap(x)
+            return [get(cWithLabels,k,0) for k in classes]  
+        end  
     end
+    # nd is more than 1...
+    T = Array{eltype(x),1}
     if classes != nothing
         counts = Dict([u=>0 for u in classes])
     else
         counts = Dict{T,Int64}()  # a dictionary of label -> count.
     end
     for i in 1:size(x,1)
-        if dims == 1
-            label = x[i]
-        else
-            label = x[i,:]
-        end
+        label = x[i,:]
         if !(label in keys(counts))
             counts[label] = 1
         else
@@ -1336,11 +1338,12 @@ If order is important or not all classes are present in the data, a preset vecto
 
 """
 function class_counts(x; classes=nothing)
+   nd = ndims(x)
    if classes == nothing # order doesn't matter
-      return values(class_counts_with_labels(x;classes=classes))
+      return (nd == 1) ? values(countmap(x)) : values(class_counts_with_labels(x;classes=classes))
    else
-       cWithLabels = class_counts_with_labels(x;classes=classes)
-       return [cWithLabels[k] for k in classes]
+       cWithLabels = (nd == 1) ? countmap(x) : class_counts_with_labels(x;classes=classes)
+       return [get(cWithLabels,k,0) for k in classes]
    end
 end
 
