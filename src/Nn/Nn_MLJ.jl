@@ -226,7 +226,7 @@ function MMI.fit(m::MultitargetNeuralNetworkRegressor, verbosity, X, y)
 
  MMI.metadata_model(MultitargetNeuralNetworkRegressor,
     input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Count}),
-    target_scitype   = Union{AbstractVector{<: Union{MMI.Continuous,MMI.Count}},AbstractMatrix{<: Union{MMI.Continuous,MMI.Count}}},
+    target_scitype   = AbstractMatrix{<: Union{MMI.Continuous,MMI.Count}},
     supports_weights = false,
     load_path        = "BetaML.Nn.MultitargetNeuralNetworkRegressor"
 )
