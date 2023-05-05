@@ -18,7 +18,7 @@ const MMI = MLJModelInterface
 
 #import StatsBase
 
-using ForceImport, Reexport
+using ForceImport, Reexport, PrecompileTools
 
 include("Api.jl")                   # Shared names across modules
 include("Utils/Utils.jl")           # Utility function
@@ -72,5 +72,6 @@ const MLJ_INTERFACED_MODELS = (MLJ_PERCEPTRON_MODELS..., MLJ_TREES_MODELS..., ML
     )
 #end
 
+include("Precompilation.jl") 
 
 end # module
