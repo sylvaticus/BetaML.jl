@@ -401,8 +401,8 @@ function infoGain(leftY, rightY, parentUncertainty; splitting_criterion=gini)
     n_right = length(rightY)
     n_total = n_left + n_right
     p = n_left / n_total
-    left_score = splitting_criterion(leftY)
-    right_score = splitting_criterion(rightY)
+    left_score = Float64(splitting_criterion(leftY))
+    right_score = Float64(splitting_criterion(rightY))
     return parentUncertainty - p * left_score - (1 - p) * right_score
 end
 function infoGainOld(leftY, rightY, parentUncertainty; splitting_criterion=gini)
@@ -484,7 +484,7 @@ Find the best question to ask by iterating over every feature / value and calcul
 function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_criterion=gini, integer_encoded_cols, fast_algorithm, rng = Random.GLOBAL_RNG) where {Ty}
     bestGain           = 0.0             # keep track of the best information gain
     bestQuestion       = Question(1,1.0) # keep track of the feature / value that produced it
-    currentUncertainty = splitting_criterion(y)
+    currentUncertainty = Float64(splitting_criterion(y))
     (N,D)              = size(x)  # number of columns (the last column is the label)
 
     featuresToConsider = (max_features >= D) ? (1:D) : sample(rng, 1:D, max_features, replace=false)

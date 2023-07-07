@@ -61,6 +61,22 @@ mutable struct ScalarFunctionLayer{N} <: AbstractLayer
      end
 end
 
+"""
+   ReplicatorLayer(n)
+
+Create a weigthless layer whose output is equal to the input. 
+ 
+# Fields:
+* `n`:   Number of nodes in output (≡ number of nodes in input )       
+
+# Notes:
+- The output `size` of this layer is the same as those of the previous layers.
+- This is just an alias for a [`ScalarFunctionLayer`](@ref) with no weigths and identity function.
+"""
+function ReplicatorLayer(n)
+   return ScalarFunctionLayer(n,f=identity)
+end
+
 function forward(layer::ScalarFunctionLayer{N},x) where {N}
   return N == 0 ? layer.f.(x) : layer.f.(x,layer.w)
 end

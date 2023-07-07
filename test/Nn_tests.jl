@@ -5,7 +5,7 @@ using DelimitedFiles, LinearAlgebra, Statistics #, MLDatasets
 #rng = StableRNG(123)
 using BetaML
 
-import BetaML.Nn: buildNetwork, forward, loss, backward, train!, get_nparams
+import BetaML.Nn: buildNetwork, forward, loss, backward, train!, get_nparams, _get_n_layers_weights
 import BetaML.Nn: ConvLayer, ReshaperLayer # todo: to export it and remove this when completed
 
 TESTRNG = FIXEDRNG # This could change...
@@ -121,6 +121,17 @@ lossTraining = loss(mynn,x',y')
 
 li   = DenseLayer(2,2,w=[2 1;1 1],f=identity,rng=copy(TESTRNG))
 @test get_nparams(li) == 6
+
+# Testing ScalarFunctionLayer with no weigths and identity function (aka "Replicator") layer 
+l1    = DenseNoBiasLayer(2,2,w=[2 1;1 1],f=identity,rng=copy(TESTRNG))
+l1b   = ReplicatorLayer(2) 
+l2    = VectorFunctionLayer(2,f=softmax)
+mynn2 = buildNetwork([l1,l1b,l2],squared_cost,name="Simple Multinomial logistic regression")
+train!(mynn2,x',y',epochs=10000,batch_size=1,sequential=true,verbosity=NONE,opt_alg=SGD(η=t->η,λ=1),rng=copy(TESTRNG))
+lossTraining2 = loss(mynn2,x',y')
+#@code_warntype
+@test isapprox(lossTraining,lossTraining2,atol=0.00001)
+
 
 # ==================================
 # NEW Test
@@ -278,6 +289,61 @@ fit!(m,xtrain,ytrain_oh)
 ŷtrain5 = predict(m)
 acc = accuracy(ytrain,ŷtrain5,tol=1, rng=copy(TESTRNG))
 @test acc >= 0.9
+
+# ------------------------------------------------------------------------------
+# Testing GroupedLayer
+println("Testing GroupedLayer and ReplicatorLayer...")
+X      = Float64.(collect(transpose(reshape(1:3*7,7,3))))
+Y      = Float64.(collect(1:3))
+
+l1_1   = DenseLayer(2,3, rng=copy(TESTRNG),f=identity,w=ones(3,2),wb=[10,10,10])
+l1_2   = DenseNoBiasLayer(3,3, rng=copy(TESTRNG),f=identity, w=ones(3,3))
+l1_3   = ReplicatorLayer(2)
+l1     = GroupedLayer([l1_1,l1_2,l1_3])
+l1bis  = GroupedLayer([l1_3,l1_1,l1_2])
+l2     = DenseLayer(8,1,f=identity,w=ones(1,8))
+o1     = forward(l1,X[1,:])
+o1bis  = forward(l1bis,X[1,:])
+@test o1 == [13,13,13,12,12,12,6,7]
+@test o1bis == [1,2,17,17,17,18,18,18]
+o1_1   = forward(l1_1,X[1,1:3])
+@test typeof(o1) == typeof(o1_1)
+
+dϵ_dI    = backward(l1,X[1,:], o1 ./ 10)
+dϵ_dIbis = backward(l1bis,X[1,:], o1bis ./ 10)
+@test dϵ_dI    ≈ [3.9, 3.9,3.6, 3.6, 3.6,0.6, 0.7]
+@test dϵ_dIbis ≈ [0.1,0.2,5.1,5.1,5.4,5.4,5.4]
+
+dϵ_dI_1_1 =  backward(l1_1,X[1,1:3], o1_1 ./ 10)
+@test typeof(dϵ_dI) == typeof(dϵ_dI_1_1)
+
+g1    = get_gradient(l1,X[1,:], o1 ./ 10)
+g1bis = get_gradient(l1bis,X[1,:], o1bis ./ 10)
+g1_1  = get_gradient(l1_1,X[1,1:3], o1_1 ./ 10)
+@test all(g1.data .≈ ([1.3 2.6; 1.3 2.6; 1.3 2.6], [1.3, 1.3, 1.3], [3.6 4.8 6.0; 3.6 4.8 6.0; 3.6 4.8 6.0]))
+@test all(g1bis.data .≈ ([5.1 6.8; 5.1 6.8; 5.1 6.8], [1.7, 1.7, 1.7], [9.0 10.8 12.6; 9.0 10.8 12.6; 9.0 10.8 12.6]))
+@test typeof(g1.data[1:2]) == typeof(g1_1.data)
+
+p      = get_params(l1)
+pbis   = get_params(l1bis)
+
+set_params!(l1,p)
+set_params!(l1bis,pbis)
+o1_after        = forward(l1,X[1,:])
+o1bis_after     = forward(l1bis,X[1,:])
+@test o1_after  == o1
+@test o1bis_after  == o1bis
+@test size(l1) == ((7,),(8,))
+
+treenn =  buildNetwork([l1,l2],squared_cost)
+
+predict(treenn,X)
+loss(treenn,X,Y)
+get_gradient(treenn,X[1,:],Y[1,:])
+train!(treenn,X,Y,epochs=5000)
+
+Ŷ = predict(treenn,X)
+rme = relative_mean_error(Y,Ŷ) <= 0.1
 
 #=
 if "all" in ARGS

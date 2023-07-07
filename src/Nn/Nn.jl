@@ -14,7 +14,9 @@ The module provide the following types or functions. Use `?[type or function]` t
 
 - `DenseLayer`: Classical feed-forward layer with user-defined activation function
 - `DenseNoBiasLayer`: Classical layer without the bias parameter
-- `VectorFunctionLayer`: Parameterless layer whose activation function run over the ensable of its nodes rather than on each one individually
+- `VectorFunctionLayer`: Layer whose activation function run over the ensable of its nodes rather than on each one individually. No learnable weigths on input, optional learnable weigths as parameters of the activation function.
+- `ScalarFunctionLayer`: Layer whose activation function run over each node individually, like a classic `DenseLqyer`, but with no learnable weigths on input and optional learnable weigths as parameters of the activation function.
+- `ReplicatorLayer`: Alias for a `ScalarFunctionLayer` with no learnable parameters and identity as activation function
 - `NeuralNetworkEstimator`: Build the chained network and define a cost function
 
 
@@ -64,7 +66,8 @@ import Base.show
 # module own functions
 export AbstractLayer, forward, backward, get_params, get_gradient, set_params!, size, preprocess! # layer API
 #export forward_old, backward_old, get_gradient_old
-export DenseLayer, DenseNoBiasLayer, VectorFunctionLayer, ScalarFunctionLayer # Available layers
+export DenseLayer, DenseNoBiasLayer, VectorFunctionLayer, ScalarFunctionLayer, ReplicatorLayer # Available layers
+export GroupedLayer
 export ConvLayer, ReshaperLayer, PoolingLayer
 export init_optalg!, single_update! # Optimizers API
 export SGD,ADAM, DebugOptAlg # Available optimizers
@@ -82,6 +85,7 @@ The learnable parameters of a layers are given in the form of a N-tuple of Array
 We wrap the tuple on its own structure a bit for some efficiency gain, but above all to define standard mathematic operations on the gradients without doing "type piracy" with respect to Base tuples.
 """
 mutable struct Learnable
+    #data::Union{Tuple{Vararg{Array{Float64,N} where N}},Vector{Tuple{Vararg{Array{Float64,N} where N}}}}
     data::Tuple{Vararg{Array{Float64,N} where N}}
     function Learnable(data)
         return new(data)
@@ -108,6 +112,7 @@ function -(items::Learnable...)
   end
   return Learnable(Tuple(values))
 end
+
 function *(items::Learnable...)
   values = collect(items[1].data)
   N = length(values)
@@ -157,6 +162,7 @@ include("default_layers/DenseLayer.jl")
 include("default_layers/DenseNoBiasLayer.jl")
 include("default_layers/VectorFunctionLayer.jl")
 include("default_layers/ScalarFunctionLayer.jl")
+include("default_layers/GroupedLayer.jl")
 include("default_layers/ConvLayer.jl")
 include("default_layers/PoolingLayer.jl")
 include("default_layers/ReshaperLayer.jl")
@@ -345,7 +351,7 @@ function predict(nn::NN,x)
     # get the output dimensions
     n = size(x)[1]
     lastlayer_size = size(nn.layers[end])[2]
-    length(lastlayer_size) == 1 || error("The last NN layer should always ve a single dimension vector. Eventually use `ReshaperLayer` to reshape its output as a vector.")
+    length(lastlayer_size) == 1 || error("The last NN layer should always be a single dimension vector. Eventually use `ReshaperLayer` to reshape its output as a vector.")
     d = lastlayer_size[1]
     out = zeros(n,d)
     for i in 1:size(x)[1]
