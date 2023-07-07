@@ -2,7 +2,7 @@
 
 
 """
-   ScalarFunctionLayer
+$(TYPEDEF)
 
 Representation of a ScalarFunction layer in the network.
 ScalarFunctionLayer applies the activation function directly to the output of
@@ -34,8 +34,8 @@ mutable struct ScalarFunctionLayer{N} <: AbstractLayer
      f::Function
      dfx::Union{Function,Nothing}
      dfw::Union{Function,Nothing}
-     """
-        ScalarFunctionLayer(n;rng,wsize,w,f,dfx,dfw)
+     @doc """
+     $(TYPEDSIGNATURES)
 
      Instantiate a new ScalarFunctionLayer
 
@@ -62,7 +62,7 @@ mutable struct ScalarFunctionLayer{N} <: AbstractLayer
 end
 
 """
-   ReplicatorLayer(n)
+$(TYPEDSIGNATURES)
 
 Create a weigthless layer whose output is equal to the input. 
  

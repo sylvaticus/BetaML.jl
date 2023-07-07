@@ -8,7 +8,7 @@ Trees
 
 ```@index
 Modules = [Trees]
-Order   = [:constant, :type, :function, :macro]
+Order   = [:function, :constant, :type, :macro]
 Private = false
 ```
 ## Detailed API

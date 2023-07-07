@@ -17,7 +17,12 @@ mutable struct SphericalGaussian{T <:Number} <: AbstractGaussian
         μ  ::Union{Array{T,1},Nothing}
         σ² ::Union{T,Nothing}
         #SphericalGaussian(;μ::Union{Array{T,1},Nothing},σ²::Union{T,Nothing}) where {T} = SphericalGaussian(μ,σ²)
-        """SphericalGaussian(μ,σ²) - Spherical Gaussian mixture with mean μ and (single) variance σ²"""
+        @doc """
+
+        $(TYPEDSIGNATURES)
+
+        SphericalGaussian(μ,σ²) - Spherical Gaussian mixture with mean μ and (single) variance σ²
+        """
         SphericalGaussian(μ::Union{Array{T,1},Nothing},σ²::Union{T,Nothing}=nothing) where {T} = new{T}(μ,σ²)
         SphericalGaussian(type::Type{T}=Float64) where {T} = new{T}(nothing, nothing)
 end
@@ -25,7 +30,12 @@ end
 mutable struct DiagonalGaussian{T <:Number} <: AbstractGaussian
     μ::Union{Array{T,1},Nothing}
     σ²::Union{Array{T,1},Nothing}
-    """DiagonalGaussian(μ,σ²) - Gaussian mixture with mean μ and variances σ² (and fixed zero covariances)"""
+    @doc """
+
+    $(TYPEDSIGNATURES)
+    
+    DiagonalGaussian(μ,σ²) - Gaussian mixture with mean μ and variances σ² (and fixed zero covariances)
+    """
     DiagonalGaussian(μ::Union{Array{T,1},Nothing},σ²::Union{Array{T,1},Nothing}=nothing) where {T} = new{T}(μ,σ²)
     DiagonalGaussian(::Type{T}=Float64) where {T} = new{T}(nothing, nothing)
 end
@@ -33,7 +43,11 @@ end
 mutable struct FullGaussian{T <:Number} <: AbstractGaussian
     μ::Union{Array{T,1},Nothing}
     σ²::Union{Array{T,2},Nothing}
-    """FullGaussian(μ,σ²) - Gaussian mixture with mean μ and variance/covariance matrix σ²"""
+    @doc """
+
+    $(TYPEDSIGNATURES)
+    
+    FullGaussian(μ,σ²) - Gaussian mixture with mean μ and variance/covariance matrix σ²"""
     FullGaussian(μ::Union{Array{T,1},Nothing},σ²::Union{Array{T,2},Nothing}=nothing) where {T} = new{T}(μ,σ²)
     FullGaussian(::Type{T}=Float64) where {T} = new{T}(nothing, nothing)
 end

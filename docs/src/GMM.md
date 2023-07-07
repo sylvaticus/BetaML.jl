@@ -8,7 +8,7 @@ GMM
 
 ```@index
 Modules = [GMM]
-Order   = [:constant, :type, :function, :macro]
+Order   = [:function, :constant, :type, :macro]
 Private = false
 ```
 

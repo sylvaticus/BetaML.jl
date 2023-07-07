@@ -40,7 +40,7 @@ mutable struct ConvLayer{ND,NDPLUS1,NDPLUS2} <: AbstractLayer
    w_ids::Array{NTuple{NDPLUS2,Int32},1}
 
 
-   """
+   @doc """
    $(TYPEDSIGNATURES)
 
    Instantiate a new nD-dimensional, possibly multichannel ConvolutionalLayer

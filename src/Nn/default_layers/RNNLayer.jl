@@ -6,6 +6,7 @@
 """
    RNNLayer
 
+**Experimental - not working**
 Representation of a layer in the network
 
 # Fields:
@@ -26,7 +27,8 @@ mutable struct RNNLayer <: RecursiveLayer
      """
         RNNLayer(nₗ,n;f,wx,ws,wb,df)
 
-     Instantiate a new RNNLayer
+     **Experimantal - not working**
+      Instantiate a new RNNLayer
 
      # Positional arguments:
      * `nₗ`: Number of nodes of the input

@@ -46,7 +46,7 @@ mutable struct PoolingLayer{ND,NDPLUS1,NDPLUS2} <: AbstractLayer
    preprocessed::Bool
 
 
-   """
+   @doc """
    $(TYPEDSIGNATURES)
 
    Instantiate a new nD-dimensional, possibly multichannel PoolingLayer
@@ -58,6 +58,7 @@ mutable struct PoolingLayer{ND,NDPLUS1,NDPLUS2} <: AbstractLayer
    * `kernel_size`:   Size of the kernel (aka filter) (integer for 1D or hypercube kernels or nD-sized tuple for assymmetric kernels). Do not consider the channels number here.
    * `nchannels_in`:  Number of channels in input
    * `nchannels_out`: Number of channels in output
+   
    # Keyword arguments:
    * `stride`: "Steps" to move the convolution with across the various tensor dimensions [def: `kernel_size`, i.e. each X contributes to a single y]
    * `padding`: Integer or 2-elements tuple of tuples of the starting end ending padding across the various dimensions [def: `nothing`, i.e. set the padding required to keep out_side = in_side / stride ]

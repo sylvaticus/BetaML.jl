@@ -8,7 +8,7 @@ Imputation
 
 ```@index
 Modules = [Imputation]
-Order   = [:constant, :type, :function, :macro]
+Order   = [:function, :constant, :type, :macro]
 Private = false
 ```
 ## Detailed API

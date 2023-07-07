@@ -2,7 +2,7 @@
 
 
 """
-   DenseLayer
+$(TYPEDEF)
 
 Representation of a layer in the network
 
@@ -17,8 +17,8 @@ mutable struct DenseLayer <: AbstractLayer
      wb::Array{Float64,1}
      f::Function
      df::Union{Function,Nothing}
-     """
-        DenseLayer(f,n,nₗ;w,wb,df)
+     @doc """
+     $(TYPEDSIGNATURES)
 
      Instantiate a new DenseLayer
 

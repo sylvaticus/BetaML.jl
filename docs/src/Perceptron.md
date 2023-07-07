@@ -8,7 +8,7 @@ Perceptron
 
 ```@index
 Modules = [Perceptron]
-Order   = [:constant, :type, :function, :macro]
+Order   = [:function, :constant, :type, :macro]
 Private = false
 ```
 

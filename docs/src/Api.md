@@ -8,7 +8,7 @@ Api
 
 ```@index
 Modules = [Api]
-Order   = [:constant, :type, :function, :macro]
+Order   = [:function, :constant, :type, :macro]
 Private = false
 ```
 

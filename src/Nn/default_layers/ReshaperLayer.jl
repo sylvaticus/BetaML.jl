@@ -15,7 +15,8 @@ mutable struct ReshaperLayer{NDIN,NDOUT} <: AbstractLayer
     input_size::SVector{NDIN,Int64}
     "Output size"
     output_size::SVector{NDOUT,Int64}
-    """
+    
+    @doc """
     $(TYPEDSIGNATURES)
 
     Instantiate a new ReshaperLayer

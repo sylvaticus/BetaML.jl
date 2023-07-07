@@ -8,7 +8,7 @@ Clustering
 
 ```@index
 Modules = [Clustering]
-Order   = [:constant, :type, :function, :macro]
+Order   = [:function, :constant, :type, :macro]
 Private = false
 ```
 

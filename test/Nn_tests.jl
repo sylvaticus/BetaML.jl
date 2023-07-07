@@ -140,7 +140,7 @@ xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1]
 ytrain = [0.3; 0.8; 0.5; 0.9; 1.6; 0.3]
 xtest = [0.5 0.6; 0.14 0.2; 0.3 0.7; 2.0 4.0]
 ytest = [1.1; 0.36; 1.0; 6.0]
-l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], f=tanh, df=dtanh,rng=copy(TESTRNG))
+l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0,0,0], f=tanh, df=dtanh,rng=copy(TESTRNG))
 l2 = DenseNoBiasLayer(3,2, w=[1 1 1; 1 1 1], f=relu, df=drelu,rng=copy(TESTRNG))
 l3 = DenseLayer(2,1, w=[1 1], wb=[0], f=identity,df=didentity,rng=copy(TESTRNG))
 mynn = buildNetwork(deepcopy([l1,l2,l3]),squared_cost,name="Feed-forward Neural Network Model 1",dcf=dsquared_cost)
@@ -163,7 +163,7 @@ ŷtest2 =  predict(m,xtest)
 
 
 # With the ADAM optimizer...
-l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0 0 0], f=tanh, df=dtanh,rng=copy(TESTRNG))
+l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0,0,0], f=tanh, df=dtanh,rng=copy(TESTRNG))
 l2 = DenseNoBiasLayer(3,2, w=[1 1 1; 1 1 1], f=relu, df=drelu,rng=copy(TESTRNG))
 l3 = DenseLayer(2,1, w=[1 1], wb=[0], f=identity,df=didentity,rng=copy(TESTRNG))
 mynn = buildNetwork([l1,l2,l3],squared_cost,name="Feed-forward Neural Network with ADAM",dcf=dsquared_cost)

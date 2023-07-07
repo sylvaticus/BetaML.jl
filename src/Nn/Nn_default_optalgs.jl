@@ -6,7 +6,7 @@
 # ------------------------------------------------------------------------------
 # SGD
 """
-  SGD(;η=t -> 1/(1+t), λ=2)
+    SGD(;η=t -> 1/(1+t), λ=2)
 
 Stochastic Gradient Descent algorithm (default)
 
@@ -45,7 +45,7 @@ end
 #
 
 """
-  ADAM(;η, λ, β₁, β₂, ϵ)
+    ADAM(;η, λ, β₁, β₂, ϵ)
 
 The [ADAM](https://arxiv.org/pdf/1412.6980.pdf) algorithm, an adaptive moment estimation optimiser.
 
@@ -70,7 +70,7 @@ mutable struct ADAM <: OptimisationAlgorithm
 end
 
 """
-   init_optalg!(opt_alg::ADAM;θ,batch_size,x,y,rng)
+    init_optalg!(opt_alg::ADAM;θ,batch_size,x,y,rng)
 
 Initialize the ADAM algorithm with the parameters m and v as zeros and check parameter bounds
 """

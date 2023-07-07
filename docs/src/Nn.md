@@ -8,7 +8,7 @@ Nn
 
 ```@index
 Modules = [Nn]
-Order   = [:constant, :type, :function, :macro]
+Order   = [:function, :constant, :type,  :macro]
 Private = false
 ```
 ## Detailed API

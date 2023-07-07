@@ -17,6 +17,7 @@ The module provide the following types or functions. Use `?[type or function]` t
 - `VectorFunctionLayer`: Layer whose activation function run over the ensable of its nodes rather than on each one individually. No learnable weigths on input, optional learnable weigths as parameters of the activation function.
 - `ScalarFunctionLayer`: Layer whose activation function run over each node individually, like a classic `DenseLqyer`, but with no learnable weigths on input and optional learnable weigths as parameters of the activation function.
 - `ReplicatorLayer`: Alias for a `ScalarFunctionLayer` with no learnable parameters and identity as activation function
+- `GroupedLayer`: To stack several layers into a single layer, e.g. for multi-branches networks
 - `NeuralNetworkEstimator`: Build the chained network and define a cost function
 
 

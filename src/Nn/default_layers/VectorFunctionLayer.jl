@@ -2,7 +2,7 @@
 
 
 """
-   VectorFunctionLayer
+$(TYPEDEF)
 
 Representation of a VectorFunction layer in the network. Vector
 function layer expects a vector activation function, i.e. a function taking the
@@ -43,8 +43,8 @@ mutable struct VectorFunctionLayer{N} <: AbstractLayer
      f::Function
      dfx::Union{Function,Nothing}
      dfw::Union{Function,Nothing}
-     """
-        VectorFunctionLayer(n;rng,wsize,w,f,dfx,dfw,dummyDataToTestOutputSize)
+     @doc """
+     $(TYPEDSIGNATURES)
 
      Instantiate a new VectorFunctionLayer
 

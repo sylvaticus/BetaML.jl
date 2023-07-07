@@ -8,7 +8,7 @@ Utils
 
 ```@index
 Modules = [Utils]
-Order   = [:constant, :type, :function, :macro]
+Order   = [:function, :constant, :type, :macro]
 Private = false
 ```
 ## Detailed API

@@ -2,7 +2,7 @@
 
 
 """
-   DenseNoBiasLayer
+$(TYPEDEF)
 
 Representation of a layer without bias in the network
 
@@ -15,12 +15,8 @@ mutable struct DenseNoBiasLayer <: AbstractLayer
      w::Array{Float64,2}
      f::Function
      df::Union{Function,Nothing}
-     """
-        DenseNoBiasLayer(f,nₗ,n;w,df)
-
-     Instantiate a new DenseNoBiasLayer
-
-        DenseNoBiasLayer(f,nₗ,n;w,df)
+     @doc """
+     $(TYPEDSIGNATURES)
 
      Instantiate a new DenseNoBiasLayer
 

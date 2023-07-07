@@ -16,7 +16,7 @@ The code in BetaML should follow the official [Julia Style Guide](https://docs.j
 
 Please apply the following templates when writing a docstring for BetaML:
 
-- Functions
+- Functions (add `@docs` if the function is not on the root module level, like for inner constructors, i.e. `@docs """ foo()x ...."""`):
 
 ```
 """
