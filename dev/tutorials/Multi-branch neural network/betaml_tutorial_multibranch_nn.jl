@@ -88,7 +88,7 @@ l8          = DenseLayer(15,1,f=relu,rng=copy(AFIXEDRNG))
 
 # Finally we put the layers together and we create our `NeuralNetworkEstimator` model:
 layers = [l1,l2,l3,l4,l5,l6,l7,l8]
-m      = NeuralNetworkEstimator(layers=layers,opt_alg=ADAM(),epochs=100,verbosity=HIGH,rng=copy(AFIXEDRNG))
+m      = NeuralNetworkEstimator(layers=layers,opt_alg=ADAM(),epochs=100,rng=copy(AFIXEDRNG))
 
 # ## Fitting the model 
 println(now(), " ", "- model fitting..." )  #src
@@ -99,12 +99,14 @@ Ŷ      = fit!(m,X,Y)
 println(now(), " ", "- assessing the model quality..." )  #src
 # We can compute the relative mean error between the "true" Y and the Y estimated by the model.
 rme    = relative_mean_error(Y,Ŷ)
+@test rme <0.1 #src
 
 # Of course we know there is no actual relation here between the X and The Y, as both are randomly generated, the result above just tell us that the network has been able to find a path between the X and Y that has been used for training, but we hope that in the real application this learned path represent a true, general relation beteen the inputs and the outputs.
 
 # Finally we can also plot Y again Ŷ and visualize how the average loss reduced along the training:
 scatter(Y,Ŷ,xlabel="vol observed",ylabel="vol estimated",label=nothing,title="Est vs. obs volumes")
 
+#-
 loss_per_epoch = info(m)["loss_per_epoch"]
 
 plot(loss_per_epoch, xlabel="epoch", ylabel="loss per epoch", label=nothing, title="Loss per epoch")
