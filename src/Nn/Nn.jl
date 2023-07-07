@@ -865,9 +865,9 @@ end
 
 **`NeuralNetworkEstimator`**
 
-A "feedforward" neural network (supervised).
+A "feedforward" (but also multi-branch) neural network (supervised).
 
-For the parameters see [`NNHyperParametersSet`](@ref).
+For the parameters see [`NNHyperParametersSet`](@ref) and for the training options [`NeuralNetworkEstimatorOptionsSet`](@ref) (we have a few more options for this specific estimator).
 
 # Notes:
 - data must be numerical
@@ -1050,9 +1050,9 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
         nn_osize == nDy || error("The last layer of the network must have the ndims of the output data ($nDy) instead of $(nn_osize). For classification tasks, this is normally the number of possible categories.")
 
         m.par = NeuralNetworkEstimatorLearnableParameters(NN(deepcopy(layers),loss,dloss,false,descr))
-        m.info["epochsRan"] = 0
-        m.info["lossPerEpoch"] = Float64[]
-        m.info["parPerEpoch"] = []
+        m.info["nepochs_ran"] = 0
+        m.info["loss_per_epoch"] = Float64[]
+        m.info["par_per_epoch"] = []
         m.info["xndims"]   = nD
         m.info["yndims"]   = nDy
         #m.info["fitted_records"] = O
@@ -1064,9 +1064,9 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
 
     out = train!(nnstruct,X,Y; epochs=epochs, batch_size=batch_size, sequential=!shuffle, verbosity=verbosity, cb=cb, opt_alg=opt_alg,rng = rng)
 
-    m.info["epochsRan"]     += out.epochs
-    append!(m.info["lossPerEpoch"],out.ϵ_epochs) 
-    append!(m.info["parPerEpoch"],out.θ_epochs) 
+    m.info["nepochs_ran"]     += out.epochs
+    append!(m.info["loss_per_epoch"],out.ϵ_epochs) 
+    append!(m.info["par_per_epoch"],out.θ_epochs) 
     m.info["xndims"]    = nD
     m.info["fitted_records"] = nR
     m.info["nLayers"] = length(nnstruct.layers)

@@ -39,7 +39,8 @@ _TUTORIAL_SUBDIR = [
     #"Getting started",
     "Classification - cars",
     "Regression - bike sharing",
-    "Clustering - Iris"
+    "Clustering - Iris",
+    "Multi-branch neural network",
 ]
 
 function link_example(content)
