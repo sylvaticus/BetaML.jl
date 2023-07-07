@@ -648,7 +648,7 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
         showTime = 0.2
     end
     
-    @showprogress showTime "Training the Neural Network..."    for t in 1:epochs
+    @showprogress showTime "Training the Neural Network..." for t in 1:epochs
        batches = batch(n,batch_size,sequential=sequential,rng=rng)
        n_batches = length(batches)
        if t == 1
@@ -668,6 +668,9 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
 
            ▽   = sumGradient / length(batch)
            #▽   = gradDiv.(gradSum([get_gradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batch_size]), batch_size)
+           #println("****foooo")
+           #println(▽)
+
            res = single_update!(θ,▽;n_epoch=t,n_batch=i,n_batches=n_batches,xbatch=xbatch,ybatch=ybatch,opt_alg=opt_alg)
            set_params!(nn,res.θ)
            cbOut = cb(nn,xbatch,ybatch,n=d,n_batches=n_batches,epochs=epochs,verbosity=verbosity,n_epoch=t,n_batch=i)
