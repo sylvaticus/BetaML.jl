@@ -375,6 +375,14 @@ function predict(m::RandomForestEstimator,x)
     #TODO: get Tynm here! and OrdinalEncoder!
     #Ty = get_parametric_types(m.par)[1] |> nonmissingtype
     Ty = m.par.Ty # this should already be the nonmissing type
+    # we want a row
+    if typeof(x) <: AbstractArray
+        if ndims(x) == 1
+            x = permutedims(x)
+        end
+    else
+        x = permutedims([x])
+    end 
     rawout = predictSingle.(Ref(m.par.forest),eachrow(x),rng=m.opt.rng)
     if (Ty <: Integer && m.hpar.force_classification)
         return [ Dict([convert(Ty,k) => v for (k,v) in e]) for e in rawout]

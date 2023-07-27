@@ -1,6 +1,6 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
-import BetaML.Utils.allowmissing!
+import BetaML.Utils.allowmissing
 
 # ------------------------------------------------------------------------------
 # GMMRegressor1 
@@ -371,7 +371,7 @@ Predict the classes probabilities associated to new data assuming the mixtures c
 """
 function predict(m::GMMRegressor2,X)
     X    = makematrix(X)
-    allowmissing!(X)
+    X    = allowmissing(X)
     N,DX = size(X)
     mixtures = m.par.mixtures
     DFull    = length(mixtures[1].μ)

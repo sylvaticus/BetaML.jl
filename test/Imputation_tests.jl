@@ -2,6 +2,7 @@ using Test
 #using Pipe
 using Statistics, Random
 using BetaML
+import DecisionTree
 
 
 import MLJBase
@@ -109,7 +110,7 @@ X = [2 missing 10 "aaa" missing; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1
 mod = RFImputer(n_trees=30,forced_categorical_cols=[5],recursive_passages=3,multiple_imputations=10, rng=copy(TESTRNG),verbosity=NONE)
 Xs_full = fit!(mod,X)
 
-@test Xs_full[2][1,2] == 208
+@test Xs_full[2][1,2] == 220
 @test length(Xs_full) == 10
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
@@ -121,7 +122,7 @@ medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 @test medianValues[1,2] == 4.0
 infos = info(mod)
 @test infos["n_imputed_values"] == 1
-@test infos["oob_errors"][1] ≈ [0.5125059655639456, 0.47355452303986306, 1.4813804498107928]
+@test all(isequal.(infos["oob_errors"][1],[missing, 0.47355452303986306, missing]))
 
 X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
 mod = RFImputer(rng=copy(TESTRNG),verbosity=NONE)
@@ -129,6 +130,9 @@ fit!(mod,X)
 X̂1 = predict(mod)
 X̂1b =  predict(mod,X)
 @test X̂1 == X̂1b
+
+mod = RFImputer(rng=copy(TESTRNG),verbosity=NONE,cols_to_impute="all")
+fit!(mod,X)
 X2 = [2 4 10 missing 10; 20 40 100 "gggg" 100; 200 400 1000 "zzzz" 1000]
 X̂2 =  predict(mod,X2)
 @test X̂2[1,4] == "aaa"
@@ -137,14 +141,14 @@ println("Testing UniversalImputer...")
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
 trng = copy(TESTRNG)
-mod = UniversalImputer(estimators=[GMMRegressor1(rng=trng,verbosity=NONE),RandomForestEstimator(rng=trng,verbosity=NONE),RandomForestEstimator(rng=trng,verbosity=NONE)], multiple_imputations=10, recursive_passages=3, rng=copy(TESTRNG),verbosity=NONE)
+mod = UniversalImputer(estimator=[GMMRegressor1(rng=trng,verbosity=NONE),RandomForestEstimator(rng=trng,verbosity=NONE),RandomForestEstimator(rng=trng,verbosity=NONE)], multiple_imputations=10, recursive_passages=3, rng=copy(TESTRNG),verbosity=NONE,cols_to_impute="all")
 fit!(mod,X)
 vals = predict(mod)
 nR,nC = size(vals[1])
 meanValues = [mean([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 @test meanValues[1,2] == 3.0
 
-vals[1] == vals[10]
+@test vals[1] == vals[10]
 
 model_save("test.jld2"; mod)
 modj  = model_load("test.jld2","mod")
@@ -162,12 +166,12 @@ meanValues = [mean([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
 trng = copy(TESTRNG)
 #Random.seed!(trng,123)
-mod = UniversalImputer(estimators=[DecisionTreeEstimator(rng=trng,verbosity=NONE),RandomForestEstimator(n_trees=1,rng=trng,verbosity=NONE),RandomForestEstimator(n_trees=1,rng=trng,verbosity=NONE),RandomForestEstimator(n_trees=1,rng=trng,verbosity=NONE),DecisionTreeEstimator(rng=trng,verbosity=NONE)],rng=trng,verbosity=NONE)
+mod = UniversalImputer(estimator=[DecisionTreeEstimator(rng=trng,verbosity=NONE),RandomForestEstimator(n_trees=1,rng=trng,verbosity=NONE),RandomForestEstimator(n_trees=1,rng=trng,verbosity=NONE),RandomForestEstimator(n_trees=1,rng=trng,verbosity=NONE),DecisionTreeEstimator(rng=trng,verbosity=NONE)],rng=trng,verbosity=NONE,cols_to_impute="all")
 
 fit!(mod,X)
 Random.seed!(trng,123)
 X̂1  = predict(mod)
-@test X̂1 == Any[2 4 10 "aaa" 10; 20 40 100 "gggg" 505; 200 400 1000 "zzzz" 1000] # problem
+@test X̂1 == Any[2 4 10 "aaa" 10; 20 40 100 "gggg" 505; 200 400 1000 "zzzz" 1000]
 
 Random.seed!(trng,123)
 X̂1b =  predict(mod,X)
@@ -176,6 +180,24 @@ X̂1b =  predict(mod,X)
 X2 = [2 4 10 missing 10; 20 40 100 "gggg" 100; 200 400 1000 "zzzz" 1000]
 X̂2 =  predict(mod,X2)
 @test X̂2[1,4] == "aaa"
+
+# ------------------------------
+X = [1.0 2 missing 100; 3 missing missing 200; 4 5 6 300; missing 7 8 400; 9 10 11 missing; 12 13 missing missing; 14 15 missing 700; 16 missing missing 800;]
+
+mod = UniversalImputer(estimator=DecisionTree.DecisionTreeRegressor(),rng=copy(TESTRNG),fit_function=DecisionTree.fit!,predict_function=DecisionTree.predict,recursive_passages=10)
+Xfull = BetaML.fit!(mod,X)
+@test size(Xfull) == (8,4) && typeof(Xfull) == Matrix{Float64}
+
+mod = UniversalImputer(estimator=BetaML.DecisionTreeEstimator(),rng=copy(TESTRNG),recursive_passages=10)
+Xfull2 = BetaML.fit!(mod,X)
+@test size(Xfull) == (8,4) && typeof(Xfull) == Matrix{Float64}
+
+mod = UniversalImputer(estimator=BetaML.DecisionTreeEstimator(),rng=copy(TESTRNG),missing_supported=true,recursive_passages=10)
+Xfull3 = BetaML.fit!(mod,X)
+@test size(Xfull) == (8,4) && typeof(Xfull) == Matrix{Float64}
+
+
+
 
 # ------------------------------------------------------------------------------
 
