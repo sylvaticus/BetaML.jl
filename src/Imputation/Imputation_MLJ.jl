@@ -235,62 +235,109 @@ $(TYPEDEF)
 
 Impute missing values using arbitrary learning models, from the Beta Machine Learning Toolkit (BetaML).
 
-Impute missing values using a vector (one per column) of arbitrary learning models (classifiers/regressors, not necessarily from BetaML) that:
-- implement the interface `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)`;
-- accept missing data in the feature matrix.
-(default to Random Forests)
+Impute missing values using a vector (one per column) of arbitrary learning models (classifiers/regressors, not necessarily from BetaML) that implement the interface `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)`.
 
 
 # Hyperparameters:
 $(TYPEDFIELDS)
 
-# Example :
+# Examples :
+
+- *Using BetaML models*:
+
 ```julia
-julia> using MLJ
+julia> using MLJ;
+julia> import BetaML # The library from which to get the individual estimators to be used for each column imputation
+julia> X = ["a"         8.2;
+            "a"     missing;
+            "a"         7.8;
+            "b"          21;
+            "b"          18;
+            "c"        -0.9;
+            missing      20;
+            "c"        -1.8;
+            missing    -2.3;
+            "c"        -2.4] |> table ;
+julia> modelType = @load GeneralImputer  pkg = "BetaML" verbosity=0
+BetaML.Imputation.GeneralImputer
+julia> model     = modelType(estimator=BetaML.DecisionTreeEstimator(),recursive_passages=2);
+julia> mach      = machine(model, X);
+julia> fit!(mach);
+[ Info: Training machine(GeneralImputer(cols_to_impute = auto, …), …).
+julia> X_full       = transform(mach) |> MLJ.matrix
+10×2 Matrix{Any}:
+ "a"   8.2
+ "a"   8.0
+ "a"   7.8
+ "b"  21
+ "b"  18
+ "c"  -0.9
+ "b"  20
+ "c"  -1.8
+ "c"  -2.3
+ "c"  -2.4
+```
 
-julia> X = ["a" 10.5;"a" missing; "b" 8; "b" 15; "c" 40; missing missing; "c" 38; missing -2.3; "c" -2.4] |> table ;
+- *Using third party packages* (in this example `DecisionTree`):
 
+```julia
+julia> using MLJ;
+julia> import DecisionTree # An example of external estimators to be used for each column imputation
+julia> X = ["a"         8.2;
+            "a"     missing;
+            "a"         7.8;
+            "b"          21;
+            "b"          18;
+            "c"        -0.9;
+            missing      20;
+            "c"        -1.8;
+            missing    -2.3;
+            "c"        -2.4] |> table ;
 julia> modelType   = @load GeneralImputer  pkg = "BetaML" verbosity=0
 BetaML.Imputation.GeneralImputer
-
-julia> model     = modelType(estimators=[BetaML.DecisionTreeEstimator(),BetaML.RandomForestEstimator(n_trees=40)],recursive_passages=2)
-GeneralImputer(
-  estimators = BetaML.Api.BetaMLSupervisedModel[DecisionTreeEstimator - A Decision Tree model (unfitted), RandomForestEstimator - A 40 trees Random Forest model (unfitted)], 
-  recursive_passages = 2, 
-  rng = Random._GLOBAL_RNG())
-
+julia> model     = modelType(estimator=[DecisionTree.DecisionTreeClassifier(),DecisionTree.DecisionTreeRegressor()], fit_function=DecisionTree.fit!,predict_function=DecisionTree.predict,recursive_passages=2);
 julia> mach      = machine(model, X);
-
 julia> fit!(mach);
-[ Info: Training machine(GeneralImputer(estimators = BetaML.Api.BetaMLSupervisedModel[DecisionTreeEstimator - A Decision Tree model (unfitted), RandomForestEstimator - A 40 trees Random Forest model (unfitted)], …), …).
-
+[ Info: Training machine(GeneralImputer(cols_to_impute = auto, …), …).
 julia> X_full       = transform(mach) |> MLJ.matrix
-9×2 Matrix{Any}:
- "a"  10.5
- "a"  10.9171
- "b"   8
- "b"  15
- "c"  40
- "c"  20.6587
- "c"  38
+10×2 Matrix{Any}:
+ "a"   8.2
+ "a"   7.51111
+ "a"   7.8
+ "b"  21
+ "b"  18
+ "c"  -0.9
+ "b"  20
+ "c"  -1.8
  "c"  -2.3
  "c"  -2.4
 ```
 """
 mutable struct GeneralImputer <: MMI.Unsupervised
-    "A D-dimensions vector of regressor or classifier models (and eventually their respective options/hyper-parameters) to be used to impute the various columns of the matrix [default: `nothing`, i.e. use random forests]."
-    estimators::Union{Vector,Nothing}
-    "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
-    recursive_passages::Int64                  
-    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
-    rng::AbstractRNG
+    "Columns in the matrix for which to create an imputation model, i.e. to impute. It can be a vector of columns IDs (positions), or the keywords \"auto\" (default) or \"all\". With \"auto\" the model automatically detects the columns with missing data and impute only them. You may manually specify the columns or use \"all\" if you want to create a imputation model for that columns during training even if all training data are non-missing to apply then the training model to further data with possibly missing values."
+    cols_to_impute::Union{String,Vector{Int64}}
+    "An entimator model (regressor or classifier), with eventually its options (hyper-parameters), to be used to impute the various columns of the matrix. It can also be a `cols_to_impute`-length vector of different estimators to consider a different estimator for each column (dimension) to impute, for example when some columns are categorical (and will hence require a classifier) and some others are numerical (hence requiring a regressor). [default: `nothing`, i.e. use BetaML random forests, handling classification and regression jobs automatically]."
+    estimator
+    "Wheter the estimator(s) used to predict the missing data support itself missing data in the training features (X). If not, when the model for a certain dimension is fitted, dimensions with missing data in the same rows of those where imputation is needed are dropped and then only non-missing rows in the other remaining dimensions are considered. It can be a vector of boolean values to specify this property for each individual estimator or a single booleann value to apply to all the estimators [default: `false`]"
+    missing_supported::Union{Vector{Bool},Bool}
+    "The function used by the estimator(s) to fit the model. It should take as fist argument the model itself, as second argument a matrix representing the features, and as third argument a vector representing the labels. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.fit!`]"
+    fit_function::Union{Vector{Function},Function}
+    "The function used by the estimator(s) to predict the labels. It should take as fist argument the model itself and as second argument a matrix representing the features. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.predict`]"
+    predict_function::Union{Vector{Function},Function}
+    "Define the number of times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
+    recursive_passages::Int64
+    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]. Note that this influence only the specific GeneralImputer code, the individual estimators may have their own rng (or similar) parameter."
+    rng::AbstractRNG      
 end
 GeneralImputer(;
-    estimators               = nothing,
-    recursive_passages    = 1,
-    #multiple_imputations  = 1,
-    rng                  = Random.GLOBAL_RNG,
-) = GeneralImputer(estimators, recursive_passages, rng)
+    cols_to_impute     = "auto",
+    estimator          = nothing,
+    missing_supported  = false,
+    fit_function       = fit!,
+    predict_function   = predict,
+    recursive_passages = 1,
+    rng                = Random.GLOBAL_RNG,
+) = GeneralImputer(cols_to_impute, estimator, missing_supported, fit_function,predict_function, recursive_passages, rng)
 
 
 # ------------------------------------------------------------------------------
@@ -382,11 +429,14 @@ function MMI.fit(m::GeneralImputer, verbosity, X)
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
     mod =  UniversalImputer(
-        estimators             = m.estimators,
-        verbosity              = verbosity,
-        recursive_passages      = m.recursive_passages,
-        #multiple_imputations    = m.multiple_imputations,
-        rng                    = m.rng,
+        cols_to_impute     = m.cols_to_impute,
+        estimator          = m.estimator,
+        missing_supported  = m.missing_supported,
+        fit_function       = m.fit_function,
+        predict_function   = m.predict_function,
+        recursive_passages = m.recursive_passages,
+        rng                = m.rng,
+        verbosity          = verbosity,
     )
     fit!(mod,x)
     #if m.multiple_imputations == 1
@@ -404,12 +454,32 @@ end
 # Transform functions...
 
 """ transform(m, fitResults, X) - Given a trained imputator model fill the missing data of some new observations"""
-function MMI.transform(m::Union{SimpleImputer,GaussianMixtureImputer,RandomForestImputer,GeneralImputer}, fitResults, X)
+function MMI.transform(m::Union{SimpleImputer,GaussianMixtureImputer,RandomForestImputer}, fitResults, X)
     x   = MMI.matrix(X) # convert table to matrix
     mod = fitResults
     return MMI.table(predict(mod,x))
 end
 
+
+"""
+    transform(m, fitResults, X)
+
+Given a trained imputator model fill the missing data of some new observations.
+Note that with multiple recursive imputations and inner estimators that don't support missing data, this function works only for X for which th model has been trained with, i.e. this function can not be applied to new matrices with empty values using model trained on other matrices.
+"""
+function MMI.transform(m::GeneralImputer, fitResults, X)
+    cols2imp = fitResults.par.cols_to_impute_actual
+    nD2Imp = length(cols2imp)
+    missing_supported = typeof(fitResults.hpar.missing_supported) <: AbstractArray ? fitResults.hpar.missing_supported : fill(fitResults.hpar.missing_supported,nD2Imp) 
+    if fitResults.hpar.recursive_passages == 1 || all(missing_supported) 
+       x   = MMI.matrix(X) # convert table to matrix
+       mod = fitResults
+       return MMI.table(predict(mod,x))
+    else
+       mod = fitResults 
+       return MMI.table(predict(mod))
+    end
+end
 
 # ------------------------------------------------------------------------------
 # Model metadata for registration in MLJ...

@@ -137,6 +137,7 @@ X2 = [2 4 10 missing 10; 20 40 100 "gggg" 100; 200 400 1000 "zzzz" 1000]
 X̂2 =  predict(mod,X2)
 @test X̂2[1,4] == "aaa"
 
+# ------------------------------------------------------------------------------
 println("Testing UniversalImputer...")
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
@@ -196,6 +197,31 @@ mod = UniversalImputer(estimator=BetaML.DecisionTreeEstimator(),rng=copy(TESTRNG
 Xfull3 = BetaML.fit!(mod,X)
 @test size(Xfull) == (8,4) && typeof(Xfull) == Matrix{Float64}
 
+X =  [     12      0.3       5      11;
+           21      0.1       1     18;
+            8  missing       9       9;
+      missing      0.6       5       4;
+      missing      0.4 missing       6;
+           18  missing       1 missing;
+            5      0.8 missing       15;
+           10      0.7       8      11;]
+
+mod = UniversalImputer(estimator=DecisionTree.DecisionTreeRegressor(),rng=copy(TESTRNG),fit_function=DecisionTree.fit!,predict_function=DecisionTree.predict,recursive_passages=10)
+mod2 = UniversalImputer(rng=copy(TESTRNG),recursive_passages=10)
+
+Xfull = BetaML.fit!(mod,X)          
+Xfull2 = BetaML.fit!(mod2,X) 
+@test Xfull[4,1] > 1     
+@test Xfull[3,2] < 1   
+@test Xfull[5,3] > 1
+@test Xfull[6,4] > 10
+@test Xfull2[4,1] < Xfull2[5,1]   
+@test Xfull2[3,2] > Xfull2[6,2]  
+@test Xfull2[5,3] < Xfull2[7,3]
+@test Xfull2[6,4] > 10
+
+# this would error, as multiple passsages
+# predict(mod2,X)
 
 
 
@@ -260,14 +286,40 @@ println("Testing MLJ Interface for GeneralImputer...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
 trng = copy(TESTRNG)
-model                       =  GeneralImputer(estimators=[GMMRegressor1(rng=trng,verbosity=NONE),RandomForestEstimator(n_trees=40,rng=copy(TESTRNG),verbosity=NONE)],rng=copy(TESTRNG),recursive_passages=2)
+model                       =  GeneralImputer(estimator=[GMMRegressor1(rng=copy(TESTRNG),verbosity=NONE),RandomForestEstimator(n_trees=40,rng=copy(TESTRNG),verbosity=NONE)],recursive_passages=2, missing_supported=true, rng = copy(TESTRNG))
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
 x̂                           =  Mlj.matrix(XM)
-@test isapprox(x̂[2,2],12.008750000000001) # not the same as RF because the oth columns are imputed too
+@test isapprox(x̂[2,2],11.8) # not the same as RF because the oth columns are imputed too
 # Use the previously learned structure to imput missings..
 Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
 XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
 XDMNew                      = Mlj.matrix(XDNew)
 @test isapprox(XDMNew[1,2],x̂[2,2])
+
+
+X =  [     12      0.3       5      11;
+           21      0.1       1     18;
+            8  missing       9       9;
+      missing      0.6       5       4;
+      missing      0.4 missing       6;
+           18  missing       1 missing;
+            5      0.8 missing       15;
+           10      0.7       8      11;]
+
+
+Xt = Mlj.table(X)
+trng = copy(TESTRNG)
+model                       =  GeneralImputer(estimator=DecisionTree.DecisionTreeRegressor(), fit_function=DecisionTree.fit!,predict_function=DecisionTree.predict,recursive_passages=10, rng = copy(TESTRNG))
+modelMachine                =  Mlj.machine(model,Xt)
+(fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
+XM                          =  Mlj.transform(model,fitResults,Xt)
+x̂                           =  Mlj.matrix(XM)
+@test x̂[4,1] > 1     
+@test x̂[3,2] < 1   
+@test x̂[5,3] > 1
+@test x̂[6,4] > 10
+
+
+
