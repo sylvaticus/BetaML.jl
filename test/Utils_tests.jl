@@ -224,6 +224,36 @@ fit!(m4,x)
 ŷ4  =predict(m4,x)
 @test all(isequal.(ŷ4,x))
 
+# Check it works with integer matrices..
+X = [1 10 100; 2 20 200; 3 30 300]
+m = Scaler()
+Xs1 = fit!(m,X)
+Xs2 = predict(m,X)
+@test  Xs1 == Xs2 ≈ [-1.224744871391589 -1.224744871391589 -1.224744871391589; 0.0 0.0 0.0; 1.224744871391589 1.224744871391589 1.224744871391589]
+@test inverse_predict(m,Xs1) == float.(X)
+m2 = Scaler(MinMaxScaler())
+Xs1b = fit!(m2,X)
+Xs2b = predict(m2,X)
+@test  Xs1b == Xs2b ≈ [0.0 0.0 0.0; 0.5 0.5 0.5; 1.0 1.0 1.0]
+@test inverse_predict(m2,Xs1b) == float.(X)
+
+# Check it works with arrays and can get back to matrix or vector
+X = [1,2,3]
+m = Scaler()
+Xs1c = fit!(m,X)
+Xs2c = predict(m,X)
+@test Xs1c == Xs2c == Xs1[:,1]
+inverse_predict(m,Xs1c) == X
+m2 = Scaler(MinMaxScaler())
+Xs1d = fit!(m2,X)
+Xs2e = predict(m2,X)
+@test  Xs1d == Xs2e ==  Xs1b[:,1]
+@test inverse_predict(m2,Xs1d) == float.(X)
+
+X2 = makematrix([1,2,3])
+m = Scaler()
+X2s1c = fit!(m,X2)
+inverse_predict(m,X2s1c) == X2
 
 # ==================================
 # New test

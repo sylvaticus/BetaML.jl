@@ -621,12 +621,12 @@ end
 
 Base.@kwdef mutable struct StandardScalerLearnableParameters <: AbstractScalerLearnableParameter
   sfμ::Vector{Float64} = Float64[] # scale factor of mean
-  sfσ::Vector{Float64} = Float64[]  # scale vactor of st.dev.
+  sfσ::Vector{Float64} = Float64[]  # scale vector of st.dev.
 end
 
 function _fit(m::MinMaxScaler,skip,X,cache)
     actualRanges = Tuple{Float64,Float64}[]
-    X_scaled = cache ? deepcopy(X) : nothing 
+    X_scaled = cache ? float.(X) : nothing 
     for (ic,c) in enumerate(eachcol(X))
         if !(ic in skip)
           imin,imax =   (m.inputRange[1](skipmissing(c)),  m.inputRange[2](skipmissing(c)) )
@@ -641,11 +641,13 @@ function _fit(m::MinMaxScaler,skip,X,cache)
     end
     return X_scaled, MinMaxScalerLearnableParameters(actualRanges)
 end
-function _fit(m::StandardScaler,skip,X,cache)
-    nR,nD = size(X)
+function _fit(m::StandardScaler,skip,X::AbstractArray,cache) 
+    nDims = ndims(X)
+    nR   = size(X,1)
+    nD = (nDims == 1) ? 1 : size(X,2)
     sfμ   = zeros(nD)
     sfσ   = ones(nD)
-    X_scaled = cache ? deepcopy(X) : nothing 
+    X_scaled = cache ? float.(X) : nothing
     for (ic,c) in enumerate(eachcol(X))
         if !(ic in skip)
             μ  = m.center ? mean(skipmissing(c)) : 0.0
@@ -663,7 +665,7 @@ end
 
 function _predict(m::MinMaxScaler,pars::MinMaxScalerLearnableParameters,skip,X;inverse=false)
     if !inverse
-        xnew = deepcopy(X)
+        xnew = float.(X)
         for (ic,c) in enumerate(eachcol(X))
             if !(ic in skip)
                 imin,imax = pars.inputRangeApplied[ic]
@@ -686,7 +688,7 @@ function _predict(m::MinMaxScaler,pars::MinMaxScalerLearnableParameters,skip,X;i
 end
 function _predict(m::StandardScaler,pars::StandardScalerLearnableParameters,skip,X;inverse=false)
     if !inverse
-        xnew = deepcopy(X)
+        xnew = float.(X)
         for (ic,c) in enumerate(eachcol(X))
             if !(ic in skip)
                 xnew[:,ic] = (c .+ pars.sfμ[ic]) .* pars.sfσ[ic] 
@@ -805,7 +807,7 @@ mutable struct Scaler <: BetaMLUnsupervisedModel
     hpar::ScalerHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,ScalerLearnableParameters}
-    cres::Union{Nothing,Matrix}
+    cres::Union{Nothing,Array}
     fitted::Bool
     info::Dict{String,Any}
 end
