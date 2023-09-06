@@ -653,10 +653,10 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
     @showprogress showTime "Training the Neural Network..." for t in 1:epochs
        batches = batch(n,batch_size,sequential=sequential,rng=rng)
        n_batches = length(batches)
-       if t == 1
-           if (verbosity >= STD) push!(ϵ_epochs,ϵ_epoch); end
-           if (verbosity > STD) push!(θ_epochs,θ_epoch); end
-       end
+       #if t == 1 # removed otherwise the array of losses/pars would be nepochs+1
+       #    if (verbosity >= STD) push!(ϵ_epochs,ϵ_epoch); end
+       #    if (verbosity > STD) push!(θ_epochs,θ_epoch); end
+       #end
        for (i,batch) in enumerate(batches)
            xbatch = x[batch, :]
            ybatch = y[batch, :]
@@ -1038,6 +1038,7 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
                 l4 = VectorFunctionLayer(nDy,f=softmax)
                 layers = [l1,l2,l3,l4]
             end
+            m.hpar.layers = layers
         end
         # Check that the first layer has the dimensions of X and the last layer has the output dimensions of Y
         nn_isize_tuple = size(layers[1])[1]
