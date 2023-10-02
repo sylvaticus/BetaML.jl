@@ -157,7 +157,7 @@ function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/s
     lastϵ = Inf
     if force_origin θ₀ = 0.0; end
     sumθ = θ; sumθ₀ = θ₀
-    @showprogress 1 "Training PegasosClassifier..." for t in 1:T
+    @showprogress dt=1 desc="Training PegasosClassifier..." for t in 1:T
     ϵ = 0
     ηₜ = η(t)
     if shuffle

@@ -153,7 +153,7 @@ function kernelPerceptronBinary(x, y; K=radial_kernel, T=1000, α=zeros(Int64,le
         showTime = 0.2
     end
 
-    @showprogress showTime "Training Kernel Perceptron..." for t in 1:T
+    @showprogress dt=showTime desc="Training Kernel Perceptron..." for t in 1:T
         ϵ = 0
         if shuffle
             # random shuffle x, y and alpha

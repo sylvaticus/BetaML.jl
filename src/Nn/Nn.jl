@@ -650,7 +650,7 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
         showTime = 0.2
     end
     
-    @showprogress showTime "Training the Neural Network..." for t in 1:epochs
+    @showprogress dt=showTime desc="Training the Neural Network..." for t in 1:epochs
        batches = batch(n,batch_size,sequential=sequential,rng=rng)
        n_batches = length(batches)
        #if t == 1 # removed otherwise the array of losses/pars would be nepochs+1

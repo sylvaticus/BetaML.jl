@@ -7,6 +7,7 @@
     @compile_workload begin
         # all calls in this block will be precompiled, regardless of whether
         # they belong to your package or not (on Julia 1.8 and higher)
+        @info "Beginning BetaML PrecompileTool workflow...."
         yoh  = fit!(OneHotEncoder(verbosity=NONE),ycat)
         fit!(NeuralNetworkEstimator(verbosity=NONE,epochs=10),x,y)
         fit!(NeuralNetworkEstimator(verbosity=NONE,epochs=10),x,yoh)
@@ -18,5 +19,6 @@
         fit!(KMeansClusterer(verbosity=NONE),x)
         fit!(KMedoidsClusterer(verbosity=NONE),x)
         fit!(GMMClusterer(verbosity=NONE,tol=0.01),x)
+        @info "...done BetaML PrecompileTool workflow."
     end
 end
