@@ -2,6 +2,7 @@ using Test
 using DelimitedFiles, LinearAlgebra
 import MLJBase
 const Mlj = MLJBase
+import StatisticalMeasures
 using StableRNGs
 #rng = StableRNG(123)
 using BetaML
@@ -357,14 +358,14 @@ model_dtc                      = DecisionTreeClassifier(rng=copy(TESTRNG))
 regressor_dtc                  = Mlj.machine(model_dtc, X, y)
 (fitresult_dtc, cache, report) = Mlj.fit(model_dtc, 0, X, y)
 yhat_dtc                       = Mlj.predict(model_dtc, fitresult_dtc, X)
-@test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_dtc, y)) < 0.0002
+@test Mlj.mean(StatisticalMeasures.LogLoss(tol=1e-4)(yhat_dtc, y)) < 0.0002
 @test sum(Mlj.mode.(yhat_dtc) .== y)/length(y) == 1
 
 model_rfc                      = RandomForestClassifier(max_features=3,rng=copy(TESTRNG))
 regressor_rfc                  = Mlj.machine(model_rfc, X, y)
 (fitresult_rfc, cache, report) = Mlj.fit(model_rfc, 0, X, y)
 yhat_rfc                       = Mlj.predict(model_rfc, fitresult_rfc, X)
-@test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat_rfc, y)) < 0.04
+@test Mlj.mean(StatisticalMeasures.LogLoss(tol=1e-4)(yhat_rfc, y)) < 0.04
 sum(Mlj.mode.(yhat_rfc) .== y)/length(y) == 1
 
 # Other MLJ classifier models
@@ -377,8 +378,8 @@ model                      = Model()
 regressor                  = MLJ.machine(model, X, y)
 (fitresult, cache, report) = MLJ.fit(model, 0, X, y)
 yhat                       = MLJ.predict(model, fitresult, X)
-MLJ.mean(MLJ.LogLoss(tol=1e-4)(yhat, y))
-MLJ.evaluate!(regressor, measure=MLJ.LogLoss())
+MLJ.mean(StatisticalMeasures.LogLoss(tol=1e-4)(yhat, y))
+MLJ.evaluate!(regressor, measure=StatisticalMeasures.LogLoss())
 #XGBoostClassifier:
 #- fit: https://github.com/alan-turing-institute/MLJModels.jl/blob/3687491b132be8493b6f7a322aedf66008caaab1/src/XGBoost.jl#L600
 #- predict :

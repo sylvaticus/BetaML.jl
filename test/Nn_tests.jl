@@ -598,6 +598,7 @@ rmeTrain = relative_mean_error(y,ŷ,normrec=false)
 println("Testing MLJ interface for FeedfordwarNN....")
 import MLJBase
 const Mlj = MLJBase
+import StatisticalMeasures
 X, y                           = Mlj.@load_boston
 model                          = NeuralNetworkRegressor(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
@@ -618,5 +619,6 @@ model                          = NeuralNetworkClassifier(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, -1, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
-#@test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat, y)) < 0.25
+#@test Mlj.mean(StatisticalMeasures.LogLoss(tol=1e-4)(yhat, y)) < 0.25
 @test sum(Mlj.mode.(yhat) .== y)/length(y) >= 0.98
+

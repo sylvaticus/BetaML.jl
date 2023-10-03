@@ -3,6 +3,7 @@ using Test
 using DelimitedFiles
 import MLJBase
 const Mlj = MLJBase
+import StatisticalMeasures
 using StableRNGs
 using BetaML
 import BetaML.Perceptron: perceptron, perceptronBinary, kernelPerceptron, kernelPerceptronBinary, pegasos, pegasosBinary
@@ -265,16 +266,16 @@ model                          = LinearPerceptron(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
-@test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat, y)) < 3.1
+@test Mlj.mean(StatisticalMeasures.LogLoss(tol=1e-4)(yhat, y)) < 3.1
 
 model                          = KernelPerceptron(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
-@test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat, y)) < 0.5
+@test Mlj.mean(StatisticalMeasures.LogLoss(tol=1e-4)(yhat, y)) < 0.5
 
 model                          = Pegasos(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
-@test Mlj.mean(Mlj.LogLoss(tol=1e-4)(yhat, y)) < 1.3
+@test Mlj.mean(StatisticalMeasures.LogLoss(tol=1e-4)(yhat, y)) < 1.3

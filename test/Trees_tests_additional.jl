@@ -2,6 +2,7 @@ using Test
 using DelimitedFiles, LinearAlgebra
 import MLJBase
 const Mlj = MLJBase
+import StatisticalMeasures
 using StableRNGs
 #rng = StableRNG(123)
 using BetaML
@@ -22,11 +23,11 @@ Mlj.evaluate!(regressor_rfr, resampling=Mlj.CV(), measure=Mlj.rms, verbosity=0)
 X, y                           = Mlj.@load_iris
 model_dtc                      = DecisionTreeClassifier()
 regressor_dtc                  = Mlj.machine(model_dtc, X, y)
-Mlj.evaluate!(regressor_dtc, resampling=Mlj.CV(), measure=Mlj.LogLoss())
+Mlj.evaluate!(regressor_dtc, resampling=Mlj.CV(), measure=StatisticalMeasures.LogLoss())
 
 model_rfc                      = RandomForestClassifier(max_features=3)
 regressor_rfc                  = Mlj.machine(model_rfc, X, y)
-Mlj.evaluate!(regressor_rfc, resampling=Mlj.CV(), measure=Mlj.LogLoss())
+Mlj.evaluate!(regressor_rfc, resampling=Mlj.CV(), measure=StatisticalMeasures.LogLoss())
 
 #=
 using MLJ
