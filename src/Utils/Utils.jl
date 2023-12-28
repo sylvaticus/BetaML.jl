@@ -4,20 +4,20 @@
 """
     Utils module
 
-Provide shared utility functions for various machine learning algorithms.
+Provide shared utility functions and/or models for various machine learning algorithms.
 
 For the complete list of functions provided see below. The main ones are:
 
 ## Helper functions for logging
-- Most BetAML functions accept a parameter `verbosity` that expect one of the element in the `Verbosity` enoum (`NONE`, `LOW`, `STD`, `HIGH` or `FULL`)
+- Most BetaML functions accept a parameter `verbosity` (choose between  `NONE`, `LOW`, `STD`, `HIGH` or `FULL`)
 - Writing complex code and need to find where something is executed ? Use the macro [`@codelocation`](@ref)
 
 ## Stochasticity management
-- Utils provide [`FIXEDSEED`], [`FIXEDRNG`] and [`generate_parallel_rngs`](@ref). All stochastic functions accept a `rng` paraemter. See the "Getting started" section in the tutorial for details.
+- Utils provide [`FIXEDSEED`], [`FIXEDRNG`] and [`generate_parallel_rngs`](@ref). All stochastic functions and models accept a `rng` parameter. See the "Getting started" section in the tutorial for details.
 
 ## Data processing
 - Various small and large utilities for helping processing the data, expecially before running a ML algorithm
-- Includes [`getpermutations`](@ref), [`onehotencoder`](@ref), [`integerencoder`](@ref) (and [`integerdecoder`](@ref)), [`partition`](@ref), [`scale`](@ref) (and [`get_scalefactors`](@ref)), [`pca`](@ref), [`cross_validation`](@ref).
+- Includes [`getpermutations`](@ref), [`OneHotEncoder`](@ref), [`OrdinalEncoder`](@ref), [`partition`](@ref), [`Scaler`](@ref), [`PCA`](@ref), [`AutoEncoder`](@ref), [`cross_validation`](@ref).
 - Auto-tuning of hyperparameters is implemented in the supported models by specifying `autotune=true` and optionally overriding the `tunemethod` parameters (e.g. for different hyperparameters ranges or different resources available for the tuning). Autotuning is then implemented in the (first) `fit!` call. Provided autotuning methods:  [`SuccessiveHalvingSearch`](@ref) (default), [`GridSearch`](@ref)
 
 ## Samplers

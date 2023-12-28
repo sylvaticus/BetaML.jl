@@ -29,6 +29,7 @@ include("Trees/Trees.jl")           # Decision Trees and ensembles (Random Fores
 include("Clustering/Clustering.jl") # Clustering (hard) algorithms
 include("GMM/GMM.jl")               # GMM-based learners (clustering, fitter, regression) 
 include("Imputation/Imputation.jl") # (Missing) imputation algorithms
+include("Utils/Utils_extra.jl")     # Utility functions that depend on some BetaML functionality. Set them here to avoid recursive dependence
 
 # "Merging" of the modules...
 @force    using .Api

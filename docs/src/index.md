@@ -61,6 +61,7 @@ Currently BetaML provides the following models:
 | [`StandardScaler`](@ref) | | _Data transformer_ |
 | [`Scaler`](@ref) |  | _Data transformer_ |
 | [`PCA`](@ref) |  | _Unsupervised dimensionality reduction_ |
+| [`AutoEncoder`](@ref) |  | _Unsupervised non-linear dimensionality reduction_ |
 | [`OneHotEncoder`](@ref) |  | _Data transformer_ |
 | [`OrdinalEncoder`](@ref) |  | _Data transformer_ |
 | [`ConfusionMatrix`](@ref) | | _Predictions assessment_ |

@@ -1,4 +1,4 @@
-using Test, Statistics, CategoricalArrays, Random, StableRNGs
+using Test, Statistics, CategoricalArrays, Random, StableRNGs, DelimitedFiles
 #using StableRNGs
 #rng = StableRNG(123)
 using BetaML
@@ -308,6 +308,47 @@ ŷ = predict(m)
 @test sum(ŷ) ≈ 662.3492034128955
 ŷ2 = predict(m,X)
 @test ŷ ≈ ŷ2
+
+# ==================================
+# New test
+println("** Testing AutoEncoder...")
+
+iris = readdlm(joinpath(@__DIR__,"data","iris_shuffled.csv"),',',skipstart=1)
+x    = convert(Array{Float64,2}, iris[:,1:4])
+y    = convert(Array{String,1}, iris[:,5])
+
+m    = AutoEncoder(outdims=2,rng=copy(TESTRNG))
+x2   = fit!(m,x)
+x2b  = predict(m)
+x2c  = predict(m,x)
+x2d  = fit!(m,x)
+@test x2 == x2b == x2c
+x̂    = inverse_predict(m,x2d)
+@test relative_mean_error(x,x̂) < 0.04 
+
+((xtrain,xtest),(x2train,x2test),(ytrain,ytest)) = partition([x,x2d,y],[0.8,0.2],rng=copy(TESTRNG))
+
+mc1 = RandomForestEstimator(rng=copy(TESTRNG))
+mc2 = RandomForestEstimator(rng=copy(TESTRNG))
+fit!(mc1,xtrain,ytrain)
+fit!(mc2,x2train,ytrain)
+ŷ1 = mode(predict(mc1,xtest))
+ŷ2 = mode(predict(mc2,x2test))
+
+em1 = accuracy(ytest,ŷ1)
+em2 = accuracy(ytest,ŷ2)
+@test em2 > 0.85
+
+x = [0.12 0.31 0.29 3.21 0.21;
+     0.22 0.61 0.58 6.43 0.42;
+     0.51 1.47 1.46 16.12 0.99;
+     0.35 0.93 0.91 10.04 0.71;
+     0.44 1.21 1.18 13.54 0.85];
+m    = AutoEncoder(outdims=1,epochs=400)
+x_reduced = fit!(m,x)
+x̂ = inverse_predict(m,x_reduced)
+info(m)["rme"]
+hcat(x,x̂)
 
 # ==================================
 # New test

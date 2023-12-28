@@ -262,7 +262,7 @@ function backward(layer::ConvLayer{ND,NDPLUS1,NDPLUS2},x, next_gradient) where {
    #lw_ids  = layer.w_ids
    #lweight = layer.weight
 
-    for idx in 1:length(layer.y_ids)
+   for idx in 1:length(layer.y_ids)
       @inbounds de_dx[layer.x_ids[idx]...] += dϵ_dz[layer.y_ids[idx]...] * layer.weight[layer.w_ids[idx]...] 
    end
    return de_dx

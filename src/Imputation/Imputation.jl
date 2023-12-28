@@ -853,20 +853,36 @@ julia> X = [1.4 2.5 "a"; missing 20.5 "b"; 0.6 18 missing; 0.7 22.8 "b"; 0.4 mis
  0.7       22.8       "b"
  0.4         missing  "b"
  1.6        3.7       "a"
-julia> mod = UniversalImputer(estimator=DecisionTreeEstimator(),recursive_passages=2)
-UniversalImputer - A imputer based on an arbitrary regressor/classifier(unfitted)
-julia> X_full = fit!(mod,X)
-** Processing imputation 1
-6×3 Matrix{Any}:
- 1.4    2.5   "a"
- 0.55  20.5   "b"
- 0.6   18     "a"
- 0.7   22.8   "b"
- 0.4   21.65  "b"
- 1.6    3.7   "a"
-julia> info(mod)
-Dict{String, Any} with 1 entry:
-  "n_imputed_values" => 3
+
+ julia> mod = UniversalImputer(recursive_passages=2,multiple_imputations=2)
+ UniversalImputer - A imputer based on an arbitrary regressor/classifier(unfitted)
+
+ julia> mX_full = fit!(mod,X);
+ ** Processing imputation 1
+ ** Processing imputation 2
+
+ julia> mX_full[1]
+ 6×3 Matrix{Any}:
+  1.4        2.5     "a"
+  0.546722  20.5     "b"
+  0.6       18       "b"
+  0.7       22.8     "b"
+  0.4       19.8061  "b"
+  1.6        3.7     "a"
+
+ julia> mX_full[2]
+ 6×3 Matrix{Any}:
+  1.4        2.5     "a"
+  0.554167  20.5     "b"
+  0.6       18       "b"
+  0.7       22.8     "b"
+  0.4       20.7551  "b"
+  1.6        3.7     "a"
+  
+ julia> info(mod)
+ Dict{String, Any} with 1 entry:
+   "n_imputed_values" => 3
+ 
 ```
 
 - *Using third party packages* (in this example `DecisionTree`):

@@ -15,7 +15,9 @@ makecolvector(x::T) where {T <: AbstractArray} =  reshape(x,length(x))
 makerowvector(x::T) where {T <: Number} = return [x]'
 makerowvector(x::T) where {T <: AbstractArray} =  reshape(x,1,length(x))
 """Transform an Array{T,1} in an Array{T,2} and leave unchanged Array{T,2}."""
-makematrix(x::AbstractArray) = ndims(x) == 1 ? reshape(x, (size(x)...,1)) : x
+makematrix(x::AbstractVector) = reshape(x, (size(x)...,1))
+makematrix(x::AbstractMatrix) = x
+
 
 
 """Return wheather an array is sortable, i.e. has methos issort defined"""
@@ -1016,8 +1018,6 @@ function predict(m::PCA,X)
     P = m.par.eigen_out.vectors[:,end:-1:D-m.par.outdims_actual+1]
     return X*P
 end  
-
-
 
 
 """

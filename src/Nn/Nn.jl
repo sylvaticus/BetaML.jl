@@ -818,10 +818,10 @@ Base.@kwdef mutable struct NNHyperParametersSet <: BetaMLHyperParametersSet
     loss::Union{Nothing,Function} = squared_cost
     "Derivative of the loss function [def: `dsquared_cost` if `loss==squared_cost`, `nothing` otherwise, i.e. use the derivative of the squared cost or autodiff]"
     dloss::Union{Function,Nothing}  = nothing
-    "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
-    epochs::Int64 = 100
-    "Size of each individual batch [def: `32`]"
-    batch_size::Int64 = 32
+    "Number of epochs, i.e. passages trough the whole training sample [def: `200`]"
+    epochs::Int64 = 200
+    "Size of each individual batch [def: `16`]"
+    batch_size::Int64 = 16
     "The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]"
     opt_alg::OptimisationAlgorithm = ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
@@ -1020,13 +1020,26 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
 
     if !fitted
         if layers == nothing
-            innerSize = nDy < 10 ? Int(round(nD*2)) : Int(round(nD*1.3))
-            l1 = DenseLayer(nD,innerSize, f=relu, df=drelu, rng=rng)
-            l2 = DenseLayer(innerSize,innerSize, f=relu, df=drelu, rng=rng)
-            # now let's see if y is continuous, all positives or all in [0,1] and choose the last layer according
+            # let's see if y is continuous, all positives or all in [0,1] in order to choose the last layer according
             allPos   = all(Y .>= 0.0)
             allSum1  = all(sum(Y,dims=2) .≈ 1.0)
             allProbs = allPos && allSum1  && nDy >1
+            if nDy == 1 || allProbs
+                innerSize = (nD <= 4) ? Int(round(nD*2)) : Int(round(nD*1.5))
+            elseif nDy < 5
+                innerSize = (nD <= 4) ? Int(round(nD*2*nDy/1.5)) : Int(round(nD*1.5*nDy/1.5))  
+            elseif nDy < 10   
+                innerSize = Int(round(nD*1.3*nDy/3)) 
+            else
+                innerSize = Int(round(nD*1.3*log(2,nDy))) 
+            end
+            #innerSize = nDy < 10 ? Int(round(nD*2)) : Int(round(nD*1.3))
+            #println("nD: $nD \t nDy: $nDy")
+            #println(innerSize)
+            l1 = DenseLayer(nD,innerSize, f=relu, df=drelu, rng=rng)
+            l2 = DenseLayer(innerSize,innerSize, f=relu, df=drelu, rng=rng)
+
+
             if !allPos
                 l3 = DenseLayer(innerSize,nDy, f=identity, df=didentity, rng=rng)
                 layers = [l1,l2,l3]

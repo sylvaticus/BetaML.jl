@@ -73,10 +73,10 @@ Base.@kwdef mutable struct NeuralNetworkRegressor <: MMI.Deterministic
     loss::Union{Nothing,Function} = squared_cost
     "Derivative of the loss function [def: `dsquared_cost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
     dloss::Union{Function,Nothing}  = dsquared_cost
-    "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
-    epochs::Int64 = 100
-    "Size of each individual batch [def: `32`]"
-    batch_size::Int64 = 32
+    "Number of epochs, i.e. passages trough the whole training sample [def: `200`]"
+    epochs::Int64 = 200
+    "Size of each individual batch [def: `16`]"
+    batch_size::Int64 = 16
     "The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]"
     opt_alg::OptimisationAlgorithm = ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
@@ -187,10 +187,10 @@ Base.@kwdef mutable struct MultitargetNeuralNetworkRegressor <: MMI.Deterministi
     loss::Union{Nothing,Function} = squared_cost
     "Derivative of the loss function [def: `dsquared_cost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
     dloss::Union{Function,Nothing}  = dsquared_cost
-    "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
-    epochs::Int64 = 100
-    "Size of each individual batch [def: `32`]"
-    batch_size::Int64 = 32
+    "Number of epochs, i.e. passages trough the whole training sample [def: `300`]"
+    epochs::Int64 = 300
+    "Size of each individual batch [def: `16`]"
+    batch_size::Int64 = 16
     "The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]"
     opt_alg::OptimisationAlgorithm = ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
@@ -295,10 +295,10 @@ Base.@kwdef mutable struct NeuralNetworkClassifier <: MMI.Probabilistic
     loss::Union{Nothing,Function} = crossentropy
     "Derivative of the loss function [def: `dcrossentropy`, i.e. the derivative of the cross-entropy]. Use `nothing` for autodiff."
     dloss::Union{Function,Nothing}  = dcrossentropy
-    "Number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
-    epochs::Int64 = 100
-    "Size of each individual batch [def: `32`]"
-    batch_size::Int64 = 32
+    "Number of epochs, i.e. passages trough the whole training sample [def: `200`]"
+    epochs::Int64 = 200
+    "Size of each individual batch [def: `16`]"
+    batch_size::Int64 = 16
     "The optimisation algorithm to update the gradient at each batch [def: `BetaML.ADAM()`]"
     opt_alg::OptimisationAlgorithm = ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"

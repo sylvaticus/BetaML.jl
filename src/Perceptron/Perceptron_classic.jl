@@ -158,7 +158,7 @@ bestϵ = Inf
 lastϵ = Inf
 if force_origin θ₀ = 0.0; end
 sumθ = θ; sumθ₀ = θ₀
-@showprogress 1 "Training Perceptron..." for t in 1:T
+@showprogress dt=1 desc="Training Perceptron..." for t in 1:T
    ϵ = 0
    if shuffle
       # random shuffle x and y
