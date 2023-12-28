@@ -59,7 +59,7 @@ function AbstractTrees.printnode(io::IO, node::InfoNode)
     q = node.node.question
     condition = isa(q.value, Number) ?  ">=" : "=="
     col = :featurenames ∈ keys(node.info) ? node.info.featurenames[q.column] : q.column
-    print(io, "$(col) $condition $(q.value))?")
+    print(io, "$(col) $condition $(q.value)?")
 end
 
 function AbstractTrees.printnode(io::IO, leaf::InfoLeaf) 
