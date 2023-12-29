@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Style guide · BetaML.jl Documentation</title><script async src="https://www.googletagmanager.com/gtag/js?id=G-JYKX8QY5JW"></script><script>  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-JYKX8QY5JW', {'page_path': location.pathname + location.search + location.hash});
+</script><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="index.html">BetaML.jl Documentation</a></span></div><form class="docs-search" action="search.html"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="index.html">Index</a></li><li><span class="tocitem">Tutorial</span><ul><li><a class="tocitem" href="tutorials/Betaml_tutorial_getting_started.html">Getting started</a></li><li><input class="collapse-toggle" id="menuitem-2-2" type="checkbox"/><label class="tocitem" for="menuitem-2-2"><span class="docs-label">Classification - cars</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Classification - cars/betaml_tutorial_classification_cars.html">A classification task when labels are known - determining the country of origin of cars given the cars characteristics</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-3" type="checkbox"/><label class="tocitem" for="menuitem-2-3"><span class="docs-label">Regression - bike sharing</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Regression - bike sharing/betaml_tutorial_regression_sharingBikes.html">A regression task: the prediction of  bike  sharing demand</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-4" type="checkbox"/><label class="tocitem" for="menuitem-2-4"><span class="docs-label">Clustering - Iris</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Clustering - Iris/betaml_tutorial_cluster_iris.html">A clustering task: the prediction of  plant species from floreal measures (the iris dataset)</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-5" type="checkbox"/><label class="tocitem" for="menuitem-2-5"><span class="docs-label">Multi-branch neural network</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Multi-branch neural network/betaml_tutorial_multibranch_nn.html">A deep neural network with multi-branch architecture</a></li></ul></li></ul></li><li><span class="tocitem">API (Reference manual)</span><ul><li><input class="collapse-toggle" id="menuitem-3-1" type="checkbox" checked/><label class="tocitem" for="menuitem-3-1"><span class="docs-label">API V2 (current)</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="Api_v2_user.html">Introduction for user</a></li><li><input class="collapse-toggle" id="menuitem-3-1-2" type="checkbox" checked/><label class="tocitem" for="menuitem-3-1-2"><span class="docs-label">For developers</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="Api_v2_developer.html">API implementation</a></li><li class="is-active"><a class="tocitem" href="StyleGuide_templates.html">Style guide</a><ul class="internal"><li><a class="tocitem" href="#Master-Style-guide"><span>Master Style guide</span></a></li><li><a class="tocitem" href="#Names-style"><span>Names style</span></a></li><li><a class="tocitem" href="#Docstrings"><span>Docstrings</span></a></li><li><a class="tocitem" href="#Internal-links"><span>Internal links</span></a></li><li><a class="tocitem" href="#Data-organisation"><span>Data organisation</span></a></li></ul></li></ul></li><li><a class="tocitem" href="Api.html">The Api module</a></li></ul></li><li><a class="tocitem" href="Perceptron.html">Perceptron</a></li><li><a class="tocitem" href="Trees.html">Trees</a></li><li><a class="tocitem" href="Nn.html">Nn</a></li><li><a class="tocitem" href="Clustering.html">Clustering</a></li><li><a class="tocitem" href="GMM.html">GMM</a></li><li><a class="tocitem" href="Imputation.html">Imputation</a></li><li><a class="tocitem" href="Utils.html">Utils</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">API (Reference manual)</a></li><li><a class="is-disabled">API V2 (current)</a></li><li><a class="is-disabled">For developers</a></li><li class="is-active"><a href="StyleGuide_templates.html">Style guide</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="StyleGuide_templates.html">Style guide</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/sylvaticus/BetaML.jl/blob/master/docs/src/StyleGuide_templates.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Style-guide-and-template-for-BetaML-developers"><a class="docs-heading-anchor" href="#Style-guide-and-template-for-BetaML-developers">Style guide and template for BetaML developers</a><a id="Style-guide-and-template-for-BetaML-developers-1"></a><a class="docs-heading-anchor-permalink" href="#Style-guide-and-template-for-BetaML-developers" title="Permalink"></a></h1><h2 id="Master-Style-guide"><a class="docs-heading-anchor" href="#Master-Style-guide">Master Style guide</a><a id="Master-Style-guide-1"></a><a class="docs-heading-anchor-permalink" href="#Master-Style-guide" title="Permalink"></a></h2><p>The code in BetaML should follow the official <a href="https://docs.julialang.org/en/v1/manual/style-guide/">Julia Style Guide</a>.</p><h2 id="Names-style"><a class="docs-heading-anchor" href="#Names-style">Names style</a><a id="Names-style-1"></a><a class="docs-heading-anchor-permalink" href="#Names-style" title="Permalink"></a></h2><ul><li>Each file name should start with a capital letter, no spaces allowed (and each file content should start with: <code>&quot;Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT.&quot;</code>)</li><li>Type names use the so-called &quot;CamelCase&quot; convention, where the words are separated by a capital letter rather than <code>_</code> ,while function names use lower letters only, with words eventually separated (but only when really neeed for readibility) by an <code>_</code>;</li><li>In the code and documentation we refer with <code>N</code> the number of observations/records, <code>D</code> the number of dimensions and <code>K</code> the number of classes/categories;</li><li>Error/accuracy/loss functions want firt <code>y</code> and then <code>ŷ</code></li><li>In API exposed to users, strings are preferred to symbols</li></ul><h2 id="Docstrings"><a class="docs-heading-anchor" href="#Docstrings">Docstrings</a><a id="Docstrings-1"></a><a class="docs-heading-anchor-permalink" href="#Docstrings" title="Permalink"></a></h2><p>Please apply the following templates when writing a docstring for BetaML:</p><ul><li>Functions (add <code>@docs</code> if the function is not on the root module level, like for inner constructors, i.e. <code>@docs &quot;&quot;&quot; foo()x ....&quot;&quot;&quot;</code>):</li></ul><pre><code class="nohighlight hljs">&quot;&quot;&quot;
+$(TYPEDSIGNATURES)
+
+One line description
+
+[Further description]
+
+# Parameters:
+
+
+
+# Returns:
+- Elements the funtion need
+
+# Notes:
+- notes
+
+# Example:
+` ` `julia
+julia&gt; [code]
+[output]
+` ` `
+&quot;&quot;&quot;</code></pre><ul><li>Structs</li></ul><pre><code class="nohighlight hljs">&quot;&quot;&quot;
+$(TYPEDEF)
+
+One line description
+
+[Further description]
+
+# Fields: (if relevant)
+$(TYPEDFIELDS)
+
+# Notes:
+
+# Example:
+` ` `julia
+julia&gt; [code]
+[output]
+` ` `
+
+&quot;&quot;&quot;</code></pre><ul><li>Enums:</li></ul><pre><code class="nohighlight hljs">&quot;&quot;&quot;
+$(TYPEDEF)
+
+One line description
+
+[Further description]
+
+
+# Notes:
+
+&quot;&quot;&quot;</code></pre><ul><li>Constants</li></ul><pre><code class="nohighlight hljs">&quot;&quot;&quot;
+[4 spaces] [Constant name]
+
+One line description
+
+[Further description]
+
+
+# Notes:
+
+&quot;&quot;&quot;</code></pre><ul><li>Modules</li></ul><pre><code class="nohighlight hljs">&quot;&quot;&quot;
+[4 spaces] [Module name]
+
+One line description
+
+Detailed description on the module objectives, content and organisation
+
+&quot;&quot;&quot;</code></pre><h2 id="Internal-links"><a class="docs-heading-anchor" href="#Internal-links">Internal links</a><a id="Internal-links-1"></a><a class="docs-heading-anchor-permalink" href="#Internal-links" title="Permalink"></a></h2><p>To refer to a documented object: <code>[\</code>NAME`](@ref)<code>or</code><a href="@ref manual_id">`NAME`</a><code>. In particular for internal links use</code><a href="@ref ?NAME">`?NAME`</a>`</p><p>To create a id manually: <code>[Title](@id manual_id)</code>.</p><h2 id="Data-organisation"><a class="docs-heading-anchor" href="#Data-organisation">Data organisation</a><a id="Data-organisation-1"></a><a class="docs-heading-anchor-permalink" href="#Data-organisation" title="Permalink"></a></h2><ul><li>While some functions provide a <code>dims</code> parameter, most BetaML algorithms expect the input data layout with observations organised by rows and fields/features by columns.</li><li>While some algorithms accept as input DataFrames, the usage of standard arrays is encourages (if the data is passed to the function as dataframe, it may be converted to standard arrays somewhere inside inner loops, leading to great inefficiencies).</li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="Api_v2_developer.html">« API implementation</a><a class="docs-footer-nextpage" href="Api.html">The Api module »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Friday 29 December 2023 16:02">Friday 29 December 2023</span>. Using Julia version 1.6.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
