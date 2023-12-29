@@ -316,8 +316,16 @@ println("** Testing AutoEncoder...")
 iris = readdlm(joinpath(@__DIR__,"data","iris_shuffled.csv"),',',skipstart=1)
 x    = convert(Array{Float64,2}, iris[:,1:4])
 y    = convert(Array{String,1}, iris[:,5])
-
-m    = AutoEncoder(outdims=2,rng=copy(TESTRNG))
+tuning_method = SuccessiveHalvingSearch(
+            hpranges     = Dict(
+                "innerdims"=>[2.0,5.0,nothing]
+            ),
+            res_shares   = [0.2, 0.3],
+            multithreads = true
+        )
+m    = AutoEncoder(epochs=400,outdims=2,autotune=true,
+tunemethod=tuning_method, verbosity=NONE, rng=copy(TESTRNG) )
+#m    = AutoEncoder(outdims=2,rng=copy(TESTRNG))
 x2   = fit!(m,x)
 x2b  = predict(m)
 x2c  = predict(m,x)
@@ -349,7 +357,7 @@ x = [0.12 0.31 0.29 3.21 0.21;
      0.22 0.61 0.58 6.43 0.42;
      0.12 0.31 0.29 3.21 0.21;
      0.44 1.21 1.18 13.54 0.85];
-m    = AutoEncoder(outdims=1,epochs=400,autotune=false) #TODO: check why autotune is broken here
+m    = AutoEncoder(outdims=1,epochs=400,autotune=false) 
 x_reduced = fit!(m,x)
 x̂ = inverse_predict(m,x_reduced)
 info(m)["rme"]

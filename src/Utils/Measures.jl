@@ -182,25 +182,41 @@ $(TYPEDEF)
 Compute the loss of a given model over a given (x,y) dataset running cross-validation
 """
 function l2loss_by_cv(m,data;nsplits=5,rng=Random.GLOBAL_RNG)
-    x,y = data[1],data[2]
-    sampler = KFold(nsplits=nsplits,rng=rng)
-    if (ndims(y) == 1)
-        ohm = OneHotEncoder(handle_unknown="infrequent",cache=false)
-        fit!(ohm,y)
-    end
-    (μ,σ) = cross_validation([x,y],sampler) do trainData,valData,rng
-        (xtrain,ytrain) = trainData; (xval,yval) = valData
-        fit!(m,xtrain,ytrain)
-        ŷval     = predict(m,xval)
-        if (eltype(ŷval) <: Dict)
-            yval = predict(ohm,yval)
-            ŷval = predict(ohm,ŷval)
+    if length(data) == 2 # supervised model
+        x,y = data[1],data[2]
+        sampler = KFold(nsplits=nsplits,rng=rng)
+        if (ndims(y) == 1)
+            ohm = OneHotEncoder(handle_unknown="infrequent",cache=false)
+            fit!(ohm,y)
         end
-        ϵ               = norm(yval-ŷval)/size(yval,1) 
-        reset!(m)
-        return ismissing(ϵ) ? Inf : ϵ 
-      end
-    return μ
+        (μ,σ) = cross_validation([x,y],sampler) do trainData,valData,rng
+            (xtrain,ytrain) = trainData; (xval,yval) = valData
+            fit!(m,xtrain,ytrain)
+            ŷval     = predict(m,xval)
+            if (eltype(ŷval) <: Dict)
+                yval = predict(ohm,yval)
+                ŷval = predict(ohm,ŷval)
+            end
+            ϵ               = norm(yval-ŷval)/size(yval,1) 
+            reset!(m)
+            return ismissing(ϵ) ? Inf : ϵ 
+        end
+        return μ
+    elseif length(data) == 1 # unsupervised model with inverse_predict
+        x= data[1]
+        sampler = KFold(nsplits=nsplits,rng=rng)
+        (μ,σ) = cross_validation([x],sampler) do trainData,valData,rng
+            (xtrain,) = trainData; (xval,) = valData
+            fit!(m,xtrain)
+            x̂val     = inverse_predict(m,xval)
+            ϵ        = norm(xval .- x̂val)/size(xval,1) 
+            reset!(m)
+            return ismissing(ϵ) ? Inf : ϵ 
+        end
+        return μ
+    else
+        @error "Function `l2loss_by_cv` accepts only 1-lenght or 2-length data for respectivelly unsupervised and supervised models"
+    end
 end 
 
 """ error(y,ŷ) - Categorical error with probabilistic prediction of a single datapoint (Int vs PMF). """

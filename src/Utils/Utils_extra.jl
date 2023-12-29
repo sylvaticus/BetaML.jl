@@ -45,7 +45,7 @@ Base.@kwdef mutable struct AutoEncoderHyperParametersSet <: BetaMLHyperParameter
    See [`SuccessiveHalvingSearch`](@ref) for the default method.
    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
    """
-  tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges = Dict("epochs"=>[100,150,200],"batch_size"=>[8,16,32],"outdims"=>[0.2,0.3,0.5],"innerdims"=>[1.3,2.0,5.0]),multithreads=false)
+  tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges = Dict("epochs"=>[100,200,400],"batch_size"=>[8,16],"outdims"=>[0.2,0.3,0.5],"innerdims"=>[1.3,2.0,5.0,10.0,nothing]),multithreads=true)
 end
 
 Base.@kwdef mutable struct AutoEncoderLearnableParameters <: BetaMLLearnableParametersSet
@@ -172,6 +172,8 @@ function fit!(m::AutoEncoder,X)
         verbosity >= HIGH && @info "Re-fitting of the model on new data"
         outdims_actual  = m.par.outdims_actual
         fullnn          = m.par.fullnn
+        n_el            = m.par.n_el
+        n_dl            = m.par.n_dl 
     else
         typeof(outdims) <: Integer ?  outdims_actual = outdims : outdims_actual = max(1,Int(round(D * outdims))) 
         if isnothing(innerdims) 
@@ -209,15 +211,19 @@ function fit!(m::AutoEncoder,X)
         fullnn = NeuralNetworkEstimator(layers=[e_layers_actual...,d_layers_actual...],loss=loss,dloss=dloss,epochs=epochs,batch_size=batch_size,opt_alg=opt_alg,shuffle=shuffle,cache=cache,descr=descr,verbosity=verbosity,rng=rng )
         n_el = length(e_layers_actual)
         n_dl = length(d_layers_actual)
-        m.par.n_el = n_el
-        m.par.n_dl = n_dl
     end
 
     x̂ =  fit!(fullnn,X,X)
 
-    m.par.outdims_actual  = outdims_actual
-    m.par.fullnn = fullnn
+    par                 = AutoEncoderLearnableParameters()
+    par.outdims_actual  = outdims_actual
+    par.fullnn          = fullnn
+    par.n_el            = n_el
+    par.n_dl            = n_dl
+    m.par               = par
+
     m.fitted=true
+    
     rme = cache ? relative_mean_error(X,x̂) : missing
 
     m.info["nepochs_ran"]     = info(fullnn)["nepochs_ran"]

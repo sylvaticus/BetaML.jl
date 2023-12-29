@@ -1174,12 +1174,12 @@ Hyperparameter autotuning using the [`GridSearch`](@ref) method.
 
 """
 function tune!(m,method::GridSearch,data)
-    options(m).verbosity >= STD && println("Starting hp autotuning (could take a while..)")
+    options(m).verbosity >= STD && println("Starting hyper-parameters autotuning (this could take a while..)")
     options(m).verbosity >= HIGH && println(method)   
     hpranges   = method.hpranges
     candidates = _hpranges_2_candidates(hpranges)
     rng             = options(m).rng
-    multithreads  = method.multithreads && Threads.nthreads() > 1
+    multithreads    = method.multithreads && Threads.nthreads() > 1
     compLock        = ReentrantLock()
     best_candidate  = Dict()
     lowest_loss     = Inf
@@ -1228,7 +1228,7 @@ Hyperparameter autotuning using the [`SuccessiveHalvingSearch`](@ref) method.
 
 """
 function tune!(m,method::SuccessiveHalvingSearch,data)
-    options(m).verbosity >= STD && println("Starting hp autotuning (could take a while..)")
+    options(m).verbosity >= STD && println("Starting hyper-parameters autotuning (this could take a while..)")
     options(m).verbosity >= HIGH && println(method)   
     hpranges   = method.hpranges
     res_shares = method.res_shares
@@ -1250,7 +1250,7 @@ function tune!(m,method::SuccessiveHalvingSearch,data)
         epochdata = (collect([esubs[i][1] for i in 1:length(esubs)])...,)
         ncandidates_thisepoch = Int(round(ncandidates/shrinkfactor^(e-1)))
         ncandidates_tokeep = Int(round(ncandidates/shrinkfactor^e))
-        options(m).verbosity >= STD && println("(e $e / $epochs) N data / candidates / candidates to retain : $(n_orig * res_share) \t $ncandidates_thisepoch $ncandidates_tokeep")
+        options(m).verbosity >= STD && println("(e $e / $epochs) N data / n candidates / n candidates to retain : $(n_orig * res_share) \t $ncandidates_thisepoch $ncandidates_tokeep")
         scores = Vector{Tuple{Float64,Dict}}(undef,ncandidates_thisepoch)
         masterSeed = rand(rng,100:typemax(Int64))
         rngs       = generate_parallel_rngs(rng,Threads.nthreads()) 
