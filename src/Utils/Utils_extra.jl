@@ -7,8 +7,6 @@ export   AutoEncoder, AutoEncoderHyperParametersSet
 
 import ..Nn: AbstractLayer, ADAM, SGD, NeuralNetworkEstimator, OptimisationAlgorithm, DenseLayer, NN
 
-# ------------------------------------------------------------------------------
-# WORK IN PROGRESS IN
 
 """
 $(TYPEDEF)
@@ -24,9 +22,9 @@ Base.@kwdef mutable struct AutoEncoderHyperParametersSet <: BetaMLHyperParameter
    e_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
    "The layers (vector of `AbstractLayer`s) responsable of the decoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `innerdims`]"
    d_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
-   "The number of neurons (i.e. dimensions) of the encoded data. If the value is a float it is consiered a percentual (to be rounded) of the dimensionality of the data [def: `0.33`]"
+   "The number of neurons (i.e. dimensions) of the encoded data. If the value is a float it is considered a percentual (to be rounded) of the dimensionality of the data [def: `0.33`]"
    outdims::Union{Float64,Int64}  = 0.333
-   "Inner layer dimension (i.e. number of neurons). If the value is a float it is consiered a percentual (to be rounded) of the dimensionality of the data [def: `nothing` that applies a specific heuristic]. If `e_layers` or `d_layers` are specified, this parameter is ignored for the respective part."
+   "Inner layer dimension (i.e. number of neurons). If the value is a float it is consiered a percentual (to be rounded) of the dimensionality of the data [def: `nothing` that applies a specific heuristic]. Consider that the underlying neural network is trying to predict multiple values at the same times. Normally this requires many more neurons than a scalar prediction. If `e_layers` or `d_layers` are specified, this parameter is ignored for the respective part."
    innerdims::Union{Int64,Float64,Nothing} = nothing 
    """Loss (cost) function [def: `squared_cost`]
    It must always assume y and ŷ as (n x d) matrices, eventually using `dropdims` inside.
@@ -175,21 +173,21 @@ function fit!(m::AutoEncoder,X)
         outdims_actual  = m.par.outdims_actual
         fullnn          = m.par.fullnn
     else
-        typeof(outdims) <: Integer ?  outdims_actual = outdims : outdims_actual = D * outdims 
+        typeof(outdims) <: Integer ?  outdims_actual = outdims : outdims_actual = max(1,Int(round(D * outdims))) 
         if isnothing(innerdims) 
             if D == 1
                 innerSize = 3
             elseif D < 5
-                innerSize = Int(round(D*D))   
+                innerSize = max(1,Int(round(D*D)))   
             elseif D < 10   
-                innerSize = Int(round(D*1.3*D/3)) 
+                innerSize = max(1,Int(round(D*1.3*D/3)))
             else
-                innerSize = Int(round(D*1.3*log(2,D))) 
+                innerSize = max(1,Int(round(D*1.3*log(2,D)))) 
             end
         elseif typeof(innerdims) <: Integer
             innerSize = innerdims
         else
-            innerSize = Int(round(D*innerdims))  
+            innerSize = max(1,Int(round(D*innerdims)) )
         end
 
         if isnothing(e_layers)
@@ -220,7 +218,7 @@ function fit!(m::AutoEncoder,X)
     m.par.outdims_actual  = outdims_actual
     m.par.fullnn = fullnn
     m.fitted=true
-    rme = relative_mean_error(X,x̂)
+    rme = cache ? relative_mean_error(X,x̂) : missing
 
     m.info["nepochs_ran"]     = info(fullnn)["nepochs_ran"]
     m.info["loss_per_epoch"]  = info(fullnn)["loss_per_epoch"]
@@ -262,8 +260,9 @@ function inverse_predict(m::AutoEncoder,X)
     return xtemp|> makematrix
 end
 
-
-# WORK IN PROGRESS OUT 
-# ------------------------------------------------------------------------------
+include("Utils_MLJ.jl")     # Utility functions that depend on some BetaML functionality. Set them here to avoid recursive dependence
 
 end
+
+
+

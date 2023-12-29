@@ -712,6 +712,22 @@ s1 = silhouette(pd,[1,2,2,2])
 s2  = silhouette(pd,[1,1,2,2])
 @test s2 ==  [0.7846062151896173, 0.7590778795827623, 0.8860577617518799, 0.8833580446365146]
 
+
+# MLJ Tests
+# ==================================
+# NEW TEST
+println("Testing MLJ interface for Utils....")
+import MLJBase
+const Mlj = MLJBase
+
+X, y        = Mlj.@load_iris
+model       = AutoEncoderMLJ(outdims=2,rng=copy(TESTRNG))
+ae          = Mlj.machine(model, X)
+Mlj.fit!(ae)
+X_latent    = Mlj.transform(ae, X)
+X_recovered = Mlj.inverse_transform(ae,X_latent)
+@test relative_mean_error(Mlj.matrix(X),X_recovered) < 0.05
+
 #=
 using Random, StableRNGs
 rDiff(rngFunction,seedBase,seedDiff,repetitions) = norm(rand(rngFunction(seedBase),repetitions) .- rand(rngFunction(seedBase+seedDiff),repetitions))/repetitions

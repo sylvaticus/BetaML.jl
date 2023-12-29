@@ -66,26 +66,26 @@ julia> hcat(y,ŷ)
 Base.@kwdef mutable struct NeuralNetworkRegressor <: MMI.Deterministic
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
-    """Loss (cost) function [def: `squared_cost`]. Should always assume y and ŷ as matrices, even if the regression task is 1-D
+    """Loss (cost) function [def: `BetaML.squared_cost`]. Should always assume y and ŷ as matrices, even if the regression task is 1-D
     !!! warning
         If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
     """
     loss::Union{Nothing,Function} = squared_cost
-    "Derivative of the loss function [def: `dsquared_cost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
+    "Derivative of the loss function [def: `BetaML.dsquared_cost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
     dloss::Union{Function,Nothing}  = dsquared_cost
     "Number of epochs, i.e. passages trough the whole training sample [def: `200`]"
     epochs::Int64 = 200
     "Size of each individual batch [def: `16`]"
     batch_size::Int64 = 16
-    "The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]"
+    "The optimisation algorithm to update the gradient at each batch [def: `BetaML.ADAM()`]. See `subtypes(BetaML.OptimisationAlgorithm)` for supported optimizers"
     opt_alg::OptimisationAlgorithm = ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool = true  
     "An optional title and/or description for this model"
     descr::String = "" 
-    "A call back function to provide information during training [def: `fitting_info`"
+    "A call back function to provide information during training [def: `fitting_info`]"
     cb::Function=fitting_info
-    "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+    "Random Number Generator (see [`BetaML.FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
     "
     rng::AbstractRNG = Random.GLOBAL_RNG
 end
@@ -180,26 +180,26 @@ julia> hcat(ydouble,ŷdouble)
 Base.@kwdef mutable struct MultitargetNeuralNetworkRegressor <: MMI.Deterministic
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
-    """Loss (cost) function [def: `squared_cost`].  Should always assume y and ŷ as matrices.
+    """Loss (cost) function [def: `BetaML.squared_cost`].  Should always assume y and ŷ as matrices.
     !!! warning
         If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
     """
     loss::Union{Nothing,Function} = squared_cost
-    "Derivative of the loss function [def: `dsquared_cost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
+    "Derivative of the loss function [def: `BetaML.dsquared_cost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
     dloss::Union{Function,Nothing}  = dsquared_cost
     "Number of epochs, i.e. passages trough the whole training sample [def: `300`]"
     epochs::Int64 = 300
     "Size of each individual batch [def: `16`]"
     batch_size::Int64 = 16
-    "The optimisation algorithm to update the gradient at each batch [def: `ADAM()`]"
+    "The optimisation algorithm to update the gradient at each batch [def: `BetaML.ADAM()`]. See `subtypes(BetaML.OptimisationAlgorithm)` for supported optimizers"
     opt_alg::OptimisationAlgorithm = ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool = true  
     "An optional title and/or description for this model"
     descr::String = "" 
-    "A call back function to provide information during training [def: `fitting_info`"
+    "A call back function to provide information during training [def: `BetaML.fitting_info`]"
     cb::Function=fitting_info
-    "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+    "Random Number Generator (see [`BetaML.FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
     "
     rng::AbstractRNG = Random.GLOBAL_RNG
 end
@@ -288,24 +288,24 @@ julia> classes_est = predict(mach, X)
 Base.@kwdef mutable struct NeuralNetworkClassifier <: MMI.Probabilistic
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers. The last \"softmax\" layer is automatically added."
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
-    """Loss (cost) function [def: `crossentropy`]. Should always assume y and ŷ as matrices.
+    """Loss (cost) function [def: `BetaML.crossentropy`]. Should always assume y and ŷ as matrices.
     !!! warning
         If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
     """
     loss::Union{Nothing,Function} = crossentropy
-    "Derivative of the loss function [def: `dcrossentropy`, i.e. the derivative of the cross-entropy]. Use `nothing` for autodiff."
+    "Derivative of the loss function [def: `BetaML.dcrossentropy`, i.e. the derivative of the cross-entropy]. Use `nothing` for autodiff."
     dloss::Union{Function,Nothing}  = dcrossentropy
     "Number of epochs, i.e. passages trough the whole training sample [def: `200`]"
     epochs::Int64 = 200
     "Size of each individual batch [def: `16`]"
     batch_size::Int64 = 16
-    "The optimisation algorithm to update the gradient at each batch [def: `BetaML.ADAM()`]"
+    "The optimisation algorithm to update the gradient at each batch [def: `BetaML.ADAM()`]. See `subtypes(BetaML.OptimisationAlgorithm)` for supported optimizers"
     opt_alg::OptimisationAlgorithm = ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool = true  
     "An optional title and/or description for this model"
     descr::String = "" 
-    "A call back function to provide information during training [def: `BetaML.fitting_info`"
+    "A call back function to provide information during training [def: `BetaML.fitting_info`]"
     cb::Function=fitting_info
     "The categories to represent as columns. [def: `nothing`, i.e. unique training values]."  
     categories::Union{Vector,Nothing} = nothing

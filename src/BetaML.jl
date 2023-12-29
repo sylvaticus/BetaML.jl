@@ -58,7 +58,7 @@ const MLJ_TREES_MODELS      = (DecisionTreeClassifier, DecisionTreeRegressor, Ra
 const MLJ_CLUSTERING_MODELS = (KMeans, KMedoids, GaussianMixtureClusterer)
 const MLJ_IMPUTERS_MODELS   = (SimpleImputer, GaussianMixtureImputer, RandomForestImputer,GeneralImputer) # these are the name of the MLJ models, not the BetaML ones...
 const MLJ_NN_MODELS         = (NeuralNetworkRegressor,MultitargetNeuralNetworkRegressor, NeuralNetworkClassifier)
-const MLJ_OTHER_MODELS      = (GaussianMixtureRegressor,MultitargetGaussianMixtureRegressor)
+const MLJ_OTHER_MODELS      = (GaussianMixtureRegressor,MultitargetGaussianMixtureRegressor,AutoEncoderMLJ)
 const MLJ_INTERFACED_MODELS = (MLJ_PERCEPTRON_MODELS..., MLJ_TREES_MODELS..., MLJ_CLUSTERING_MODELS..., MLJ_IMPUTERS_MODELS..., MLJ_NN_MODELS..., MLJ_OTHER_MODELS...) 
 
 
