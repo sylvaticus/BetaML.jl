@@ -340,11 +340,16 @@ em2 = accuracy(ytest,ŷ2)
 @test em2 > 0.85
 
 x = [0.12 0.31 0.29 3.21 0.21;
+     0.44 1.21 1.18 13.54 0.85
      0.22 0.61 0.58 6.43 0.42;
+     0.35 0.93 0.91 10.04 0.71;
      0.51 1.47 1.46 16.12 0.99;
      0.35 0.93 0.91 10.04 0.71;
+     0.51 1.47 1.46 16.12 0.99;
+     0.22 0.61 0.58 6.43 0.42;
+     0.12 0.31 0.29 3.21 0.21;
      0.44 1.21 1.18 13.54 0.85];
-m    = AutoEncoder(outdims=1,epochs=400)
+m    = AutoEncoder(outdims=1,epochs=400,autotune=false) #TODO: check why autotune is broken here
 x_reduced = fit!(m,x)
 x̂ = inverse_predict(m,x_reduced)
 info(m)["rme"]

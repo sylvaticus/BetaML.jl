@@ -20,12 +20,14 @@ $(FIELDS)
 
 """
 Base.@kwdef mutable struct AutoEncoderHyperParametersSet <: BetaMLHyperParametersSet
-   "The layers (vector of `AbstractLayer`s) responsable of the encoding of the data [def: `nothing`, i.e. one single layer]"
+   "The layers (vector of `AbstractLayer`s) responsable of the encoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `innerdims`]"
    e_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
-   "The layers (vector of `AbstractLayer`s) responsable of the decoding of the data [def: `nothing`, i.e. one single layer]"
+   "The layers (vector of `AbstractLayer`s) responsable of the decoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `innerdims`]"
    d_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
-   "The number of neurons (i.e. dimensions) of the encoded data [def: `nothing`, i.e. `max(1,round(x_ndims/3))`]"
-   outdims::Union{Nothing,Int64}  = nothing
+   "The number of neurons (i.e. dimensions) of the encoded data. If the value is a float it is consiered a percentual (to be rounded) of the dimensionality of the data [def: `0.33`]"
+   outdims::Union{Float64,Int64}  = 0.333
+   "Inner layer dimension (i.e. number of neurons). If the value is a float it is consiered a percentual (to be rounded) of the dimensionality of the data [def: `nothing` that applies a specific heuristic]. If `e_layers` or `d_layers` are specified, this parameter is ignored for the respective part."
+   innerdims::Union{Int64,Float64,Nothing} = nothing 
    """Loss (cost) function [def: `squared_cost`]
    It must always assume y and ŷ as (n x d) matrices, eventually using `dropdims` inside.
    """
@@ -45,7 +47,7 @@ Base.@kwdef mutable struct AutoEncoderHyperParametersSet <: BetaMLHyperParameter
    See [`SuccessiveHalvingSearch`](@ref) for the default method.
    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
    """
-  tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges = Dict("epochs"=>[50,100,150],"batch_size"=>[2,4,8,16,32],"opt_alg"=>[SGD(λ=2),SGD(λ=1),SGD(λ=3),ADAM(λ=0.5),ADAM(λ=1),ADAM(λ=0.25)], "shuffle"=>[false,true]),multithreads=false)
+  tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges = Dict("epochs"=>[100,150,200],"batch_size"=>[8,16,32],"outdims"=>[0.2,0.3,0.5],"innerdims"=>[1.3,2.0,5.0]),multithreads=false)
 end
 
 Base.@kwdef mutable struct AutoEncoderLearnableParameters <: BetaMLLearnableParametersSet
@@ -152,6 +154,7 @@ function fit!(m::AutoEncoder,X)
     e_layers    = m.hpar.e_layers
     d_layers    = m.hpar.d_layers
     outdims     = m.hpar.outdims
+    innerdims   = m.hpar.innerdims
     loss        = m.hpar.loss
     dloss       = m.hpar.dloss
     epochs      = m.hpar.epochs
@@ -172,17 +175,24 @@ function fit!(m::AutoEncoder,X)
         outdims_actual  = m.par.outdims_actual
         fullnn          = m.par.fullnn
     else
-        isnothing(outdims) ? outdims_actual = max(1,Int64(round(D/3))) : outdims_actual = copy(outdims)
-        if D == 1
-            innerSize = 3
-        elseif D < 5
-            innerSize = Int(round(D*D))   
-        elseif D < 10   
-            innerSize = Int(round(D*1.3*D/3)) 
+        typeof(outdims) <: Integer ?  outdims_actual = outdims : outdims_actual = D * outdims 
+        if isnothing(innerdims) 
+            if D == 1
+                innerSize = 3
+            elseif D < 5
+                innerSize = Int(round(D*D))   
+            elseif D < 10   
+                innerSize = Int(round(D*1.3*D/3)) 
+            else
+                innerSize = Int(round(D*1.3*log(2,D))) 
+            end
+        elseif typeof(innerdims) <: Integer
+            innerSize = innerdims
         else
-            innerSize = Int(round(D*1.3*log(2,D))) 
+            innerSize = Int(round(D*innerdims))  
         end
-        if e_layers == nothing
+
+        if isnothing(e_layers)
             l1 = DenseLayer(D,innerSize, f=relu, df=drelu, rng=rng)
             l2 = DenseLayer(innerSize,innerSize, f=relu, df=drelu, rng=rng)
             l3 = DenseLayer(innerSize, outdims_actual, f=identity, df=didentity, rng=rng)
@@ -190,7 +200,7 @@ function fit!(m::AutoEncoder,X)
         else
             e_layers_actual = copy(e_layers)
         end
-        if d_layers == nothing
+        if isnothing(d_layers)
             l1d = DenseLayer(outdims_actual,innerSize, f=relu, df=drelu, rng=rng)
             l2d = DenseLayer(innerSize,innerSize, f=relu, df=drelu, rng=rng)
             l3d = DenseLayer(innerSize, D, f=identity, df=didentity, rng=rng)
