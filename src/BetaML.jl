@@ -30,6 +30,7 @@ include("Clustering/Clustering.jl") # Clustering (hard) algorithms
 include("GMM/GMM.jl")               # GMM-based learners (clustering, fitter, regression) 
 include("Imputation/Imputation.jl") # (Missing) imputation algorithms
 include("Utils/Utils_extra.jl")     # Utility functions that depend on some BetaML functionality. Set them here to avoid recursive dependence
+include("Bmlj/Bmlj.jl")               # MLJ Interface module
 
 # "Merging" of the modules...
 @force    using .Api
@@ -50,6 +51,7 @@ include("Utils/Utils_extra.jl")     # Utility functions that depend on some Beta
 @reexport using .GMM
 @force    using .Imputation
 @reexport using .Imputation
+import .Bmlj # some MLJ models have the same name as BetaML models, set them in a separate interface submodule
 
 # ------------------------------------------------------------------------------
 #MLJ interface...
@@ -58,7 +60,7 @@ const MLJ_TREES_MODELS      = (DecisionTreeClassifier, DecisionTreeRegressor, Ra
 const MLJ_CLUSTERING_MODELS = (KMeans, KMedoids, GaussianMixtureClusterer)
 const MLJ_IMPUTERS_MODELS   = (SimpleImputer, GaussianMixtureImputer, RandomForestImputer,GeneralImputer) # these are the name of the MLJ models, not the BetaML ones...
 const MLJ_NN_MODELS         = (NeuralNetworkRegressor,MultitargetNeuralNetworkRegressor, NeuralNetworkClassifier)
-const MLJ_OTHER_MODELS      = (GaussianMixtureRegressor,MultitargetGaussianMixtureRegressor,AutoEncoderMLJ)
+const MLJ_OTHER_MODELS      = (GaussianMixtureRegressor,MultitargetGaussianMixtureRegressor,Bmlj.AutoEncoder)
 const MLJ_INTERFACED_MODELS = (MLJ_PERCEPTRON_MODELS..., MLJ_TREES_MODELS..., MLJ_CLUSTERING_MODELS..., MLJ_IMPUTERS_MODELS..., MLJ_NN_MODELS..., MLJ_OTHER_MODELS...) 
 
 

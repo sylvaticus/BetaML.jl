@@ -265,9 +265,6 @@ function inverse_predict(m::AutoEncoder,X)
     end
     return xtemp|> makematrix
 end
-
-include("Utils_MLJ.jl")     # Utility functions that depend on some BetaML functionality. Set them here to avoid recursive dependence
-
 end
 
 

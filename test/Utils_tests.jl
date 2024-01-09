@@ -726,15 +726,28 @@ s2  = silhouette(pd,[1,1,2,2])
 # NEW TEST
 println("Testing MLJ interface for Utils....")
 import MLJBase
-const Mlj = MLJBase
+const MLJ = MLJBase
 
-X, y        = Mlj.@load_iris
-model       = AutoEncoderMLJ(outdims=2,rng=copy(TESTRNG))
-ae          = Mlj.machine(model, X)
-Mlj.fit!(ae)
-X_latent    = Mlj.transform(ae, X)
-X_recovered = Mlj.inverse_transform(ae,X_latent)
-@test relative_mean_error(Mlj.matrix(X),X_recovered) < 0.05
+X, y        = MLJ.@load_iris
+model       = BetaML.Bmlj.AutoEncoder(outdims=2,rng=copy(TESTRNG))
+ae          = MLJ.machine(model, X)
+MLJ.fit!(ae)
+X_latent    = MLJ.transform(ae, X)
+X_recovered = MLJ.inverse_transform(ae,X_latent)
+@test relative_mean_error(MLJ.matrix(X),X_recovered) < 0.05
+
+import MLJTestInterface
+
+@testset "generic mlj interface test" begin
+    fails, summary = MLJTestInterface.test(
+        [BetaML.Bmlj.AutoEncoder,],
+        MLJTestInterface.make_regression()[1];
+        mod=@__MODULE__,
+        verbosity=0, # bump to debug
+        throw=false, # set to true to debug
+    )
+    @test isempty(fails)
+end
 
 #=
 using Random, StableRNGs
