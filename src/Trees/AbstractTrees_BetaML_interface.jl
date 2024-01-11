@@ -11,7 +11,7 @@ For more information see [JuliaAI/DecisionTree.jl](https://github.com/JuliaAI/De
 The file `src/abstract_trees.jl` in that repo serves as a model implementation.
 """
 
-export InfoNode, InfoLeaf, wrap, DecisionNode, Leaf
+export InfoNode, InfoLeaf, wrapdn, DecisionNode, Leaf
 
 """
 These types are introduced so that additional information currently not present in 
@@ -31,18 +31,18 @@ end
 AbstractTrees.nodevalue(l::InfoLeaf) = l.leaf # round(l.leaf,sigdigits=4)
 
 """
-    wrap(node:: DecisionNode, ...)
+    wrapdn(node:: DecisionNode, ...)
 
 Called on the root node of a `DecsionTree` `dc` in order to add visualization information.
 In case of a `BetaML/DecisionTree` this is typically a list of feature names as follows:
 
-`wdc = wrap(dc, featurenames = ["Colour","Size"])`
+`wdc = wrapdn(dc, featurenames = ["Colour","Size"])`
 """
 
-wrap(node::DecisionNode, info::NamedTuple = NamedTuple()) = InfoNode(node, info)
-wrap(leaf::Leaf,         info::NamedTuple = NamedTuple()) = InfoLeaf(leaf, info)
-wrap(mod::DecisionTreeEstimator, info::NamedTuple = NamedTuple()) = wrap(mod.par.tree, info)
-wrap(m::Union{DecisionNode,Leaf,DecisionTreeEstimator};featurenames=[]) = wrap(m,(featurenames=featurenames,))
+wrapdn(node::DecisionNode, info::NamedTuple = NamedTuple()) = InfoNode(node, info)
+wrapdn(leaf::Leaf,         info::NamedTuple = NamedTuple()) = InfoLeaf(leaf, info)
+wrapdn(mod::DecisionTreeEstimator, info::NamedTuple = NamedTuple()) = wrapdn(mod.par.tree, info)
+wrapdn(m::Union{DecisionNode,Leaf,DecisionTreeEstimator};featurenames=[]) = wrapdn(m,(featurenames=featurenames,))
 
 
 
@@ -50,8 +50,8 @@ wrap(m::Union{DecisionNode,Leaf,DecisionTreeEstimator};featurenames=[]) = wrap(m
 #### Implementation of the `AbstractTrees`-interface
 
 AbstractTrees.children(node::InfoNode) = (
-    wrap(node.node.trueBranch, node.info),
-    wrap(node.node.falseBranch, node.info)
+    wrapdn(node.node.trueBranch, node.info),
+    wrapdn(node.node.falseBranch, node.info)
 )
 AbstractTrees.children(node::InfoLeaf) = ()
 

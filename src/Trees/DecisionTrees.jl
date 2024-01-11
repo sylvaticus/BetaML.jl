@@ -254,7 +254,7 @@ Dict{String, Any}("job_is_regression" => 1, "fitted_records" => 6, "max_reached_
 
 julia> using Plots, TreeRecipe, AbstractTrees
 julia> featurenames = ["Something", "Som else"];
-julia> wrapped_tree   = wrap(dtree, featurenames = featurenames); # featurenames is otional
+julia> wrapped_tree   = wrapdn(dtree, featurenames = featurenames); # featurenames is otional
 julia> print_tree(wrapped_tree)
 Som else >= 18.0?
 ├─ Som else >= 31.0?

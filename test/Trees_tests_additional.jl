@@ -58,7 +58,7 @@ tree = Tree()
 
     println("--> add information about feature names")
     featurenames = ["Color", "Size"]
-    wrapped_tree = wrap(model, featurenames = featurenames)
+    wrapped_tree = wrapdn(model, featurenames = featurenames)
 
     println("--> plot the tree using the `TreeRecipe`")
     plt = plot(wrapped_tree)        # this calls automatically the `TreeRecipe`

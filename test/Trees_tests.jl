@@ -57,7 +57,7 @@ x = [1 0.1; 2 0.2; 3 0.3; 4 0.4; 5 0.5]
 y = ["a","a","b","b","b"]
 @test findbestgain_sortedvector(x,y,2,x[:,2];mCols=[],currentUncertainty=gini(y),splitting_criterion=gini,rng=copy(TESTRNG)) == 0.3
 
-wrappedNode = BetaML.wrap(myTree)
+wrappedNode = BetaML.wrapdn(myTree)
 print("Node printing: ")
 printnode(stdout,wrappedNode)
 println("")
@@ -83,12 +83,12 @@ X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];
 y = 2 .* X[:,1] .- X[:,2] .+ 3;
 mod = DecisionTreeEstimator(max_depth=2)
 ŷ   = fit!(mod,X,y);
-wmod = wrap(mod,featurenames=["dim1","dim2"])
+wmod = wrapdn(mod,featurenames=["dim1","dim2"])
 print_tree(wmod)
 y2 = ["a","b","b","c","b","a"]
 mod2 = DecisionTreeEstimator(max_depth=2)
 ŷ2   = fit!(mod2,X,y2);
-wmod2 = wrap(mod2,featurenames=["dim1","dim2"])
+wmod2 = wrapdn(mod2,featurenames=["dim1","dim2"])
 print_tree(wmod2)
 
 #print(myTree)
