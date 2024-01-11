@@ -322,7 +322,7 @@ function MMI.fit(m::GaussianMixtureClusterer, verbosity, X)
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
     return (fitResults, cache, report)
 end
-MMI.fitted_params(model::GaussianMixtureClusterer, fitresult) = (weights=fitesult.pₖ, mixtures=fitresult.mixtures)
+MMI.fitted_params(model::GaussianMixtureClusterer, fitresult) = (weights=fitresult.pₖ, mixtures=fitresult.mixtures)
 
 function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
     x  = MMI.matrix(X) # convert table to matrix
