@@ -33,11 +33,11 @@ mutable struct ConvLayer{ND,NDPLUS1,NDPLUS2} <: AbstractLayer
    df::Union{Function,Nothing}
 
    "x ids of the convolution (computed in `preprocessing`` - itself at the beginning of `train`"
-   x_ids::Array{NTuple{NDPLUS1,Int32},1}
+   x_ids::Vector{SVector{NDPLUS1,Int64}}
    "y ids of the convolution (computed in `preprocessing`` - itself at the beginning of `train`"
-   y_ids::Array{NTuple{NDPLUS1,Int32},1}
+   y_ids::Vector{SVector{NDPLUS1,Int64}}
    "w ids of the convolution (computed in `preprocessing`` - itself at the beginning of `train`"
-   w_ids::Array{NTuple{NDPLUS2,Int32},1}
+   w_ids::Vector{SVector{NDPLUS2,Int64}}
 
 
    @doc """
@@ -153,14 +153,14 @@ function preprocess!(layer::ConvLayer{ND,NDPLUS1,NDPLUS2}) where {ND,NDPLUS1,NDP
    #println(ysize)
    
    # preallocating temp variables
-   w_idx               = Array{Int32,1}(undef,NDPLUS2)
-   y_idx               = Array{Int32,1}(undef,NDPLUS1)
-   w_idx_conv          = Array{Int32,1}(undef,ND)
-   y_idx_conv          = Array{Int32,1}(undef,ND)
-   idx_x_source_padded = Array{Int32,1}(undef,ND)
+   w_idx               = Array{Int64,1}(undef,NDPLUS2)
+   y_idx               = Array{Int64,1}(undef,NDPLUS1)
+   w_idx_conv          = Array{Int64,1}(undef,ND)
+   y_idx_conv          = Array{Int64,1}(undef,ND)
+   idx_x_source_padded = Array{Int64,1}(undef,ND)
    checkstart          = Array{Bool,1}(undef,ND)
    checkend            = Array{Bool,1}(undef,ND)
-   x_idx               = Array{Int32,1}(undef,NDPLUS1)
+   x_idx               = Array{Int64,1}(undef,NDPLUS1)
 
    @inbounds for nch_in in 1:nchannels_in
       #println("Processing in layer :", nch_in)
@@ -205,35 +205,71 @@ function preprocess!(layer::ConvLayer{ND,NDPLUS1,NDPLUS2}) where {ND,NDPLUS1,NDP
    end
 end
 
-
-
-
-function _zComp(layer::ConvLayer{ND,NDPLUS1,NDPLUS2},x) where {ND,NDPLUS1,NDPLUS2}
-   input_size, output_size = size(layer)
-   nchannels_out = output_size[end]
-
+function _zComp!(y,layer::ConvLayer{ND,NDPLUS1,NDPLUS2},x) where {ND,NDPLUS1,NDPLUS2}
    if ndims(x) == 1
       reshape(x,size(layer)[1]) 
    end
-
-   y = zeros(output_size)
-   lx_ids  = layer.x_ids
-   ly_ids  = layer.y_ids
-   lw_ids  = layer.w_ids
-   lweight = layer.weight
-
    for idx in 1:length(layer.y_ids)
-     y[ly_ids[idx]...] += x[lx_ids[idx]...] * lweight[lw_ids[idx]...] 
+     @inbounds y[layer.y_ids[idx]...] += x[layer.x_ids[idx]...] * layer.weight[layer.w_ids[idx]...] 
    end
-
-   for ch_out in 1:nchannels_out
-      y_ch_out = selectdim(y,NDPLUS1,ch_out)
-      y_ch_out .+= layer.bias[ch_out]
+   if(layer.usebias)
+      output_size = size(y)
+      for ch_out in 1:output_size[end]
+         y_ch_out = selectdim(y,NDPLUS1,ch_out)
+         y_ch_out .+= layer.bias[ch_out]
+      end
    end
-
-   return y
+   return nothing
 end
 
+function _dedxComp!(de_dx,layer::ConvLayer{ND,NDPLUS1,NDPLUS2},dϵ_dz) where {ND,NDPLUS1,NDPLUS2}
+   for idx in 1:length(layer.y_ids)
+      @inbounds de_dx[layer.x_ids[idx]...] += dϵ_dz[layer.y_ids[idx]...] * layer.weight[layer.w_ids[idx]...] 
+   end
+   return nothing
+end
+
+function _dedwComp!(de_dw,layer::ConvLayer{ND,NDPLUS1,NDPLUS2},dϵ_dz,x) where {ND,NDPLUS1,NDPLUS2}
+   for idx in 1:length(layer.y_ids)
+      @inbounds de_dw[layer.w_ids[idx]...] += dϵ_dz[layer.y_ids[idx]...] * x[layer.x_ids[idx]...] 
+   end
+   return nothing
+end
+
+#= no advantages
+function _zComp!(y,x,w,bias,y_ids,x_ids,w_ids,usebias)
+   for idx in 1:length(y_ids)
+     @inbounds y[y_ids[idx]...] += x[x_ids[idx]...] * w[w_ids[idx]...] 
+   end
+   if(usebias)
+      output_size = size(y)
+      for ch_out in 1:output_size[end]
+         y_ch_out = selectdim(y,length(output_size),ch_out)
+         y_ch_out .+= bias[ch_out]
+      end
+   end
+   return nothing
+end
+
+function _zComp!(y,layer::ConvLayer{2,3,4},x) # where {ND,NDPLUS1,NDPLUS2}
+   if ndims(x) == 1
+      reshape(x,size(layer)[1]) 
+   end
+   for idx in 1:length(layer.y_ids)
+      @inbounds y[layer.y_ids[idx][1],layer.y_ids[idx][2],layer.y_ids[idx][3]] +=
+           x[layer.x_ids[idx][1],layer.x_ids[idx][2],layer.x_ids[idx][3]] *
+        layer.weight[layer.w_ids[idx][1],layer.w_ids[idx][2],layer.w_ids[idx][3],layer.w_ids[idx][4]] 
+    end
+   if(layer.usebias)
+      output_size = size(y)
+      for ch_out in 1:output_size[end]
+         y_ch_out = selectdim(y,3,ch_out)
+         y_ch_out .+= layer.bias[ch_out]
+      end
+   end
+   return nothing
+end
+=#
 
 """
 $(TYPEDSIGNATURES)
@@ -242,12 +278,15 @@ Compute forward pass of a ConvLayer
 
 """
 function forward(layer::ConvLayer,x)
-   z =  _zComp(layer,x) 
+   z = zeros(size(layer)[2])
+   _zComp!(z,layer,x)
    return layer.f.(z)
  end
 
 function backward(layer::ConvLayer{ND,NDPLUS1,NDPLUS2},x, next_gradient) where {ND,NDPLUS1,NDPLUS2}
-   z      =  _zComp(layer,x)
+   _, output_size = size(layer)
+   z = zeros(output_size)
+   _zComp!(z,layer,x)
   
    if layer.df != nothing
       dfz = layer.df.(z)  
@@ -256,15 +295,7 @@ function backward(layer::ConvLayer{ND,NDPLUS1,NDPLUS2},x, next_gradient) where {
    end
    dϵ_dz  = @turbo  dfz .* next_gradient
    de_dx  = zeros(layer.input_size...)
-
-   #lx_ids  = layer.x_ids
-   #ly_ids  = layer.y_ids
-   #lw_ids  = layer.w_ids
-   #lweight = layer.weight
-
-   for idx in 1:length(layer.y_ids)
-      @inbounds de_dx[layer.x_ids[idx]...] += dϵ_dz[layer.y_ids[idx]...] * layer.weight[layer.w_ids[idx]...] 
-   end
+   _dedxComp!(de_dx,layer,dϵ_dz)
    return de_dx
 end
 
@@ -279,7 +310,9 @@ end
 
 
 function get_gradient(layer::ConvLayer{ND,NDPLUS1,NDPLUS2},x, next_gradient) where {ND,NDPLUS1,NDPLUS2}
-   z      =  _zComp(layer,x)
+   _, output_size = size(layer)
+   z = zeros(output_size)
+   _zComp!(z, layer,x)
   
    if layer.df != nothing
       dfz = layer.df.(z)  
@@ -290,13 +323,7 @@ function get_gradient(layer::ConvLayer{ND,NDPLUS1,NDPLUS2},x, next_gradient) whe
    dϵ_dz  = @turbo  dfz .* next_gradient
    de_dw  = zeros(size(layer.weight))
 
-   lx_ids  = layer.x_ids
-   ly_ids  = layer.y_ids
-   lw_ids  = layer.w_ids
-
-   for idx in 1:length(layer.y_ids)
-      de_dw[lw_ids[idx]...] += dϵ_dz[ly_ids[idx]...] * x[lx_ids[idx]...] 
-   end
+   _dedwComp!(de_dw,layer,dϵ_dz,x)
 
    if layer.usebias
       dbias = zeros(length(layer.bias))
@@ -322,7 +349,7 @@ $(TYPEDSIGNATURES)
 Get the dimensions of the layers in terms of (dimensions in input, dimensions in output) including channels as last dimension
 """
 function size(layer::ConvLayer)
-   nchannels_in  = layer.input_size[end]
+   #nchannels_in  = layer.input_size[end]
    nchannels_out = size(layer.weight)[end]
    in_size  = (layer.input_size...,)
    out_size = ([1 + Int(floor((layer.input_size[d]+layer.padding_start[d]+layer.padding_end[d]-size(layer.weight,d))/layer.stride[d])) for d in 1:layer.ndims]...,nchannels_out)
