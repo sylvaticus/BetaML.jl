@@ -122,3 +122,26 @@ function batch(n::Integer,bsize::Integer;sequential=false,rng = Random.GLOBAL_RN
     end
     return batches
 end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+PErform a Xavier initialisation of the weigths
+
+# Parameters:
+- `previous_npar`: number of parameters of the previous layer
+- `this_npar`: number of parameters of this layer
+- `outsize`: tuple with the size of the weigths [def: `(this_npar,previous_npar)`]
+- `rng` : random number generator [def: `Random.GLOBAL_RNG`]
+- `eltype`: eltype of the weigth array [def: `Float64`]
+
+"""
+function xavier_init(previous_npar,this_npar,outsize=(this_npar,previous_npar);rng=Random.GLOBAL_RNG,eltype=Float64)
+    out = rand(rng, Uniform(-sqrt(6)/sqrt(previous_npar+this_npar),sqrt(6)/sqrt(previous_npar+this_npar)),outsize)
+    if eltype != Float64
+        return convert(Array{eltype,length(outsize)},out)
+    else
+        return out
+    end
+end

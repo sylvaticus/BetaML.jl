@@ -10,7 +10,7 @@ Representation of a "group" of layers, each of which operates on different input
 - `layers`: The individual layers that compose this grouped layer
 
 """
-mutable struct GroupedLayer <: AbstractLayer
+struct GroupedLayer <: AbstractLayer
      layers::Array{AbstractLayer,1}
      @doc """
      $(TYPEDSIGNATURES)

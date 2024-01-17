@@ -28,12 +28,12 @@ The number of nodes in input must be set to the same as in the previous layer
 # Notes:
 * The output `size` of this layer is the same as those of the previous layers.
 """
-mutable struct ScalarFunctionLayer{N} <: AbstractLayer
-     w::Array{Float64,N}
+struct ScalarFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, TDFW <: Union{Nothing,Function}, WET <: Number} <: AbstractLayer
+     w::Array{WET,N}
      n::Int64
-     f::Function
-     dfx::Union{Function,Nothing}
-     dfw::Union{Function,Nothing}
+     f::TF
+     dfx::TDFX
+     dfw::TDFW
      @doc """
      $(TYPEDSIGNATURES)
 
@@ -44,10 +44,10 @@ mutable struct ScalarFunctionLayer{N} <: AbstractLayer
      # Keyword arguments:
      * `wsize`: A tuple or array specifying the size (number of elements) of the
        learnable parameter [def: empty array]
+     * `w_eltype`: Eltype of the weigths [def: `Float64`]
      * `w`:   Initial weigths with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
      * `f`:  Activation function [def: `softmax`]
-     * `dfx`: Derivative of the activation function with respect to the data
-              [default: `nothing` (i.e. use AD)]
+     * `dfx`: Derivative of the activation function with respect to the data  [default: try to match with well-known derivatives, resort to AD if `f` is unknown]
      * `dfw`: Derivative of the activation function with respect to the
               learnable parameter [default: `nothing` (i.e. use AD)]
      * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
@@ -55,9 +55,14 @@ mutable struct ScalarFunctionLayer{N} <: AbstractLayer
      - If the derivative is provided, it should return the gradient as a (n,n) matrix (i.e. the Jacobian)
      - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(sum(wsize...)),sqrt(6)/sqrt(sum(wsize...))))`
      """
-     function ScalarFunctionLayer(nₗ;rng = Random.GLOBAL_RNG,wsize=Int64[],w=rand(rng,Uniform(-sqrt(6)/sqrt(sum(wsize)),sqrt(6)/sqrt(sum(wsize))),Tuple(wsize)), f=softmax,dfx=match_known_derivatives(f),dfw=nothing)
+     function ScalarFunctionLayer(nₗ;rng = Random.GLOBAL_RNG,wsize=Int64[],
+              w_eltype = Float64,
+              w  = xavier_init(sum(wsize)/2,sum(wsize)/2,rng=rng,Tuple(wsize),eltype=w_eltype),
+              f=softmax,
+              dfx=match_known_derivatives(f),
+              dfw=nothing)
         nw = length(wsize) 
-        return new{nw}(w,nₗ,f,dfx,dfw)
+        return new{nw,typeof(f),typeof(dfx),typeof(dfw),w_eltype}(w,nₗ,f,dfx,dfw)
      end
 end
 
@@ -124,7 +129,7 @@ end
 
 function set_params!(layer::ScalarFunctionLayer{N},w) where {N}
    if N > 0
-      layer.w = w.data[1]
+      layer.w .= w.data[1]
    end
    return nothing
 end

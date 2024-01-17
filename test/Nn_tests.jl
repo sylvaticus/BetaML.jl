@@ -389,6 +389,8 @@ println("Testing ConvLayer....")
 d2convl = ConvLayer((14,8),(6,3),3,2,stride=(6,3))
 @test d2convl.padding_start == [2,1]
 @test d2convl.padding_end   == [2,0]
+@test size(d2convl) == ((14,8,3),(3,3,2))
+
 
 d2convl = ConvLayer((14,8),(6,3),3,2,stride=3)
 @test d2convl.padding_start == [2,1]
@@ -486,23 +488,29 @@ e     = loss(mynn,x',truey')
 
 
 #x        = rand(copy(TESTRNG),100,3*3*2)
-x        = reshape(1:100*3*3*2,100,3*3*2) ./ 100
-y        = [norm(r[1:9])+2*norm(r[10:18],2) for r in eachrow(x) ]
+x        = convert(Matrix{Float32},reshape(1:100*3*3*2,100,3*3*2) ./ 100)
+y        = convert(Vector{Float32},[norm(r[1:9])+2*norm(r[10:18],2) for r in eachrow(x) ])
 (N,D)    = size(x)
 l1       = ReshaperLayer((D,1),(3,3,2))
-l2       = ConvLayer((3,3),(2,2),2,3,rng=copy(TESTRNG))
-l3       = ConvLayer(size(l2)[2],(2,2),8,rng=copy(TESTRNG))
+l2       = ConvLayer((3,3),(2,2),2,3,rng=copy(TESTRNG),kernel_eltype=Float32)
+l3       = ConvLayer(size(l2)[2],(2,2),8,rng=copy(TESTRNG),kernel_eltype=Float32)
 l4       = ReshaperLayer(size(l3)[2])
-l5       = DenseLayer(size(l4)[2][1],1,f=relu, rng=copy(TESTRNG))
+l5       = DenseLayer(size(l4)[2][1],1,f=relu, w_eltype=Float32, rng=copy(TESTRNG))
 layers   = [l1,l2,l3,l4,l5]
 mynn     = buildNetwork(layers,squared_cost,name="Regression with a convolutional layer")
 preprocess!(mynn)
-predict(mynn,x[1,:]')
-
+x1_hat = predict(mynn,x[1,:]')
+@test typeof(x1_hat) == Matrix{Float32}
 train!(mynn,x,y,epochs=60,verbosity=NONE,rng=copy(TESTRNG))
 ŷ        = predict(mynn,x)
 rmeTrain = relative_mean_error(y,ŷ,normrec=false)
 @test rmeTrain  < 0.01
+
+#using BenchmarkTools
+#@btime train!($mynn,$x,$y,epochs=60,verbosity=NONE,rng=copy($TESTRNG))
+#240.604 ms (1056544 allocations: 107.66 MiB)
+
+
 
 # ==================================
 # NEW TEST

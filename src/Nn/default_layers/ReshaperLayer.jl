@@ -10,7 +10,7 @@ Representation of a "reshaper" (weigthless) layer in the network
 # Fields:
 $(TYPEDFIELDS)
 """
-mutable struct ReshaperLayer{NDIN,NDOUT} <: AbstractLayer
+struct ReshaperLayer{NDIN,NDOUT} <: AbstractLayer
     "Input size"
     input_size::SVector{NDIN,Int64}
     "Output size"

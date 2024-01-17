@@ -85,11 +85,15 @@ Structure representing the learnable parameters of a layer or its gradient.
 The learnable parameters of a layers are given in the form of a N-tuple of Array{Float64,N2} where N2 can change (e.g. we can have a layer with the first parameter being a matrix, and the second one being a scalar).
 We wrap the tuple on its own structure a bit for some efficiency gain, but above all to define standard mathematic operations on the gradients without doing "type piracy" with respect to Base tuples.
 """
-mutable struct Learnable
+mutable struct Learnable{ET}
     #data::Union{Tuple{Vararg{Array{Float64,N} where N}},Vector{Tuple{Vararg{Array{Float64,N} where N}}}}
-    data::Tuple{Vararg{Array{Float64,N} where N}}
+    data::Tuple{Vararg{Array{ET,N} where N}}
     function Learnable(data)
-        return new(data)
+        if data == ()
+             return new{Float64}(data)
+        else
+            return new{eltype(eltype(data))}(data)
+        end
     end
 end
 function +(items::Learnable...)
@@ -354,7 +358,7 @@ function predict(nn::NN,x)
     lastlayer_size = size(nn.layers[end])[2]
     length(lastlayer_size) == 1 || error("The last NN layer should always be a single dimension vector. Eventually use `ReshaperLayer` to reshape its output as a vector.")
     d = lastlayer_size[1]
-    out = zeros(n,d)
+    out = zeros(eltype(x),n,d)
     for i in 1:size(x)[1]
         values = selectdim(x,1,i) # x[i,:]
         for l in nn.layers

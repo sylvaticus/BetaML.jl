@@ -11,10 +11,10 @@ Representation of a layer without bias in the network
 * `f`:  Activation function
 * `df`: Derivative of the activation function
 """
-mutable struct DenseNoBiasLayer <: AbstractLayer
-     w::Array{Float64,2}
-     f::Function
-     df::Union{Function,Nothing}
+struct DenseNoBiasLayer{TF <: Function, TDF <: Union{Nothing,Function}, WET <: Number} <: AbstractLayer
+     w::Array{WET,2}
+     f::TF
+     df::TDF
      @doc """
      $(TYPEDSIGNATURES)
 
@@ -24,17 +24,21 @@ mutable struct DenseNoBiasLayer <: AbstractLayer
      * `nₗ`:  Number of nodes of the previous layer
      * `n`:   Number of nodes
      # Keyword arguments:
+     * `w_eltype`: Eltype of the weigths [def: `Float64`]
      * `w`:   Initial weigths with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
      * `f`:   Activation function [def: `identity`]
-     * `df`:  Derivative of the activation function [def: `nothing` (i.e. use AD)]
+     * `df`:  Derivative of the activation function [default: try to match with well-known derivatives, resort to AD if `f` is unknown]
      * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
      # Notes:
      - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ,n))`
      """
-     function DenseNoBiasLayer(nₗ,n;rng = Random.GLOBAL_RNG,w=rand(rng,Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n)),n,nₗ),f=identity,df=match_known_derivatives(f))
-         # To be sure w is a matrix and wb a column vector..
-         w  = reshape(w,n,nₗ)
-         return new(w,f,df)
+     function DenseNoBiasLayer(nₗ,n;rng = Random.GLOBAL_RNG,
+           w_eltype = Float64,
+           w  = xavier_init(nₗ,n,rng=rng,eltype=w_eltype),
+           f=identity,df=match_known_derivatives(f))
+      # To be sure w is a matrix and wb a column vector..
+      w  = reshape(w,n,nₗ)
+      return new{typeof(f),typeof(df),w_eltype}(w,f,df)
      end
 end
 
@@ -51,13 +55,26 @@ function _zComp(layer::DenseNoBiasLayer,x)
     return z
 end
 
-function forward(layer::DenseNoBiasLayer,x)
-  z = _zComp(layer,x)
+function _zComp!(z,layer::DenseNoBiasLayer{TF,DTF,WET},x) where {TF, DTF, WET}
+   @inbounds for n in axes(layer.w,1)
+      zn = zero(WET)
+      @turbo for nl in axes(x,1)
+         zn += layer.w[n,nl] * x[nl]
+      end
+      z[n] += zn
+   end
+   return nothing
+end
+
+function forward(layer::DenseNoBiasLayer{TF,DTF,WET},x) where {TF, DTF, WET}
+  z = zeros(WET,size(layer)[2][1])
+  _zComp!(z,layer,x)
   return layer.f.(z)
 end
 
-function backward(layer::DenseNoBiasLayer,x,next_gradient)
-   z = _zComp(layer,x)
+function backward(layer::DenseNoBiasLayer{TF,DTF,WET},x,next_gradient) where {TF, DTF, WET}
+   z = zeros(WET,size(layer)[2][1])
+   _zComp!(z,layer,x)
    if layer.df != nothing
       dfz = layer.df.(z) 
    else
@@ -72,8 +89,9 @@ function get_params(layer::DenseNoBiasLayer)
   return Learnable((layer.w,))
 end
 
-function get_gradient(layer::DenseNoBiasLayer,x,next_gradient)
-   z      = _zComp(layer,x)
+function get_gradient(layer::DenseNoBiasLayer{TF,DTF,WET},x,next_gradient) where {TF, DTF, WET}
+   z = zeros(WET,size(layer)[2][1])
+   _zComp!(z,layer,x)
    if layer.df != nothing
       dfz = layer.df.(z)
    else
@@ -85,7 +103,7 @@ function get_gradient(layer::DenseNoBiasLayer,x,next_gradient)
 end
 
 function set_params!(layer::DenseNoBiasLayer,w)
-   layer.w = w.data[1]
+   layer.w .= w.data[1]
 end
 
 function size(layer::DenseNoBiasLayer)

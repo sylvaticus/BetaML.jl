@@ -720,6 +720,18 @@ s1 = silhouette(pd,[1,2,2,2])
 s2  = silhouette(pd,[1,1,2,2])
 @test s2 ==  [0.7846062151896173, 0.7590778795827623, 0.8860577617518799, 0.8833580446365146]
 
+# ==================================
+# New test
+println("** Testing xavier_init....")
+previous_npar = 12
+this_npar     = 32
+w1 = xavier_init(previous_npar,this_npar,(4,1,2),eltype=Float32)
+size(w1) == (4,1,2)
+eltype(w1) == Float32
+w2 = xavier_init(previous_npar,this_npar,4)
+size(w2) == (4,)
+eltype(w2) == Float64
+
 
 # MLJ Tests
 # ==================================

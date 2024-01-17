@@ -38,6 +38,8 @@ module Utils
 
 using LinearAlgebra, Printf, Random, Statistics, Combinatorics, Zygote, CategoricalArrays, LoopVectorization, DocStringExtensions
 
+using Distributions: Uniform
+
 using ForceImport
 @force using ..Api
 using ..Api
@@ -46,6 +48,7 @@ export @codelocation, generate_parallel_rngs,
        reshape, makecolvector, makerowvector, makematrix, issortable, getpermutations,
        cols_with_missing, 
        batch, partition, consistent_shuffle,
+       xavier_init,
        didentity, relu, drelu, elu, delu, celu, dcelu, plu, dplu,  #identity and rectify units
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, dmaximum, dmean, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,

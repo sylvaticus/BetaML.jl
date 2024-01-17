@@ -36,13 +36,13 @@ predictions).
 * The output `size` of this layer is given by the size of the output function,
 that not necessarily is the same as the previous layers.
 """
-mutable struct VectorFunctionLayer{N} <: AbstractLayer
-     w::Array{Float64,N}
+struct VectorFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, TDFW <: Union{Nothing,Function}, WET <: Number} <: AbstractLayer
+     w::Array{WET,N}
      nₗ::Int64
      n::Int64
-     f::Function
-     dfx::Union{Function,Nothing}
-     dfw::Union{Function,Nothing}
+     f::TF
+     dfx::TDFX
+     dfw::TDFW
      @doc """
      $(TYPEDSIGNATURES)
 
@@ -53,10 +53,11 @@ mutable struct VectorFunctionLayer{N} <: AbstractLayer
      # Keyword arguments:
      * `wsize`: A tuple or array specifying the size (number of elements) of the
        learnable parameter [def: empty array]
+     * `w_eltype`: Eltype of the weigths [def: `Float64`]
      * `w`:   Initial weigths with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
      * `f`:  Activation function [def: `softmax`]
      * `dfx`: Derivative of the activation function with respect to the data
-              [default: `nothing` (i.e. use AD)]
+     [default: try to match with well-known derivatives, resort to AD if `f` is unknown]
      * `dfw`: Derivative of the activation function with respect to the
               learnable parameter [default: `nothing` (i.e. use AD)]
      * `dummyDataToTestOutputSize`: Dummy data to test the output size [def:
@@ -70,14 +71,20 @@ mutable struct VectorFunctionLayer{N} <: AbstractLayer
        it if it doesn't match with the activation function you are setting
      - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(sum(wsize...)),sqrt(6)/sqrt(sum(wsize...))))`
      """
-     function VectorFunctionLayer(nₗ;rng = Random.GLOBAL_RNG,wsize=Int64[],w=rand(rng,Uniform(-sqrt(6)/sqrt(sum(wsize)),sqrt(6)/sqrt(sum(wsize))),Tuple(wsize)), f=softmax,dfx=match_known_derivatives(f),dfw=nothing,dummyDataToTestOutputSize=ones(nₗ))
+     function VectorFunctionLayer(nₗ;rng = Random.GLOBAL_RNG,wsize=Int64[],
+                w_eltype = Float64,
+                w  = xavier_init(sum(wsize)/2,sum(wsize)/2,rng=rng,Tuple(wsize),eltype=w_eltype),
+                f=softmax,
+                dfx=match_known_derivatives(f),
+                dfw=nothing,
+                dummyDataToTestOutputSize=ones(nₗ))
         nw = length(wsize) 
         if nw ==0 
           n  = length(f(dummyDataToTestOutputSize))
         else
          n  = length(f(dummyDataToTestOutputSize,w))
         end
-        return new{nw}(w,nₗ,n,f,dfx,dfw)
+        return new{nw,typeof(f),typeof(dfx),typeof(dfw),w_eltype}(w,nₗ,n,f,dfx,dfw)
      end
 end
 
@@ -127,7 +134,7 @@ end
 
 function set_params!(layer::VectorFunctionLayer{N},w) where {N}
    if N > 0
-      layer.w = w.data[1]
+      layer.w .= w.data[1]
    end
    return nothing
 end

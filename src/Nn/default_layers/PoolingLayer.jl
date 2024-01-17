@@ -10,7 +10,7 @@ Representation of a pooling layer in the network
 # Fields:
 $(TYPEDFIELDS)
 """
-mutable struct PoolingLayer{ND,NDPLUS1,NDPLUS2} <: AbstractLayer
+struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Function}} <: AbstractLayer
    "Input size (including nchannel_in as last dimension)"
    input_size::SVector{NDPLUS1,Int64}
    "Output size (including nchannel_out as last dimension)"
@@ -26,9 +26,9 @@ mutable struct PoolingLayer{ND,NDPLUS1,NDPLUS2} <: AbstractLayer
    "Number of dimensions (excluding input and output channels)"
    ndims::Int64
    "Activation function"
-   f::Function
+   f::TF
    "Derivative of the activation function"
-   df::Union{Function,Nothing}
+   df::TDF #Union{Function,Nothing}
 
    "x ids of the convolution (computed in `preprocessing`` - itself at the beginning of `train`"
    #x_ids::Array{NTuple{NDPLUS1,Int32},1}
@@ -42,8 +42,6 @@ mutable struct PoolingLayer{ND,NDPLUS1,NDPLUS2} <: AbstractLayer
    "A y-dims array of vectors of ids of x(s) contributing to the giving y"
    y_to_x_ids::Array{Vector{NTuple{NDPLUS1,Int32}},NDPLUS1}
    
-   "Wheather this layer has already been preprocessed"
-   preprocessed::Bool
 
 
    @doc """
@@ -117,7 +115,7 @@ mutable struct PoolingLayer{ND,NDPLUS1,NDPLUS2} <: AbstractLayer
       #x_to_y_ids = [Vector{NTuple{nD+1,Int32}}() for i in CartesianIndices(input_size_with_nchin)] # not needed
       y_to_x_ids = [Vector{NTuple{nD+1,Int32}}() for i in CartesianIndices(output_size_with_nchout)]
 
-      new{nD,nD+1,nD+2}(input_size_with_nchin,output_size_with_nchout,kernel_size_with_nchin_nchout,padding_start,padding_end,stride,nD,f,df,y_to_x_ids,false)
+      new{nD,nD+1,nD+2,typeof(f),typeof(df)}(input_size_with_nchin,output_size_with_nchout,kernel_size_with_nchin_nchout,padding_start,padding_end,stride,nD,f,df,y_to_x_ids)
    end
 end
 
@@ -139,8 +137,7 @@ end
 
 
 function preprocess!(layer::PoolingLayer{ND,NDPLUS1,NDPLUS2}) where {ND,NDPLUS1,NDPLUS2}
-
-   if layer.preprocessed
+   if layer.y_to_x_ids !=  [Vector{NTuple{NDPLUS1,Int32}}() for i in CartesianIndices((layer.output_size...,))]
       return # layer already prepocessed
    end
 
@@ -205,7 +202,6 @@ function preprocess!(layer::PoolingLayer{ND,NDPLUS1,NDPLUS2}) where {ND,NDPLUS1,
          end
       #end
    end
-   layer.preprocessed = true
 end
 
 
@@ -220,7 +216,7 @@ function forward(layer::PoolingLayer,x)
    _, output_size = size(layer)
    y    = zeros(output_size)
    for y_idx in CartesianIndices(y)
-      y_idx = Tuple(y_idx)
+      y_idx       = Tuple(y_idx)
       x_ids       = layer.y_to_x_ids[y_idx...]
       x_vals      = [x[idx...] for idx in x_ids]
       #println(x_vals)
@@ -228,7 +224,19 @@ function forward(layer::PoolingLayer,x)
       y[y_idx...] = layer.f(x_vals)
    end
    return y
- end
+end
+
+function _zComp!(z,layer::PoolingLayer{ND,NDPLUS1,NDPLUS2},x) where {ND,NDPLUS1,NDPLUS2}
+   for y_idx in CartesianIndices(z)
+      y_idx       = Tuple(y_idx)
+      x_ids       = layer.y_to_x_ids[y_idx...]
+      x_vals      = [x[idx...] for idx in x_ids]
+      #println(x_vals)
+      #println(layer.f(x_vals))
+      y[y_idx...] = layer.f(x_vals)
+   end
+
+end
 
 function backward(layer::PoolingLayer{ND,NDPLUS1,NDPLUS2},x, next_gradient) where {ND,NDPLUS1,NDPLUS2}
    de_dx     = zeros(layer.input_size...)
@@ -269,12 +277,6 @@ $(TYPEDSIGNATURES)
 
 Get the dimensions of the layers in terms of (dimensions in input, dimensions in output) including channels as last dimension
 """
-function size(layer::PoolingLayer)
-   #nchannels_in  = layer.input_size[end]
-   nchannels_out = layer.kernel_size[end]
-   in_size   = (layer.input_size...,)
-   out_size  = (layer.output_size...,)
-   out_size = ([1 + Int(floor((layer.input_size[d]+layer.padding_start[d]+layer.padding_end[d]-layer.kernel_size[d])/layer.stride[d])) for d in 1:layer.ndims]...,nchannels_out)
-   #println(size(layer.weight[1],2))
-   return (in_size,out_size)
+function size(layer::PoolingLayer{ND,NDPLUS1,NDPLUS2}) where {ND,NDPLUS1,NDPLUS2}
+   return ((layer.input_size...,),(layer.output_size...,))
 end
