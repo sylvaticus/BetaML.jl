@@ -85,7 +85,7 @@ Base.@kwdef mutable struct NeuralNetworkRegressor <: MMI.Deterministic
     descr::String = "" 
     "A call back function to provide information during training [def: `fitting_info`]"
     cb::Function=fitting_info
-    "Random Number Generator (see [`BetaML.FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+    "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
     "
     rng::AbstractRNG = Random.GLOBAL_RNG
 end
@@ -199,7 +199,7 @@ Base.@kwdef mutable struct MultitargetNeuralNetworkRegressor <: MMI.Deterministi
     descr::String = "" 
     "A call back function to provide information during training [def: `BetaML.fitting_info`]"
     cb::Function=fitting_info
-    "Random Number Generator (see [`BetaML.FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+    "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
     "
     rng::AbstractRNG = Random.GLOBAL_RNG
 end

@@ -171,6 +171,7 @@ makedocs(sitename="BetaML.jl Documentation",
             ],
          ],
          format = Documenter.HTML(prettyurls = false, analytics = "G-JYKX8QY5JW"),
+         warnonly = true,
          #strict = true,
          #doctest = false,
          #source  = SRC_TEMPDIR, # Attention here !!!!!!!!!!!

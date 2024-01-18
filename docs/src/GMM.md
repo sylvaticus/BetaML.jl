@@ -9,7 +9,6 @@ GMM
 ```@index
 Modules = [GMM]
 Order   = [:function, :constant, :type, :macro]
-Private = false
 ```
 
 ## Detailed API
