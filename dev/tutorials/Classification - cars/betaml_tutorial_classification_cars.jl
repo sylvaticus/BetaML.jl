@@ -63,8 +63,9 @@ data = @pipe HTTP.get(urlDataOriginal).body                                     
 println(now(), " ", "- data wrangling..." )  #src
 # This results in a table where the rows are the observations (the various cars' models) and the column the fields. All BetaML models expect this layout.
 
-# As the dataset is ordered, we randomly shuffle the data. 
-data[shuffle(copy(AFIXEDRNG),axes(data, 1)), :]
+# As the dataset is ordered, we randomly shuffle the data.
+idx = randperm(copy(AFIXEDRNG),size(data,1))
+data[idx, :]
 describe(data)
 
 # Columns 1 to 7 contain  characteristics of the car, while column 8 encodes the country or origin ("1" -> US, "2" -> EU, "3" -> Japan). That's the variable we want to be able to predict.
