@@ -509,7 +509,7 @@ rmeTrain = relative_mean_error(y,ŷ,normrec=false)
 #using BenchmarkTools
 #@btime train!($mynn,$x,$y,epochs=60,verbosity=NONE,rng=copy($TESTRNG))
 #240.604 ms (1056544 allocations: 107.66 MiB)
-
+#314.504 ms (774762 allocations: 99.39 MiB)
 
 
 # ==================================
@@ -573,6 +573,7 @@ ŷ        = BetaML.predict(mynn,x)
 rmeTrain = relative_mean_error(y,ŷ,normrec=false)
 @test rmeTrain  < 0.1
 
+a = 1
 #l1       = ReshaperLayer((D,1),(6,6,2))
 #l2       = ConvLayer((6,6),(2,2),2,4,rng=copy(TESTRNG))
 #l3       = PoolingLayer((6,6,4),(2,2))

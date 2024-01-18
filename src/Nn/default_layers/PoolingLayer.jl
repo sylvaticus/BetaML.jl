@@ -10,7 +10,7 @@ Representation of a pooling layer in the network
 # Fields:
 $(TYPEDFIELDS)
 """
-struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Function}} <: AbstractLayer
+struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Function}, WET <: Number} <: AbstractLayer
    "Input size (including nchannel_in as last dimension)"
    input_size::SVector{NDPLUS1,Int64}
    "Output size (including nchannel_out as last dimension)"
@@ -40,7 +40,7 @@ struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Func
    "A x-dims array of vectors of ids of y reached by the given x"
    #x_to_y_ids::Array{Vector{NTuple{NDPLUS1,Int32}},NDPLUS1} # not needed
    "A y-dims array of vectors of ids of x(s) contributing to the giving y"
-   y_to_x_ids::Array{Vector{NTuple{NDPLUS1,Int32}},NDPLUS1}
+   y_to_x_ids::Array{Vector{NTuple{NDPLUS1,Int64}},NDPLUS1}
    
 
 
@@ -53,6 +53,7 @@ struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Func
 
    # Positional arguments:
    * `input_size`:    Shape of the input layer (integer for 1D convolution, tuple otherwise). Do not consider the channels number here.
+   * `kernel_eltype`: Kernel eltype [def: `Float64`]
    * `kernel_size`:   Size of the kernel (aka filter) (integer for 1D or hypercube kernels or nD-sized tuple for assymmetric kernels). Do not consider the channels number here.
    * `nchannels_in`:  Number of channels in input
    * `nchannels_out`: Number of channels in output
@@ -70,6 +71,7 @@ struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Func
    """
    function PoolingLayer(input_size,kernel_size,nchannels_in;
             stride  = kernel_size,
+            kernel_eltype = Float64,
             padding = nothing, # (zeros(Int64,length(input_size)),zeros(Int64,length(input_size))),
             f       = maximum,
             df      = match_known_derivatives(f))
@@ -113,9 +115,9 @@ struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Func
       output_size_with_nchout = ([1 + Int(floor((input_size[d]+padding_start[d]+padding_end[d]-kernel_size[d])/stride[d])) for d in 1:nD]...,nchannels_out)
       
       #x_to_y_ids = [Vector{NTuple{nD+1,Int32}}() for i in CartesianIndices(input_size_with_nchin)] # not needed
-      y_to_x_ids = [Vector{NTuple{nD+1,Int32}}() for i in CartesianIndices(output_size_with_nchout)]
+      y_to_x_ids = [Vector{NTuple{nD+1,Int64}}() for i in CartesianIndices(output_size_with_nchout)]
 
-      new{nD,nD+1,nD+2,typeof(f),typeof(df)}(input_size_with_nchin,output_size_with_nchout,kernel_size_with_nchin_nchout,padding_start,padding_end,stride,nD,f,df,y_to_x_ids)
+      new{nD,nD+1,nD+2,typeof(f),typeof(df),kernel_eltype}(input_size_with_nchin,output_size_with_nchout,kernel_size_with_nchin_nchout,padding_start,padding_end,stride,nD,f,df,y_to_x_ids)
    end
 end
 
@@ -130,8 +132,9 @@ function PoolingLayer(input_size_with_channel,kernel_size;
      stride  = kernel_size,
      padding = nothing, # (zeros(Int64,length(input_size)),zeros(Int64,length(input_size))),
      f       = maximum,
+     kernel_eltype = Float64,
      df      = match_known_derivatives(f))
-     return PoolingLayer(input_size_with_channel[1:end-1],kernel_size,input_size_with_channel[end]; stride=stride,padding=padding,f=f,df=df)
+     return PoolingLayer(input_size_with_channel[1:end-1],kernel_size,input_size_with_channel[end]; kernel_eltype = kernel_eltype,stride=stride,padding=padding,f=f,df=df)
 
 end
 
@@ -211,36 +214,21 @@ $(TYPEDSIGNATURES)
 Compute forward pass of a ConvLayer
 
 """
-function forward(layer::PoolingLayer,x)
+function forward(layer::PoolingLayer{ND,NDPLUS1,NDPLUS2,TF, TDF, WET},x) where {ND,NDPLUS1,NDPLUS2,TF, TDF, WET}
    
    _, output_size = size(layer)
-   y    = zeros(output_size)
-   for y_idx in CartesianIndices(y)
-      y_idx       = Tuple(y_idx)
-      x_ids       = layer.y_to_x_ids[y_idx...]
+   y    = zeros(WET,output_size)
+   for y_idx in eachindex(y)
+      x_ids       = layer.y_to_x_ids[y_idx]
       x_vals      = [x[idx...] for idx in x_ids]
-      #println(x_vals)
-      #println(layer.f(x_vals))
-      y[y_idx...] = layer.f(x_vals)
+      y[y_idx] = layer.f(x_vals)
    end
    return y
 end
 
-function _zComp!(z,layer::PoolingLayer{ND,NDPLUS1,NDPLUS2},x) where {ND,NDPLUS1,NDPLUS2}
-   for y_idx in CartesianIndices(z)
-      y_idx       = Tuple(y_idx)
-      x_ids       = layer.y_to_x_ids[y_idx...]
-      x_vals      = [x[idx...] for idx in x_ids]
-      #println(x_vals)
-      #println(layer.f(x_vals))
-      y[y_idx...] = layer.f(x_vals)
-   end
-
-end
-
 function backward(layer::PoolingLayer{ND,NDPLUS1,NDPLUS2},x, next_gradient) where {ND,NDPLUS1,NDPLUS2}
    de_dx     = zeros(layer.input_size...)
-   for y_idx in CartesianIndices(next_gradient)
+   for y_idx in eachindex(next_gradient)
       #println("----")
       x_ids       = layer.y_to_x_ids[y_idx]
       x_vals      = [x[idx...] for idx in x_ids]

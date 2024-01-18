@@ -62,12 +62,26 @@ m      = NeuralNetworkEstimator(layers=layers,loss=squared_cost,verbosity=HIGH,b
 # Training the whole MINST set takes approximatly 16 minutes on a mid-level laptop (on CPU), leading to a test accuracy of 0.969
 (x_debug,x_other),(y_debug_oh,y_other_oh)  = partition([x_train,y_train_oh],[0.01,0.99],rng=copy(TESTRNG))
 
+#preprocess!.(layers)
+# 0.131836 seconds (477.02 k allocations: 53.470 MiB, 72.73% compilation time)
+#@code_warntype preprocess!(l5)
+
 ŷ = fit!(m,x_debug,y_debug_oh)
+#@btime fit!(m,x_debug,y_debug_oh)
+# 1%: 15.909 s (1940246 allocations: 1.39 GiB)
+#     17.509 s (1039126 allocations: 1.37 GiB)
+#     15.766 s (1039111 allocations: 1.37 GiB)
+#     14.669 s (3129139 allocations: 1.64 GiB) (w threads)
+#     18.119 s (1039121 allocations: 1.37 GiB)
+#     14.966 s (1039123 allocations: 1.37 GiB) (whout threads)
+#      19.357 s (1039123 allocations: 1.37 GiB)
 
-## ŷ = fit!(m,x_train,y_train_oh)
+#println(now(), " ", "*** prefit..." )  #src
+#ŷ = fit!(m,x_train,y_train_oh)
+#println(now(), " ", "*** postfit..." )  #src
 
-##y_true  = inverse_predict(ohm,convert(Matrix{Bool},y_train_oh))
-# y_true  = inverse_predict(ohm,convert(Matrix{Bool},y_debug_oh))
+#y_true  = inverse_predict(ohm,convert(Matrix{Bool},y_train_oh))
+y_true  = inverse_predict(ohm,convert(Matrix{Bool},y_debug_oh))
 ŷ_nonoh = inverse_predict(ohm,ŷ)
 accuracy(y_true,ŷ_nonoh)
 hcat(y_true,ŷ_nonoh)
