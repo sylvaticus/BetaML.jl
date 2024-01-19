@@ -9,7 +9,6 @@ Clustering
 ```@index
 Modules = [Clustering]
 Order   = [:function, :constant, :type, :macro]
-Private = false
 ```
 
 ## Detailed API

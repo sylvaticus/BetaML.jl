@@ -9,7 +9,6 @@ Perceptron
 ```@index
 Modules = [Perceptron]
 Order   = [:function, :constant, :type, :macro]
-Private = false
 ```
 
 ## Detailed API

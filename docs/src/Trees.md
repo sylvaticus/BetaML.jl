@@ -9,7 +9,6 @@ Trees
 ```@index
 Modules = [Trees]
 Order   = [:function, :constant, :type, :macro]
-Private = false
 ```
 ## Detailed API
 

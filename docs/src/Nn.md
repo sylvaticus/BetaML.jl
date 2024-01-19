@@ -9,7 +9,6 @@ Nn
 ```@index
 Modules = [Nn]
 Order   = [:function, :constant, :type,  :macro]
-Private = false
 ```
 ## Detailed API
 

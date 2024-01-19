@@ -18,6 +18,7 @@
 using Test
 
 using Documenter, Literate, BetaML
+import BetaML.Bmlj
 
 if "preview" in ARGS
     println("*** Attention: code in the tutorial will not be run/tested")
@@ -168,6 +169,7 @@ makedocs(sitename="BetaML.jl Documentation",
               "GMM"                      => "GMM.md",
               "Imputation"               => "Imputation.md",
               "Utils"                    => "Utils.md",
+              "MLJ interface"            => "MLJ_interface.md",
             ],
          ],
          format = Documenter.HTML(prettyurls = false, analytics = "G-JYKX8QY5JW"),

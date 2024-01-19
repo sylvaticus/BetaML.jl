@@ -1,7 +1,11 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
+
+"""
 # MLJ interface for BetaML models
 
+In this module we define the interface of several BetaML models. They can be used using the [MLJ framework](https://github.com/alan-turing-institute/MLJ.jl).
+"""
 module Bmlj
 
 using CategoricalArrays, DocStringExtensions

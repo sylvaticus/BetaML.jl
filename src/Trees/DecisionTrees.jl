@@ -267,7 +267,8 @@ Som else >= 18.0?
 │        
 └─ 3.3999999999999995
 julia> plot(wrapped_tree)    
-````
+```
+
 ![DT plot](assets/dtplot.png) 
 
 """

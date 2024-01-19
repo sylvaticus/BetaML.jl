@@ -9,7 +9,6 @@ Utils
 ```@index
 Modules = [Utils]
 Order   = [:function, :constant, :type, :macro]
-Private = false
 ```
 ## Detailed API
 
