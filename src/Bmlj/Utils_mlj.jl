@@ -5,6 +5,12 @@
 
 export AutoEncoder
 
+
+
+
+
+
+
 # ------------------------------------------------------------------------------
 # Start AutoEncoder
 
@@ -100,7 +106,7 @@ Base.@kwdef mutable struct AutoEncoder <: MMI.Unsupervised
     !!! warning
         If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
     """
-    loss::Union{Nothing,Function} = squared_cost
+    loss::Union{Nothing,Function} = BetaML.Utils.squared_cost
     "Derivative of the loss function [def: `BetaML.dsquared_cost` if `loss==squared_cost`, `nothing` otherwise, i.e. use the derivative of the squared cost or autodiff]"
     dloss::Union{Function,Nothing}  = nothing
     "Number of epochs, i.e. passages trough the whole training sample [def: `200`]"
@@ -108,7 +114,7 @@ Base.@kwdef mutable struct AutoEncoder <: MMI.Unsupervised
     "Size of each individual batch [def: `8`]"
     batch_size::Int64 = 8
     "The optimisation algorithm to update the gradient at each batch [def: `BetaML.ADAM()`] See `subtypes(BetaML.OptimisationAlgorithm)` for supported optimizers"
-    opt_alg::OptimisationAlgorithm = ADAM()
+    opt_alg::OptimisationAlgorithm = BetaML.Nn.ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool = true  
     """
@@ -116,7 +122,7 @@ Base.@kwdef mutable struct AutoEncoder <: MMI.Unsupervised
     See [`SuccessiveHalvingSearch`](@ref) for the default method.
     To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
-   tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges = Dict("epochs"=>[100,150,200],"batch_size"=>[8,16,32],"outdims"=>[0.2,0.3,0.5],"innerdims"=>[1.3,2.0,5.0]),multithreads=false)
+   tunemethod::AutoTuneMethod                  = BetaML.Utils.SuccessiveHalvingSearch(hpranges = Dict("epochs"=>[100,150,200],"batch_size"=>[8,16,32],"outdims"=>[0.2,0.3,0.5],"innerdims"=>[1.3,2.0,5.0]),multithreads=false)
     "An optional title and/or description for this model"
     descr::String = "" 
     "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
@@ -135,7 +141,7 @@ function MMI.fit(m::AutoEncoder, verbosity, X)
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
    
-    mi = Utils.AutoEncoder(;e_layers=m.e_layers,d_layers=m.d_layers,outdims=m.outdims,innerdims=m.innerdims,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, tunemethod=m.tunemethod, cache=false, descr=m.descr, rng=m.rng, verbosity=verbosity)
+    mi = BetaML.Utils.AutoEncoder(;e_layers=m.e_layers,d_layers=m.d_layers,outdims=m.outdims,innerdims=m.innerdims,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, tunemethod=m.tunemethod, cache=false, descr=m.descr, rng=m.rng, verbosity=verbosity)
     Api.fit!(mi,x)
     fitresults = mi
     cache      = nothing
@@ -147,9 +153,9 @@ function MMI.fit(m::AutoEncoder, verbosity, X)
 
  # MMI.transform(m::AutoEncoder, fitresult, Xnew) = MMI.predict(m::AutoEncoder, fitresult, Xnew)
 
- MMI.transform(m::AutoEncoder, fitresult, Xnew) = Api.predict(fitresult, MMI.matrix(Xnew))
+ MMI.transform(m::AutoEncoder, fitresult, Xnew) = BetaML.Api.predict(fitresult, MMI.matrix(Xnew))
 
- MMI.inverse_transform(m::AutoEncoder, fitresult, Xnew) = Api.inverse_predict(fitresult, MMI.matrix(Xnew))
+ MMI.inverse_transform(m::AutoEncoder, fitresult, Xnew) = BetaML.Api.inverse_predict(fitresult, MMI.matrix(Xnew))
 
 
  MMI.metadata_model(AutoEncoder,

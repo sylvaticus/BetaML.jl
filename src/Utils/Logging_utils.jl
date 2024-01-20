@@ -47,23 +47,5 @@ function to_betaml_verbosity(i::Integer)
     end
 end
 
-"""
-$(TYPEDSIGNATURES)
 
-Convert any integer (short scale) to one of the defined betaml verbosity levels
-Currently "steps" are 0, 1, 2 and 3
-"""
-function mljverbosity_to_betaml_verbosity(i::Integer)
-    if i <= 0
-        return NONE
-    elseif i == 1
-        return LOW
-    elseif i == 2
-        return STD
-    elseif i == 3
-        return HIGH
-    else
-        return FULL
-    end
-end
 

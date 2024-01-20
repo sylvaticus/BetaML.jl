@@ -35,8 +35,4 @@ include("Perceptron_classic.jl")
 include("Perceptron_kernel.jl")
 include("Perceptron_pegasos.jl")
 
-
-# MLJ interface
-include("Perceptron_MLJ.jl")
-
 end

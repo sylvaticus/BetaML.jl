@@ -55,7 +55,7 @@ import .Bmlj # some MLJ models have the same name as BetaML models, set them in 
 
 # ------------------------------------------------------------------------------
 #MLJ interface...
-const MLJ_PERCEPTRON_MODELS = (LinearPerceptron, KernelPerceptron, Pegasos)
+const MLJ_PERCEPTRON_MODELS = (Bmlj.LinearPerceptron, Bmlj.KernelPerceptron, Bmlj.Pegasos)
 const MLJ_TREES_MODELS      = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
 const MLJ_CLUSTERING_MODELS = (KMeans, KMedoids, GaussianMixtureClusterer)
 const MLJ_IMPUTERS_MODELS   = (SimpleImputer, GaussianMixtureImputer, RandomForestImputer,GeneralImputer) # these are the name of the MLJ models, not the BetaML ones...

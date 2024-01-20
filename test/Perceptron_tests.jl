@@ -262,19 +262,19 @@ println("Testing MLJ interface for Perceptron models....")
 
 X, y                           = Mlj.@load_iris
 
-model                          = LinearPerceptron(rng=copy(TESTRNG))
+model                          = BetaML.Bmlj.LinearPerceptron(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
 @test Mlj.mean(StatisticalMeasures.LogLoss(tol=1e-4)(yhat, y)) < 3.1
 
-model                          = KernelPerceptron(rng=copy(TESTRNG))
+model                          = BetaML.Bmlj.KernelPerceptron(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
 @test Mlj.mean(StatisticalMeasures.LogLoss(tol=1e-4)(yhat, y)) < 0.5
 
-model                          = Pegasos(rng=copy(TESTRNG))
+model                          = BetaML.Bmlj.Pegasos(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
