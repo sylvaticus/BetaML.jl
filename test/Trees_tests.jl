@@ -341,27 +341,27 @@ accβ   = accuracy(ytest,ŷtestβ,rng=copy(TESTRNG))
 # NEW TEST
 println("Testing MLJ interface for Trees models....")
 X, y                           = Mlj.@load_boston
-model_dtr                      = DecisionTreeRegressor(rng=copy(TESTRNG))
+model_dtr                      = BetaML.Bmlj.DecisionTreeRegressor(rng=copy(TESTRNG))
 regressor_dtr                  = Mlj.machine(model_dtr, X, y)
 (fitresult_dtr, cache, report) = Mlj.fit(model_dtr, 0, X, y)
 yhat_dtr                       = Mlj.predict(model_dtr, fitresult_dtr, X)
 @test relative_mean_error(y,yhat_dtr,normrec=true) < 0.02
 
-model_rfr                      = RandomForestRegressor(rng=copy(TESTRNG))
+model_rfr                      = BetaML.Bmlj.RandomForestRegressor(rng=copy(TESTRNG))
 regressor_rfr                  = Mlj.machine(model_rfr, X, y)
 (fitresult_rfr, cache, report) = Mlj.fit(model_rfr, 0, X, y)
 yhat_rfr                       = Mlj.predict(model_rfr, fitresult_rfr, X)
 @test relative_mean_error(y,yhat_rfr,normrec=true) < 0.06
 
 X, y                           = Mlj.@load_iris
-model_dtc                      = DecisionTreeClassifier(rng=copy(TESTRNG))
+model_dtc                      = BetaML.Bmlj.DecisionTreeClassifier(rng=copy(TESTRNG))
 regressor_dtc                  = Mlj.machine(model_dtc, X, y)
 (fitresult_dtc, cache, report) = Mlj.fit(model_dtc, 0, X, y)
 yhat_dtc                       = Mlj.predict(model_dtc, fitresult_dtc, X)
 @test Mlj.mean(StatisticalMeasures.LogLoss(tol=1e-4)(yhat_dtc, y)) < 0.0002
 @test sum(Mlj.mode.(yhat_dtc) .== y)/length(y) == 1
 
-model_rfc                      = RandomForestClassifier(max_features=3,rng=copy(TESTRNG))
+model_rfc                      = BetaML.Bmlj.RandomForestClassifier(max_features=3,rng=copy(TESTRNG))
 regressor_rfc                  = Mlj.machine(model_rfc, X, y)
 (fitresult_rfc, cache, report) = Mlj.fit(model_rfc, 0, X, y)
 yhat_rfc                       = Mlj.predict(model_rfc, fitresult_rfc, X)

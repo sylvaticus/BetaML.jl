@@ -2,9 +2,6 @@
 
 # MLJ interface for Decision Trees/Random Forests models
 
-import MLJModelInterface       # It seems that having done this in the top module is not enought
-const MMI = MLJModelInterface  # We need to repoeat it here
-
 export DecisionTreeRegressor, RandomForestRegressor, DecisionTreeClassifier, RandomForestClassifier
 
 
@@ -76,7 +73,7 @@ DecisionTreeRegressor(;
    min_gain=0.0,
    min_records=2,
    max_features=0,
-   splitting_criterion=variance,
+   splitting_criterion=BetaML.Utils.variance,
    rng = Random.GLOBAL_RNG,
    ) = DecisionTreeRegressor(max_depth,min_gain,min_records,max_features,splitting_criterion,rng)
 
@@ -141,7 +138,7 @@ DecisionTreeClassifier(;
   min_gain=0.0,
   min_records=2,
   max_features=0,
-  splitting_criterion=gini,
+  splitting_criterion=BetaML.Utils.gini,
   rng = Random.GLOBAL_RNG,
   ) = DecisionTreeClassifier(max_depth,min_gain,min_records,max_features,splitting_criterion,rng)
 
@@ -216,7 +213,7 @@ RandomForestRegressor(;
   min_gain=0.0,
   min_records=2,
   max_features=0,
-  splitting_criterion=variance,
+  splitting_criterion=BetaML.Utils.variance,
   β=0.0,
   rng = Random.GLOBAL_RNG,
   ) = RandomForestRegressor(n_trees,max_depth,min_gain,min_records,max_features,splitting_criterion,β,rng)
@@ -286,7 +283,7 @@ RandomForestClassifier(;
     min_gain=0.0,
     min_records=2,
     max_features=0,
-    splitting_criterion=gini,
+    splitting_criterion=BetaML.Utils.gini,
     β=0.0,
     rng = Random.GLOBAL_RNG,
 ) = RandomForestClassifier(n_trees,max_depth,min_gain,min_records,max_features,splitting_criterion,β,rng)
@@ -314,15 +311,15 @@ MMI.hyperparameter_ranges(::Type{<:DecisionTreeRegressor}) = (
 function MMI.fit(model::Union{DecisionTreeRegressor,RandomForestRegressor}, verbosity, X, y)
    x = MMI.matrix(X)                     # convert table to matrix
    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
-   verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
+   verbosity = mljverbosity_to_betaml_verbosity(verbosity)
    max_depth         = model.max_depth == 0 ? size(x,1) : model.max_depth
    # Using low level API here. We could switch to APIV2...
    if (typeof(model) == DecisionTreeRegressor)
        max_features = model.max_features == 0 ? size(x,2) : model.max_features
-       fitresult   = buildTree(x, y, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion,rng=model.rng, verbosity=verbosity)
+       fitresult   = BetaML.Trees.buildTree(x, y, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion,rng=model.rng, verbosity=verbosity)
    else
        max_features = model.max_features == 0 ? Int(round(sqrt(size(x,2)))) : model.max_features
-       fitresult   = buildForest(x, y, model.n_trees, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, β=model.β,rng=model.rng,verbosity=verbosity)
+       fitresult   = BetaML.Trees.buildForest(x, y, model.n_trees, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, β=model.β,rng=model.rng,verbosity=verbosity)
    end
    cache=nothing
    report=nothing
@@ -335,15 +332,15 @@ function MMI.fit(model::Union{DecisionTreeClassifier,RandomForestClassifier}, ve
    #y_plain          = MMI.int(y) .- 1                     # integer relabeling should start at 0
    yarray           = convert(Vector{eltype(levels(y))},y) # convert to a simple Array{T}
    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
-   verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
+   verbosity = mljverbosity_to_betaml_verbosity(verbosity)
    max_depth         = model.max_depth == 0 ? size(x,1) : model.max_depth
    # Using low level API here. We could switch to APIV2...
    if (typeof(model) == DecisionTreeClassifier)
        max_features   = model.max_features == 0 ? size(x,2) : model.max_features
-       fittedmodel   = buildTree(x, yarray, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, force_classification=true,rng=model.rng, verbosity=verbosity)
+       fittedmodel   = BetaML.Trees.buildTree(x, yarray, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, force_classification=true,rng=model.rng, verbosity=verbosity)
    else
        max_features   = model.max_features == 0 ? Int(round(sqrt(size(x,2)))) : model.max_features
-       fittedmodel   = buildForest(x, yarray, model.n_trees, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, force_classification=true, β=model.β,rng=model.rng, verbosity=verbosity)
+       fittedmodel   = BetaML.Trees.buildForest(x, yarray, model.n_trees, max_depth=max_depth, min_gain=model.min_gain, min_records=model.min_records, max_features=max_features, splitting_criterion=model.splitting_criterion, force_classification=true, β=model.β,rng=model.rng, verbosity=verbosity)
    end
    cache            = nothing
    report           = nothing
@@ -355,7 +352,7 @@ end
 # ------------------------------------------------------------------------------
 # Predict functions....
 
-MMI.predict(model::Union{DecisionTreeRegressor,RandomForestRegressor}, fitresult, Xnew) = Trees.predict(fitresult, MMI.matrix(Xnew))
+MMI.predict(model::Union{DecisionTreeRegressor,RandomForestRegressor}, fitresult, Xnew) = BetaML.Trees.predict(fitresult, MMI.matrix(Xnew))
 
 function MMI.predict(model::Union{DecisionTreeClassifier,RandomForestClassifier}, fitresult, Xnew)
     fittedModel      = fitresult[1]
@@ -364,7 +361,7 @@ function MMI.predict(model::Union{DecisionTreeClassifier,RandomForestClassifier}
     classes          = MMI.classes(a_target_element)
     nLevels          = length(classes)
     nRecords         = MMI.nrows(Xnew)
-    treePredictions  = Trees.predict(fittedModel, MMI.matrix(Xnew),rng=model.rng)
+    treePredictions  = BetaML.Trees.predict(fittedModel, MMI.matrix(Xnew),rng=model.rng)
     predMatrix       = zeros(Float64,(nRecords,nLevels))
     # Transform the predictions from a vector of dictionaries to a matrix
     # where the rows are the PMF of each record
@@ -384,23 +381,23 @@ MMI.metadata_model(DecisionTreeRegressor,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     target_scitype   = AbstractVector{<: MMI.Continuous},           # for a supervised model, what target?
     supports_weights = false,                                       # does the model support sample weights?
-	load_path        = "BetaML.Trees.DecisionTreeRegressor"
+	load_path        = "BetaML.Bmlj.DecisionTreeRegressor"
     )
 MMI.metadata_model(RandomForestRegressor,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     target_scitype   = AbstractVector{<: MMI.Continuous},
     supports_weights = false,
-	load_path        = "BetaML.Trees.RandomForestRegressor"
+	load_path        = "BetaML.Bmlj.RandomForestRegressor"
     )
 MMI.metadata_model(DecisionTreeClassifier,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite}},
     supports_weights = false,
-	load_path        = "BetaML.Trees.DecisionTreeClassifier"
+	load_path        = "BetaML.Bmlj.DecisionTreeClassifier"
     )
 MMI.metadata_model(RandomForestClassifier,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite}},
     supports_weights = false,
-	load_path        = "BetaML.Trees.RandomForestClassifier"
+	load_path        = "BetaML.Bmlj.RandomForestClassifier"
     )

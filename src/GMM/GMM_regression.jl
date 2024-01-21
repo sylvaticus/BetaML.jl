@@ -6,7 +6,7 @@ import BetaML.Utils.allowmissing
 # GMMRegressor1 
 
 Base.@kwdef mutable struct GMMRegressor1LearnableParameters <: BetaMLLearnableParametersSet
-    mixtures::Vector{AbstractMixture}              = []
+    mixtures::Union{Type,Vector{<: AbstractMixture}}    = DiagonalGaussian[] # The type is only temporary, it should always be replaced by an actual mixture
     initial_probmixtures::Vector{Float64}                  = []
     #probRecords::Union{Nothing,Matrix{Float64}}    = nothing
     meanYByMixture::Union{Nothing,Matrix{Float64}} = nothing

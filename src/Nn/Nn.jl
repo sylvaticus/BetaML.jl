@@ -1161,9 +1161,4 @@ function show(io::IO, m::NeuralNetworkEstimator)
         end
     end
 end
-
-
-# MLJ interface
-include("Nn_MLJ.jl")
-
 end # end module

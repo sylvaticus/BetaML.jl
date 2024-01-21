@@ -2,9 +2,6 @@
 
 # MLJ interface for imputers models
 
-import MLJModelInterface       # It seems that having done this in the top module is not enought
-const MMI = MLJModelInterface  # We need to repeat it here
-
 export SimpleImputer,GaussianMixtureImputer, RandomForestImputer, GeneralImputer
 
 """
@@ -115,7 +112,7 @@ mutable struct GaussianMixtureImputer <: MMI.Unsupervised
     This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
     Note that mixing of different mixture types is not currently supported and that currently implemented mixtures are `SphericalGaussian`, `DiagonalGaussian` and `FullGaussian`.
     [def: `DiagonalGaussian`]"""
-    mixtures::Union{Type,Vector{<: AbstractMixture}}
+    mixtures::Union{Type,Vector{<: BetaML.GMM.AbstractMixture}}
     "Tolerance to stop the algorithm [default: 10^(-6)]"
     tol::Float64
     "Minimum variance for the mixtures [default: 0.05]"
@@ -137,7 +134,7 @@ end
 function GaussianMixtureImputer(;
     n_classes      = 3,
     initial_probmixtures  = Float64[],
-    mixtures      = DiagonalGaussian, #[DiagonalGaussian() for i in 1:n_classes],
+    mixtures      = BetaML.GMM.DiagonalGaussian, #[DiagonalGaussian() for i in 1:n_classes],
     tol           = 10^(-6),
     minimum_variance   = 0.05,
     minimum_covariance = 0.0,
@@ -346,8 +343,8 @@ GeneralImputer(;
 function MMI.fit(m::SimpleImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
-    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
-    mod = FeatureBasedImputer(
+    verbosity = mljverbosity_to_betaml_verbosity(verbosity)
+    mod = BetaML.Imputation.FeatureBasedImputer(
         statistic = m.statistic,
         norm      = m.norm,
         verbosity = verbosity,
@@ -356,14 +353,14 @@ function MMI.fit(m::SimpleImputer, verbosity, X)
     #fitResults = MMI.table(predict(mod))
     fitResults = mod
     cache      = nothing
-    report     = info(mod)
+    report     = BetaML.Api.info(mod)
     return (fitResults, cache, report)
 end
 
 function MMI.fit(m::GaussianMixtureImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
-    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
+    verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     #=if m.mixtures == :diag_gaussian
         mixtures = [DiagonalGaussian() for i in 1:m.n_classes]
     elseif m.mixtures == :full_gaussian
@@ -375,7 +372,7 @@ function MMI.fit(m::GaussianMixtureImputer, verbosity, X)
     end
     =#
 
-    mod = GMMImputer(
+    mod = BetaML.Imputation.GMMImputer(
         n_classes      = m.n_classes,
         initial_probmixtures  = m.initial_probmixtures,
         mixtures      = m.mixtures,
@@ -390,7 +387,7 @@ function MMI.fit(m::GaussianMixtureImputer, verbosity, X)
     #fitResults = MMI.table(predict(mod))
     fitResults = mod
     cache      = nothing
-    report     = info(mod)
+    report     = BetaML.Api.info(mod)
 
     return (fitResults, cache, report)  
 end
@@ -398,8 +395,8 @@ end
 function MMI.fit(m::RandomForestImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
-    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
-    mod = RFImputer(
+    verbosity = mljverbosity_to_betaml_verbosity(verbosity)
+    mod = BetaML.Imputation.RFImputer(
         n_trees                 = m.n_trees, 
         max_depth               = m.max_depth,
         min_gain                = m.min_gain,
@@ -412,7 +409,7 @@ function MMI.fit(m::RandomForestImputer, verbosity, X)
         #multiple_imputations    = m.multiple_imputations,
         rng                    = m.rng,
     )
-    fit!(mod,x)
+    BetaML.Api.fit!(mod,x)
     #if m.multiple_imputations == 1
     #    fitResults = MMI.table(predict(mod))
     #else
@@ -420,15 +417,15 @@ function MMI.fit(m::RandomForestImputer, verbosity, X)
     #end
     fitResults = mod
     cache      = nothing
-    report     = info(mod)
+    report     = BetaML.Api.info(mod)
     return (fitResults, cache, report)
 end
 
 function MMI.fit(m::GeneralImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
-    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
-    mod =  UniversalImputer(
+    verbosity = mljverbosity_to_betaml_verbosity(verbosity)
+    mod =  BetaML.Imputation.UniversalImputer(
         cols_to_impute     = m.cols_to_impute,
         estimator          = m.estimator,
         missing_supported  = m.missing_supported,
@@ -438,7 +435,7 @@ function MMI.fit(m::GeneralImputer, verbosity, X)
         rng                = m.rng,
         verbosity          = verbosity,
     )
-    fit!(mod,x)
+    BetaML.Api.fit!(mod,x)
     #if m.multiple_imputations == 1
     #    fitResults = MMI.table(predict(mod))
     #else
@@ -446,7 +443,7 @@ function MMI.fit(m::GeneralImputer, verbosity, X)
     #end
     fitResults = mod
     cache      = nothing
-    report     = info(mod)
+    report     = BetaML.Api.info(mod)
     return (fitResults, cache, report)
 end
 
@@ -457,7 +454,7 @@ end
 function MMI.transform(m::Union{SimpleImputer,GaussianMixtureImputer,RandomForestImputer}, fitResults, X)
     x   = MMI.matrix(X) # convert table to matrix
     mod = fitResults
-    return MMI.table(predict(mod,x))
+    return MMI.table(BetaML.Api.predict(mod,x))
 end
 
 
@@ -474,10 +471,10 @@ function MMI.transform(m::GeneralImputer, fitResults, X)
     if fitResults.hpar.recursive_passages == 1 || all(missing_supported) 
        x   = MMI.matrix(X) # convert table to matrix
        mod = fitResults
-       return MMI.table(predict(mod,x))
+       return MMI.table(BetaML.Api.predict(mod,x))
     else
        mod = fitResults 
-       return MMI.table(predict(mod))
+       return MMI.table(BetaML.Api.predict(mod))
     end
 end
 
@@ -488,25 +485,25 @@ MMI.metadata_model(SimpleImputer,
     input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
     output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
-	load_path        = "BetaML.Imputation.SimpleImputer"
+	load_path        = "BetaML.Bmlj.SimpleImputer"
 )
 
 MMI.metadata_model(GaussianMixtureImputer,
     input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
     output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
-	load_path        = "BetaML.Imputation.GaussianMixtureImputer"
+	load_path        = "BetaML.Bmlj.GaussianMixtureImputer"
 )
 
 MMI.metadata_model(RandomForestImputer,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     output_scitype   = MMI.Table(MMI.Known),          # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
-	load_path        = "BetaML.Imputation.RandomForestImputer"
+	load_path        = "BetaML.Bmlj.RandomForestImputer"
 )
 MMI.metadata_model(GeneralImputer,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
     output_scitype   = MMI.Table(MMI.Known),          # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
-	load_path        = "BetaML.Imputation.GeneralImputer"
+	load_path        = "BetaML.Bmlj.GeneralImputer"
 )

@@ -1,9 +1,6 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
-# MLJ interface for clustering models
-
-import MLJModelInterface       # It seems that having done this in the top module is not enought
-const MMI = MLJModelInterface  # We need to repeat it here
+# MLJ interface for GMM based models
 
 export  GaussianMixtureClusterer, GaussianMixtureRegressor, MultitargetGaussianMixtureRegressor
 
@@ -68,7 +65,7 @@ mutable struct GaussianMixtureClusterer <: MMI.Unsupervised
     This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes` mixtures of the specified type.
     Note that mixing of different mixture types is not currently supported.
     [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
-  mixtures::Union{Type,Vector{<: AbstractMixture}}
+  mixtures::Union{Type,Vector{<: BetaML.GMM.AbstractMixture}}
   "Tolerance to stop the algorithm [default: 10^(-6)]"
   tol::Float64
   "Minimum variance for the mixtures [default: 0.05]"
@@ -92,7 +89,7 @@ end
 function GaussianMixtureClusterer(;
     n_classes             = 3,
     initial_probmixtures            = Float64[],
-    mixtures      = [DiagonalGaussian() for i in 1:n_classes],
+    mixtures      = [BetaML.GMM.DiagonalGaussian() for i in 1:n_classes],
     tol           = 10^(-6),
     minimum_variance   = 0.05,
     minimum_covariance = 0.0,
@@ -162,7 +159,7 @@ mutable struct GaussianMixtureRegressor <: MMI.Deterministic
     This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
     Note that mixing of different mixture types is not currently supported.
     [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
-    mixtures::Union{Type,Vector{<: AbstractMixture}}
+    mixtures::Union{Type,Vector{<: BetaML.GMM.AbstractMixture}}
     "Tolerance to stop the algorithm [default: 10^(-6)]"
     tol::Float64
     "Minimum variance for the mixtures [default: 0.05]"
@@ -186,7 +183,7 @@ end
 function GaussianMixtureRegressor(;
     n_classes      = 3,
     initial_probmixtures  = [],
-    mixtures      = [DiagonalGaussian() for i in 1:n_classes],
+    mixtures      = [BetaML.GMM.DiagonalGaussian() for i in 1:n_classes],
     tol           = 10^(-6),
     minimum_variance   = 0.05,
     minimum_covariance = 0.0,
@@ -195,7 +192,7 @@ function GaussianMixtureRegressor(;
     rng           = Random.GLOBAL_RNG
    )
    if typeof(mixtures) <: UnionAll
-     mixtures = [mixtures() for i in 1:n_classes]
+     mixtures = [BetaML.GMM.mixtures() for i in 1:n_classes]
    end
    return GaussianMixtureRegressor(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,rng)
 end
@@ -258,7 +255,7 @@ mutable struct MultitargetGaussianMixtureRegressor <: MMI.Deterministic
     This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
     Note that mixing of different mixture types is not currently supported.
     [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
-    mixtures::Union{Type,Vector{<: AbstractMixture}}
+    mixtures::Union{Type,Vector{<: BetaML.GMM.AbstractMixture}}
     "Tolerance to stop the algorithm [default: 10^(-6)]"
     tol::Float64
     "Minimum variance for the mixtures [default: 0.05]"
@@ -282,7 +279,7 @@ end
 function MultitargetGaussianMixtureRegressor(;
     n_classes      = 3,
     initial_probmixtures  = [],
-    mixtures      = [DiagonalGaussian() for i in 1:n_classes],
+    mixtures      = [BetaML.GMM.DiagonalGaussian() for i in 1:n_classes],
     tol           = 10^(-6),
     minimum_variance   = 0.05,
     minimum_covariance = 0.0,
@@ -314,9 +311,9 @@ function MMI.fit(m::GaussianMixtureClusterer, verbosity, X)
     end
     =#
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
-    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
+    verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     mixtures = m.mixtures
-    res        = gmm(x,m.n_classes,initial_probmixtures=deepcopy(m.initial_probmixtures),mixtures=mixtures, minimum_variance=m.minimum_variance, minimum_covariance=m.minimum_covariance,initialisation_strategy=m.initialisation_strategy,verbosity=verbosity,maximum_iterations=m.maximum_iterations,rng=m.rng)
+    res        = BetaML.GMM.gmm(x,m.n_classes,initial_probmixtures=deepcopy(m.initial_probmixtures),mixtures=mixtures, minimum_variance=m.minimum_variance, minimum_covariance=m.minimum_covariance,initialisation_strategy=m.initialisation_strategy,verbosity=verbosity,maximum_iterations=m.maximum_iterations,rng=m.rng)
     fitResults = (pₖ=res.pₖ,mixtures=res.mixtures) # res.pₙₖ
     cache      = nothing
     report     = (res.ϵ,res.lL,res.BIC,res.AIC)
@@ -327,7 +324,7 @@ MMI.fitted_params(model::GaussianMixtureClusterer, fitresult) = (weights=fitresu
 function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
     x  = MMI.matrix(X) # convert table to matrix
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
-    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
+    verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     ndims(y) < 2 || error("Trying to fit `GaussianMixtureRegressor` with a multidimensional target. Use `MultitargetGaussianMixtureRegressor` instead.")
     #=
     if typeof(y) <: AbstractMatrix
@@ -345,7 +342,7 @@ function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
     end
     =#
     mixtures = m.mixtures
-    betamod = GMMRegressor2(
+    betamod = BetaML.GMM.GMMRegressor2(
         n_classes     = m.n_classes,
         initial_probmixtures = m.initial_probmixtures,
         mixtures     = mixtures,
@@ -363,7 +360,7 @@ end
 function MMI.fit(m::MultitargetGaussianMixtureRegressor, verbosity, X, y)
     x  = MMI.matrix(X) # convert table to matrix
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
-    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
+    verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     ndims(y) >= 2 || @warn "Trying to fit `MultitargetGaussianMixtureRegressor` with a single-dimensional target. You may want to consider `GaussianMixtureRegressor` instead."
     #=
     if typeof(y) <: AbstractMatrix
@@ -381,7 +378,7 @@ function MMI.fit(m::MultitargetGaussianMixtureRegressor, verbosity, X, y)
     end
     =#
     mixtures = m.mixtures
-    betamod = GMMRegressor2(
+    betamod = BetaML.GMM.GMMRegressor2(
         n_classes     = m.n_classes,
         initial_probmixtures = m.initial_probmixtures,
         mixtures     = mixtures,
@@ -407,7 +404,7 @@ function MMI.predict(m::GaussianMixtureClusterer, fitResults, X)
     (pₖ,mixtures)   = (fitResults.pₖ, fitResults.mixtures)
     nCl             = length(pₖ)
     # Compute the probabilities that maximise the likelihood given existing mistures and a single iteration (i.e. doesn't update the mixtures)
-    thisOut         = gmm(x,nCl,initial_probmixtures=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minimum_variance=m.minimum_variance,minimum_covariance=m.minimum_covariance,initialisation_strategy="given",maximum_iterations=1,rng=m.rng)
+    thisOut         = BetaML.GMM.gmm(x,nCl,initial_probmixtures=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minimum_variance=m.minimum_variance,minimum_covariance=m.minimum_covariance,initialisation_strategy="given",maximum_iterations=1,rng=m.rng)
     classes         = CategoricalArray(1:nCl)
     predictions     = MMI.UnivariateFinite(classes, thisOut.pₙₖ)
     return predictions
@@ -416,12 +413,12 @@ end
 function MMI.predict(m::GaussianMixtureRegressor, fitResults, X)
     x               = MMI.matrix(X) # convert table to matrix
     betamod         = fitResults
-    return dropdims(predict(betamod,x),dims=2)
+    return dropdims(BetaML.Api.predict(betamod,x),dims=2)
 end
 function MMI.predict(m::MultitargetGaussianMixtureRegressor, fitResults, X)
     x               = MMI.matrix(X) # convert table to matrix
     betamod         = fitResults
-    return predict(betamod,x)
+    return BetaML.Api.predict(betamod,x)
 end
 
 
@@ -434,7 +431,7 @@ MMI.metadata_model(GaussianMixtureClusterer,
     target_scitype   = AbstractArray{<:MMI.Multiclass},       # scitype of the output of `predict`
     #prediction_type  = :probabilistic,  # option not added to metadata_model function, need to do it separately
     supports_weights = false,                                 # does the model support sample weights?
-	load_path        = "BetaML.GMM.GaussianMixtureClusterer"
+	load_path        = "BetaML.Bmlj.GaussianMixtureClusterer"
 )
 MMI.prediction_type(::Type{<:GaussianMixtureClusterer}) = :probabilistic
 
@@ -442,11 +439,11 @@ MMI.metadata_model(GaussianMixtureRegressor,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Infinite}),
     target_scitype   = AbstractVector{<: MMI.Continuous},           # for a supervised model, what target?
     supports_weights = false,                                       # does the model support sample weights?
-	load_path        = "BetaML.GMM.GaussianMixtureRegressor"
+	load_path        = "BetaML.Bmlj.GaussianMixtureRegressor"
 )
 MMI.metadata_model(MultitargetGaussianMixtureRegressor,
     input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Infinite}),
     target_scitype   = AbstractMatrix{<: MMI.Continuous},           # for a supervised model, what target?
     supports_weights = false,                                       # does the model support sample weights?
-	load_path        = "BetaML.GMM.MultitargetGaussianMixtureRegressor"
+	load_path        = "BetaML.Bmlj.MultitargetGaussianMixtureRegressor"
 )

@@ -2,9 +2,6 @@
 
 # MLJ interface for hard clustering models
 
-import MLJModelInterface       # It seems that having done this in the top module is not enought
-const MMI = MLJModelInterface  # We need to repeat it here
-
 export KMeans, KMedoids
 
 # ------------------------------------------------------------------------------
@@ -165,11 +162,11 @@ function MMI.fit(m::Union{KMeans,KMedoids}, verbosity, X)
     x  = MMI.matrix(X)                        # convert table to matrix
     # Using low level API here. We could switch to APIV2...
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
-    verbosity = Utils.mljverbosity_to_betaml_verbosity(verbosity)
+    verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     if typeof(m) == KMeans
-        (assignedClasses,representatives) = kmeans(x,m.n_classes,dist=m.dist,initialisation_strategy=m.initialisation_strategy,initial_representatives=m.initial_representatives,rng=m.rng,verbosity=verbosity)
+        (assignedClasses,representatives) = BetaML.Clustering.kmeans(x,m.n_classes,dist=m.dist,initialisation_strategy=m.initialisation_strategy,initial_representatives=m.initial_representatives,rng=m.rng,verbosity=verbosity)
     else
-        (assignedClasses,representatives) = kmedoids(x,m.n_classes,dist=m.dist,initialisation_strategy=m.initialisation_strategy,initial_representatives=m.initial_representatives,rng=m.rng, verbosity=verbosity)
+        (assignedClasses,representatives) = BetaML.Clustering.kmedoids(x,m.n_classes,dist=m.dist,initialisation_strategy=m.initialisation_strategy,initial_representatives=m.initial_representatives,rng=m.rng, verbosity=verbosity)
     end
     cache=nothing
     report=nothing
@@ -216,7 +213,7 @@ MMI.metadata_model(KMeans,
     output_scitype   = MMI.Table(MMI.Continuous),         # scitype of the output of `transform`
     target_scitype   = AbstractArray{<:MMI.Multiclass},   # scitype of the output of `predict`
     supports_weights = false,                             # does the model support sample weights?
-	load_path        = "BetaML.Clustering.KMeans"
+	load_path        = "BetaML.Bmlj.KMeans"
 )
 
 MMI.metadata_model(KMedoids,
@@ -224,5 +221,5 @@ MMI.metadata_model(KMedoids,
     output_scitype   = MMI.Table(MMI.Continuous),         # scitype of the output of `transform`
     target_scitype   = AbstractArray{<:MMI.Multiclass},   # scitype of the output of `predict`
     supports_weights = false,                             # does the model support sample weights?
-	load_path        = "BetaML.Clustering.KMedoids"
+	load_path        = "BetaML.Bmlj.KMedoids"
 )

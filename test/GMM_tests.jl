@@ -1,7 +1,5 @@
 using Test
 
-import MLJBase
-const Mlj = MLJBase
 import Distributions
 using BetaML
 import BetaML.GMM: gmm, initVariances!, updateVariances!
@@ -128,6 +126,10 @@ ŷtrain2db = predict(m)
 mreTrain2d = relative_mean_error(ytrain2d,ŷtrain2d,normrec=true)
 @test mreTrain2d <= 0.08
 
+m = GMMRegressor1(n_classes=2,rng=copy(TESTRNG), verbosity=NONE, mixtures= SphericalGaussian)
+est = fit!(m,xtrain,ytrain2d)
+@test typeof(est) == Matrix{Float64}
+
 # Testing GMM Regressor 2
 m = GMMRegressor2(n_classes=2,rng=copy(TESTRNG), verbosity=NONE)
 fit!(m,xtrain,ytrain)
@@ -167,9 +169,11 @@ fit!(m,xtrain,ytrain)
 # ==================================
 # NEW TEST
 println("Testing MLJ interface for GMM models....")
+import MLJBase
+const Mlj = MLJBase
 X, y                           = Mlj.@load_iris
 
-model                       =  GaussianMixtureClusterer(mixtures=[DiagonalGaussian() for i in 1:3],rng=copy(TESTRNG))
+model                       =  BetaML.Bmlj.GaussianMixtureClusterer(mixtures=[DiagonalGaussian() for i in 1:3],rng=copy(TESTRNG))
 modelMachine                =  Mlj.machine(model, X) # DimensionMismatch
 (fitResults, cache, report) =  Mlj.fit(model, 0, X)
 yhat_prob                   =  Mlj.predict(model, fitResults, X)  # Mlj.transform(model,fitResults,X)
@@ -180,14 +184,14 @@ yhat_prob                   =  Mlj.predict(model, fitResults, X)  # Mlj.transfor
 println("Testing MLJ interface for GMMRegressor models....")
 X, y                           = Mlj.@load_boston
 
-model_gmmr                      = GaussianMixtureRegressor(n_classes=20,rng=copy(TESTRNG))
+model_gmmr                      = BetaML.Bmlj.GaussianMixtureRegressor(n_classes=20,rng=copy(TESTRNG))
 regressor_gmmr                  = Mlj.machine(model_gmmr, X, y)
 (fitresult_gmmr, cache, report) = Mlj.fit(model_gmmr, 0, X, y)
 yhat_gmmr                       = Mlj.predict(model_gmmr, fitresult_gmmr, X)
 @test relative_mean_error(y,yhat_gmmr,normrec=true) < 0.3
 
 ydouble = hcat(y,y)
-model_gmmr2                      = MultitargetGaussianMixtureRegressor(n_classes=20,rng=copy(TESTRNG))
+model_gmmr2                      = BetaML.Bmlj.MultitargetGaussianMixtureRegressor(n_classes=20,rng=copy(TESTRNG))
 regressor_gmmr2                  = Mlj.machine(model_gmmr2, X, ydouble)
 (fitresult_gmmr2, cache, report) = Mlj.fit(model_gmmr2, 0, X, ydouble)
 yhat_gmmr2                       = Mlj.predict(model_gmmr2, fitresult_gmmr2, X)

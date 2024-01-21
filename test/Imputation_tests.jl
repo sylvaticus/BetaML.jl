@@ -4,10 +4,6 @@ using Statistics, Random
 using BetaML
 import DecisionTree
 
-
-import MLJBase
-const Mlj = MLJBase
-
 TESTRNG = FIXEDRNG # This could change...
 
 
@@ -101,6 +97,11 @@ X̂3 = predict(mod,X3)
 reset!(mod)
 #predict(mod,X3)
 
+mod = GMMImputer(mixtures=DiagonalGaussian)
+X2 = [3 6 9; 2000 missing 10000; 1 2 5; 1500 3000 9000; 1.5 3 6]
+fit!(mod,X2)
+X̂2 =  predict(mod)
+@test typeof(X̂2) == Matrix{Float64}
 
 # ------------------------------------------------------------------------------
 
@@ -229,15 +230,14 @@ Xfull2 = BetaML.fit!(mod2,X)
 
 println("Testing MLJ Interfaces...")
 
-# ------------------------------------------------------------------------------
-
-
+import MLJBase
+const Mlj = MLJBase
 
 println("Testing MLJ Interface for SimpleImputer...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
-model                       =  SimpleImputer(norm=1)
+model                       =  BetaML.Bmlj.SimpleImputer(norm=1)
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
@@ -253,7 +253,7 @@ println("Testing MLJ Interface for GaussianMixtureImputer...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
-model                       =  GaussianMixtureImputer(initialisation_strategy="grid",rng=copy(TESTRNG))
+model                       =  BetaML.Bmlj.GaussianMixtureImputer(initialisation_strategy="grid",rng=copy(TESTRNG))
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
@@ -264,12 +264,16 @@ Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 
 XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
 XDMNew                      = Mlj.matrix(XDNew)
 @test isapprox(XDMNew[1,2],x̂[2,2])
+model                       =  BetaML.Bmlj.GaussianMixtureImputer(initialisation_strategy="grid",rng=copy(TESTRNG), mixtures=BetaML.SphericalGaussian)
+modelMachine                =  Mlj.machine(model,Xt)
+(fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
+@test report["AIC"] < 100000
 
 println("Testing MLJ Interface for RandomForestImputer...")
 
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
-model                       =  RandomForestImputer(n_trees=40,rng=copy(TESTRNG))
+model                       =  BetaML.Bmlj.RandomForestImputer(n_trees=40,rng=copy(TESTRNG))
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
@@ -286,7 +290,7 @@ println("Testing MLJ Interface for GeneralImputer...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
 trng = copy(TESTRNG)
-model                       =  GeneralImputer(estimator=[GMMRegressor1(rng=copy(TESTRNG),verbosity=NONE),RandomForestEstimator(n_trees=40,rng=copy(TESTRNG),verbosity=NONE)],recursive_passages=2, missing_supported=true, rng = copy(TESTRNG))
+model                       =  BetaML.Bmlj.GeneralImputer(estimator=[GMMRegressor1(rng=copy(TESTRNG),verbosity=NONE),RandomForestEstimator(n_trees=40,rng=copy(TESTRNG),verbosity=NONE)],recursive_passages=2, missing_supported=true, rng = copy(TESTRNG))
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
@@ -311,7 +315,7 @@ X =  [     12      0.3       5      11;
 
 Xt = Mlj.table(X)
 trng = copy(TESTRNG)
-model                       =  GeneralImputer(estimator=DecisionTree.DecisionTreeRegressor(), fit_function=DecisionTree.fit!,predict_function=DecisionTree.predict,recursive_passages=10, rng = copy(TESTRNG))
+model                       =  BetaML.Bmlj.GeneralImputer(estimator=DecisionTree.DecisionTreeRegressor(), fit_function=DecisionTree.fit!,predict_function=DecisionTree.predict,recursive_passages=10, rng = copy(TESTRNG))
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)

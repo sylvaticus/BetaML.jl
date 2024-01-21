@@ -51,8 +51,5 @@ include("GMM_clustering.jl")
 include("Mixtures.jl")
 include("GMM_regression.jl")
 
-# MLJ interface
-include("GMM_MLJ.jl")
-
 end
 

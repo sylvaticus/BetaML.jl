@@ -263,7 +263,7 @@ end
 # ------------------------------------------------------------------------------
 # GMMImputer
 Base.@kwdef mutable struct GMMImputerLearnableParameters <: BetaMLLearnableParametersSet
-    mixtures::Vector{AbstractMixture}           = []
+    mixtures::Union{Type,Vector{<: AbstractMixture}}    = DiagonalGaussian[] # The type is only temporary, it should always be replaced by an actual mixture
     initial_probmixtures::Vector{Float64}               = []
     probRecords::Union{Nothing,Matrix{Float64}} = nothing
     #imputedValues                               = nothing
@@ -1211,7 +1211,5 @@ function show(io::IO, m::UniversalImputer)
     end
 end
 
-# MLJ interface
-include("Imputation_MLJ.jl")
 
 end # end Imputation module

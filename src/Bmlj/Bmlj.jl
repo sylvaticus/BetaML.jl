@@ -5,12 +5,15 @@
 # MLJ interface for BetaML models
 
 In this module we define the interface of several BetaML models. They can be used using the [MLJ framework](https://github.com/alan-turing-institute/MLJ.jl).
+
+Note that MLJ models (whose name could be the same as the underlying BetaML model) are not exported. You can access them with `BetaML.Bmlj.ModelXYZ`.
+
 """
 module Bmlj
-mljverbosity_to_betaml_verbosity
 
+using Random, LinearAlgebra, Statistics
 using CategoricalArrays, DocStringExtensions
-using Random
+
 
 import MLJModelInterface       # It seems that having done this in the top module is not enought
 const MMI = MLJModelInterface  # We need to repeat it here
@@ -24,11 +27,10 @@ import ..BetaML
 import ..Utils # can't using it as it exports some same-name models
 import ..Perceptron
 import ..Nn: AbstractLayer, ADAM, SGD, NeuralNetworkEstimator, OptimisationAlgorithm, DenseLayer, NN
-import ..Utils: AbstractRNG, squared_cost, SuccessiveHalvingSearch, mljverbosity_to_betaml_verbosity
+import ..Utils: AbstractRNG, squared_cost, SuccessiveHalvingSearch
 
 
 export mljverbosity_to_betaml_verbosity
-
 
 """
 $(TYPEDSIGNATURES)
@@ -51,11 +53,11 @@ function mljverbosity_to_betaml_verbosity(i::Integer)
 end
 
 include("Perceptron_mlj.jl") # Perceptron-like algorithms
-#include("Trees_mlj.jl")           # Decision Trees and ensembles (Random Forests)
-#include("Clustering_mlj.jl") # Clustering (hard) algorithms
-#include("GMM_mlj.jl")               # GMM-based learners (clustering, fitter, regression) 
-#include("Imputation_mlj.jl") 
-#include("Nn_mlj.jl")
-include("Utils_mlj.jl")
+include("Trees_mlj.jl")      # Decision Trees and ensembles (Random Forests)
+include("Clustering_mlj.jl") # Clustering (hard) algorithms
+include("GMM_mlj.jl")        # GMM-based learners (clustering, fitter, regression) 
+include("Imputation_mlj.jl") # Imputation models
+include("Nn_mlj.jl")         # Neural network models
+include("Utils_mlj.jl")      # Various transformers/encorders
 
 end

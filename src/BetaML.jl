@@ -56,11 +56,11 @@ import .Bmlj # some MLJ models have the same name as BetaML models, set them in 
 # ------------------------------------------------------------------------------
 #MLJ interface...
 const MLJ_PERCEPTRON_MODELS = (Bmlj.LinearPerceptron, Bmlj.KernelPerceptron, Bmlj.Pegasos)
-const MLJ_TREES_MODELS      = (DecisionTreeClassifier, DecisionTreeRegressor, RandomForestClassifier, RandomForestRegressor)
-const MLJ_CLUSTERING_MODELS = (KMeans, KMedoids, GaussianMixtureClusterer)
-const MLJ_IMPUTERS_MODELS   = (SimpleImputer, GaussianMixtureImputer, RandomForestImputer,GeneralImputer) # these are the name of the MLJ models, not the BetaML ones...
-const MLJ_NN_MODELS         = (NeuralNetworkRegressor,MultitargetNeuralNetworkRegressor, NeuralNetworkClassifier)
-const MLJ_OTHER_MODELS      = (GaussianMixtureRegressor,MultitargetGaussianMixtureRegressor,Bmlj.AutoEncoder)
+const MLJ_TREES_MODELS      = (Bmlj.DecisionTreeClassifier, Bmlj.DecisionTreeRegressor, Bmlj.RandomForestClassifier, Bmlj.RandomForestRegressor)
+const MLJ_CLUSTERING_MODELS = (Bmlj.KMeans, Bmlj.KMedoids, Bmlj.GaussianMixtureClusterer)
+const MLJ_IMPUTERS_MODELS   = (Bmlj.SimpleImputer, Bmlj.GaussianMixtureImputer, Bmlj.RandomForestImputer,Bmlj.GeneralImputer) # these are the name of the MLJ models, not the BetaML ones...
+const MLJ_NN_MODELS         = (Bmlj.NeuralNetworkRegressor,Bmlj.MultitargetNeuralNetworkRegressor, Bmlj.NeuralNetworkClassifier)
+const MLJ_OTHER_MODELS      = (Bmlj.GaussianMixtureRegressor,Bmlj.MultitargetGaussianMixtureRegressor,Bmlj.AutoEncoder)
 const MLJ_INTERFACED_MODELS = (MLJ_PERCEPTRON_MODELS..., MLJ_TREES_MODELS..., MLJ_CLUSTERING_MODELS..., MLJ_IMPUTERS_MODELS..., MLJ_NN_MODELS..., MLJ_OTHER_MODELS...) 
 
 

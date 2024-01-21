@@ -32,8 +32,6 @@ import Base.show
 export KMeansHyperParametersSet, KMedoidsHyperParametersSet, KMeansClusterer, KMedoidsClusterer 
 
 include("Clustering_hard.jl") # K-means and k-medoids
-# MLJ interface
-include("Clustering_MLJ.jl")
 
 end
 

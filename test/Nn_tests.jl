@@ -623,7 +623,7 @@ import MLJBase
 const Mlj = MLJBase
 import StatisticalMeasures
 X, y                           = Mlj.@load_boston
-model                          = NeuralNetworkRegressor(rng=copy(TESTRNG))
+model                          = BetaML.Bmlj.NeuralNetworkRegressor(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, -1, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
@@ -631,14 +631,14 @@ yhat                           = Mlj.predict(model, fitresult, X)
 
 X, y                           = Mlj.@load_boston
 y2d = [y y]
-model                          = MultitargetNeuralNetworkRegressor(rng=copy(TESTRNG))
+model                          = BetaML.Bmlj.MultitargetNeuralNetworkRegressor(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y2d)
 (fitresult, cache, report)     = Mlj.fit(model, -1, X, y2d)
 yhat                           = Mlj.predict(model, fitresult, X)
 @test relative_mean_error(y2d,yhat,normrec=true) < 0.2
 
 X, y                           = Mlj.@load_iris
-model                          = NeuralNetworkClassifier(rng=copy(TESTRNG),epochs=500,batch_size=64)
+model                          = BetaML.Bmlj.NeuralNetworkClassifier(rng=copy(TESTRNG),epochs=500,batch_size=64)
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, -1, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
