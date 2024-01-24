@@ -3,9 +3,9 @@
 import BetaML.Utils.allowmissing
 
 # ------------------------------------------------------------------------------
-# GMMRegressor1 
+# GaussianMixtureRegressor2 
 
-Base.@kwdef mutable struct GMMRegressor1LearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct GaussianMixtureRegressor2LearnableParameters <: BetaMLLearnableParametersSet
     mixtures::Union{Type,Vector{<: AbstractMixture}}    = DiagonalGaussian[] # The type is only temporary, it should always be replaced by an actual mixture
     initial_probmixtures::Vector{Float64}                  = []
     #probRecords::Union{Nothing,Matrix{Float64}}    = nothing
@@ -21,7 +21,7 @@ The training data is used to fit a probabilistic model with latent mixtures (Gau
 
 For hyperparameters see [`GMMHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).
 
-This strategy (`GMMRegressor1`) works by fitting the EM algorithm on the feature matrix X.
+This strategy (`GaussianMixtureRegressor2`) works by fitting the EM algorithm on the feature matrix X.
 Once the data has been probabilistically assigned to the various classes, a mean value of fitting values Y is computed for each cluster (using the probabilities as weigths).
 At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm to obtain the probabilistic assignment of each record to the various mixtures. Then these probabilities are multiplied to the mixture averages for the Y dimensions learned at training time to obtain the predicted value(s) for each record. 
 
@@ -42,8 +42,8 @@ julia> Y = X[:,1] .* 2 - X[:,2]
  23.4
  -8.200000000000001
 
-julia> mod = GMMRegressor1(n_classes=2)
-GMMRegressor1 - A regressor based on Generative Mixture Model (unfitted)
+julia> mod = GaussianMixtureRegressor2(n_classes=2)
+GaussianMixtureRegressor2 - A regressor based on Generative Mixture Model (unfitted)
 
 julia> ŷ = fit!(mod,X,Y)
 Iter. 1:        Var. of the post  2.15612140465882        Log-likelihood -29.06452054772657
@@ -69,17 +69,17 @@ Dict{String, Any} with 6 entries:
 ```
 
 """
-mutable struct GMMRegressor1 <: BetaMLUnsupervisedModel
+mutable struct GaussianMixtureRegressor2 <: BetaMLUnsupervisedModel
     hpar::GMMHyperParametersSet
     opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,GMMRegressor1LearnableParameters}
+    par::Union{Nothing,GaussianMixtureRegressor2LearnableParameters}
     cres::Union{Nothing,Matrix{Float64}} 
     fitted::Bool
     info::Dict{String,Any}
 end
 
-function GMMRegressor1(;kwargs...)
-     m = GMMRegressor1(GMMHyperParametersSet(),BetaMLDefaultOptionsSet(),GMMRegressor1LearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function GaussianMixtureRegressor2(;kwargs...)
+     m = GaussianMixtureRegressor2(GMMHyperParametersSet(),BetaMLDefaultOptionsSet(),GaussianMixtureRegressor2LearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -116,12 +116,12 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit the [`GMMRegressor1`](@ref) model to data
+Fit the [`GaussianMixtureRegressor2`](@ref) model to data
 
 # Notes:
 - re-fitting is a new complete fitting but starting with mixtures computed in the previous fitting(s)
 """
-function fit!(m::GMMRegressor1,x,y)
+function fit!(m::GaussianMixtureRegressor2,x,y)
 
     m.fitted || autotune!(m,(x,y))
     
@@ -156,7 +156,7 @@ function fit!(m::GMMRegressor1,x,y)
     ysum           = probRecords' * y
     ymean          = vcat(transpose([ysum[r,:] / sumProbrecords[1,r] for r in 1:size(ysum,1)])...)
 
-    m.par  = GMMRegressor1LearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makecolvector(gmmOut.pₖ), meanYByMixture = ymean)
+    m.par  = GaussianMixtureRegressor2LearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makecolvector(gmmOut.pₖ), meanYByMixture = ymean)
     m.cres = cache ? probRecords  * ymean : nothing
 
 
@@ -173,10 +173,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the classes probabilities associated to new data assuming the mixtures and average values per class computed in fitting a [`GMMRegressor1`](@ref) model.
+Predict the classes probabilities associated to new data assuming the mixtures and average values per class computed in fitting a [`GaussianMixtureRegressor2`](@ref) model.
 
 """
-function predict(m::GMMRegressor1,X)
+function predict(m::GaussianMixtureRegressor2,X)
     X    = makematrix(X)
     N,DX = size(X)
     mixtures = m.par.mixtures
@@ -186,20 +186,20 @@ function predict(m::GMMRegressor1,X)
     return probRecords * yByMixture
 end
 
-function show(io::IO, ::MIME"text/plain", m::GMMRegressor1)
+function show(io::IO, ::MIME"text/plain", m::GaussianMixtureRegressor2)
     if m.fitted == false
-        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model (unfitted)")
+        print(io,"GaussianMixtureRegressor2 - A regressor based on Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model (fitted on $(m.info["fitted_records"]) records)")
+        print(io,"GaussianMixtureRegressor2 - A regressor based on Generative Mixture Model (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
-function show(io::IO, m::GMMRegressor1)
+function show(io::IO, m::GaussianMixtureRegressor2)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, unfitted)")
+        print(io,"GaussianMixtureRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, unfitted)")
     else
-        print(io,"GMMRegressor1 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, fitted on $(m.info["fitted_records"]) records)")
+        print(io,"GaussianMixtureRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, fitted on $(m.info["fitted_records"]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)
@@ -209,7 +209,7 @@ function show(io::IO, m::GMMRegressor1)
 end
 
 # ------------------------------------------------------------------------------
-# GMMRegressor2
+# GaussianMixtureRegressor
 """
 $(TYPEDEF)
 
@@ -219,7 +219,7 @@ The training data is used to fit a probabilistic model with latent mixtures (Gau
 
 For hyperparameters see [`GMMHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).
 
-Thsi strategy (`GMMRegressor2`) works by training the EM algorithm on a combined (hcat) matrix of X and Y.
+Thsi strategy (`GaussianMixtureRegressor`) works by training the EM algorithm on a combined (hcat) matrix of X and Y.
 At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm (and using missing values for the dimensions belonging to Y) to obtain the probabilistic assignment of each record to the various mixtures. Then these probabilities are multiplied to the mixture averages for the Y dimensions to obtain the predicted value(s) for each record. 
 
 # Example:
@@ -236,8 +236,8 @@ julia> Y = X[:,1] .* 2 - X[:,2]
  23.4
  -8.200000000000001
 
-julia> mod = GMMRegressor2(n_classes=2)
-GMMRegressor2 - A regressor based on Generative Mixture Model (unfitted)
+julia> mod = GaussianMixtureRegressor(n_classes=2)
+GaussianMixtureRegressor - A regressor based on Generative Mixture Model (unfitted)
 
 julia> ŷ = fit!(mod,X,Y)
 Iter. 1:        Var. of the post  2.2191120060614065      Log-likelihood -47.70971887023561
@@ -267,7 +267,7 @@ BetaML.GMM.GMMClusterLearnableParameters (a BetaMLLearnableParametersSet struct)
 - initial_probmixtures: [0.6, 0.4]
 ```
 """
-mutable struct GMMRegressor2 <: BetaMLUnsupervisedModel
+mutable struct GaussianMixtureRegressor <: BetaMLUnsupervisedModel
     hpar::GMMHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,GMMClusterLearnableParameters}
@@ -276,8 +276,8 @@ mutable struct GMMRegressor2 <: BetaMLUnsupervisedModel
     info::Dict{String,Any}
 end
 
-function GMMRegressor2(;kwargs...)
-    m = GMMRegressor2(GMMHyperParametersSet(),BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function GaussianMixtureRegressor(;kwargs...)
+    m = GaussianMixtureRegressor(GMMHyperParametersSet(),BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -313,12 +313,12 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit the [`GMMRegressor2`](@ref) model to data
+Fit the [`GaussianMixtureRegressor`](@ref) model to data
 
 # Notes:
 - re-fitting is a new complete fitting but starting with mixtures computed in the previous fitting(s)
 """
-function fit!(m::GMMRegressor2,x,y)
+function fit!(m::GaussianMixtureRegressor,x,y)
 
     m.fitted || autotune!(m,(x,y))
 
@@ -367,9 +367,9 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the classes probabilities associated to new data assuming the mixtures computed fitting a [`GMMRegressor2`](@ref) model on a merged X and Y matrix
+Predict the classes probabilities associated to new data assuming the mixtures computed fitting a [`GaussianMixtureRegressor`](@ref) model on a merged X and Y matrix
 """
-function predict(m::GMMRegressor2,X)
+function predict(m::GaussianMixtureRegressor,X)
     X    = makematrix(X)
     X    = allowmissing(X)
     N,DX = size(X)
@@ -383,20 +383,20 @@ function predict(m::GMMRegressor2,X)
     return probRecords * yByMixture
 end
 
-function show(io::IO, ::MIME"text/plain", m::GMMRegressor2)
+function show(io::IO, ::MIME"text/plain", m::GaussianMixtureRegressor)
     if m.fitted == false
-        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model (unfitted)")
+        print(io,"GaussianMixtureRegressor - A regressor based on Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model (fitted on $(m.info["fitted_records"]) records)")
+        print(io,"GaussianMixtureRegressor - A regressor based on Generative Mixture Model (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
-function show(io::IO, m::GMMRegressor2)
+function show(io::IO, m::GaussianMixtureRegressor)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, unfitted)")
+        print(io,"GaussianMixtureRegressor - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, unfitted)")
     else
-        print(io,"GMMRegressor2 - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, fitted on $(m.info["fitted_records"]) records)")
+        print(io,"GaussianMixtureRegressor - A regressor based on Generative Mixture Model ($(m.hpar.n_classes) classes, fitted on $(m.info["fitted_records"]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)

@@ -12,8 +12,8 @@ Collaborative filtering / missing values imputation / reccomendation systems bas
 The module provides the following models. Use `?[model]` to access their documentation:
 
 - [`GMMClusterer`](@ref): soft-clustering using GMM
-- [`GMMRegressor1`](@ref): regressor using GMM as back-end (first algorithm)
-- [`GMMRegressor1`](@ref): regressor using GMM as back-end (second algorithm)
+- [`GaussianMixtureRegressor2`](@ref): regressor using GMM as back-end (first algorithm)
+- [`GaussianMixtureRegressor2`](@ref): regressor using GMM as back-end (second algorithm)
 
 All the algorithms works with arbitrary mixture distribution, altought only {Spherical|Diagonal|Full} Gaussian mixtures has been implemented. User defined mixtures can be used defining a struct as subtype of `AbstractMixture` and implementing for that mixture the following functions:
 - `init_mixtures!(mixtures, X; minimum_variance, minimum_covariance, initialisation_strategy)`
@@ -42,7 +42,7 @@ import Base.show
 #export gmm, 
 export AbstractMixture,
        GMMClusterer,
-       GMMRegressor1, GMMRegressor2,
+       GaussianMixtureRegressor2, GaussianMixtureRegressor,
        GMMHyperParametersSet
 
 abstract type AbstractMixture end

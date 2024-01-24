@@ -32,7 +32,7 @@ The perceptron is a _linear_ classifier. Multiclass is supported using a one-vs-
 
 # Notes:
 * The trained parameters can then be used to make predictions using the function `predict()`.
-* This model is available in the MLJ framework as the `LinearPerceptron`
+* This model is available in the MLJ framework as the `PerceptronClassifier`
 
 # Example:
 ```jldoctest

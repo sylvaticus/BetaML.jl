@@ -6,7 +6,7 @@ const Mlj = MLJBase
 import StatisticalMeasures
 using StableRNGs
 using BetaML
-import BetaML.Perceptron: perceptron, perceptronBinary, kernelPerceptron, kernelPerceptronBinary, pegasos, pegasosBinary
+import BetaML.Perceptron: perceptron, perceptronBinary, kernel_perceptron_classifier, kernel_perceptron_classifier_binary, pegasos, pegasosBinary
 
 #TESTRNG = FIXEDRNG # This could change...
 TESTRNG = StableRNG(123)
@@ -113,10 +113,10 @@ xtest  = [ 3 7 2; 2 2 3; 3 2 2; 4 1 2; 4 3 2;]
 #xtest = xtrain
 ytt2    = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest))]
 ytest = [i > median(ytt2) ? 1 : -1 for i in ytt2]
-#out   = kernelPerceptron(xtrain, ytrain, K=polynomial_kernel,rShuffle=true,nMsgs=100)
+#out   = KernelPerceptronClassifier(xtrain, ytrain, K=polynomial_kernel,rShuffle=true,nMsgs=100)
 #ŷtest = predict(xtest,out[1][1],out[1][2],out[1][3], K=polynomial_kernel)
-out   = kernelPerceptronBinary(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0,α=ones(Int64,length(ytrain)))
-# the same: out   = kernelPerceptronBinary(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0)
+out   = kernel_perceptron_classifier_binary(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0,α=ones(Int64,length(ytrain)))
+# the same: out   = KernelPerceptronClassifierBinary(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0)
 ŷtest = predict(xtest,out.x,out.y,out.α, K=out.K)
 ϵ = error(ytest, ŷtest)
 ŷtestExpected = [1,-1,-1,-1,-1]
@@ -125,7 +125,7 @@ ŷtestExpected = [1,-1,-1,-1,-1]
 @test any(ŷtestExpected == ŷtest )
 
 # Multiclass..
-outMultiClass   = kernelPerceptron(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0)
+outMultiClass   = kernel_perceptron_classifier(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0)
 ŷtest = predict(xtest,outMultiClass.x,outMultiClass.y,outMultiClass.α, outMultiClass.classes,K=outMultiClass.K)
 ϵ = error(ytest, mode(ŷtest))
 ŷtestExpected = [1,-1,-1,-1,-1]
@@ -142,7 +142,7 @@ xtest = rand(TESTRNG,20,3)
 ytt2   = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest))]
 ytest  = [i > median(ytt2)*1.1 ? "big" :  i > median(ytt2)*0.9 ? "avg" : "small" for i in ytt2]
 
-out    = kernelPerceptron(xtrain,  ytrain, shuffle=false,nMsgs=0,T=1000)
+out    = kernel_perceptron_classifier(xtrain,  ytrain, shuffle=false,nMsgs=0,T=1000)
 ŷtrain = predict(xtrain,out.x,out.y,out.α, out.classes,K=out.K)
 ŷtest  = predict(xtest,out.x,out.y,out.α, out.classes,K=out.K)
 ϵtrain = error(ytrain, mode(ŷtrain))
@@ -244,7 +244,7 @@ ŷtrain = predict(xtrain,model.θ,model.θ₀,model.classes)
 ŷtest = predict(xtest,model.θ,model.θ₀,model.classes)
 @test accuracy(ytest,mode(ŷtest))  >= 0.9
 
-model = kernelPerceptron(xtrain,ytrain)
+model = kernel_perceptron_classifier(xtrain,ytrain)
 ŷtrain = predict(xtrain,model.x,model.y,model.α,model.classes)
 @test accuracy(ytrain,mode(ŷtrain)) >= 0.9
 ŷtest = predict(xtest,model.x,model.y,model.α,model.classes)
@@ -262,19 +262,19 @@ println("Testing MLJ interface for Perceptron models....")
 
 X, y                           = Mlj.@load_iris
 
-model                          = BetaML.Bmlj.LinearPerceptron(rng=copy(TESTRNG))
+model                          = BetaML.Bmlj.PerceptronClassifier(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
 @test Mlj.mean(StatisticalMeasures.LogLoss(tol=1e-4)(yhat, y)) < 3.1
 
-model                          = BetaML.Bmlj.KernelPerceptron(rng=copy(TESTRNG))
+model                          = BetaML.Bmlj.KernelPerceptronClassifier(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)
 @test Mlj.mean(StatisticalMeasures.LogLoss(tol=1e-4)(yhat, y)) < 0.5
 
-model                          = BetaML.Bmlj.Pegasos(rng=copy(TESTRNG))
+model                          = BetaML.Bmlj.PegasosClassifier(rng=copy(TESTRNG))
 regressor                      = Mlj.machine(model, X, y)
 (fitresult, cache, report)     = Mlj.fit(model, 0, X, y)
 yhat                           = Mlj.predict(model, fitresult, X)

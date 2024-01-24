@@ -2,7 +2,7 @@
 
 # MLJ interface for Decision Trees/Random Forests models
 
-export LinearPerceptron, KernelPerceptron, Pegasos
+export PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier
 
 
 # ------------------------------------------------------------------------------
@@ -21,13 +21,13 @@ julia> using MLJ
 
 julia> X, y        = @load_iris;
 
-julia> modelType   = @load LinearPerceptron pkg = "BetaML"
+julia> modelType   = @load PerceptronClassifier pkg = "BetaML"
 [ Info: For silent loading, specify `verbosity=0`. 
 import BetaML ✔
-BetaML.Perceptron.LinearPerceptron
+BetaML.Perceptron.PerceptronClassifier
 
 julia> model       = modelType()
-LinearPerceptron(
+PerceptronClassifier(
   initial_coefficients = nothing, 
   initial_constant = nothing, 
   epochs = 1000, 
@@ -39,7 +39,7 @@ LinearPerceptron(
 julia> mach        = machine(model, X, y);
 
 julia> fit!(mach);
-[ Info: Training machine(LinearPerceptron(initial_coefficients = nothing, …), …).
+[ Info: Training machine(PerceptronClassifier(initial_coefficients = nothing, …), …).
 *** Avg. error after epoch 2 : 0.0 (all elements of the set has been correctly classified)
 julia> est_classes = predict(mach, X)
 150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, String, UInt8, Float64}:
@@ -51,7 +51,7 @@ julia> est_classes = predict(mach, X)
 ```
 
 """
-mutable struct LinearPerceptron <: MMI.Probabilistic
+mutable struct PerceptronClassifier <: MMI.Probabilistic
    "N-classes by D-dimensions matrix of initial linear coefficients [def: `nothing`, i.e. zeros]"
    initial_coefficients::Union{Matrix{Float64},Nothing} 
    "N-classes vector of initial contant terms [def: `nothing`, i.e. zeros]"
@@ -67,7 +67,7 @@ mutable struct LinearPerceptron <: MMI.Probabilistic
    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG
 end
-LinearPerceptron(;
+PerceptronClassifier(;
   initial_coefficients=nothing,
   initial_constant=nothing,
   epochs=1000,
@@ -75,7 +75,7 @@ LinearPerceptron(;
   force_origin=false,
   return_mean_hyperplane=false,
   rng = Random.GLOBAL_RNG,
-  ) = LinearPerceptron(initial_coefficients,initial_constant,epochs,shuffle,force_origin,return_mean_hyperplane,rng)
+  ) = PerceptronClassifier(initial_coefficients,initial_constant,epochs,shuffle,force_origin,return_mean_hyperplane,rng)
 
 """
 $(TYPEDEF)
@@ -91,13 +91,13 @@ julia> using MLJ
 
 julia> X, y        = @load_iris;
 
-julia> modelType   = @load KernelPerceptron pkg = "BetaML"
+julia> modelType   = @load KernelPerceptronClassifier pkg = "BetaML"
 [ Info: For silent loading, specify `verbosity=0`. 
 import BetaML ✔
-BetaML.Perceptron.KernelPerceptron
+BetaML.Perceptron.KernelPerceptronClassifier
 
 julia> model       = modelType()
-KernelPerceptron(
+KernelPerceptronClassifier(
   kernel = BetaML.Utils.radial_kernel, 
   epochs = 100, 
   initial_errors = nothing, 
@@ -118,7 +118,7 @@ julia> est_classes = predict(mach, X)
 ```
 
 """
-mutable struct KernelPerceptron <: MMI.Probabilistic
+mutable struct KernelPerceptronClassifier <: MMI.Probabilistic
     "Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel` (once loaded the BetaML package) for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radial_kernel`](@ref)]"
     kernel::Function
     "Maximum number of epochs, i.e. passages trough the whole training sample [def: `100`]"
@@ -130,13 +130,13 @@ mutable struct KernelPerceptron <: MMI.Probabilistic
     "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
-KernelPerceptron(;
+KernelPerceptronClassifier(;
     kernel=BetaML.Utils.radial_kernel,
     epochs=100,
     initial_errors = nothing,
     shuffle=true,
     rng = Random.GLOBAL_RNG,
-    ) = KernelPerceptron(kernel,epochs,initial_errors,shuffle,rng)
+    ) = KernelPerceptronClassifier(kernel,epochs,initial_errors,shuffle,rng)
 """
 $(TYPEDEF)
 
@@ -151,11 +151,11 @@ julia> using MLJ
 
 julia> X, y        = @load_iris;
 
-julia> modelType   = @load Pegasos pkg = "BetaML" verbosity=0
-BetaML.Perceptron.Pegasos
+julia> modelType   = @load PegasosClassifier pkg = "BetaML" verbosity=0
+BetaML.Perceptron.PegasosClassifier
 
 julia> model       = modelType()
-Pegasos(
+PegasosClassifier(
   initial_coefficients = nothing, 
   initial_constant = nothing, 
   learning_rate = BetaML.Perceptron.var"#71#73"(), 
@@ -179,7 +179,7 @@ julia> est_classes = predict(mach, X)
  UnivariateFinite{Multiclass{3}}(setosa=>0.283, versicolor=>0.51, virginica=>0.207)
 ```
 """
-mutable struct Pegasos <: MMI.Probabilistic
+mutable struct PegasosClassifier <: MMI.Probabilistic
     "N-classes by D-dimensions matrix of initial linear coefficients [def: `nothing`, i.e. zeros]"
    initial_coefficients::Union{Matrix{Float64},Nothing} 
    "N-classes vector of initial contant terms [def: `nothing`, i.e. zeros]"
@@ -199,7 +199,7 @@ mutable struct Pegasos <: MMI.Probabilistic
    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG
 end
-Pegasos(;
+PegasosClassifier(;
   initial_coefficients=nothing,
   initial_constant=nothing,
   learning_rate = (t -> 1/sqrt(t)),
@@ -209,12 +209,12 @@ Pegasos(;
   force_origin=false,
   return_mean_hyperplane=false,
   rng = Random.GLOBAL_RNG,
-  ) = Pegasos(initial_coefficients,initial_constant,learning_rate,learning_rate_multiplicative,epochs,shuffle,force_origin,return_mean_hyperplane,rng)
+  ) = PegasosClassifier(initial_coefficients,initial_constant,learning_rate,learning_rate_multiplicative,epochs,shuffle,force_origin,return_mean_hyperplane,rng)
 
 # ------------------------------------------------------------------------------
 # Fit functions...
 
-function MMI.fit(model::LinearPerceptron, verbosity, X, y)
+function MMI.fit(model::PerceptronClassifier, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
  typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
@@ -226,19 +226,19 @@ function MMI.fit(model::LinearPerceptron, verbosity, X, y)
  return (fitresult,allClasses), cache, report
 end
 
-function MMI.fit(model::KernelPerceptron, verbosity, X, y)
+function MMI.fit(model::KernelPerceptronClassifier, verbosity, X, y)
  x          = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
  typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
  verbosity = mljverbosity_to_betaml_verbosity(verbosity)
  #initial_errors   = length(model.initial_errors) == 0 ? zeros(Int64,length(y)) : model.initial_errors
- fitresult  = BetaML.Perceptron.kernelPerceptron(x, y; K=model.kernel, T=model.epochs, α=model.initial_errors, nMsgs=0, shuffle=model.shuffle,rng=model.rng, verbosity=verbosity)
+ fitresult  = BetaML.Perceptron.kernel_perceptron_classifier(x, y; K=model.kernel, T=model.epochs, α=model.initial_errors, nMsgs=0, shuffle=model.shuffle,rng=model.rng, verbosity=verbosity)
  cache      = nothing
  report     = nothing
  return (fitresult,allClasses), cache, report
 end
 
-function MMI.fit(model::Pegasos, verbosity, X, y)
+function MMI.fit(model::PegasosClassifier, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = levels(y)
  typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
@@ -252,7 +252,7 @@ end
 
 # ------------------------------------------------------------------------------
 # Predict functions....
-function MMI.predict(model::Union{LinearPerceptron,Pegasos}, fitresult, Xnew)
+function MMI.predict(model::Union{PerceptronClassifier,PegasosClassifier}, fitresult, Xnew)
     fittedModel      = fitresult[1]
     #classes          = CategoricalVector(fittedModel.classes)
     classes          = fittedModel.classes
@@ -274,7 +274,7 @@ function MMI.predict(model::Union{LinearPerceptron,Pegasos}, fitresult, Xnew)
     return predictions
 end
 
-function MMI.predict(model::KernelPerceptron, fitresult, Xnew)
+function MMI.predict(model::KernelPerceptronClassifier, fitresult, Xnew)
     fittedModel      = fitresult[1]
     #classes          = CategoricalVector(fittedModel.classes)
     classes          = fittedModel.classes
@@ -303,23 +303,23 @@ end
 # ------------------------------------------------------------------------------
 # Model metadata for registration in MLJ...
 
-MMI.metadata_model(LinearPerceptron,
+MMI.metadata_model(PerceptronClassifier,
     input_scitype    = MMI.Table(MMI.Infinite),
     target_scitype   = AbstractVector{<: MMI.Finite},
     supports_weights = false,
-	load_path        = "BetaML.Bmlj.LinearPerceptron"
+	load_path        = "BetaML.Bmlj.PerceptronClassifier"
 )
 
-MMI.metadata_model(KernelPerceptron,
+MMI.metadata_model(KernelPerceptronClassifier,
     input_scitype    = MMI.Table(MMI.Infinite),
     target_scitype   = AbstractVector{<: MMI.Finite},
     supports_weights = false,
-	load_path        = "BetaML.Bmlj.KernelPerceptron"
+	load_path        = "BetaML.Bmlj.KernelPerceptronClassifier"
 )
 
-MMI.metadata_model(Pegasos,
+MMI.metadata_model(PegasosClassifier,
     input_scitype    = MMI.Table(MMI.Infinite),
     target_scitype   = AbstractVector{<: MMI.Finite},
     supports_weights = false,
-	load_path        = "BetaML.Bmlj.Pegasos"
+	load_path        = "BetaML.Bmlj.PegasosClassifier"
 )

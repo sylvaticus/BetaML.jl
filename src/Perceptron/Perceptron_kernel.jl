@@ -1,15 +1,15 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 """
-    kernelPerceptron(x,y;K,T,α,nMsgs,shuffle)
+    kernel_perceptron_classifier(x,y;K,T,α,nMsgs,shuffle)
 
 Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
 
 !!! warning
     Direct usage of this low-level function is deprecated. It has been unexported in BetaML 0.9.
-    Use the model kernelPerceptron() instead. 
+    Use the model KernelPerceptronClassifier() instead. 
 
-`kernelPerceptron` is a (potentially) non-linear perceptron-style classifier employing user-defined kernel funcions. Multiclass is supported using a one-vs-one approach.
+`KernelPerceptronClassifier` is a (potentially) non-linear perceptron-style classifier employing user-defined kernel funcions. Multiclass is supported using a one-vs-one approach.
 
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
@@ -29,15 +29,15 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
 
 # Notes:
 * The trained model can then be used to make predictions using the function `predict()`.
-* This model is available in the MLJ framework as the `KernelPerceptron`
+* This model is available in the MLJ framework as the `KernelPerceptronClassifier`
 
 # Example:
 ```jldoctest
-julia> model = kernelPerceptron([1.1 1.1; 5.3 4.2; 1.8 1.7; 7.5 5.2;], ["a","c","b","c"])
+julia> model = kernel_perceptron_classifier([1.1 1.1; 5.3 4.2; 1.8 1.7; 7.5 5.2;], ["a","c","b","c"])
 julia> ŷtest = Perceptron.predict([10 10; 2.2 2.5; 1 1],model.x,model.y,model.α, model.classes,K=model.K)
 ```
 """
-function kernelPerceptron(x, y; K=radial_kernel, T=100, α=nothing, nMsgs=0, shuffle=false, rng = Random.GLOBAL_RNG, verbosity=NONE)
+function kernel_perceptron_classifier(x, y; K=radial_kernel, T=100, α=nothing, nMsgs=0, shuffle=false, rng = Random.GLOBAL_RNG, verbosity=NONE)
 
     if verbosity == NONE
         nMsgs = 0
@@ -71,7 +71,7 @@ function kernelPerceptron(x, y; K=radial_kernel, T=100, α=nothing, nMsgs=0, shu
             thisy = y[ids]
             thisα = α[modelCounter][ids]
             ybin = ((thisy .== c) .*2 .-1)  # conversion to +1 (if c) or -1 (if c2)
-            outBinary = kernelPerceptronBinary(thisx, ybin; K=K, T=T, α=thisα, nMsgs=nMsgs, shuffle=shuffle, rng = rng, verbosity=verbosity)
+            outBinary = kernel_perceptron_classifier_binary(thisx, ybin; K=K, T=T, α=thisα, nMsgs=nMsgs, shuffle=shuffle, rng = rng, verbosity=verbosity)
             outX[modelCounter] = outBinary.x
             outY[modelCounter] = outBinary.y
             outα[modelCounter] = outBinary.α
@@ -82,7 +82,7 @@ function kernelPerceptron(x, y; K=radial_kernel, T=100, α=nothing, nMsgs=0, shu
 end
 
 """
-    kernelPerceptronBinary(x,y;K,T,α,nMsgs,shuffle)
+    kernel_perceptron_classifier_binary(x,y;K,T,α,nMsgs,shuffle)
 
 Train a binary kernel classifier "perceptron" algorithm based on x and y
 
@@ -111,13 +111,13 @@ Train a binary kernel classifier "perceptron" algorithm based on x and y
 
 # Notes:
 * The trained data can then be used to make predictions using the function `predict()`. **If the option `shuffle` has been used, it is important to use there the returned (x,y,α) as these would have been shuffled compared with the original (x,y)**.
-* Please see @kernelPerceptron for a multi-class version
+* Please see @KernelPerceptronClassifier for a multi-class version
 # Example:
 ```jldoctest
-julia> model = kernelPerceptronBinary([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
+julia> model = kernel_perceptron_classifier_binary([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 """
-function kernelPerceptronBinary(x, y; K=radial_kernel, T=1000, α=zeros(Int64,length(y)), nMsgs=10, shuffle=false, rng = Random.GLOBAL_RNG, verbosity = NONE)
+function kernel_perceptron_classifier_binary(x, y; K=radial_kernel, T=1000, α=zeros(Int64,length(y)), nMsgs=10, shuffle=false, rng = Random.GLOBAL_RNG, verbosity = NONE)
     if verbosity == NONE
         nMsgs = 0
     elseif verbosity <= LOW
@@ -252,7 +252,7 @@ function predict(x,xtrain,ytrain,α;K=radial_kernel)
 
  # Example:
  ```julia
- julia> model  = kernelPerceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
+ julia> model  = KernelPerceptronClassifier([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
  julia> ŷtrain = Perceptron.predict([10 10; 2.2 2.5],model.x,model.y,model.α, model.classes,K=model.K)
  ```
  """
@@ -363,7 +363,7 @@ julia> mod = KernelPerceptronClassifier(epochs=100, kernel= quadratic_kernel)
 KernelPerceptronClassifier - A "kernelised" version of the perceptron classifier (unfitted)
 
 julia> ŷ = fit!(mod,X,y) |> mode
-Running function BetaML.Perceptron.#kernelPerceptronBinary#17 at /home/lobianco/.julia/dev/BetaML/src/Perceptron/Perceptron_kernel.jl:133
+Running function BetaML.Perceptron.#KernelPerceptronClassifierBinary#17 at /home/lobianco/.julia/dev/BetaML/src/Perceptron/Perceptron_kernel.jl:133
 Type `]dev BetaML` to modify the source code (this would change its location on disk)
 ***
 *** Training kernel perceptron for maximum 100 iterations. Random shuffle: true
@@ -442,7 +442,7 @@ function fit!(m::KernelPerceptronClassifier,X,Y)
         nMsgs = 100000
     end
 
-    out = kernelPerceptron(X, Y; K=kernel, T=epochs, α=initial_errors, nMsgs=nMsgs, shuffle=shuffle, rng = rng, verbosity=verbosity)
+    out = kernel_perceptron_classifier(X, Y; K=kernel, T=epochs, α=initial_errors, nMsgs=nMsgs, shuffle=shuffle, rng = rng, verbosity=verbosity)
 
     m.par = KernelPerceptronClassifierLearnableParameters(out.x,out.y,out.α,out.classes)
 

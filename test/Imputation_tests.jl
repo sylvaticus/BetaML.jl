@@ -143,7 +143,7 @@ println("Testing UniversalImputer...")
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
 trng = copy(TESTRNG)
-mod = UniversalImputer(estimator=[GMMRegressor1(rng=trng,verbosity=NONE),RandomForestEstimator(rng=trng,verbosity=NONE),RandomForestEstimator(rng=trng,verbosity=NONE)], multiple_imputations=10, recursive_passages=3, rng=copy(TESTRNG),verbosity=NONE,cols_to_impute="all")
+mod = UniversalImputer(estimator=[GaussianMixtureRegressor2(rng=trng,verbosity=NONE),RandomForestEstimator(rng=trng,verbosity=NONE),RandomForestEstimator(rng=trng,verbosity=NONE)], multiple_imputations=10, recursive_passages=3, rng=copy(TESTRNG),verbosity=NONE,cols_to_impute="all")
 fit!(mod,X)
 vals = predict(mod)
 nR,nC = size(vals[1])
@@ -290,7 +290,7 @@ println("Testing MLJ Interface for GeneralImputer...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 Xt = Mlj.table(X)
 trng = copy(TESTRNG)
-model                       =  BetaML.Bmlj.GeneralImputer(estimator=[GMMRegressor1(rng=copy(TESTRNG),verbosity=NONE),RandomForestEstimator(n_trees=40,rng=copy(TESTRNG),verbosity=NONE)],recursive_passages=2, missing_supported=true, rng = copy(TESTRNG))
+model                       =  BetaML.Bmlj.GeneralImputer(estimator=[GaussianMixtureRegressor2(rng=copy(TESTRNG),verbosity=NONE),RandomForestEstimator(n_trees=40,rng=copy(TESTRNG),verbosity=NONE)],recursive_passages=2, missing_supported=true, rng = copy(TESTRNG))
 modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)

@@ -342,7 +342,7 @@ function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
     end
     =#
     mixtures = m.mixtures
-    betamod = BetaML.GMM.GMMRegressor2(
+    betamod = BetaML.GMM.GaussianMixtureRegressor(
         n_classes     = m.n_classes,
         initial_probmixtures = m.initial_probmixtures,
         mixtures     = mixtures,
@@ -378,7 +378,7 @@ function MMI.fit(m::MultitargetGaussianMixtureRegressor, verbosity, X, y)
     end
     =#
     mixtures = m.mixtures
-    betamod = BetaML.GMM.GMMRegressor2(
+    betamod = BetaML.GMM.GaussianMixtureRegressor(
         n_classes     = m.n_classes,
         initial_probmixtures = m.initial_probmixtures,
         mixtures     = mixtures,

@@ -106,7 +106,7 @@ ytrain2d = hcat(ytrain,ytrain .+ 0.1)
 xtest  = [0.5 0.6; 0.14 0.2; 0.3 0.7; 20.0 40.0;]
 ytest  = [(0.1*x[1]+0.2*x[2]+0.3)*ϵtest[i] for (i,x) in enumerate(eachrow(xtest))]
 
-m = GMMRegressor1(n_classes=2,rng=copy(TESTRNG), verbosity=NONE)
+m = GaussianMixtureRegressor2(n_classes=2,rng=copy(TESTRNG), verbosity=NONE)
 fit!(m,xtrain,ytrain)
 ŷtrain  = predict(m, xtrain)
 ŷtrain2 = predict(m)
@@ -126,12 +126,12 @@ ŷtrain2db = predict(m)
 mreTrain2d = relative_mean_error(ytrain2d,ŷtrain2d,normrec=true)
 @test mreTrain2d <= 0.08
 
-m = GMMRegressor1(n_classes=2,rng=copy(TESTRNG), verbosity=NONE, mixtures= SphericalGaussian)
+m = GaussianMixtureRegressor2(n_classes=2,rng=copy(TESTRNG), verbosity=NONE, mixtures= SphericalGaussian)
 est = fit!(m,xtrain,ytrain2d)
 @test typeof(est) == Matrix{Float64}
 
 # Testing GMM Regressor 2
-m = GMMRegressor2(n_classes=2,rng=copy(TESTRNG), verbosity=NONE)
+m = GaussianMixtureRegressor(n_classes=2,rng=copy(TESTRNG), verbosity=NONE)
 fit!(m,xtrain,ytrain)
 ŷtrain = predict(m, xtrain)
 ŷtrain2 = predict(m)
@@ -156,13 +156,13 @@ mreTrain2d = relative_mean_error(ytrain2d,ŷtrain2d,normrec=true)
 @test mreTrain2d <= 0.08
 
 # testing with different mixtures definition
-m = GMMRegressor2(rng=copy(TESTRNG),verbosity=NONE)
+m = GaussianMixtureRegressor(rng=copy(TESTRNG),verbosity=NONE)
 fit!(m,xtrain,ytrain)
-m = GMMRegressor2(mixtures=[DiagonalGaussian(),DiagonalGaussian(),DiagonalGaussian()],rng=copy(TESTRNG), verbosity=NONE)
+m = GaussianMixtureRegressor(mixtures=[DiagonalGaussian(),DiagonalGaussian(),DiagonalGaussian()],rng=copy(TESTRNG), verbosity=NONE)
 fit!(m,xtrain,ytrain)
-m = GMMRegressor2(n_classes=2,mixtures=SphericalGaussian,rng=copy(TESTRNG), verbosity=NONE)
+m = GaussianMixtureRegressor(n_classes=2,mixtures=SphericalGaussian,rng=copy(TESTRNG), verbosity=NONE)
 fit!(m,xtrain,ytrain)
-#m = GMMRegressor2(autotune=true,rng=copy(TESTRNG), verbosity=NONE)
+#m = GaussianMixtureRegressor(autotune=true,rng=copy(TESTRNG), verbosity=NONE)
 #fit!(m,xtrain,ytrain) # don't work on githug ci
 
 

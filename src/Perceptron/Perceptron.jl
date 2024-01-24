@@ -14,7 +14,7 @@ Provide the following supervised models:
 
 All algorithms are multiclass, with `PerceptronClassifier` and `PegasosClassifier` employing a one-vs-all strategy, while `KernelPerceptronClassifier` employs a _one-vs-one_ approach, and return a "probability" for each class in term of a dictionary for each record. Use `mode(ŷ)` to return a single class prediction per record.
 
-These models are available in the MLJ framework as `LinearPerceptron`,`KernelPerceptron` and `Pegasos` respectivly.
+These models are available in the MLJ framework as `PerceptronClassifier`,`KernelPerceptronClassifier` and `PegasosClassifier` respectivly.
 """
 module Perceptron
 
@@ -26,7 +26,7 @@ using ForceImport
 
 import Base.show
 
-# export perceptron, perceptronBinary, kernelPerceptron, kernelPerceptronBinary, pegasos, pegasosBinary, predict
+# export perceptron, perceptronBinary, KernelPerceptronClassifier, KernelPerceptronClassifierBinary, pegasos, pegasosBinary, predict
 export PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier
 export PerceptronClassifierHyperParametersSet, KernelPerceptronClassifierHyperParametersSet, PegasosClassifierHyperParametersSet
 

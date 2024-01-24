@@ -42,14 +42,14 @@ Currently BetaML provides the following models:
 
 | `BetaML` name | [`MLJ`](https://github.com/alan-turing-institute/MLJ.jl) Interface | Category* |
 | ----------- | ------------- | -------- |
-| [`PerceptronClassifier`](@ref) | [`LinearPerceptron`](@ref) | _Supervised classifier_ | 
-| [`KernelPerceptronClassifier`](@ref)  | [`KernelPerceptron`](@ref) | _Supervised classifier_ | 
-| [`PegasosClassifier`](@ref) | [`Pegasos`](@ref) | _Supervised classifier_ |
+| [`PerceptronClassifier`](@ref) | [`PerceptronClassifier`](@ref Bmlj.PerceptronClassifier) | _Supervised classifier_ | 
+| [`KernelPerceptronClassifier`](@ref)  | [`KernelPerceptronClassifier`](@ref Bmlj.KernelPerceptronClassifier) | _Supervised classifier_ | 
+| [`PegasosClassifier`](@ref) | [`PegasosClassifier`](@ref Bmlj.PegasosClassifier) | _Supervised classifier_ |
 | [`DecisionTreeEstimator`](@ref) | [`DecisionTreeClassifier`](@ref), [`DecisionTreeRegressor`](@ref) | _Supervised regressor and classifier_ |
 | [`RandomForestEstimator`](@ref) |  [`RandomForestClassifier`](@ref), [`RandomForestRegressor`](@ref) | _Supervised regressor and classifier_ |
 | [`NeuralNetworkEstimator`](@ref) | [`NeuralNetworkRegressor`](@ref), [`MultitargetNeuralNetworkRegressor`](@ref), [`NeuralNetworkClassifier`](@ref) | _Supervised regressor and classifier_ |
-| [`GMMRegressor1`](@ref) | | _Supervised regressor_ | 
-| [`GMMRegressor2`](@ref) | [`GaussianMixtureRegressor`](@ref), [`MultitargetGaussianMixtureRegressor`](@ref) | _Supervised regressor_ | 
+| [`GaussianMixtureRegressor2`](@ref) | | _Supervised regressor_ | 
+| [`GaussianMixtureRegressor`](@ref) | [`GaussianMixtureRegressor`](@ref), [`MultitargetGaussianMixtureRegressor`](@ref) | _Supervised regressor_ | 
 | [`KMeansClusterer`](@ref) | [`KMeans`](@ref) | _Unsupervised hard clusterer_ |
 | [`KMedoidsClusterer`](@ref) | [`KMedoids`](@ref) | _Unsupervised hard clusterer_ |
 | [`GMMClusterer`](@ref) | [`GaussianMixtureClusterer`](@ref)| _Unsupervised soft clusterer_ |

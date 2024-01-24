@@ -32,7 +32,7 @@ PegasosClassifier is a _linear_, gradient-based classifier. Multiclass is suppor
 
 # Notes:
 * The trained parameters can then be used to make predictions using the function `predict()`.
-* This model is available in the MLJ framework as the `Pegasos`
+* This model is available in the MLJ framework as the `PegasosClassifier`
 
 # Example:
 ```jldoctest
