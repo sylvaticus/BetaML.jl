@@ -24,19 +24,19 @@ Currently the following models are available:
 | [`DecisionTreeEstimator`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.DecisionTreeEstimator) | [`DecisionTreeClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.DecisionTreeClassifier), [`DecisionTreeRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.DecisionTreeRegressor) | _Supervised regressor and classifier_ |
 | [`RandomForestEstimator`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.RandomForestEstimator) |  [`RandomForestClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.RandomForestClassifier), [`RandomForestRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.RandomForestRegressor) | _Supervised regressor and classifier_ |
 | [`NeuralNetworkEstimator`](https://sylvaticus.github.io/BetaML.jl/stable/Nn.html#BetaML.Nn.NeuralNetworkEstimator) | [`NeuralNetworkRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.NeuralNetworkRegressor), [`MultitargetNeuralNetworkRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.MultitargetNeuralNetworkRegressor), [`NeuralNetworkClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.NeuralNetworkClassifier) | _Supervised regressor and classifier_ |
-| [`GaussianMixtureRegressor2`](https://sylvaticus.github.io/BetaML.jl/stable/GMM.html#BetaML.GMM.GaussianMixtureRegressor2) | | _Supervised regressor_ | 
 | [`GaussianMixtureRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/GMM.html#BetaML.GMM.GaussianMixtureRegressor) | [`GaussianMixtureRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.GaussianMixtureRegressor), [`MultitargetGaussianMixtureRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.MultitargetGaussianMixtureRegressor) | _Supervised regressor_ | 
-| [`KMeansClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/Clustering.html#BetaML.Clustering.KMeansClusterer) | [`KMeans`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.KMeans) | _Unsupervised hard clusterer_ |
-| [`KMedoidsClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/Clustering.html#BetaML.Clustering.KMedoidsClusterer) | [`KMedoids`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.KMedoids) | _Unsupervised hard clusterer_ |
-| [`GMMClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/GMM.html#BetaML.GMM.GMMClusterer) | [`GaussianMixtureClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.GaussianMixtureClusterer) | _Unsupervised soft clusterer_ |
-| [`FeatureBasedImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.FeatureBasedImputer)| [`SimpleImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.SimpleImputer) | _Unsupervised missing data imputer_ |
-| [`GMMImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.GMMImputer) | [`GaussianMixtureImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.GaussianMixtureImputer) | _Unsupervised missing data imputer_ |
-| [`RFImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.RFImputer) | [`RandomForestImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.RandomForestImputer) | _Unsupervised missing data imputer_ |
-| [`UniversalImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.UniversalImputer) | [`GeneralImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.GeneralImputer) | _Unsupervised missing data imputer_ |
+| [`GaussianMixtureRegressor2`](https://sylvaticus.github.io/BetaML.jl/stable/GMM.html#BetaML.GMM.GaussianMixtureRegressor2) | | _Supervised regressor_ | 
+| [`KMeansClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/Clustering.html#BetaML.Clustering.KMeansClusterer) | [`KMeansClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.KMeansClusterer) | _Unsupervised hard clusterer_ |
+| [`KMedoidsClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/Clustering.html#BetaML.Clustering.KMedoidsClusterer) | [`KMedoidsClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.KMedoidsClusterer) | _Unsupervised hard clusterer_ |
+| [`GaussianMixtureClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/GMM.html#BetaML.GMM.GaussianMixtureClusterer) | [`GaussianMixtureClusterer`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.GaussianMixtureClusterer) | _Unsupervised soft clusterer_ |
+| [`SimpleImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.SimpleImputer)| [`SimpleImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.SimpleImputer) | _Unsupervised missing data imputer_ |
+| [`GaussianMixtureImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.GaussianMixtureImputer) | [`GaussianMixtureImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.GaussianMixtureImputer) | _Unsupervised missing data imputer_ |
+| [`RandomForestImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.RandomForestImputer) | [`RandomForestImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.RandomForestImputer) | _Unsupervised missing data imputer_ |
+| [`GeneralImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Imputation.html#BetaML.Imputation.GeneralImputer) | [`GeneralImputer`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.GeneralImputer) | _Unsupervised missing data imputer_ |
 | [`MinMaxScaler`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.MinMaxScaler) | | _Data transformer_ |
 | [`StandardScaler`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.StandardScaler) | | _Data transformer_ |
 | [`Scaler`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.Scaler) |  | _Data transformer_ |
-| [`PCA`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.PCA) |  | _Unsupervised dimensionality reduction transformer_ |
+| [`PCAEncoder`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.PCAEncoder) |  | _Unsupervised dimensionality reduction transformer_ |
 | [`AutoEncoder`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.AutoEncoder) | [`AutoEncoderMLJ`](https://sylvaticus.github.io/BetaML.jl/stable/Bmlj.html#BetaML.Bmlj.AutoEncoderMLJ) | _Unsupervised non-linear dimensionality reduction_ |
 | [`OneHotEncoder`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.OneHotEncoder) |  | _Data transformer_ |
 | [`OrdinalEncoder`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.OrdinalEncoder) |  | _Data transformer_ |
@@ -173,7 +173,7 @@ Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl)
 
 ### Short term
 
-- Implement autotuning of `GMMClusterer` using  `BIC` or `AIC`
+- Implement autotuning of `GaussianMixtureClusterer` using  `BIC` or `AIC`
 - Add Silhouette method to check cluster validity
 - Implement PAM and/or variants for kmedoids
 

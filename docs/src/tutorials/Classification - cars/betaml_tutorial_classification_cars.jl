@@ -78,12 +78,12 @@ x     = Matrix{Union{Missing,Float64}}(data[:,1:7]);
 y     = Vector{Int64}(data[:,8]);
 x     = fit!(Scaler(),x)
 
-# Some algorithms that we will use today don't accept missing data, so we need to _impute_ them. BetaML provides several imputation models in the [`Imputation`](@ref) module. Note that many of these imputation models can be used for Collaborative Filtering / Recomendation Systems. Models as [`GMMImputer`](@ref) have the advantage over traditional algorithms as k-nearest neighbors (KNN) that GMM can "detect" the hidden structure of the observed data, where some observation can be similar to a certain pool of other observvations for a certain characteristic, but similar to an other pool of observations for other characteristics.
-# Here we use [`RFImputer`](@ref). While the model allows for reproducible multiple imputations (with the parameter `multiple_imputation=an_integer`) and multiple passages trough the various columns (fields) containing missing data (with the option `recursive_passages=an_integer`), we use here just a single imputation and a single passage. 
-# As all `BetaML` models, `RFImputer` follows the patters `m=ModelConstruction(pars); fit!(m,x,[y]); est = predict(m,x)` where `est` can be an estimation of some labels or be some characteristics of x itself (the imputed version, as in this case, a reprojected version as in [`PCA`](@ref)), depending if the model is supervised or not. See the [`API user documentation`](@ref api_usage)` for more details.
+# Some algorithms that we will use today don't accept missing data, so we need to _impute_ them. BetaML provides several imputation models in the [`Imputation`](@ref) module. Note that many of these imputation models can be used for Collaborative Filtering / Recomendation Systems. Models as [`GaussianMixtureImputer`](@ref) have the advantage over traditional algorithms as k-nearest neighbors (KNN) that GMM can "detect" the hidden structure of the observed data, where some observation can be similar to a certain pool of other observvations for a certain characteristic, but similar to an other pool of observations for other characteristics.
+# Here we use [`RandomForestImputer`](@ref). While the model allows for reproducible multiple imputations (with the parameter `multiple_imputation=an_integer`) and multiple passages trough the various columns (fields) containing missing data (with the option `recursive_passages=an_integer`), we use here just a single imputation and a single passage. 
+# As all `BetaML` models, `RandomForestImputer` follows the patters `m=ModelConstruction(pars); fit!(m,x,[y]); est = predict(m,x)` where `est` can be an estimation of some labels or be some characteristics of x itself (the imputed version, as in this case, a reprojected version as in [`PCAEncoder`](@ref)), depending if the model is supervised or not. See the [`API user documentation`](@ref api_usage)` for more details.
 # For imputers, the output of `predict` is the matrix with the imputed values replacing the missing ones, and we write here the model in a single line using a convenience feature that when the default `cache` parameter is used in the model constructor the `fit!` function returns itself the prediciton over the trained data:  
 
-x = fit!(RFImputer(rng=copy(AFIXEDRNG)),x) # Same as `m = RFImputer(rng=copy(AFIXEDRNG)); fit!(m,x); x= predict(m,x)`
+x = fit!(RandomForestImputer(rng=copy(AFIXEDRNG)),x) # Same as `m = RandomForestImputer(rng=copy(AFIXEDRNG)); fit!(m,x); x= predict(m,x)`
 
 # Further, some models don't work with categorical data as well, so we need to represent our `y` as a matrix with a separate column for each possible categorical value (the so called "one-hot" representation).
 # For example, within a three classes field, the individual value `2` (or `"Europe"` for what it matters) would be represented as the vector `[0 1 0]`, while `3` (or `"Japan"`) would become the vector `[0 0 1]`.
@@ -110,7 +110,7 @@ println(now(), " ", "- random forests..." )  #src
 # However as the labels are encoded using integers, we need also to specify the parameter `force_classification=true`, otherwise the model would undergo a _regression_ job instead.
 rfm      = RandomForestEstimator(force_classification=true, rng=copy(AFIXEDRNG))
 
-# Opposite to the `RFImputer` and `OneHotEncoder` models used earielr, to train a `RandomForestEstimator` model we need to provide it with both the training feature matrix and the associated "true" training labels. We use the same shortcut to get the training predictions directly from the `fit!` function. In this case the predictions correspond to the labels:
+# Opposite to the `RandomForestImputer` and `OneHotEncoder` models used earielr, to train a `RandomForestEstimator` model we need to provide it with both the training feature matrix and the associated "true" training labels. We use the same shortcut to get the training predictions directly from the `fit!` function. In this case the predictions correspond to the labels:
 
 ŷtrain   = fit!(rfm,xtrain,ytrain)
 
@@ -179,7 +179,7 @@ model = DecisionTree.build_forest(ytrain, xtrain,rng=seed)
 #src (0.9846153846153847, 0.8518518518518519)
 push!(results,["RF (DecisionTrees.jl)",trainAccuracy,testAccuracy]);
 
-#src nothing; cm = ConfMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"])
+#src nothing; cm = ConfusionMatrix(ŷtest,ytest,classes=[1,2,3],labels=["US","EU","Japan"])
 #src nothing; println(cm)
 @test testAccuracy > 0.70 #src
 

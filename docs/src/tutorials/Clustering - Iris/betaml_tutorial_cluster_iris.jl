@@ -59,7 +59,7 @@ y  = fit!(OrdinalEncoder(categories=yLabels),iris[:,5])
 # ## Main analysis
 println(now(), " ", "- main analysis..." )  #src
 
-# We will try 3 BetaML models ([`KMeansClusterer`](@ref), [`KMedoidsClusterer`](@ref) and [`GMMClusterer`](@ref)) and we compare them with `kmeans` from Clusterings.jl and `GMM` from GaussianMixtures.jl
+# We will try 3 BetaML models ([`KMeansClusterer`](@ref), [`KMedoidsClusterer`](@ref) and [`GaussianMixtureClusterer`](@ref)) and we compare them with `kmeans` from Clusterings.jl and `GMM` from GaussianMixtures.jl
 #
 # `KMeansClusterer` and `KMedoidsClusterer` works by first initialising the centers of the k-clusters (step a ). These centers, also known as the "representatives", must be selected within the data for kmedoids, while for kmeans they are the geometrical centers.
 #
@@ -67,18 +67,18 @@ println(now(), " ", "- main analysis..." )  #src
 #
 # Steps _b_ and _c_ are reiterated until the algorithm converge, i.e. the tentative k representative points (and their relative clusters) don't move any more. The result (output of the algorithm) is that each point is assigned to one of the clusters (classes).
 #
-# The algorithm in `GMMClusterer` is similar in that it employs an iterative approach (the Expectation_Minimisation algorithm, "em") but here we make the hipothesis that the data points are the observed outcomes of some _mixture_ probabilistic models where we have first a k-categorical variables whose outcomes are the (unobservble) parameters of a probabilistic distribution from which the data is finally drawn. Because the parameters of each of the k-possible distributions is unobservable this is also called a model with latent variables.
+# The algorithm in `GaussianMixtureClusterer` is similar in that it employs an iterative approach (the Expectation_Minimisation algorithm, "em") but here we make the hipothesis that the data points are the observed outcomes of some _mixture_ probabilistic models where we have first a k-categorical variables whose outcomes are the (unobservble) parameters of a probabilistic distribution from which the data is finally drawn. Because the parameters of each of the k-possible distributions is unobservable this is also called a model with latent variables.
 #
 # Most `gmm` models use the Gaussain distribution as the family of the mixture components, so we can tought the `gmm` acronym to indicate _Gaussian Mixture Model_. In BetaML we have currently implemented only Gaussain components, but any distribution could be used by just subclassing `AbstractMixture` and implementing a couple of methids (you are invited to contribute or just ask for a distribution family you are interested), so I prefer to think "gmm" as an acronym for _Generative Mixture Model_.
 #
 # The algorithm tries to find the mixture that maximises the likelihood that the data has been generated indeed from such mixture, where the "E" step refers to computing the probability that each point belongs to each of the k-composants (somehow similar to the step _b_ in the kmeans/kmedoids algorithms), and the "M" step estimates, giving the association probabilities in step "E", the parameters of the mixture and of the individual components (similar to step _c_).
 #
-# The result here is that each point has a categorical distribution (PMF) representing the probabilities that it belongs to any of the k-components (our classes or clusters). This is interesting, as `gmm` can be used for many other things that clustering. It forms the backbone of the [`GMMImputer`](@ref) model to impute missing values (on some or all dimensions) based to how close the record seems to its pears. For the same reasons, `GMMImputer` can also be used to predict user's behaviours (or users' appreciation) according to the behaviour/ranking made by pears ("collaborative filtering").
+# The result here is that each point has a categorical distribution (PMF) representing the probabilities that it belongs to any of the k-components (our classes or clusters). This is interesting, as `gmm` can be used for many other things that clustering. It forms the backbone of the [`GaussianMixtureImputer`](@ref) model to impute missing values (on some or all dimensions) based to how close the record seems to its pears. For the same reasons, `GaussianMixtureImputer` can also be used to predict user's behaviours (or users' appreciation) according to the behaviour/ranking made by pears ("collaborative filtering").
 #
-# While the result of `GMMClusterer` is a vector of PMFs (one for each record), error measures and reports with the true values (if known) can be directly applied, as in BetaML they internally call `mode()` to retrieve the class with the highest probability for each record.
+# While the result of `GaussianMixtureClusterer` is a vector of PMFs (one for each record), error measures and reports with the true values (if known) can be directly applied, as in BetaML they internally call `mode()` to retrieve the class with the highest probability for each record.
 #
 #
-# As we are here, we also try different versions of the BetaML models, even if the default "versions" should be fine. For `KMeansClusterer` and `KMedoidsClusterer` we will try different initialisation strategies ("gird", the default one, "random" and "shuffle"), while for the `GMMClusterer` model we'll choose different distributions of the Gaussain family (`SphericalGaussian` - where the variance is a scalar, `DiagonalGaussian` - with a vector variance, and `FullGaussian`, where the covariance is a matrix).
+# As we are here, we also try different versions of the BetaML models, even if the default "versions" should be fine. For `KMeansClusterer` and `KMedoidsClusterer` we will try different initialisation strategies ("gird", the default one, "random" and "shuffle"), while for the `GaussianMixtureClusterer` model we'll choose different distributions of the Gaussain family (`SphericalGaussian` - where the variance is a scalar, `DiagonalGaussian` - with a vector variance, and `FullGaussian`, where the covariance is a matrix).
 #
 # As the result would depend on stochasticity both in the data selected and in the random initialisation, we use a cross-validation approach to run our models several times (with different data) and then we average their results.
 # Cross-Validation in BetaML is very flexible and it is done using the [`cross_validation`](@ref) function. It is used by default for hyperparameters autotuning of the BetaML supervised models.
@@ -115,11 +115,11 @@ cOut = cross_validation([x,y],sampler,return_statistics=false) do trainData,test
          kMedoidsRAccuracy = accuracy(ytrain,estcl,ignorelabels=true)
          estcl = fit!(KMedoidsClusterer(n_classes=3,initialisation_strategy="shuffle",rng=rng),xtrain)
          kMedoidsSAccuracy = accuracy(ytrain,estcl,ignorelabels=true)
-         estcl = fit!(GMMClusterer(n_classes=3,mixtures=SphericalGaussian,rng=rng,verbosity=NONE),xtrain)
+         estcl = fit!(GaussianMixtureClusterer(n_classes=3,mixtures=SphericalGaussian,rng=rng,verbosity=NONE),xtrain)
          gmmSpherAccuracy  = accuracy(ytrain,estcl,ignorelabels=true, rng=rng)
-         estcl = fit!(GMMClusterer(n_classes=3,mixtures=DiagonalGaussian,rng=rng,verbosity=NONE),xtrain)
+         estcl = fit!(GaussianMixtureClusterer(n_classes=3,mixtures=DiagonalGaussian,rng=rng,verbosity=NONE),xtrain)
          gmmDiagAccuracy   = accuracy(ytrain,estcl,ignorelabels=true, rng=rng)
-         estcl = fit!(GMMClusterer(n_classes=3,mixtures=FullGaussian,rng=rng,verbosity=NONE),xtrain)
+         estcl = fit!(GaussianMixtureClusterer(n_classes=3,mixtures=FullGaussian,rng=rng,verbosity=NONE),xtrain)
          gmmFullAccuracy   = accuracy(ytrain,estcl,ignorelabels=true, rng=rng)
          ## For comparision with Clustering.jl
          clusteringOut     = Clustering.kmeans(xtrain', 3)
@@ -185,7 +185,7 @@ report = DataFrame(mName = modelLabels, avgAccuracy = dropdims(round.(μs',digit
 println(now(), " ", "- BIC based tuning of K..." )  #src
 
 # Up to now we used the real labels to compare the model accuracies. But in real clustering examples we don't have the true classes, or we wouln't need to do clustering in the first instance, so we don't know the number of classes to use.
-# There are several methods to judge clusters algorithms goodness. For likelyhood based algorithms as `GMMClusterer` we can use a information criteria that trade the goodness of the lickelyhood with the number of parameters used to do the fit.
+# There are several methods to judge clusters algorithms goodness. For likelyhood based algorithms as `GaussianMixtureClusterer` we can use a information criteria that trade the goodness of the lickelyhood with the number of parameters used to do the fit.
 # BetaML provides by default in the gmm clustering outputs both the _Bayesian information criterion_  ([`BIC`](@ref bic)) and the _Akaike information criterion_  ([`AIC`](@ref aic)), where for both a lower value is better.
 
 # We can then run the model with different number of classes and see which one leads to the lower BIC or AIC.
@@ -201,7 +201,7 @@ cOut = cross_validation([x,y],sampler,return_statistics=false) do trainData,test
     BICS = []
     AICS = []
     for k in 1:K
-        m = GMMClusterer(n_classes=k,mixtures=FullGaussian,rng=rng,verbosity=NONE)
+        m = GaussianMixtureClusterer(n_classes=k,mixtures=FullGaussian,rng=rng,verbosity=NONE)
         fit!(m,xtrain)
         push!(BICS,info(m)["BIC"])
         push!(AICS,info(m)["AIC"])
@@ -244,12 +244,12 @@ x,y = consistent_shuffle([x,y],dims=1)
 import Distances
 pd = pairwise(x,distance=Distances.euclidean) # we compute the pairwise distances
 nclasses = 2:6
-models = [KMeansClusterer, KMedoidsClusterer, GMMClusterer]
+models = [KMeansClusterer, KMedoidsClusterer, GaussianMixtureClusterer]
 println("Silhouette score by model type and class number:")
 for ncl in nclasses, mtype in models
     m = mtype(n_classes=ncl, verbosity=NONE)
     ŷ = fit!(m,x)
-    if mtype == GMMClusterer
+    if mtype == GaussianMixtureClusterer
         ŷ = mode(ŷ)
     end
     s = mean(silhouette(pd,ŷ))
@@ -287,5 +287,5 @@ end
 # ## Conclusions
 
 # We have shown in this tutorial how we can easily run clustering algorithms in BetaML with just one line of code `fit!(ChoosenClusterer(),x)`, but also how can we use cross-validation in order to help the model or parameter selection, with or whithout knowing the real classes.
-# We retrieve here what we observed with supervised models. Globally the accuracy of BetaML models are comparable to those of leading specialised packages (in this case they are even better), but there is a significant gap in computational efficiency that restricts the pratical usage of BetaML to datasets that fits in the pc memory. However we trade this relative inefficiency with very flexible model definition and utility functions (for example `GMMClusterer` works with missing data, allowing it to be used as the backbone of the [`GMMImputer`](@ref) missing imputation function, or for collaborative reccomendation systems).
+# We retrieve here what we observed with supervised models. Globally the accuracy of BetaML models are comparable to those of leading specialised packages (in this case they are even better), but there is a significant gap in computational efficiency that restricts the pratical usage of BetaML to datasets that fits in the pc memory. However we trade this relative inefficiency with very flexible model definition and utility functions (for example `GaussianMixtureClusterer` works with missing data, allowing it to be used as the backbone of the [`GaussianMixtureImputer`](@ref) missing imputation function, or for collaborative reccomendation systems).
 println(now(), " ", "- DONE clustering tutorial..." )  #src

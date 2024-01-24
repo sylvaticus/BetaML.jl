@@ -271,8 +271,8 @@ julia> using BetaML
 
 julia> X = [1.1 10.1; 0.9 9.8; 10.0 1.1; 12.1 0.8; 0.8 9.8];
 
-julia> mod = GMMClusterer(n_classes=2)
-GMMClusterer - A Generative Mixture Model (unfitted)
+julia> mod = GaussianMixtureClusterer(n_classes=2)
+GaussianMixtureClusterer - A Generative Mixture Model (unfitted)
 
 julia> prob_belong_classes = fit!(mod,X)
 Iter. 1:        Var. of the post  2.15612140465882        Log-likelihood -29.06452054772657
@@ -303,7 +303,7 @@ BetaML.GMM.GMMClusterLearnableParameters (a BetaMLLearnableParametersSet struct)
 - initial_probmixtures: [0.0, 1.0]
 ```
 """
-mutable struct GMMClusterer <: BetaMLUnsupervisedModel
+mutable struct GaussianMixtureClusterer <: BetaMLUnsupervisedModel
     hpar::GMMHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,GMMClusterLearnableParameters}
@@ -312,8 +312,8 @@ mutable struct GMMClusterer <: BetaMLUnsupervisedModel
     info::Dict{String,Any}
 end
 
-function GMMClusterer(;kwargs...)
-     m = GMMClusterer(GMMHyperParametersSet(),BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function GaussianMixtureClusterer(;kwargs...)
+     m = GaussianMixtureClusterer(GMMHyperParametersSet(),BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -351,12 +351,12 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit the [`GMMClusterer`](@ref) model to data
+Fit the [`GaussianMixtureClusterer`](@ref) model to data
 
 # Notes:
 - re-fitting is a new complete fitting but starting with mixtures computed in the previous fitting(s)
 """
-function fit!(m::GMMClusterer,x)
+function fit!(m::GaussianMixtureClusterer,x)
 
     # Parameter alias..
     K             = m.hpar.n_classes
@@ -397,10 +397,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the classes probabilities associated to new data assuming the mixtures computed in fitting a [`GMMClusterer`](@ref) model.
+Predict the classes probabilities associated to new data assuming the mixtures computed in fitting a [`GaussianMixtureClusterer`](@ref) model.
 
 """
-function predict(m::GMMClusterer,X)
+function predict(m::GaussianMixtureClusterer,X)
     X = makematrix(X)
     mixtures = m.par.mixtures
     initial_probmixtures = m.par.initial_probmixtures
@@ -408,20 +408,20 @@ function predict(m::GMMClusterer,X)
     return probRecords
 end
 
-function show(io::IO, ::MIME"text/plain", m::GMMClusterer)
+function show(io::IO, ::MIME"text/plain", m::GaussianMixtureClusterer)
     if m.fitted == false
-        print(io,"GMMClusterer - A Generative Mixture Model (unfitted)")
+        print(io,"GaussianMixtureClusterer - A Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMClusterer - A Generative Mixture Model (fitted on $(m.info["fitted_records"]) records)")
+        print(io,"GaussianMixtureClusterer - A Generative Mixture Model (fitted on $(m.info["fitted_records"]) records)")
     end
 end
 
-function show(io::IO, m::GMMClusterer)
+function show(io::IO, m::GaussianMixtureClusterer)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"GMMClusterer - A $(m.hpar.n_classes)-classes Generative Mixture Model (unfitted)")
+        print(io,"GaussianMixtureClusterer - A $(m.hpar.n_classes)-classes Generative Mixture Model (unfitted)")
     else
-        print(io,"GMMClusterer - A $(m.hpar.n_classes)-classes Generative Mixture Model(fitted on $(m.info["fitted_records"]) records)")
+        print(io,"GaussianMixtureClusterer - A $(m.hpar.n_classes)-classes Generative Mixture Model(fitted on $(m.info["fitted_records"]) records)")
         println(io,m.info)
         println(io,"Mixtures:")
         println(io,m.par.mixtures)

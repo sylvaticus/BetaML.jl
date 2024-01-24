@@ -89,7 +89,7 @@ import MLJBase
 const Mlj = MLJBase
 X, y                           = Mlj.@load_iris
 
-model                          = BetaML.Bmlj.KMeans(rng=copy(TESTRNG))
+model                          = BetaML.Bmlj.KMeansClusterer(rng=copy(TESTRNG))
 modelMachine                   = Mlj.machine(model, X)
 (fitResults, cache, report)    = Mlj.fit(model, 0, X)
 distances                      = Mlj.transform(model,fitResults,X)
@@ -97,7 +97,7 @@ yhat                           = Mlj.predict(model, fitResults, X)
 acc = BetaML.accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignorelabels=true)
 @test acc > 0.8
 
-model                          = BetaML.Bmlj.KMedoids(rng=copy(TESTRNG))
+model                          = BetaML.Bmlj.KMedoidsClusterer(rng=copy(TESTRNG))
 modelMachine                   = Mlj.machine(model, X)
 (fitResults, cache, report)    = Mlj.fit(model, 0, X)
 distances                      = Mlj.transform(model,fitResults,X)

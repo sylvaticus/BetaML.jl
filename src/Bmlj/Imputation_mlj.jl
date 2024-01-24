@@ -344,7 +344,7 @@ function MMI.fit(m::SimpleImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
-    mod = BetaML.Imputation.FeatureBasedImputer(
+    mod = BetaML.Imputation.SimpleImputer(
         statistic = m.statistic,
         norm      = m.norm,
         verbosity = verbosity,
@@ -372,7 +372,7 @@ function MMI.fit(m::GaussianMixtureImputer, verbosity, X)
     end
     =#
 
-    mod = BetaML.Imputation.GMMImputer(
+    mod = BetaML.Imputation.GaussianMixtureImputer(
         n_classes      = m.n_classes,
         initial_probmixtures  = m.initial_probmixtures,
         mixtures      = m.mixtures,
@@ -396,7 +396,7 @@ function MMI.fit(m::RandomForestImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
-    mod = BetaML.Imputation.RFImputer(
+    mod = BetaML.Imputation.RandomForestImputer(
         n_trees                 = m.n_trees, 
         max_depth               = m.max_depth,
         min_gain                = m.min_gain,
@@ -425,7 +425,7 @@ function MMI.fit(m::GeneralImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
-    mod =  BetaML.Imputation.UniversalImputer(
+    mod =  BetaML.Imputation.GeneralImputer(
         cols_to_impute     = m.cols_to_impute,
         estimator          = m.estimator,
         missing_supported  = m.missing_supported,

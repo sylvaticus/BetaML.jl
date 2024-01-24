@@ -11,7 +11,7 @@ Collaborative filtering / missing values imputation / reccomendation systems bas
 
 The module provides the following models. Use `?[model]` to access their documentation:
 
-- [`GMMClusterer`](@ref): soft-clustering using GMM
+- [`GaussianMixtureClusterer`](@ref): soft-clustering using GMM
 - [`GaussianMixtureRegressor2`](@ref): regressor using GMM as back-end (first algorithm)
 - [`GaussianMixtureRegressor2`](@ref): regressor using GMM as back-end (second algorithm)
 
@@ -24,7 +24,7 @@ All the algorithms works with arbitrary mixture distribution, altought only {Sph
 
 All the GMM-based algorithms works only with numerical data, but accepts also Missing one.
 
-The `GMMClusterer` algorithm reports the `BIC` and the `AIC` in its `info(model)`, but some metrics of the clustered output are also available, for example the [`silhouette`](@ref) score.
+The `GaussianMixtureClusterer` algorithm reports the `BIC` and the `AIC` in its `info(model)`, but some metrics of the clustered output are also available, for example the [`silhouette`](@ref) score.
 """
 module GMM
 
@@ -41,7 +41,7 @@ import Base.show
 
 #export gmm, 
 export AbstractMixture,
-       GMMClusterer,
+       GaussianMixtureClusterer,
        GaussianMixtureRegressor2, GaussianMixtureRegressor,
        GMMHyperParametersSet
 

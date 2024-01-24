@@ -879,7 +879,7 @@ end
 """
 $(TYPEDEF)
 
-Hyperparameters for the PCA transformer
+Hyperparameters for the PCAEncoder transformer
 
 ## Parameters
 $(FIELDS)
@@ -902,13 +902,13 @@ $(TYPEDEF)
 
 Perform a Principal Component Analysis, a dimensionality reduction tecnique employing a linear trasformation of the original matrix by the eigenvectors of the covariance matrix.
 
-PCA returns the matrix reprojected among the dimensions of maximum variance.
+PCAEncoder returns the matrix reprojected among the dimensions of maximum variance.
 
 For the parameters see [`PCAHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref) 
 
 # Notes:
-- PCA doesn't automatically scale the data. It is suggested to apply the [`Scaler`](@ref) model before running it. 
-- Missing data are not supported. Impute them first, see the [`Imputation`](Imputation.html) module.
+- PCAEncoder doesn't automatically scale the data. It is suggested to apply the [`Scaler`](@ref) model before running it. 
+- Missing data are not supported. Impute them first, see the [`Imputation`](@ref) module.
 - If one doesn't know _a priori_ the maximum unexplained variance that he is willling to accept, nor the wished number of dimensions, he can run the model with all the dimensions in output (i.e. with `outdims=size(X,2)`), analise the proportions of explained cumulative variance by dimensions in `info(mod,""explained_var_by_dim")`, choose the number of dimensions K according to his needs and finally pick from the reprojected matrix only the number of dimensions required, i.e. `out.X[:,1:K]`.
 
 # Example:
@@ -918,8 +918,8 @@ julia> using BetaML
 
 julia> xtrain        = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95];
 
-julia> mod           = PCA(max_unexplained_var=0.05)
-A PCA BetaMLModel (unfitted)
+julia> mod           = PCAEncoder(max_unexplained_var=0.05)
+A PCAEncoder BetaMLModel (unfitted)
 
 julia> xtrain_reproj = fit!(mod,xtrain)
 6×2 Matrix{Float64}:
@@ -945,7 +945,7 @@ julia> xtest_reproj  = predict(mod,xtest)
  200.898  6.3566
 ```
 """
-mutable struct PCA <: BetaMLUnsupervisedModel
+mutable struct PCAEncoder <: BetaMLUnsupervisedModel
     hpar::PCAHyperParametersSet
     opt::BetaMLDefaultOptionsSet
     par::Union{Nothing,PCALearnableParameters}
@@ -954,8 +954,8 @@ mutable struct PCA <: BetaMLUnsupervisedModel
     info::Dict{String,Any}
 end
 
-function PCA(;kwargs...)
-    m = PCA(PCAHyperParametersSet(),BetaMLDefaultOptionsSet(),PCALearnableParameters(),nothing,false,Dict{Symbol,Any}())
+function PCAEncoder(;kwargs...)
+    m = PCAEncoder(PCAHyperParametersSet(),BetaMLDefaultOptionsSet(),PCALearnableParameters(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -973,7 +973,7 @@ end
 
 
 
-function fit!(m::PCA,X)
+function fit!(m::PCAEncoder,X)
 
     # Parameter alias..
     outdims                  = m.hpar.outdims
@@ -1013,7 +1013,7 @@ function fit!(m::PCA,X)
     return cache ? m.cres : nothing
 end   
 
-function predict(m::PCA,X)
+function predict(m::PCAEncoder,X)
     D = size(m.par.eigen_out.vectors,2)
     P = m.par.eigen_out.vectors[:,end:-1:D-m.par.outdims_actual+1]
     return X*P

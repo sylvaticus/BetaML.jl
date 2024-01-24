@@ -68,7 +68,7 @@ For the parameters see [`AutoEncoderHyperParametersSet`](@ref) and [`BetaMLDefau
 
 # Notes:
 - AutoEncoder doesn't automatically scale the data. It is suggested to apply the [`Scaler`](@ref) model before running it. 
-- Missing data are not supported. Impute them first, see the [`Imputation`](Imputation.html) module.
+- Missing data are not supported. Impute them first, see the [`Imputation`](@ref) module.
 - Decoding layers can be optinally choosen (parameter `d_layers`) in order to suit the kind of data, e.g. a `relu` activation function for nonegative data
 
 # Example:

@@ -8,7 +8,7 @@ The following API is designed to further simply the usage of the various ML mode
 ## Supervised , unsupervised and transformed models
 
 _Supervised_ refers to models designed to _learn_ a relation between some _features_ (often noted with X) and some _labels_ (often noted with Y) in order to predict the label of new data given the observed features alone. Perceptron, decision trees or neural networks are common examples.
-_Unsupervised_ and _transformer_ models relate to models that learn a "structure" from the data itself (without any label attached from which to learn) and report either some new information using this learned structure (e.g. a cluster class) or directly process a transformation of the data itself, like `PCA` or missing imputers.
+_Unsupervised_ and _transformer_ models relate to models that learn a "structure" from the data itself (without any label attached from which to learn) and report either some new information using this learned structure (e.g. a cluster class) or directly process a transformation of the data itself, like `PCAEncoder` or missing imputers.
 There is no difference in BetaML about these kind of models, aside that the fitting (aka _training_) function for the former takes both the features and the labels. In particular there isn't a separate `transform` function as in other frameworks, but any information we need to learn using the model, wheter a label or some transformation of the original data, is provided by the `predict` function. 
 
 ### Model constructor

@@ -17,7 +17,7 @@ For the complete list of functions provided see below. The main ones are:
 
 ## Data processing
 - Various small and large utilities for helping processing the data, expecially before running a ML algorithm
-- Includes [`getpermutations`](@ref), [`OneHotEncoder`](@ref), [`OrdinalEncoder`](@ref), [`partition`](@ref), [`Scaler`](@ref), [`PCA`](@ref), [`AutoEncoder`](@ref), [`cross_validation`](@ref).
+- Includes [`getpermutations`](@ref), [`OneHotEncoder`](@ref), [`OrdinalEncoder`](@ref), [`partition`](@ref), [`Scaler`](@ref), [`PCAEncoder`](@ref), [`AutoEncoder`](@ref), [`cross_validation`](@ref).
 - Auto-tuning of hyperparameters is implemented in the supported models by specifying `autotune=true` and optionally overriding the `tunemethod` parameters (e.g. for different hyperparameters ranges or different resources available for the tuning). Autotuning is then implemented in the (first) `fit!` call. Provided autotuning methods:  [`SuccessiveHalvingSearch`](@ref) (default), [`GridSearch`](@ref)
 
 ## Samplers
@@ -30,7 +30,7 @@ For the complete list of functions provided see below. The main ones are:
 
 ## Measures
 - Several functions of a pair of parameters (often `y` and `ŷ`) to measure the goodness of `ŷ`, the distance between the two elements of the pair, ...
-- Includes "classical" distance functions ([`l1_distance`](@ref), [`l2_distance`](@ref), [`l2squared_distance`](@ref) [`cosine_distance`](@ref)), "cost" functions for continuous variables ([`squared_cost`](@ref), [`mean_relative_error`](@ref)) and comparision functions for multi-class variables ([`crossentropy`](@ref), [`accuracy`](@ref), [`ConfMatrix`](@ref), [`silhouette`](@ref))
+- Includes "classical" distance functions ([`l1_distance`](@ref), [`l2_distance`](@ref), [`l2squared_distance`](@ref) [`cosine_distance`](@ref)), "cost" functions for continuous variables ([`squared_cost`](@ref), [`mean_relative_error`](@ref)) and comparision functions for multi-class variables ([`crossentropy`](@ref), [`accuracy`](@ref), [`ConfusionMatrix`](@ref), [`silhouette`](@ref))
 - Distances can be used to compute a pairwise distance matrix using the function [`pairwise`](@ref)
 
 """
@@ -63,7 +63,7 @@ export @codelocation, generate_parallel_rngs,
        radial_kernel, polynomial_kernel,
        Scaler, MinMaxScaler, StandardScaler,
        ScalerHyperParametersSet, MinMaxScaler,StandardScaler,
-       PCA, PCAHyperParametersSet,
+       PCAEncoder, PCAHyperParametersSet,
        OneHotEncoder, OrdinalEncoder, OneHotEncoderHyperParametersSet,
        @threadsif,
        get_parametric_types, isinteger_bml

@@ -48,12 +48,12 @@ clusters = gmm(X,3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTR
 @test isapprox(clusters.BIC,114.1492467835965)
 
 
-println("Testing GMMClusterer...")
+println("Testing GaussianMixtureClusterer...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 
-m = GMMClusterer(n_classes=3, mixtures=[DiagonalGaussian() for i in 1:3], verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
-m2 = GMMClusterer(n_classes=3, mixtures=DiagonalGaussian, verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
-m3 = GMMClusterer(n_classes=3, verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
+m = GaussianMixtureClusterer(n_classes=3, mixtures=[DiagonalGaussian() for i in 1:3], verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
+m2 = GaussianMixtureClusterer(n_classes=3, mixtures=DiagonalGaussian, verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
+m3 = GaussianMixtureClusterer(n_classes=3, verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
 ŷ1 = fit!(m,X)
 ŷ2 = fit!(m2,X)
 ŷ3 = fit!(m3,X)
@@ -67,7 +67,7 @@ pk_x1alone = m.par.initial_probmixtures
 
 X2 = [2.0 12; 3 20; 4 15; 1.5 11]
 
-m2 = GMMClusterer(n_classes=3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
+m2 = GaussianMixtureClusterer(n_classes=3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
 fit!(m2,X2)
 #μ_x2alone = hcat([m.par.mixtures[i].μ for i in 1:3]...)
 probsx2alone = predict(m2)
@@ -81,18 +81,18 @@ fit!(m,X2) # this greately reduces mixture variance
 probsx2 = predict(m)
 @test probsx2[1,1] > 0.999 # it feels more certain as it uses the info of he first training
 reset!(m)
-@test sprint(print,m) == "GMMClusterer - A 3-classes Generative Mixture Model (unfitted)"
+@test sprint(print,m) == "GaussianMixtureClusterer - A 3-classes Generative Mixture Model (unfitted)"
 
-m = GMMClusterer(mixtures=[SphericalGaussian() for i in 1:2])
+m = GaussianMixtureClusterer(mixtures=[SphericalGaussian() for i in 1:2])
 x_full = fit!(m,X)
-m = GMMClusterer(mixtures=SphericalGaussian,n_classes=2)
+m = GaussianMixtureClusterer(mixtures=SphericalGaussian,n_classes=2)
 x_full2 = fit!(m,X)
 @test x_full == x_full2
-m = GMMClusterer(mixtures=SphericalGaussian)
+m = GaussianMixtureClusterer(mixtures=SphericalGaussian)
 x_full = fit!(m,X)
 @test hyperparameters(m).n_classes == 3 
 @test length(hyperparameters(m).mixtures) == 3
-m = GMMClusterer(n_classes=2)
+m = GaussianMixtureClusterer(n_classes=2)
 x_full = fit!(m,X)
 @test length(hyperparameters(m).mixtures) == 2
 

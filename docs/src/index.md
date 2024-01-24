@@ -28,10 +28,10 @@ res     = KernelPerceptronClassifier() # KernelPerceptronClassifier is defined i
 ```
 Each module is documented on the links below (you can also use the inline Julia help system: just press the question mark `?` and then, on the special help prompt `help?>`, type the function name):
 
-- [**`BetaML.Perceptron`**](Perceptron.html): The Perceptron, Kernel Perceptron and PegasosClassifier classification algorithms;
+- [**`BetaML.Perceptron`**](Perceptron.html): The Perceptron, Kernel Perceptron and Pegasos classification algorithms;
 - [**`BetaML.Trees`**](Trees.html): The Decision Trees and Random Forests algorithms for classification or regression (with missing values supported);
 - [**`BetaML.Nn`**](Nn.html): Implementation of Artificial Neural Networks;
-- [**`BetaML.Clustering`**](Clustering.html): (hard) Clustering algorithms (KMeans, KMdedoids)
+- [**`BetaML.Clustering`**](Clustering.html): (hard) Clustering algorithms (K-Means, K-Mdedoids)
 - [**`BetaML.GMM`**](GMM.html): Various algorithms (Clustering, regressor, missing imputation / collaborative filtering / recommandation systems) that use a Generative (Gaussian) mixture models (probabilistic) fitter, fitted using a EM algorithm;
 - [**`BetaML.Imputation`**](Imputation.html): Imputation algorithms;
 - [**`BetaML.Utils`**](Utils.html): Various utility functions (scale, one-hot, distances, kernels, pca, accuracy/error measures..).
@@ -45,22 +45,22 @@ Currently BetaML provides the following models:
 | [`PerceptronClassifier`](@ref) | [`PerceptronClassifier`](@ref Bmlj.PerceptronClassifier) | _Supervised classifier_ | 
 | [`KernelPerceptronClassifier`](@ref)  | [`KernelPerceptronClassifier`](@ref Bmlj.KernelPerceptronClassifier) | _Supervised classifier_ | 
 | [`PegasosClassifier`](@ref) | [`PegasosClassifier`](@ref Bmlj.PegasosClassifier) | _Supervised classifier_ |
-| [`DecisionTreeEstimator`](@ref) | [`DecisionTreeClassifier`](@ref), [`DecisionTreeRegressor`](@ref) | _Supervised regressor and classifier_ |
-| [`RandomForestEstimator`](@ref) |  [`RandomForestClassifier`](@ref), [`RandomForestRegressor`](@ref) | _Supervised regressor and classifier_ |
-| [`NeuralNetworkEstimator`](@ref) | [`NeuralNetworkRegressor`](@ref), [`MultitargetNeuralNetworkRegressor`](@ref), [`NeuralNetworkClassifier`](@ref) | _Supervised regressor and classifier_ |
-| [`GaussianMixtureRegressor2`](@ref) | | _Supervised regressor_ | 
-| [`GaussianMixtureRegressor`](@ref) | [`GaussianMixtureRegressor`](@ref), [`MultitargetGaussianMixtureRegressor`](@ref) | _Supervised regressor_ | 
-| [`KMeansClusterer`](@ref) | [`KMeans`](@ref) | _Unsupervised hard clusterer_ |
-| [`KMedoidsClusterer`](@ref) | [`KMedoids`](@ref) | _Unsupervised hard clusterer_ |
-| [`GMMClusterer`](@ref) | [`GaussianMixtureClusterer`](@ref)| _Unsupervised soft clusterer_ |
-| [`FeatureBasedImputer`](@ref) | [`SimpleImputer`](@ref) | _Unsupervised missing data imputer_ |
-| [`GMMImputer`](@ref) | [`GaussianMixtureImputer`](@ref) | _Unsupervised missing data imputer_ |
-| [`RFImputer`](@ref) | [`RandomForestImputer`](@ref) | _Unsupervised missing data imputer_ |
-| [`UniversalImputer`](@ref) | [`GeneralImputer`](@ref) | _Unsupervised missing data imputer_ |
+| [`DecisionTreeEstimator`](@ref) | [`DecisionTreeClassifier`](@ref Bmlj.DecisionTreeClassifier), [`DecisionTreeRegressor`](@ref Bmlj.DecisionTreeRegressor) | _Supervised regressor and classifier_ |
+| [`RandomForestEstimator`](@ref) |  [`RandomForestClassifier`](@ref Bmlj.RandomForestClassifier), [`RandomForestRegressor`](@ref Bmlj.RandomForestRegressor) | _Supervised regressor and classifier_ |
+| [`NeuralNetworkEstimator`](@ref) | [`NeuralNetworkRegressor`](@ref Bmlj.NeuralNetworkRegressor), [`MultitargetNeuralNetworkRegressor`](@ref Bmlj.MultitargetNeuralNetworkRegressor), [`NeuralNetworkClassifier`](@ref Bmlj.NeuralNetworkClassifier) | _Supervised regressor and classifier_ |
+| [`GaussianMixtureRegressor`](@ref) | [`GaussianMixtureRegressor`](@ref Bmlj.GaussianMixtureRegressor), [`MultitargetGaussianMixtureRegressor`](@ref Bmlj.MultitargetGaussianMixtureRegressor) | _Supervised regressor_ |
+| [`GaussianMixtureRegressor2`](@ref) | | _Supervised regressor_ |  
+| [`KMeansClusterer`](@ref) | [`KMeansClusterer`](@ref Bmlj.KMeansClusterer) | _Unsupervised hard clusterer_ |
+| [`KMedoidsClusterer`](@ref) | [`KMedoidsClusterer`](@ref Bmlj.KMedoidsClusterer) | _Unsupervised hard clusterer_ |
+| [`GaussianMixtureClusterer`](@ref) | [`GaussianMixtureClusterer`](@ref Bmlj.GaussianMixtureClusterer)| _Unsupervised soft clusterer_ |
+| [`SimpleImputer`](@ref) | [`SimpleImputer`](@ref Bmlj.SimpleImputer) | _Unsupervised missing data imputer_ |
+| [`GaussianMixtureImputer`](@ref) | [`GaussianMixtureImputer`](@ref Bmlj.GaussianMixtureImputer) | _Unsupervised missing data imputer_ |
+| [`RandomForestImputer`](@ref) | [`RandomForestImputer`](@ref Bmlj.RandomForestImputer) | _Unsupervised missing data imputer_ |
+| [`GeneralImputer`](@ref) | [`GeneralImputer`](@ref Bmlj.GeneralImputer) | _Unsupervised missing data imputer_ |
 | [`MinMaxScaler`](@ref) | | _Data transformer_ |
 | [`StandardScaler`](@ref) | | _Data transformer_ |
 | [`Scaler`](@ref) |  | _Data transformer_ |
-| [`PCA`](@ref) |  | _Unsupervised dimensionality reduction_ |
+| [`PCAEncoder`](@ref) |  | _Unsupervised dimensionality reduction_ |
 | [`AutoEncoder`](@ref) | [`AutoEncoder`](@ref Bmlj.AutoEncoder) | _Unsupervised non-linear dimensionality reduction_ |
 | [`OneHotEncoder`](@ref) |  | _Data transformer_ |
 | [`OrdinalEncoder`](@ref) |  | _Data transformer_ |

@@ -295,13 +295,13 @@ println("** Testing pca()...")
 
 X = [1 8; 4.5 5.5; 9.5 0.5]
 expectedX = [-4.58465   6.63182;-0.308999  7.09961; 6.75092   6.70262]
-m = PCA(outdims=2)
+m = PCAEncoder(outdims=2)
 fit!(m,X)
 ŷ = predict(m)
 @test isapprox(ŷ,expectedX,atol=0.00001) || isapprox(ŷ, (.- expectedX),atol=0.00001)
 
 X = [1 10 100; 1.1 15 120; 0.95 23 90; 0.99 17 120; 1.05 8 90; 1.1 12 95]
-m = PCA(max_unexplained_var=0.05)
+m = PCAEncoder(max_unexplained_var=0.05)
 fit!(m,X)
 ŷ = predict(m)
 @test 1-m.info["prop_explained_var"] ≈ 1.0556269747774571e-5

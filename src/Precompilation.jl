@@ -18,7 +18,7 @@
         fit!(PegasosClassifier(verbosity=NONE,epochs=10),x,ycat)
         fit!(KMeansClusterer(verbosity=NONE),x)
         fit!(KMedoidsClusterer(verbosity=NONE),x)
-        fit!(GMMClusterer(verbosity=NONE,tol=0.01),x)
+        fit!(GaussianMixtureClusterer(verbosity=NONE,tol=0.01),x)
         @info "...done BetaML PrecompileTool workflow."
     end
 end
