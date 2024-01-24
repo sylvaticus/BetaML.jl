@@ -291,7 +291,7 @@ push!(results,["NN (Flux.jl)",trainAccuracy,testAccuracy]);
 # ## Perceptron-like classifiers.
 println(now(), " ", "- perceptrons-like classifiers..." )  #src
 
-# We finaly test 3 "perceptron-like" classifiers, the "classical" Perceptron ([`PerceptronClassifier`](@ref)), one of the first ML algorithms (a linear classifier), a "kernellised" version of it ([`KernelPerceptronClassifier`](@ref), default to using the radial kernel) and "Pegasos" ([`PegasosClassifier`](@ref)) another linear algorithm that starts considering a gradient-based optimisation, altought without the regularisation term as in the Support Vector Machines (SVM).  
+# We finaly test 3 "perceptron-like" classifiers, the "classical" Perceptron ([`PerceptronClassifier`](@ref)), one of the first ML algorithms (a linear classifier), a "kernellised" version of it ([`KernelPerceptronClassifier`](@ref), default to using the radial kernel) and "PegasosClassifier" ([`PegasosClassifier`](@ref)) another linear algorithm that starts considering a gradient-based optimisation, altought without the regularisation term as in the Support Vector Machines (SVM).  
 
 # As for the previous classifiers we construct the model object, we train and predict and we compute the train and test accuracies:
 
@@ -307,7 +307,7 @@ ŷtrain = fit!(kpm, xtrain, ytrain)
 ŷtest  = predict(kpm, xtest)
 (trainAccuracy,testAccuracy) = accuracy.([ytrain,ytest],[ŷtrain,ŷtest])
 #src (0.9661538461538461, 0.6790123456790124) without autotune, (1.0, 0.7037037037037037) with it
-push!(results,["KernelPerceptron",trainAccuracy,testAccuracy]);
+push!(results,["KernelPerceptronClassifier",trainAccuracy,testAccuracy]);
 
 
 pegm = PegasosClassifier(rng=copy(AFIXEDRNG))
@@ -334,7 +334,7 @@ println(results)
 # | NN                    |  0.886154 | 0.728395 | 0.916923 | 0.827160 | 0.895385 | 0.876543 |
 # │ NN (Flux.jl)          |  0.793846 | 0.654321 | 0.938462 | 0.790123 | 0.935385 | 0.851852 |
 # │ Perceptron            |  0.778462 | 0.703704 | 0.720000 | 0.753086 | 0.670769 | 0.654321 |
-# │ KernelPerceptron      |  0.987692 | 0.703704 | 0.978462 | 0.777778 | 0.944615 | 0.827160 |
+# │ KernelPerceptronClassifier      |  0.987692 | 0.703704 | 0.978462 | 0.777778 | 0.944615 | 0.827160 |
 # │ Pegasaus              |  0.732308 | 0.703704 | 0.633846 | 0.753086 | 0.575385 | 0.654321 |
 
 # We warn that this table just provides a rought idea of the various algorithms performances. Indeed there is a large amount of stochasticity both in the sampling of the data used for training/testing and in the initial settings of the parameters of the algorithm. For a statistically significant comparision we would have to repeat the analysis with multiple sampling (e.g. by cross-validation, see the [clustering tutorial](@ref clustering_tutorial) for an example) and initial random parameters.

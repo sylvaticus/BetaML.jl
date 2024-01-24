@@ -475,11 +475,11 @@ plot(data[stc:endc,:dteday],[data[stc:endc,:cnt] ŷtestfullf[stc:endc]], label=
 println(now(), " ", "- GMM regressor..." )  #src
 
 # BetaML 0.8 introduces new regression algorithms based on Gaussian Mixture Model.
-# Specifically, there are two variants available, `GMMRegressor1` and `GMMRegressor2`, and this example uses  `GMMRegressor2`
+# Specifically, there are two variants available, `GaussianMixtureRegressor2` and `GaussianMixtureRegressor`, and this example uses  `GaussianMixtureRegressor`
 # As for neural networks, they work on numerical data only, so we reuse the datasets we prepared for the neural networks.
 
 # As usual we first define the model.
-m = GMMRegressor2(rng=copy(AFIXEDRNG),verbosity=NONE)
+m = GaussianMixtureRegressor(rng=copy(AFIXEDRNG),verbosity=NONE)
 
 # !!! info
 #     We disabled autotune here, as this code is run by GitHub continuous_integration servers on each code update, and GitHub servers seem to have some strange problem with it, taking almost 4 hours instead of a few seconds on my machine.
@@ -511,7 +511,7 @@ println(results)
 # | RF (DecisionTree.jl) | 0.0230439  | 0.235823  | 0.0801040  | 0.243822  | 0.0168764  | 0.219011  |
 # | NN                   | 0.1604000  | 0.169952  | 0.1091330  | 0.121496  | 0.1481440  | 0.150458  | 
 # | NN (Flux.jl)         | 0.0931161  | 0.166228  | 0.0920796  | 0.167047  | 0.0907810  | 0.122469  | 
-# | GMMRegressor2*       | 0.1432800  | 0.293891  | 0.1380340  | 0.295470  | 0.1477570  | 0.284567  |
+# | GaussianMixtureRegressor*       | 0.1432800  | 0.293891  | 0.1380340  | 0.295470  | 0.1477570  | 0.284567  |
 
 # * GMM is a deterministic model, the variations are due to the different random sampling in choosing the best hyperparameters
 
