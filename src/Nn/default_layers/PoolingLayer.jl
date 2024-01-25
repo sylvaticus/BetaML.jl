@@ -5,7 +5,11 @@
 """
 $(TYPEDEF)
 
-Representation of a pooling layer in the network
+Representation of a pooling layer in the network (weightless)
+
+**EXPERIMENTAL**: Still too slow for practical applications
+
+In the middle between `VectorFunctionLayer` and `ScalarFunctionLayer`, it applyes a function to the set of nodes defined in a sliding kernel.
 
 # Fields:
 $(TYPEDFIELDS)

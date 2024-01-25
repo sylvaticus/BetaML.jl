@@ -7,6 +7,8 @@ $(TYPEDEF)
 
 Representation of a "reshaper" (weigthless) layer in the network
 
+Reshape the output of a layer (or the input data) to the shape needed for the next one.
+
 # Fields:
 $(TYPEDFIELDS)
 """

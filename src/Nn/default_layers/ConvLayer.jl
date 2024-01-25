@@ -5,7 +5,13 @@
 """
 $(TYPEDEF)
 
-Representation of a convolutional layer in the network
+A generic N+1 (channels) dimensional convolutional layer
+
+**EXPERIMENTAL**: Still too slow for practical applications
+
+This convolutional layer has two constructors, one with the form `ConvLayer(input_size,kernel_size,nchannels_in,nchannels_out)`, and an alternative one as `ConvLayer(input_size_with_channel,kernel_size,nchannels_out)`.
+If the input is a vector, use a [`ReshaperLayer`](@ref) in front.
+
 
 # Fields:
 $(TYPEDFIELDS)

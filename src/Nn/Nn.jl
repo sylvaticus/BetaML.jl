@@ -12,16 +12,21 @@ The module provide the following types or functions. Use `?[type or function]` t
 
 # Model definition:
 
-- `DenseLayer`: Classical feed-forward layer with user-defined activation function
-- `DenseNoBiasLayer`: Classical layer without the bias parameter
-- `VectorFunctionLayer`: Layer whose activation function run over the ensable of its nodes rather than on each one individually. No learnable weigths on input, optional learnable weigths as parameters of the activation function.
-- `ScalarFunctionLayer`: Layer whose activation function run over each node individually, like a classic `DenseLqyer`, but with no learnable weigths on input and optional learnable weigths as parameters of the activation function.
-- `ReplicatorLayer`: Alias for a `ScalarFunctionLayer` with no learnable parameters and identity as activation function
-- `GroupedLayer`: To stack several layers into a single layer, e.g. for multi-branches networks
-- `NeuralNetworkEstimator`: Build the chained network and define a cost function
+- [`DenseLayer`](@ref): Classical feed-forward layer with user-defined activation function
+- [`DenseNoBiasLayer`](@ref): Classical layer without the bias parameter
+- [`VectorFunctionLayer`](@ref): Layer whose activation function run over the ensable of its nodes rather than on each one individually. No learnable weigths on input, optional learnable weigths as parameters of the activation function.
+- [`ScalarFunctionLayer`](@ref): Layer whose activation function run over each node individually, like a classic `DenseLayer`, but with no learnable weigths on input and optional learnable weigths as parameters of the activation function.
+- [`ReplicatorLayer`](@ref): Alias for a `ScalarFunctionLayer` with no learnable parameters and identity as activation function
+- [`ReshaperLayer`](@ref): Reshape the output of a layer (or the input data) to the shape needed for the next one
+- [`PoolingLayer`](@ref): In the middle between `VectorFunctionLayer` and `ScalarFunctionLayer`, it applyes a function to the set of nodes defined in a sliding kernel. Weightless.
+- [`ConvLayer`](@ref): A generic N+1 (channels) dimensional convolutional layer 
+- [`GroupedLayer`](@ref): To stack several layers into a single layer, e.g. for multi-branches networks
+- [`NeuralNetworkEstimator`](@ref): Build the chained network and define a cost function
 
+Each layer can use a default activation function, one of the functions provided in the `Utils` module (`relu`, `tanh`, `softmax`,...) or one provided by you.
+BetaML will try to recognise if it is a "known" function for which it sets the exact derivatives, otherwise you can normally provide the layer with it.
+If the derivative of the activation function is not provided (either manually or automatically), AD will be used and training may be slower, altought this difference tends to vanish with bigger datasets.
 
-Each layer can use a default activation function, one of the functions provided in the `Utils` module (`relu`, `tanh`, `softmax`,...) or you can specify your own function. The derivative of the activation function can be optionally be provided, in such case training will be quicker, altought this difference tends to vanish with bigger datasets.
 You can alternativly implement your own layer defining a new type as subtype of the abstract type `AbstractLayer`. Each user-implemented layer must define the following methods:
 
 - A suitable constructor
