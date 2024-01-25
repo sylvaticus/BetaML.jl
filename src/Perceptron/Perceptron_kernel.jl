@@ -313,7 +313,7 @@ Hyperparameters for the [`KernelPerceptronClassifier`](@ref) model
 # Parameters:
 $(FIELDS)
 """
-Base.@kwdef mutable struct KernelPerceptronClassifierHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct  KernelPerceptronC_hp <: BetaMLHyperParametersSet
     "Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel` for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radial_kernel`](@ref)]"
     kernel::Function = radial_kernel       
     "Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`"
@@ -330,7 +330,7 @@ Base.@kwdef mutable struct KernelPerceptronClassifierHyperParametersSet <: BetaM
     tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("kernel" =>[radial_kernel,polynomial_kernel, (x,y) -> polynomial_kernel(x,y,degree=3)], "epochs" =>[50,100,1000,10000], "shuffle"=>[true,false]),multithreads=true)
 end
 
-Base.@kwdef mutable struct KernelPerceptronClassifierLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct KernelPerceptronClassifier_lp <: BetaMLLearnableParametersSet
     xtrain::Union{Nothing,Vector{Matrix{Float64}}} = nothing
     ytrain::Union{Nothing,Vector{Vector{Int64}}} = nothing
     errors::Union{Nothing,Vector{Vector{Int64}}} = nothing
@@ -342,7 +342,7 @@ $(TYPEDEF)
 
 A "kernel" version of the `Perceptron` model (supervised) with user configurable kernel function.
 
-For the parameters see [`?KernelPerceptronClassifierHyperParametersSet`](@ref KernelPerceptronClassifierHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet)
+For the parameters see [`? KernelPerceptronC_hp`](@ref  KernelPerceptronC_hp) and [`?BML_options`](@ref BML_options)
 
 # Limitations:
 - data must be numerical
@@ -379,16 +379,16 @@ Avg. error after iteration 10 : 0.16666666666666666
 ```
 """
 mutable struct KernelPerceptronClassifier <: BetaMLSupervisedModel
-    hpar::KernelPerceptronClassifierHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,KernelPerceptronClassifierLearnableParameters}
+    hpar:: KernelPerceptronC_hp
+    opt::BML_options
+    par::Union{Nothing,KernelPerceptronClassifier_lp}
     cres::Union{Nothing,Vector}
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function KernelPerceptronClassifier(;kwargs...)
-    m              = KernelPerceptronClassifier(KernelPerceptronClassifierHyperParametersSet(),BetaMLDefaultOptionsSet(),KernelPerceptronClassifierLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m              = KernelPerceptronClassifier( KernelPerceptronC_hp(),BML_options(),KernelPerceptronClassifier_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -444,7 +444,7 @@ function fit!(m::KernelPerceptronClassifier,X,Y)
 
     out = kernel_perceptron_classifier(X, Y; K=kernel, T=epochs, α=initial_errors, nMsgs=nMsgs, shuffle=shuffle, rng = rng, verbosity=verbosity)
 
-    m.par = KernelPerceptronClassifierLearnableParameters(out.x,out.y,out.α,out.classes)
+    m.par = KernelPerceptronClassifier_lp(out.x,out.y,out.α,out.classes)
 
   
     if cache

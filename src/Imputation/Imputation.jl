@@ -94,7 +94,7 @@ import Base.print
 import Base.show
 
 #export predictMissing,
-export SimpleImputerHyperParametersSet, RandomForestImputerHyperParametersSet,GeneralImputerHyperParametersSet,
+export SimpleI_hp,RandomForestI_hp,GeneralI_hp,
        Imputer, SimpleImputer, GaussianMixtureImputer, RandomForestImputer, GeneralImputer
 #fit!, predict, info
 
@@ -110,13 +110,13 @@ Hyperparameters for the [`SimpleImputer`](@ref) model
 # Parameters:
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct SimpleImputerHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct SimpleI_hp <: BetaMLHyperParametersSet
     "The descriptive statistic of the column (feature) to use as imputed value [def: `mean`]"
     statistic::Function                   = mean
     "Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries)."
     norm::Union{Nothing,Int64}       = nothing
 end
-Base.@kwdef mutable struct SimpleImputerLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct SimpleImputer_lp <: BetaMLLearnableParametersSet
     cStats::Vector{Float64} = []
     norms::Vector{Float64}  = []
 
@@ -157,23 +157,23 @@ Dict{String, Any} with 1 entry:
   "n_imputed_values" => 1
 
 julia> parameters(mod)
-BetaML.Imputation.SimpleImputerLearnableParameters (a BetaMLLearnableParametersSet struct)
+BetaML.Imputation.SimpleImputer_lp (a BetaMLLearnableParametersSet struct)
 - cStats: [11.0, 40.0, 55.0]
 - norms: [6.0, 53.333333333333336]
 ```
 
 """
 mutable struct SimpleImputer <: Imputer
-    hpar::SimpleImputerHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,SimpleImputerLearnableParameters}
+    hpar::SimpleI_hp
+    opt::BML_options
+    par::Union{Nothing,SimpleImputer_lp}
     cres::Union{Nothing,Matrix{Float64}}
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function SimpleImputer(;kwargs...)
-    m              = SimpleImputer(SimpleImputerHyperParametersSet(),BetaMLDefaultOptionsSet(),SimpleImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m              = SimpleImputer(SimpleI_hp(),BML_options(),SimpleImputer_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -214,7 +214,7 @@ function fit!(imputer::SimpleImputer,X)
         adjNorms[ismissing.(adjNorms)] .= adjNormsMean
         X̂        = [missingMask[r,c] ? cStats[c]*adjNorms[r]/sum(adjNorms) : X[r,c] for r in 1:nR, c in 1:nC]
     end
-    imputer.par = SimpleImputerLearnableParameters(cStats,adjNorms)
+    imputer.par = SimpleImputer_lp(cStats,adjNorms)
     imputer.cres = cache ? X̂ : nothing
     imputer.info["n_imputed_values"] = sum(missingMask)
     imputer.fitted = true
@@ -262,7 +262,7 @@ end
 
 # ------------------------------------------------------------------------------
 # GaussianMixtureImputer
-Base.@kwdef mutable struct GaussianMixtureImputerLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct GaussianMixtureImputer_lp <: BetaMLLearnableParametersSet
     mixtures::Union{Type,Vector{<: AbstractMixture}}    = DiagonalGaussian[] # The type is only temporary, it should always be replaced by an actual mixture
     initial_probmixtures::Vector{Float64}               = []
     probRecords::Union{Nothing,Matrix{Float64}} = nothing
@@ -275,7 +275,7 @@ $(TYPEDEF)
 
 Missing data imputer that uses a Generative (Gaussian) Mixture Model.
 
-For the parameters (`n_classes`,`mixtures`,..) see  [`GMMHyperParametersSet`](@ref).
+For the parameters (`n_classes`,`mixtures`,..) see  [`GaussianMixture_hp`](@ref).
 
 # Limitations:
 - data must be numerical
@@ -312,23 +312,23 @@ Dict{String, Any} with 7 entries:
   "BIC"              => 56.3403
 
 julia> parameters(mod)
-BetaML.Imputation.GaussianMixtureImputerLearnableParameters (a BetaMLLearnableParametersSet struct)
+BetaML.Imputation.GaussianMixtureImputer_lp (a BetaMLLearnableParametersSet struct)
 - mixtures: AbstractMixture[SphericalGaussian{Float64}([1.0179819950570768, 3.0999990977255845], 0.2865287884295908), SphericalGaussian{Float64}([6.149053737674149, 20.43331198167713], 15.18664378248651)]
 - initial_probmixtures: [0.48544987084082347, 0.5145501291591764]
 - probRecords: [0.9999996039918224 3.9600817749531375e-7; 2.3866922376272767e-229 1.0; … ; 0.9127030246369684 0.08729697536303167; 0.9999965964161501 3.403583849794472e-6]
 ```
 """
 mutable struct GaussianMixtureImputer <: Imputer
-    hpar::GMMHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{GaussianMixtureImputerLearnableParameters,Nothing}
+    hpar::GaussianMixture_hp
+    opt::BML_options
+    par::Union{GaussianMixtureImputer_lp,Nothing}
     cres::Union{Nothing,Matrix{Float64}}
     fitted::Bool
     info::Dict{String,Any}    
 end
 
 function GaussianMixtureImputer(;kwargs...)
-    m   = GaussianMixtureImputer(GMMHyperParametersSet(),BetaMLDefaultOptionsSet(),GaussianMixtureImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m   = GaussianMixtureImputer(GaussianMixture_hp(),BML_options(),GaussianMixtureImputer_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -341,7 +341,7 @@ function GaussianMixtureImputer(;kwargs...)
         end
         found || error("Keyword \"$kw\" is not part of this model.")
     end
-    # Special correction for GMMHyperParametersSet
+    # Special correction for GaussianMixture_hp
     kwkeys = keys(kwargs) #in(2,[1,2,3])
     if !in(:mixtures,kwkeys) && !in(:n_classes,kwkeys)
         m.hpar.n_classes = 3
@@ -404,7 +404,7 @@ function fit!(m::GaussianMixtureImputer,X)
 
     n_imputed_values = nFill
 
-    m.par  = GaussianMixtureImputerLearnableParameters(mixtures = emOut.mixtures, initial_probmixtures=makecolvector(emOut.pₖ), probRecords = emOut.pₙₖ)
+    m.par  = GaussianMixtureImputer_lp(mixtures = emOut.mixtures, initial_probmixtures=makecolvector(emOut.pₖ), probRecords = emOut.pₙₖ)
 
     if cache
         X̂ = [XMask[n,d] ? X[n,d] : sum([emOut.mixtures[k].μ[d] * emOut.pₙₖ[n,k] for k in 1:K]) for n in 1:N, d in 1:D ]
@@ -476,9 +476,9 @@ $(TYPEDFIELDS)
 julia>mod = RandomForestImputer(n_trees=20,max_depth=10,recursive_passages=3)
 ```
 """
-Base.@kwdef mutable struct RandomForestImputerHyperParametersSet <: BetaMLHyperParametersSet
-    "For the underlying random forest algorithm parameters (`n_trees`,`max_depth`,`min_gain`,`min_records`,`max_features:`,`splitting_criterion`,`β`,`initialisation_strategy`, `oob` and `rng`) see [`RFHyperParametersSet`](@ref) for the specific RF algorithm parameters"
-    rfhpar                                      = RFHyperParametersSet()
+Base.@kwdef mutable struct RandomForestI_hp <: BetaMLHyperParametersSet
+    "For the underlying random forest algorithm parameters (`n_trees`,`max_depth`,`min_gain`,`min_records`,`max_features:`,`splitting_criterion`,`β`,`initialisation_strategy`, `oob` and `rng`) see [`RandomForestE_hp`](@ref) for the specific RF algorithm parameters"
+    rfhpar                                      = RandomForestE_hp()
     "Specify the positions of the integer columns to treat as categorical instead of cardinal. [Default: empty vector (all numerical cols are treated as cardinal by default and the others as categorical)]"
     forced_categorical_cols::Vector{Int64}                = Int64[] # like in RF, normally integers are considered ordinal
     "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
@@ -489,7 +489,7 @@ Base.@kwdef mutable struct RandomForestImputerHyperParametersSet <: BetaMLHyperP
     cols_to_impute::Union{String,Vector{Int64}} = "auto"
 end
 
-Base.@kwdef struct RandomForestImputerLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef struct RandomForestImputer_lp <: BetaMLLearnableParametersSet
     forests               = nothing
     cols_to_impute_actual = Int64[] 
     #imputedValues  = nothing
@@ -502,7 +502,7 @@ $(TYPEDEF)
 
 Impute missing data using Random Forests, with optional replicable multiple imputations. 
 
-See [`RandomForestImputerHyperParametersSet`](@ref), [`RFHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref) for the parameters.
+See [`RandomForestI_hp`](@ref), [`RandomForestE_hp`](@ref) and [`BML_options`](@ref) for the parameters.
 
 # Notes:
 - Given a certain RNG and its status (e.g. `RandomForestImputer(...,rng=StableRNG(FIXEDSEED))`), the algorithm is completely deterministic, i.e. replicable. 
@@ -537,9 +537,9 @@ julia> X_full = fit!(mod,X)
 
 """
 mutable struct RandomForestImputer <: Imputer
-    hpar::RandomForestImputerHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{RandomForestImputerLearnableParameters,Nothing}
+    hpar::RandomForestI_hp
+    opt::BML_options
+    par::Union{RandomForestImputer_lp,Nothing}
     cres
     fitted::Bool
     info::Dict{String,Any}    
@@ -547,8 +547,8 @@ end
 
 function RandomForestImputer(;kwargs...)
     
-    hps = RandomForestImputerHyperParametersSet()
-    m   = RandomForestImputer(hps,BetaMLDefaultOptionsSet(),RandomForestImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    hps =RandomForestI_hp()
+    m   = RandomForestImputer(hps,BML_options(),RandomForestImputer_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -699,7 +699,7 @@ function fit!(m::RandomForestImputer,X)
 
         ooberrors[imputation] = ooberrorsImputation
     end # end individual imputation
-    m.par = RandomForestImputerLearnableParameters(forests,cols2imp)
+    m.par = RandomForestImputer_lp(forests,cols2imp)
     if cache
         if multiple_imputations == 1
             m.cres = Utils.disallowmissing(imputed[1])
@@ -804,7 +804,7 @@ Hyperparameters for [`GeneralImputer`](@ref)
 # Parameters:
 $(FIELDS)
 """
-Base.@kwdef mutable struct GeneralImputerHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct GeneralI_hp <: BetaMLHyperParametersSet
     "Columns in the matrix for which to create an imputation model, i.e. to impute. It can be a vector of columns IDs (positions), or the keywords \"auto\" (default) or \"all\". With \"auto\" the model automatically detects the columns with missing data and impute only them. You may manually specify the columns or use \"all\" if you want to create a imputation model for that columns during training even if all training data are non-missing to apply then the training model to further data with possibly missing values."
     cols_to_impute::Union{String,Vector{Int64}} = "auto"
     "An entimator model (regressor or classifier), with eventually its options (hyper-parameters), to be used to impute the various columns of the matrix. It can also be a `cols_to_impute`-length vector of different estimators to consider a different estimator for each column (dimension) to impute, for example when some columns are categorical (and will hence require a classifier) and some others are numerical (hence requiring a regressor). [default: `nothing`, i.e. use BetaML random forests, handling classification and regression jobs automatically]."
@@ -821,7 +821,7 @@ Base.@kwdef mutable struct GeneralImputerHyperParametersSet <: BetaMLHyperParame
     multiple_imputations::Int64    = 1
 end
 
-Base.@kwdef struct GeneralImputerLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef struct GeneralImputer_lp <: BetaMLLearnableParametersSet
     fittedModels          = nothing         # by cols_to_imute only
     cols_to_impute_actual = Int64[] 
     x_used_cols           = Vector{Int64}[] # by all columns
@@ -837,7 +837,7 @@ Impute missing values using any arbitrary learning model (classifier or regresso
 If needed (for example when some columns with missing data are categorical and some numerical) different models can be specified for each column.
 Multiple imputations and multiple "passages" trought the various colums for a single imputation are supported. 
 
-See [`GeneralImputerHyperParametersSet`](@ref) for all the hyper-parameters.
+See [`GeneralI_hp`](@ref) for all the hyper-parameters.
 
 # Examples:
 
@@ -912,9 +912,9 @@ julia> X_full = fit!(mod,X)
 ```
 """
 mutable struct GeneralImputer <: Imputer
-    hpar::GeneralImputerHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{GeneralImputerLearnableParameters,Nothing}
+    hpar::GeneralI_hp
+    opt::BML_options
+    par::Union{GeneralImputer_lp,Nothing}
     cres
     fitted::Bool
     info::Dict{String,Any}    
@@ -922,8 +922,8 @@ end
 
 function GeneralImputer(;kwargs...)
     
-    hps = GeneralImputerHyperParametersSet()
-    m   = GeneralImputer(hps,BetaMLDefaultOptionsSet(),GeneralImputerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    hps = GeneralI_hp()
+    m   = GeneralImputer(hps,BML_options(),GeneralImputer_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -1093,7 +1093,7 @@ function fit!(m::GeneralImputer,X)
         end # end recursive passage pass
         imputed[imputation]   = Xout
     end # end individual imputation
-    m.par = GeneralImputerLearnableParameters(estimators,cols2imp,x_used_cols)
+    m.par = GeneralImputer_lp(estimators,cols2imp,x_used_cols)
     if cache
         if multiple_imputations == 1
             m.cres = Utils.disallowmissing(imputed[1])

@@ -28,7 +28,7 @@ import Base.show
 
 # export perceptron, perceptronBinary, KernelPerceptronClassifier, KernelPerceptronClassifierBinary, pegasos, pegasosBinary, predict
 export PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier
-export PerceptronClassifierHyperParametersSet, KernelPerceptronClassifierHyperParametersSet, PegasosClassifierHyperParametersSet
+export PerceptronC_hp,  KernelPerceptronC_hp, PegasosC_hp
 
 
 include("Perceptron_classic.jl")

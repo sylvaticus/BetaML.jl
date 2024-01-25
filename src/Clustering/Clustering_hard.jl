@@ -247,7 +247,7 @@ Hyperparameters for the [`KMeansClusterer`](@ref) model
 # Parameters:
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct KMeansHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct KMeansC_hp <: BetaMLHyperParametersSet
     "Number of classes to discriminate the data [def: 3]"
     n_classes::Int64                  = 3
     "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
@@ -273,7 +273,7 @@ Hyperparameters for the and [`KMedoidsClusterer`](@ref) models
 # Parameters:
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct KMedoidsHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct KMedoidsC_hp <: BetaMLHyperParametersSet
     "Number of classes to discriminate the data [def: 3]"
     n_classes::Int64                  = 3
     "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
@@ -291,7 +291,7 @@ Base.@kwdef mutable struct KMedoidsHyperParametersSet <: BetaMLHyperParametersSe
     initial_representatives::Union{Nothing,Matrix{Float64}} = nothing
 end
 
-Base.@kwdef mutable struct KMeansMedoidsLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct KMeansMedoids_lp <: BetaMLLearnableParametersSet
     representatives::Union{Nothing,Matrix{Float64}}  = nothing
 end
 
@@ -302,7 +302,7 @@ The classical "K-Means" clustering algorithm (unsupervised).
 
 Learn to partition the data and assign each record to one of the `n_classes` classes according to a distance metric (default Euclidean).
 
-For the parameters see [`?KMeansHyperParametersSet`](@ref KMeansHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
+For the parameters see [`?KMeansC_hp`](@ref KMeansC_hp) and [`?BML_options`](@ref BML_options).
 
 # Notes:
 - data must be numerical
@@ -343,15 +343,15 @@ Dict{String, Any} with 2 entries:
   "xndims"               => 2
 
 julia> parameters(mod)
-BetaML.Clustering.KMeansMedoidsLearnableParameters (a BetaMLLearnableParametersSet struct)
+BetaML.Clustering.KMeansMedoids_lp (a BetaMLLearnableParametersSet struct)
 - representatives: [1.13366 9.7209; 11.0 0.9]
 ```
 
 """
 mutable struct KMeansClusterer <: BetaMLUnsupervisedModel
-    hpar::KMeansHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,KMeansMedoidsLearnableParameters}
+    hpar::KMeansC_hp
+    opt::BML_options
+    par::Union{Nothing,KMeansMedoids_lp}
     cres::Union{Nothing,Vector{Int64}}
     fitted::Bool
     info::Dict{String,Any}
@@ -364,7 +364,7 @@ The classical "K-Medoids" clustering algorithm (unsupervised).
 
 Similar to K-Means, learn to partition the data and assign each record to one of the `n_classes` classes according to a distance metric, but the "representatives" (the cetroids) are guaranteed to be one of the training points. The algorithm work with any arbitrary distance measure (default Euclidean).
 
-For the parameters see [`?KMedoidsHyperParametersSet`](@ref KMedoidsHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
+For the parameters see [`?KMedoidsC_hp`](@ref KMedoidsC_hp) and [`?BML_options`](@ref BML_options).
 
 # Notes:
 - data must be numerical
@@ -405,14 +405,14 @@ Dict{String, Any} with 2 entries:
 "xndims"               => 2
 
 julia> parameters(mod)
-BetaML.Clustering.KMeansMedoidsLearnableParameters (a BetaMLLearnableParametersSet struct)
+BetaML.Clustering.KMeansMedoids_lp (a BetaMLLearnableParametersSet struct)
 - representatives: [0.9 9.8; 11.0 0.9]
 ```
 """
 mutable struct KMedoidsClusterer <: BetaMLUnsupervisedModel
-    hpar::KMedoidsHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,KMeansMedoidsLearnableParameters}
+    hpar::KMedoidsC_hp
+    opt::BML_options
+    par::Union{Nothing,KMeansMedoids_lp}
     cres::Union{Nothing,Vector{Int64}}
     fitted::Bool
     info::Dict{String,Any}
@@ -420,7 +420,7 @@ end
 
 
 function KMeansClusterer(;kwargs...)
-    m = KMeansClusterer(KMeansHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = KMeansClusterer(KMeansC_hp(),BML_options(),KMeansMedoids_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -437,7 +437,7 @@ function KMeansClusterer(;kwargs...)
 end
 
 function KMedoidsClusterer(;kwargs...)
-    m = KMedoidsClusterer(KMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = KMedoidsClusterer(KMedoidsC_hp(),BML_options(),KMeansMedoids_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -479,7 +479,7 @@ function fit!(m::KMeansClusterer,x)
     else
         (clIdx,Z) = kmeans(x,K,dist=dist,initialisation_strategy=initialisation_strategy,initial_representatives=initial_representatives,verbosity=verbosity,rng=rng)
     end
-    m.par  = KMeansMedoidsLearnableParameters(representatives=Z)
+    m.par  = KMeansMedoids_lp(representatives=Z)
     m.cres = cache ? clIdx : nothing
     m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
     m.info["xndims"]     = size(x,2)
@@ -514,7 +514,7 @@ function fit!(m::KMedoidsClusterer,x)
     else
         (clIdx,Z) = kmedoids(x,K,dist=dist,initialisation_strategy=initialisation_strategy,initial_representatives=initial_representatives,verbosity=verbosity,rng=rng)
     end
-    m.par  = KMeansMedoidsLearnableParameters(representatives=Z)
+    m.par  = KMeansMedoids_lp(representatives=Z)
     m.cres = cache ? clIdx : nothing
     m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
     m.info["xndims"]     = size(x,2)

@@ -165,7 +165,7 @@ ML toolkits/pipelines | [ScikitLearn.jl](https://github.com/cstjean/ScikitLearn.
 Neural Networks |  [Flux.jl](https://fluxml.ai/), [Knet](https://github.com/denizyuret/Knet.jl)
 Decision Trees | [DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl)
 Clustering | [Clustering.jl](https://github.com/JuliaStats/Clustering.jl), [GaussianMixtures.jl](https://github.com/davidavdav/GaussianMixtures.jl)
-Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl)
+Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl), [Mice.jl](https://github.com/tom-metherell/Mice.jl)
 
 
 
@@ -181,6 +181,8 @@ Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl)
 
 - Add RNN support and improve convolutional layers speed
 - Reinforcement learning (Markov decision processes)
+- Standardize data sampling in training
+- Convert to GPU
 
 ## Contribute
 

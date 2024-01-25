@@ -36,7 +36,7 @@ Hyperparameters for [`RandomForestEstimator`](@ref) (Random Forest).
 ## Parameters:
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct RFHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct RandomForestE_hp <: BetaMLHyperParametersSet
     "Number of (decision) trees in the forest [def: `30`]"
     n_trees::Int64                               = 30
     "The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `nothing`, i.e. no limits]"
@@ -67,7 +67,7 @@ Base.@kwdef mutable struct RFHyperParametersSet <: BetaMLHyperParametersSet
     tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("n_trees" => [10, 20, 30, 40], "max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30],"beta"=>[0,0.01,0.1]),multithreads=false) # RF are already MT
 end
 
-Base.@kwdef mutable struct RFLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct RF_lp <: BetaMLLearnableParametersSet
     forest::Union{Nothing,Forest} = nothing #TODO: Forest contain info that is actualy in report. Currently we duplicate, we should just remove them from par by making a dedicated struct instead of Forest
     Ty::DataType = Any
 end
@@ -80,7 +80,7 @@ A Random Forest classifier and regressor (supervised).
 
 Random forests are _ensemble_ of Decision Trees models (see [`?DecisionTreeEstimator`](@ref DecisionTreeEstimator)).
 
-For the parameters see [`?RFHyperParametersSet`](@ref RFHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
+For the parameters see [`?RandomForestE_hp`](@ref RandomForestE_hp) and [`?BML_options`](@ref BML_options).
 
 # Notes :
 - Each individual decision tree is built using bootstrap over the data, i.e. "sampling N records with replacement" (hence, some records appear multiple times and some records do not appear in the specific tree training). The `maxx_feature` injects further variability and reduces the correlation between the forest trees.
@@ -145,16 +145,16 @@ Dict{String, Any}("job_is_regression" => 1, "fitted_records" => 6, "avg_avg_dept
 ```
 """
 mutable struct RandomForestEstimator <: BetaMLSupervisedModel
-    hpar::RFHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,RFLearnableParameters} 
+    hpar::RandomForestE_hp
+    opt::BML_options
+    par::Union{Nothing,RF_lp} 
     cres
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function RandomForestEstimator(;kwargs...)
-m              = RandomForestEstimator(RFHyperParametersSet(),BetaMLDefaultOptionsSet(),RFLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+m              = RandomForestEstimator(RandomForestE_hp(),BML_options(),RF_lp(),nothing,false,Dict{Symbol,Any}())
 thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
 for (kw,kwv) in kwargs
     found = false
@@ -292,7 +292,7 @@ function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
     
     forest = buildForest(x, y, n_trees; max_depth = max_depth, min_gain=min_gain, min_records=min_records, max_features=max_features, force_classification=force_classification, splitting_criterion = splitting_criterion, fast_algorithm=fast_algorithm, integer_encoded_cols=integer_encoded_cols, β=β, oob=false,  rng = rng)
 
-    m.par = RFLearnableParameters(forest,Tynm)
+    m.par = RF_lp(forest,Tynm)
 
     if cache
         rawout = predictSingle.(Ref(forest),eachrow(x),rng=rng)

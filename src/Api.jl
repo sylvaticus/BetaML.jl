@@ -25,7 +25,7 @@ import JLD2
 export Verbosity, NONE, LOW, STD, HIGH, FULL,     
        FIXEDSEED, FIXEDRNG,
        BetaMLModel, BetaMLSupervisedModel, BetaMLUnsupervisedModel,
-       BetaMLOptionsSet, BetaMLDefaultOptionsSet, BetaMLHyperParametersSet, BetaMLLearnableParametersSet,
+       BetaMLOptionsSet, BML_options, BetaMLHyperParametersSet, BetaMLLearnableParametersSet,
        AutoTuneMethod,
        predict, inverse_predict, fit!, fit_ex, info, reset!, reset_ex, parameters,hyperparameters, options, sethp!,
        model_save, model_load
@@ -84,14 +84,14 @@ A struct defining the options used by default by the algorithms that do not over
 $(TYPEDFIELDS)
 
 # Notes:
-- even if a model doesn't override `BetaMLDefaultOptionsSet`, may not use all its options, for example deterministic models would not make use of the `rng` parameter. Passing such parameters in these cases would simply have no influence.
+- even if a model doesn't override `BML_options`, may not use all its options, for example deterministic models would not make use of the `rng` parameter. Passing such parameters in these cases would simply have no influence.
 
 # Example:
 ```
-julia> options = BetaMLDefaultOptionsSet(cache=false,descr="My model")
+julia> options = BML_options(cache=false,descr="My model")
 ```
 """
-Base.@kwdef mutable struct BetaMLDefaultOptionsSet <: BetaMLOptionsSet
+Base.@kwdef mutable struct BML_options <: BetaMLOptionsSet
    "Cache the results of the fitting stage, as to allow predict(mod) [default: `true`]. Set it to `false` to save memory for large data."
    cache::Bool = true
    "An optional title and/or description for this model"

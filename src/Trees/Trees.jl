@@ -33,12 +33,12 @@ import Base.print
 import Base.show
 import Base.convert
 
-export DecisionTreeEstimator, DTHyperParametersSet
+export DecisionTreeEstimator, DecisionTreeE_hp
 # export AbstractDecisionNode,Leaf, DecisionNode, 
 # export buildTree
 #predictSingle # TODO: to remove
 
-export RandomForestEstimator, RFHyperParametersSet
+export RandomForestEstimator, RandomForestE_hp
 #export  Forest 
 # export buildForest
 # updateTreesWeights! # TODO:to remove

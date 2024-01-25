@@ -72,7 +72,7 @@ export GroupedLayer
 export ConvLayer, ReshaperLayer, PoolingLayer
 export init_optalg!, single_update! # Optimizers API
 export SGD,ADAM, DebugOptAlg # Available optimizers
-export Learnable, fitting_info, NeuralNetworkEstimator, NNHyperParametersSet, NeuralNetworkEstimatorOptionsSet # NN API
+export Learnable, fitting_info, NeuralNetworkEstimator, NeuralNetworkE_hp, NeuralNetworkE_options # NN API
 
 # export get_nparams, NN, buildNetwork, predict, loss, train!, getindex, show # old
 
@@ -813,7 +813,7 @@ $(FIELDS)
 To know the available layers type `subtypes(AbstractLayer)`) and then type `?LayerName` for information on how to use each layer.
 
 """
-Base.@kwdef mutable struct NNHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct NeuralNetworkE_hp <: BetaMLHyperParametersSet
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
     """Loss (cost) function [def: `squared_cost`]
@@ -839,14 +839,14 @@ Base.@kwdef mutable struct NNHyperParametersSet <: BetaMLHyperParametersSet
 end
 
 """ 
-NeuralNetworkEstimatorOptionsSet
+NeuralNetworkE_options
 
 A struct defining the options used by the Feedforward neural network model
 
 ## Parameters:
 $(FIELDS)
 """
-Base.@kwdef mutable struct NeuralNetworkEstimatorOptionsSet
+Base.@kwdef mutable struct NeuralNetworkE_options
    "Cache the results of the fitting stage, as to allow predict(mod) [default: `true`]. Set it to `false` to save memory for large data."
    cache::Bool = true
    "An optional title and/or description for this model"
@@ -863,7 +863,7 @@ Base.@kwdef mutable struct NeuralNetworkEstimatorOptionsSet
    rng::AbstractRNG = Random.GLOBAL_RNG
 end
 
-Base.@kwdef mutable struct NeuralNetworkEstimatorLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct NeuralNetworkEstimator_lp <: BetaMLLearnableParametersSet
     nnstruct::Union{Nothing,NN} = nothing    
 end
 
@@ -873,7 +873,7 @@ end
 
 A "feedforward" (but also multi-branch) neural network (supervised).
 
-For the parameters see [`NNHyperParametersSet`](@ref) and for the training options [`NeuralNetworkEstimatorOptionsSet`](@ref) (we have a few more options for this specific estimator).
+For the parameters see [`NeuralNetworkE_hp`](@ref) and for the training options [`NeuralNetworkE_options`](@ref) (we have a few more options for this specific estimator).
 
 # Notes:
 - data must be numerical
@@ -962,16 +962,16 @@ julia> hcat(y,ŷ)
 ```  
 """
 mutable struct NeuralNetworkEstimator <: BetaMLSupervisedModel
-    hpar::NNHyperParametersSet
-    opt::NeuralNetworkEstimatorOptionsSet
-    par::Union{Nothing,NeuralNetworkEstimatorLearnableParameters}
+    hpar::NeuralNetworkE_hp
+    opt::NeuralNetworkE_options
+    par::Union{Nothing,NeuralNetworkEstimator_lp}
     cres::Union{Nothing,AbstractArray}
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function NeuralNetworkEstimator(;kwargs...)
-    m              = NeuralNetworkEstimator(NNHyperParametersSet(),NeuralNetworkEstimatorOptionsSet(),NeuralNetworkEstimatorLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m              = NeuralNetworkEstimator(NeuralNetworkE_hp(),NeuralNetworkE_options(),NeuralNetworkEstimator_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -984,7 +984,7 @@ function NeuralNetworkEstimator(;kwargs...)
         end
         found || error("Keyword \"$kw\" is not part of this model.")
     end
-    # Special correction for NNHyperParametersSet
+    # Special correction for NeuralNetworkE_hp
     kwkeys = keys(kwargs) #in(2,[1,2,3])
     #if !in(:dloss,kwkeys) # if dloss in not explicitly provided
     #    if   (in(:loss,kwkeys) && kwargs[:loss] == squared_cost  ) || # loss is explicitly provided and it is equal to squared_loss
@@ -1069,7 +1069,7 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
         nn_isize == nD || error("The first layer of the network must have the ndims of the input data ($nD) instead of $(nn_isize).")
         nn_osize == nDy || error("The last layer of the network must have the ndims of the output data ($nDy) instead of $(nn_osize). For classification tasks, this is normally the number of possible categories.")
 
-        m.par = NeuralNetworkEstimatorLearnableParameters(NN(deepcopy(layers),loss,dloss,false,descr))
+        m.par = NeuralNetworkEstimator_lp(NN(deepcopy(layers),loss,dloss,false,descr))
         m.info["nepochs_ran"] = 0
         m.info["loss_per_epoch"] = Float64[]
         m.info["par_per_epoch"] = []

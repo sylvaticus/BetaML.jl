@@ -203,7 +203,7 @@ Hyperparameters for the [`PegasosClassifier`](@ref) model.
 ## Parameters:
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct PegasosClassifierHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct PegasosC_hp <: BetaMLHyperParametersSet
     "Learning rate [def: (epoch -> 1/sqrt(epoch))]"
     learning_rate::Function =  (epoch -> 1/sqrt(epoch)) 
     "Multiplicative term of the learning rate [def: `0.5`]"         
@@ -226,7 +226,7 @@ Base.@kwdef mutable struct PegasosClassifierHyperParametersSet <: BetaMLHyperPar
     tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("learning_rate" =>[(epoch -> 1/sqrt(epoch)),(epoch -> 1/epoch),(epoch -> 1)], "epochs" =>[50,100,1000,10000], "shuffle"=>[true,false], "force_origin"=>[true,false],"return_mean_hyperplane"=>[true,false]),multithreads=true)
 end
 
-Base.@kwdef mutable struct PegasosClassifierLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct PegasosClassifier_lp <: BetaMLLearnableParametersSet
     weigths::Union{Nothing,Matrix{Float64}} = nothing
     classes::Vector  = []
 end
@@ -236,7 +236,7 @@ $(TYPEDEF)
 
 The `PegasosClassifier` model, a _linear_, gradient-based classifier. Multiclass is supported using a one-vs-all approach.
 
-See [`?PegasosClassifierHyperParametersSet`](@ref PegasosClassifierHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet) for applicable hyperparameters and options. 
+See [`?PegasosC_hp`](@ref PegasosC_hp) and [`?BML_options`](@ref BML_options) for applicable hyperparameters and options. 
 
 # Example:
 ```julia
@@ -265,16 +265,16 @@ Avg. error after iteration 1 : 0.5
 
 """
 mutable struct PegasosClassifier <: BetaMLSupervisedModel
-    hpar::PegasosClassifierHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,PegasosClassifierLearnableParameters}
+    hpar::PegasosC_hp
+    opt::BML_options
+    par::Union{Nothing,PegasosClassifier_lp}
     cres::Union{Nothing,Vector}
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function PegasosClassifier(;kwargs...)
-    m              = PegasosClassifier(PegasosClassifierHyperParametersSet(),BetaMLDefaultOptionsSet(),PegasosClassifierLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m              = PegasosClassifier(PegasosC_hp(),BML_options(),PegasosClassifier_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -332,7 +332,7 @@ function fit!(m::PegasosClassifier,X,Y)
     out = pegasos(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[c,2:end] for c in 1:nCl], λ=learning_rate_multiplicative, η=learning_rate, T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng, verbosity=verbosity)
 
     weights = hcat(out.θ₀,vcat(out.θ' ...))
-    m.par = PegasosClassifierLearnableParameters(weights,out.classes)
+    m.par = PegasosClassifier_lp(weights,out.classes)
     if cache
        out    = predict(X,out.θ,out.θ₀,out.classes)
        m.cres = cache ? out : nothing

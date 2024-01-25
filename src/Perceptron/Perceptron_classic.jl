@@ -284,7 +284,7 @@ Hyperparameters for the [`PerceptronClassifier`](@ref) model
 # Parameters:
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct PerceptronClassifierHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct PerceptronC_hp <: BetaMLHyperParametersSet
     "Initial parameters. If given, should be a matrix of n-classes by feature dimension + 1 (to include the constant term as the first element) [def: `nothing`, i.e. zeros]"
     initial_parameters::Union{Nothing,Matrix{Float64}} = nothing
     "Maximum number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
@@ -303,7 +303,7 @@ Base.@kwdef mutable struct PerceptronClassifierHyperParametersSet <: BetaMLHyper
     tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("epochs" =>[50,100,1000,10000], "shuffle"=>[true,false], "force_origin"=>[true,false],"return_mean_hyperplane"=>[true,false]),multithreads=true)
 end
 
-Base.@kwdef mutable struct PerceptronClassifierLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct PerceptronClassifier_lp <: BetaMLLearnableParametersSet
     weigths::Union{Nothing,Matrix{Float64}} = nothing
     classes::Vector  = []
 end
@@ -313,7 +313,7 @@ $(TYPEDEF)
 
 The classical "perceptron" linear classifier (supervised).
 
-For the parameters see [`?PerceptronClassifierHyperParametersSet`](@ref PerceptronClassifierHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
+For the parameters see [`?PerceptronC_hp`](@ref PerceptronC_hp) and [`?BML_options`](@ref BML_options).
 
 # Notes:
 - data must be numerical
@@ -347,16 +347,16 @@ Avg. error after iteration 1 : 0.5
 ```
 """
 mutable struct PerceptronClassifier <: BetaMLSupervisedModel
-    hpar::PerceptronClassifierHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,PerceptronClassifierLearnableParameters}
+    hpar::PerceptronC_hp
+    opt::BML_options
+    par::Union{Nothing,PerceptronClassifier_lp}
     cres::Union{Nothing,Vector}
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function PerceptronClassifier(;kwargs...)
-    m              = PerceptronClassifier(PerceptronClassifierHyperParametersSet(),BetaMLDefaultOptionsSet(),PerceptronClassifierLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m              = PerceptronClassifier(PerceptronC_hp(),BML_options(),PerceptronClassifier_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -412,7 +412,7 @@ function fit!(m::PerceptronClassifier,X,Y)
     out = perceptron(X,Y; θ₀=initial_parameters[:,1], θ=[initial_parameters[c,2:end] for c in 1:nCl], T=epochs, nMsgs=nMsgs, shuffle=shuffle, force_origin=force_origin, return_mean_hyperplane=return_mean_hyperplane, rng = rng, verbosity=verbosity)
 
     weights = hcat(out.θ₀,vcat(out.θ' ...))
-    m.par = PerceptronClassifierLearnableParameters(weights,out.classes)
+    m.par = PerceptronClassifier_lp(weights,out.classes)
     if cache
        out    = predict(X,out.θ,out.θ₀,out.classes)
        m.cres = cache ? out : nothing

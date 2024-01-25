@@ -1,11 +1,12 @@
 
 @eval Utils begin
 
-export   AutoEncoder, AutoEncoderHyperParametersSet
+export   AutoEncoder, AutoE_hp
 
 @force using ..Nn
 
 import ..Nn: AbstractLayer, ADAM, SGD, NeuralNetworkEstimator, OptimisationAlgorithm, DenseLayer, NN
+import Imputation
 
 
 """
@@ -17,7 +18,7 @@ Hyperparameters for the AutoEncoder transformer
 $(FIELDS)
 
 """
-Base.@kwdef mutable struct AutoEncoderHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct AutoE_hp <: BetaMLHyperParametersSet
    "The layers (vector of `AbstractLayer`s) responsable of the encoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `innerdims`]"
    e_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
    "The layers (vector of `AbstractLayer`s) responsable of the decoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `innerdims`]"
@@ -48,7 +49,7 @@ Base.@kwdef mutable struct AutoEncoderHyperParametersSet <: BetaMLHyperParameter
   tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges = Dict("epochs"=>[100,200,400],"batch_size"=>[8,16],"outdims"=>[0.2,0.3,0.5],"innerdims"=>[1.3,2.0,5.0,10.0,nothing]),multithreads=true)
 end
 
-Base.@kwdef mutable struct AutoEncoderLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct AutoEncoder_lp <: BetaMLLearnableParametersSet
    outdims_actual::Union{Int64,Nothing}                             = nothing
    fullnn::Union{NeuralNetworkEstimator,Nothing}                    = nothing
    n_el::Union{Nothing,Int64}                                       = nothing
@@ -64,7 +65,7 @@ A neural network is trained to first transform the data (ofter "compress") to a 
 
 `predict(mod::AutoEncoder,x)` returns the encoded data, `inverse_predict(mod::AutoEncoder,xtransformed)` performs the decoding.
 
-For the parameters see [`AutoEncoderHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref) 
+For the parameters see [`AutoE_hp`](@ref) and [`BML_options`](@ref) 
 
 # Notes:
 - AutoEncoder doesn't automatically scale the data. It is suggested to apply the [`Scaler`](@ref) model before running it. 
@@ -120,16 +121,16 @@ julia> hcat(x,x̂)
 ```
 """
 mutable struct AutoEncoder <: BetaMLUnsupervisedModel
-    hpar::AutoEncoderHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,AutoEncoderLearnableParameters}
+    hpar::AutoE_hp
+    opt::BML_options
+    par::Union{Nothing,AutoEncoder_lp}
     cres::Union{Nothing,Matrix}
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function AutoEncoder(;kwargs...)
-    m = AutoEncoder(AutoEncoderHyperParametersSet(),BetaMLDefaultOptionsSet(),AutoEncoderLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = AutoEncoder(AutoE_hp(),BML_options(),AutoEncoder_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -215,7 +216,7 @@ function fit!(m::AutoEncoder,X)
 
     x̂ =  fit!(fullnn,X,X)
 
-    par                 = AutoEncoderLearnableParameters()
+    par                 = AutoEncoder_lp()
     par.outdims_actual  = outdims_actual
     par.fullnn          = fullnn
     par.n_el            = n_el

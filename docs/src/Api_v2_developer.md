@@ -12,9 +12,9 @@ The model struct is composed of the following elements:
 
 ```
 mutable struct DecisionTreeEstimator <: BetaMLSupervisedModel
-    hpar::DTHyperParametersSet   # Hyper-pharameters
-    opt::BetaMLDefaultOptionsSet # Option sets, default or a specific one for the model
-    par::DTLearnableParameters   # Model learnable parameters (needed for predictions)
+    hpar::DecisionTreeE_hp   # Hyper-pharameters
+    opt::BML_options # Option sets, default or a specific one for the model
+    par::DT_lp   # Model learnable parameters (needed for predictions)
     cres::T                      # Cached results
     trained::Bool                # Trained flag
     info                         # Complementary information, but not needed to make predictions
@@ -26,7 +26,7 @@ Each specific model hyperparameter set and learnable parameter set are childs of
 While hyperparameters are elements that control the learning process, i.e. would influence the model training and prediction, the options have a more general meaning and do not directly affect the training (they can do indirectly, like the rng). The default option set is implemented as:
 
 ```
-Base.@kwdef mutable struct BetaMLDefaultOptionsSet
+Base.@kwdef mutable struct BML_options
    "Cache the results of the fitting stage, as to allow predict(mod) [default: `true`]. Set it to `false` to save memory for large data."
    cache::Bool = true
    "An optional title and/or description for this model"
@@ -44,7 +44,7 @@ Note that the user doesn't generally need to make a difference between an hyperp
 
 ```
 function KMedoidsClusterer(;kwargs...)
-    m = KMedoidsClusterer(KMeansMedoidsHyperParametersSet(),BetaMLDefaultOptionsSet(),KMeansMedoidsLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = KMedoidsClusterer(KMeansMedoidsHyperParametersSet(),BML_options(),KMeansMedoids_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false

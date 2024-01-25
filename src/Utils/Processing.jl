@@ -85,7 +85,7 @@ Hyperparameters for both [`OneHotEncoder`](@ref) and [`OrdinalEncoder`](@ref)
 $(FIELDS)
 
 """
-Base.@kwdef mutable struct OneHotEncoderHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct OneHotE_hp <: BetaMLHyperParametersSet
   "The categories to represent as columns. [def: `nothing`, i.e. unique training values or range for integers]. Do not include `missing` in this list."  
   categories::Union{Vector,Nothing} = nothing
   "How to handle categories not seen in training or not present in the provided `categories` array? \"error\" (default) rises an error, \"missing\" labels the whole output with missing values, \"infrequent\" adds a specific column for these categories in one-hot encoding or a single new category for ordinal one."
@@ -94,7 +94,7 @@ Base.@kwdef mutable struct OneHotEncoderHyperParametersSet <: BetaMLHyperParamet
   other_categories_name = nothing
 
 end
-Base.@kwdef mutable struct OneHotEncoderLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct OneHotEncoder_lp <: BetaMLLearnableParametersSet
   categories_applied::Vector = []
   original_vector_eltype::Union{Type,Nothing} = nothing 
 end
@@ -106,7 +106,7 @@ Encode a vector of categorical values as one-hot columns.
 
 The algorithm distinguishes between _missing_ values, for which it returns a one-hot encoded row of missing values, and _other_ categories not in the provided list or not seen during training that are handled according to the `handle_unknown` parameter. 
 
-For the parameters see [`OneHotEncoderHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).  This model supports `inverse_predict`.
+For the parameters see [`OneHotE_hp`](@ref) and [`BML_options`](@ref).  This model supports `inverse_predict`.
 
 # Example:
 ```julia
@@ -142,9 +142,9 @@ julia> x2_back = inverse_predict(mod,x2_oh)
 
 """
 mutable struct OneHotEncoder <: BetaMLUnsupervisedModel
-    hpar::OneHotEncoderHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,OneHotEncoderLearnableParameters}
+    hpar::OneHotE_hp
+    opt::BML_options
+    par::Union{Nothing,OneHotEncoder_lp}
     cres::Union{Nothing,Matrix{Bool},Matrix{Union{Bool,Missing}}}
     fitted::Bool
     info::Dict{String,Any}
@@ -157,7 +157,7 @@ Encode a vector of categorical values as integers.
 
 The algorithm distinguishes between _missing_ values, for which it propagate the missing, and _other_ categories not in the provided list or not seen during training that are handled according to the `handle_unknown` parameter. 
 
-For the parameters see [`OneHotEncoderHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref). This model supports `inverse_predict`.
+For the parameters see [`OneHotE_hp`](@ref) and [`BML_options`](@ref). This model supports `inverse_predict`.
 
 # Example:
 ```julia
@@ -194,16 +194,16 @@ julia> x2_back = inverse_predict(mod,x2_oh)
 ```
 """
 mutable struct OrdinalEncoder <: BetaMLUnsupervisedModel
-    hpar::OneHotEncoderHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,OneHotEncoderLearnableParameters}
+    hpar::OneHotE_hp
+    opt::BML_options
+    par::Union{Nothing,OneHotEncoder_lp}
     cres::Union{Nothing,Vector{Int64},Vector{Union{Int64,Missing}}}
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function OneHotEncoder(;kwargs...)
-    m = OneHotEncoder(OneHotEncoderHyperParametersSet(),BetaMLDefaultOptionsSet(),OneHotEncoderLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = OneHotEncoder(OneHotE_hp(),BML_options(),OneHotEncoder_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -220,7 +220,7 @@ function OneHotEncoder(;kwargs...)
 end
 
 function OrdinalEncoder(;kwargs...)
-    m = OrdinalEncoder(OneHotEncoderHyperParametersSet(),BetaMLDefaultOptionsSet(),OneHotEncoderLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = OrdinalEncoder(OneHotE_hp(),BML_options(),OneHotEncoder_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -258,7 +258,7 @@ function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
 
     if nonmissingtype(vtype) <: Number && !(nonmissingtype(vtype) <: Integer)
         # continuous column: we just apply identity
-        m.par = OneHotEncoderLearnableParameters([],vtype)
+        m.par = OneHotEncoder_lp([],vtype)
         return cache ? nothing : x
     end
    
@@ -275,7 +275,7 @@ function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
     end
 
     handle_unknown == "infrequent" && push!(categories_applied,other_categories_name)
-    m.par = OneHotEncoderLearnableParameters(categories_applied,vtype)
+    m.par = OneHotEncoder_lp(categories_applied,vtype)
 
     if cache
         if enctype == :onehot
@@ -563,7 +563,7 @@ Base.@kwdef mutable struct MinMaxScaler <: AbstractScaler
   "The range of the scaled output [def: (0,1)]"
   outputRange::Tuple{Real,Real} = (0,1)
 end
-Base.@kwdef mutable struct MinMaxScalerLearnableParameters <: AbstractScalerLearnableParameter
+Base.@kwdef mutable struct MinMaxScaler_lp <: AbstractScalerLearnableParameter
   inputRangeApplied::Vector{Tuple{Float64,Float64}} = [(-Inf,+Inf)]
 end
 
@@ -621,7 +621,7 @@ Base.@kwdef mutable struct StandardScaler <: AbstractScaler
     center::Bool=true
 end
 
-Base.@kwdef mutable struct StandardScalerLearnableParameters <: AbstractScalerLearnableParameter
+Base.@kwdef mutable struct StandardScaler_lp <: AbstractScalerLearnableParameter
   sfμ::Vector{Float64} = Float64[] # scale factor of mean
   sfσ::Vector{Float64} = Float64[]  # scale vector of st.dev.
 end
@@ -641,7 +641,7 @@ function _fit(m::MinMaxScaler,skip,X,cache)
           push!(actualRanges,(-Inf,+Inf))
         end
     end
-    return X_scaled, MinMaxScalerLearnableParameters(actualRanges)
+    return X_scaled, MinMaxScaler_lp(actualRanges)
 end
 function _fit(m::StandardScaler,skip,X::AbstractArray,cache) 
     nDims = ndims(X)
@@ -662,10 +662,10 @@ function _fit(m::StandardScaler,skip,X::AbstractArray,cache)
         end
     end
  
-    return X_scaled, StandardScalerLearnableParameters(sfμ,sfσ)
+    return X_scaled, StandardScaler_lp(sfμ,sfσ)
 end
 
-function _predict(m::MinMaxScaler,pars::MinMaxScalerLearnableParameters,skip,X;inverse=false)
+function _predict(m::MinMaxScaler,pars::MinMaxScaler_lp,skip,X;inverse=false)
     if !inverse
         xnew = float.(X)
         for (ic,c) in enumerate(eachcol(X))
@@ -688,7 +688,7 @@ function _predict(m::MinMaxScaler,pars::MinMaxScalerLearnableParameters,skip,X;i
         return xorig
     end
 end
-function _predict(m::StandardScaler,pars::StandardScalerLearnableParameters,skip,X;inverse=false)
+function _predict(m::StandardScaler,pars::StandardScaler_lp,skip,X;inverse=false)
     if !inverse
         xnew = float.(X)
         for (ic,c) in enumerate(eachcol(X))
@@ -716,15 +716,15 @@ Hyperparameters for the Scaler transformer
 ## Parameters
 $(FIELDS)
 """
-Base.@kwdef mutable struct ScalerHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct Scaler_hp <: BetaMLHyperParametersSet
     "The specific scaler method to employ with its own parameters. See [`StandardScaler`](@ref) [def] or [`MinMaxScaler`](@ref)."
     method::AbstractScaler = StandardScaler()
     "The positional ids of the columns to skip scaling (eg. categorical columns, dummies,...) [def: `[]`]"
     skip::Vector{Int64}    = Int64[]
 end
 
-Base.@kwdef mutable struct ScalerLearnableParameters <: BetaMLLearnableParametersSet
-   scalerpars::AbstractScalerLearnableParameter = StandardScalerLearnableParameters()
+Base.@kwdef mutable struct Scaler_lp <: BetaMLLearnableParametersSet
+   scalerpars::AbstractScalerLearnableParameter = StandardScaler_lp()
 end
 
 """
@@ -732,7 +732,7 @@ $(TYPEDEF)
 
 Scale the data according to the specific chosen method (def: `StandardScaler`) 
 
-For the parameters see [`ScalerHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref) 
+For the parameters see [`Scaler_hp`](@ref) and [`BML_options`](@ref) 
 
 
 # Examples:
@@ -806,16 +806,16 @@ julia> xback   = inverse_predict(mod,xscaled)
 ```
 """
 mutable struct Scaler <: BetaMLUnsupervisedModel
-    hpar::ScalerHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,ScalerLearnableParameters}
+    hpar::Scaler_hp
+    opt::BML_options
+    par::Union{Nothing,Scaler_lp}
     cres::Union{Nothing,Array}
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function Scaler(;kwargs...)
-    m = Scaler(ScalerHyperParametersSet(),BetaMLDefaultOptionsSet(),ScalerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = Scaler(Scaler_hp(),BML_options(),Scaler_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
         found = false
@@ -832,7 +832,7 @@ function Scaler(;kwargs...)
 end
 
 function Scaler(method;kwargs...)
-    m = Scaler(ScalerHyperParametersSet(method=method),BetaMLDefaultOptionsSet(),ScalerLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = Scaler(Scaler_hp(method=method),BML_options(),Scaler_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
         found = false
@@ -885,14 +885,14 @@ Hyperparameters for the PCAEncoder transformer
 $(FIELDS)
 
 """
-Base.@kwdef mutable struct PCAHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct PCAE_hp <: BetaMLHyperParametersSet
    "The number of dimensions to maintain (with `outdims <= size(X,2)` ) [def: `nothing`, i.e. the number of output dimensions is determined from the parameter `max_unexplained_var`]"
    outdims::Union{Nothing,Int64} = nothing
    "The maximum proportion of variance that we are willing to accept when reducing the number of dimensions in our data [def: 0.05]. It doesn't have any effect when the output number of dimensions is explicitly chosen with the parameter `outdims`"
    max_unexplained_var::Float64  = 0.05
 end
 
-Base.@kwdef mutable struct PCALearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct PCA_lp <: BetaMLLearnableParametersSet
    eigen_out::Union{Eigen,Nothing}     =nothing
    outdims_actual::Union{Int64,Nothing}=nothing
 end
@@ -904,7 +904,7 @@ Perform a Principal Component Analysis, a dimensionality reduction tecnique empl
 
 PCAEncoder returns the matrix reprojected among the dimensions of maximum variance.
 
-For the parameters see [`PCAHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref) 
+For the parameters see [`PCAE_hp`](@ref) and [`BML_options`](@ref) 
 
 # Notes:
 - PCAEncoder doesn't automatically scale the data. It is suggested to apply the [`Scaler`](@ref) model before running it. 
@@ -946,16 +946,16 @@ julia> xtest_reproj  = predict(mod,xtest)
 ```
 """
 mutable struct PCAEncoder <: BetaMLUnsupervisedModel
-    hpar::PCAHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,PCALearnableParameters}
+    hpar::PCAE_hp
+    opt::BML_options
+    par::Union{Nothing,PCA_lp}
     cres::Union{Nothing,Matrix}
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function PCAEncoder(;kwargs...)
-    m = PCAEncoder(PCAHyperParametersSet(),BetaMLDefaultOptionsSet(),PCALearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = PCAEncoder(PCAE_hp(),BML_options(),PCA_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false

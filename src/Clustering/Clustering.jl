@@ -29,7 +29,7 @@ import Base.print
 import Base.show
 
 # export kmeans, kmedoids
-export KMeansHyperParametersSet, KMedoidsHyperParametersSet, KMeansClusterer, KMedoidsClusterer 
+export KMeansC_hp, KMedoidsC_hp, KMeansClusterer, KMedoidsClusterer 
 
 include("Clustering_hard.jl") # K-means and k-medoids
 

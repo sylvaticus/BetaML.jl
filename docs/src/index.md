@@ -11,6 +11,9 @@ Most models have an interface for the [`MLJ`](https://github.com/alan-turing-ins
 
 Aside Julia, BetaML can be accessed in R or Python using respectively [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) and [PyJulia](https://github.com/JuliaPy/pyjulia). See [the tutorial](@ref using_betaml_from_other_languages) for details.
 
+!!! Warning
+    Version 0.11 brings homogenization in the models' names and put some order on other stuff, but at the cost of severe breaking changes. Follow the updated documentation. 
+
 ## Installation
 
 The BetaML package is included in the standard Julia register, install it with:

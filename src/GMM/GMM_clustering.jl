@@ -173,7 +173,7 @@ Hyperparameters for GMM clusters and other GMM-based algorithms
 $(FIELDS)
 
 """
-mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
+mutable struct GaussianMixture_hp <: BetaMLHyperParametersSet
     "Number of mixtures (latent classes) to consider [def: 3]"
     n_classes::Int64
     "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
@@ -208,7 +208,7 @@ mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
     """
     tunemethod::AutoTuneMethod
 
-    function GMMHyperParametersSet(;
+    function GaussianMixture_hp(;
         n_classes::Union{Nothing,Int64}                  = nothing, # def: 3
         initial_probmixtures::Vector{Float64}            = Float64[],
         mixtures::Union{Type,Vector{<: AbstractMixture},Nothing} = nothing, # DiagonalGaussian
@@ -246,7 +246,7 @@ mutable struct GMMHyperParametersSet <: BetaMLHyperParametersSet
 end
 
 
-Base.@kwdef mutable struct GMMClusterLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct GMMCluster_lp <: BetaMLLearnableParametersSet
     mixtures::Union{Type,Vector{<: AbstractMixture}}    = AbstractMixture[] # attention that this is set up at model construction, as it has the same name as the hyperparameter
     initial_probmixtures::Vector{Float64}               = []
     #probRecords::Union{Nothing,Matrix{Float64}} = nothing
@@ -257,7 +257,7 @@ $(TYPEDEF)
 
 Assign class probabilities to records (i.e. _soft_ clustering) assuming a probabilistic generative model of observed data using mixtures.
 
-For the parameters see [`?GMMHyperParametersSet`](@ref GMMHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
+For the parameters see [`?GaussianMixture_hp`](@ref GaussianMixture_hp) and [`?BML_options`](@ref BML_options).
 
 # Notes:
 - Data must be numerical
@@ -298,22 +298,22 @@ Dict{String, Any} with 6 entries:
   "BIC"            => -2.21571
 
 julia> parameters(mod)
-BetaML.GMM.GMMClusterLearnableParameters (a BetaMLLearnableParametersSet struct)
+BetaML.GMM.GMMCluster_lp (a BetaMLLearnableParametersSet struct)
 - mixtures: DiagonalGaussian{Float64}[DiagonalGaussian{Float64}([0.9333333333333332, 9.9], [0.05, 0.05]), DiagonalGaussian{Float64}([11.05, 0.9500000000000001], [0.05, 0.05])]
 - initial_probmixtures: [0.0, 1.0]
 ```
 """
 mutable struct GaussianMixtureClusterer <: BetaMLUnsupervisedModel
-    hpar::GMMHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,GMMClusterLearnableParameters}
+    hpar::GaussianMixture_hp
+    opt::BML_options
+    par::Union{Nothing,GMMCluster_lp}
     cres::Union{Nothing,Matrix{Float64}}
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function GaussianMixtureClusterer(;kwargs...)
-     m = GaussianMixtureClusterer(GMMHyperParametersSet(),BetaMLDefaultOptionsSet(),GMMClusterLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+     m = GaussianMixtureClusterer(GaussianMixture_hp(),BML_options(),GMMCluster_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -327,7 +327,7 @@ function GaussianMixtureClusterer(;kwargs...)
         found || error("Keyword \"$kw\" is not part of this model.")
     end
     
-    # Special correction for GMMHyperParametersSet
+    # Special correction for GaussianMixture_hp
     kwkeys = keys(kwargs) #in(2,[1,2,3])
     if !in(:mixtures,kwkeys) && !in(:n_classes,kwkeys)
         m.hpar.n_classes = 3
@@ -381,7 +381,7 @@ function fit!(m::GaussianMixtureClusterer,x)
         gmmOut = gmm(x,K;initial_probmixtures=initial_probmixtures,mixtures=mixtures,tol=tol,verbosity=verbosity,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,maximum_iterations=maximum_iterations,rng = rng)
     end
     probRecords = gmmOut.pₙₖ
-    m.par  = GMMClusterLearnableParameters(mixtures = gmmOut.mixtures, initial_probmixtures=makecolvector(gmmOut.pₖ))
+    m.par  = GMMCluster_lp(mixtures = gmmOut.mixtures, initial_probmixtures=makecolvector(gmmOut.pₖ))
 
     m.cres = cache ? probRecords : nothing
     m.info["error"]          = gmmOut.ϵ

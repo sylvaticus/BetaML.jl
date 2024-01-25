@@ -304,7 +304,7 @@ Hyperparameters for [`ConfusionMatrix`](@ref)
 $(FIELDS)
 
 """
-Base.@kwdef mutable struct ConfusionMatrixHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct ConfusionMatrix_hp <: BetaMLHyperParametersSet
   "The categories (aka \"levels\") to represent. [def: `nothing`, i.e. unique ground true values]."  
   categories::Union{Vector,Nothing} = nothing
   "How to handle categories not seen in the ground true values or not present in the provided `categories` array? \"error\" (default) rises an error, \"infrequent\" adds a specific category for these values."
@@ -319,7 +319,7 @@ Base.@kwdef mutable struct ConfusionMatrixHyperParametersSet <: BetaMLHyperParam
   normalise_scores = true
 end
 
-Base.@kwdef mutable struct ConfusionMatrixLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct ConfusionMatrix_lp <: BetaMLLearnableParametersSet
     categories_applied::Vector = []
     original_vector_eltype::Union{Type,Nothing} = nothing 
     scores::Union{Nothing,Matrix{Int64}} = nothing 
@@ -330,7 +330,7 @@ $(TYPEDEF)
 
 Compute a confusion matrix detailing the mismatch between observations and predictions of a categorical variable
 
-For the parameters see [`ConfusionMatrixHyperParametersSet`](@ref) and [`BetaMLDefaultOptionsSet`](@ref).
+For the parameters see [`ConfusionMatrix_hp`](@ref) and [`BML_options`](@ref).
 
 The "predicted" values are either the scores or the normalised scores (depending on the parameter `normalise_scores` [def: `true`]).
 
@@ -450,16 +450,16 @@ julia> heatmap(string.(res["categories"]),string.(res["categories"]),res["normal
 
 """
 mutable struct ConfusionMatrix <: BetaMLUnsupervisedModel
-    hpar::ConfusionMatrixHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,ConfusionMatrixLearnableParameters}
+    hpar::ConfusionMatrix_hp
+    opt::BML_options
+    par::Union{Nothing,ConfusionMatrix_lp}
     cres::Union{Nothing,Matrix{Int64},Matrix{Float64}}
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function ConfusionMatrix(;kwargs...)
-    m = ConfusionMatrix(ConfusionMatrixHyperParametersSet(),BetaMLDefaultOptionsSet(),ConfusionMatrixLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m = ConfusionMatrix(ConfusionMatrix_hp(),BML_options(),ConfusionMatrix_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -587,7 +587,7 @@ function fit!(m::ConfusionMatrix,Y,Ŷ)
 
     cache && (m.cres = normalise_scores ? normalised_scores : scores)
 
-    m.par = ConfusionMatrixLearnableParameters(categories_applied,vtype,scores)
+    m.par = ConfusionMatrix_lp(categories_applied,vtype,scores)
 
     m.info["accuracy"]          = accuracy           # Overall accuracy rate
     m.info["misclassification"] = misclassification  # Overall misclassification rate

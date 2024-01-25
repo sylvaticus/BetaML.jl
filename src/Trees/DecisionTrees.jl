@@ -117,7 +117,7 @@ Hyperparameters for [`DecisionTreeEstimator`](@ref) (Decision Tree).
 ## Parameters:
 $(TYPEDFIELDS)
 """
-Base.@kwdef mutable struct DTHyperParametersSet <: BetaMLHyperParametersSet
+Base.@kwdef mutable struct DecisionTreeE_hp <: BetaMLHyperParametersSet
     "The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `nothing`, i.e. no limits]"
     max_depth::Union{Nothing,Int64}              = nothing
     "The minimum information gain to allow for a node's partition [def: `0`]"
@@ -143,7 +143,7 @@ Base.@kwdef mutable struct DTHyperParametersSet <: BetaMLHyperParametersSet
 end
 
 
-Base.@kwdef mutable struct DTLearnableParameters <: BetaMLLearnableParametersSet
+Base.@kwdef mutable struct DT_lp <: BetaMLLearnableParametersSet
     tree::Union{Nothing,AbstractNode} = nothing
     Ty::DataType = Any
 end
@@ -155,7 +155,7 @@ A Decision Tree classifier and regressor (supervised).
 
 Decision Tree works by finding the "best" question to split the fitting data (according to the metric specified by the parameter `splitting_criterion` on the associated labels) untill either all the dataset is separated or a terminal condition is reached. 
 
-For the parameters see [`?DTHyperParametersSet`](@ref DTHyperParametersSet) and [`?BetaMLDefaultOptionsSet`](@ref BetaMLDefaultOptionsSet).
+For the parameters see [`?DecisionTreeE_hp`](@ref DecisionTreeE_hp) and [`?BML_options`](@ref BML_options).
 
 # Notes:
 - Online fitting (re-fitting with new data) is not supported
@@ -273,16 +273,16 @@ julia> plot(wrapped_tree)
 
 """
 mutable struct DecisionTreeEstimator <: BetaMLSupervisedModel
-    hpar::DTHyperParametersSet
-    opt::BetaMLDefaultOptionsSet
-    par::Union{Nothing,DTLearnableParameters}
+    hpar::DecisionTreeE_hp
+    opt::BML_options
+    par::Union{Nothing,DT_lp}
     cres
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function DecisionTreeEstimator(;kwargs...)
-    m              = DecisionTreeEstimator(DTHyperParametersSet(),BetaMLDefaultOptionsSet(),DTLearnableParameters(),nothing,false,Dict{Symbol,Any}())
+    m              = DecisionTreeEstimator(DecisionTreeE_hp(),BML_options(),DT_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -790,7 +790,7 @@ function fit!(m::DecisionTreeEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
 
     tree = buildTree(x, y; max_depth = max_depth, min_gain=min_gain, min_records=min_records, max_features=max_features, force_classification=force_classification, splitting_criterion = splitting_criterion, mCols=nothing, fast_algorithm=fast_algorithm, integer_encoded_cols=integer_encoded_cols, rng = rng)
 
-    m.par = DTLearnableParameters(tree,Tynm)
+    m.par = DT_lp(tree,Tynm)
     if cache
        #println(Tynm)
        #println("zzz")

@@ -43,7 +43,7 @@ import Base.show
 export AbstractMixture,
        GaussianMixtureClusterer,
        GaussianMixtureRegressor2, GaussianMixtureRegressor,
-       GMMHyperParametersSet
+       GaussianMixture_hp
 
 abstract type AbstractMixture end
 
