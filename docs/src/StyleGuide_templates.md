@@ -115,10 +115,10 @@ Detailed description on the module objectives, content and organisation
 
 ## Internal links
 
-To refer to a documented object: `[\`NAME\`](@ref)` or `[\`NAME\`](@ref manual_id)`.
-In particular for internal links use `[\`?NAME\`](@ref ?NAME)`
+To refer to a documented object: ```[`NAME`](@ref)``` or ```[`NAME`](@ref manual_id)```.
+In particular for internal links use ```[`?NAME`](@ref ?NAME)```
 
-To create a id manually: `[Title](@id manual_id)`.
+To create an id manually: ```[Title](@id manual_id)```
 
 ## Data organisation
 

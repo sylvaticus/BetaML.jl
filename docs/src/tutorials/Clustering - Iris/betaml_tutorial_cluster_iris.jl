@@ -50,7 +50,7 @@ y  = fit!(OrdinalEncoder(categories=yLabels),iris[:,5])
 
 # The dataset from RDatasets is ordered by species, so we need to shuffle it to avoid biases.
 # Shuffling happens by default in cross_validation, but we are keeping here a copy of the shuffled version for later.
-# Note that the version of [`shuffle`](@ref) that is included in BetaML accepts several n-dimensional arrays and shuffle them (by default on rows, by we can specify the dimension) keeping the association  between the various arrays in the shuffled output.
+# Note that the version of [`consistent_shuffle`](@ref) that is included in BetaML accepts several n-dimensional arrays and shuffle them (by default on rows, by we can specify the dimension) keeping the association  between the various arrays in the shuffled output.
 (xs,ys) = consistent_shuffle([x,y], rng=copy(AFIXEDRNG));
 
 

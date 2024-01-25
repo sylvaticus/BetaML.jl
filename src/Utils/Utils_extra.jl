@@ -6,7 +6,7 @@ export   AutoEncoder, AutoE_hp
 @force using ..Nn
 
 import ..Nn: AbstractLayer, ADAM, SGD, NeuralNetworkEstimator, OptimisationAlgorithm, DenseLayer, NN
-import Imputation
+import ..Imputation
 
 
 """

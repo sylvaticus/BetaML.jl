@@ -7,7 +7,7 @@ Generative (Gaussian) Mixed Model learners (supervised/unsupervised)
 
 Provides clustering and regressors using  (Generative) Gaussiam Mixture Model (probabilistic).
 
-Collaborative filtering / missing values imputation / reccomendation systems based on GMM is available in the [`Imputation`](@ref BetaML.Imputation) module.
+Collaborative filtering / missing values imputation / reccomendation systems based on GMM is available in the `Imputation` module.
 
 The module provides the following models. Use `?[model]` to access their documentation:
 

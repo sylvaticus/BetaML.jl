@@ -67,7 +67,7 @@ println(now(), " ", "- decision trees..." )  #src
 
 m = DecisionTreeEstimator(autotune=true, rng=copy(AFIXEDRNG))
 
-# Passing a fixed Random Number Generator (RNG) to the `rng` parameter guarantees that everytime we use the model with the same data (from the model creation downward to value prediciton) we obtain the same results. In particular BetaML provide `FIXEDRNG`, an istance of `StableRNG` that guarantees reproducibility even across different Julia versions. See the section ["Dealing with stochasticity"](@ref dealing_with_stochasticity) for details. 
+# Passing a fixed Random Number Generator (RNG) to the `rng` parameter guarantees that everytime we use the model with the same data (from the model creation downward to value prediciton) we obtain the same results. In particular BetaML provide `FIXEDRNG`, an istance of `StableRNG` that guarantees reproducibility even across different Julia versions. See the section ["Dealing with stochasticity"](@ref stochasticity_reproducibility) for details. 
 # Note the `autotune` parameter. BetaML has perhaps what is the easiest method for automatically tuning the model hyperparameters (thus becoming in this way _learned_ parameters). Indeed, in most cases it is enought to pass the attribute `autotune=true` on the model constructor and hyperparameters search will be automatically performed on the first `fit!` call.
 # If needed we can customise hyperparameter tuning, chosing the tuning method on the parameter `tunemethod`. The single-line above is equivalent to:
 tuning_method = SuccessiveHalvingSearch(
@@ -80,8 +80,8 @@ m_dt = DecisionTreeEstimator(autotune=true, rng=copy(AFIXEDRNG), tunemethod=tuni
 
 # Note that the defaults change according to the specific model, for example `RandomForestEstimator`](@ref) autotuning default to not being multithreaded, as the individual model is already multithreaded.
 
-# !!! Tip 
-#     Refer to [versions of this tutorial for BetaML <= 0.6](/BetaML.jl/v0.7/tutorials/Regression - bike sharing/betaml_tutorial_regression_sharingBikes.html) for a good exercise on how to perform model selection using the [`cross_validation`](@ref) function, or even by custom grid search.
+# !!! tip
+#     Refer to the versions of this tutorial for BetaML <= 0.6 for a good exercise on how to perform model selection using the [`cross_validation`](@ref) function, or even by custom grid search.
 
 # We can now fit the model, that is learn the model parameters that lead to the best predictions from the data. By default (unless we use `cache=false` in the model constructor) the model stores also the training predictions, so we can just use `fit!()` instead of `fit!()` followed by `predict(model,xtrain)`
 ŷtrain = fit!(m_dt,xtrain,ytrain) 
@@ -307,9 +307,9 @@ y = data[:,16];
 ((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.75,1-0.75],shuffle=false)
 (ntrain, ntest) = size.([ytrain,ytest],1)
 
-# An other common operation with neural networks is to scale the feature vectors (X) and the labels (Y). The BetaML [`scale`](@ref) function, by default, scales the data such that each dimension has mean 0 and variance 1.
+# An other common operation with neural networks is to scale the feature vectors (X) and the labels (Y). The BetaML [`Scaler`](@ref) model, by default, scales the data such that each dimension has mean 0 and variance 1.
 
-# Note that we can provide the function with different scale factors or specify the columns that shoudn't be scaled (e.g. those resulting from the one-hot encoding). Finally we can reverse the scaling (this is useful to retrieve the unscaled features from a model trained with scaled ones).
+# Note that we can provide the `Scaler`` model with different scale factors or specify the columns that shoudn't be scaled (e.g. those resulting from the one-hot encoding). Finally we can reverse the scaling (this is useful to retrieve the unscaled features from a model trained with scaled ones).
 
 cols_nottoscale = [2;4;5;10:23]
 xsm             = Scaler(skip=cols_nottoscale)

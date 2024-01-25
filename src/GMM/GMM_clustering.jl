@@ -203,7 +203,7 @@ mutable struct GaussianMixture_hp <: BetaMLHyperParametersSet
     maximum_iterations::Int64
     """
     The method - and its parameters - to employ for hyperparameters autotuning.
-    See [`SuccessiveHalvingSearch](@ref) for the default method (suitable for the GMM-based regressors)
+    See [`SuccessiveHalvingSearch`](@ref) for the default method (suitable for the GMM-based regressors)
     To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
     tunemethod::AutoTuneMethod

@@ -1,7 +1,7 @@
 # [The MLJ interface to BetaML Models](@id bmlj_module)
 
 ```@docs
-Utils
+Bmlj
 
 ```
 ## Models available through MLJ

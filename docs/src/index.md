@@ -31,13 +31,13 @@ res     = KernelPerceptronClassifier() # KernelPerceptronClassifier is defined i
 ```
 Each module is documented on the links below (you can also use the inline Julia help system: just press the question mark `?` and then, on the special help prompt `help?>`, type the function name):
 
-- [**`BetaML.Perceptron`**](Perceptron.html): The Perceptron, Kernel Perceptron and Pegasos classification algorithms;
-- [**`BetaML.Trees`**](Trees.html): The Decision Trees and Random Forests algorithms for classification or regression (with missing values supported);
-- [**`BetaML.Nn`**](Nn.html): Implementation of Artificial Neural Networks;
-- [**`BetaML.Clustering`**](Clustering.html): (hard) Clustering algorithms (K-Means, K-Mdedoids)
-- [**`BetaML.GMM`**](GMM.html): Various algorithms (Clustering, regressor, missing imputation / collaborative filtering / recommandation systems) that use a Generative (Gaussian) mixture models (probabilistic) fitter, fitted using a EM algorithm;
-- [**`BetaML.Imputation`**](Imputation.html): Imputation algorithms;
-- [**`BetaML.Utils`**](Utils.html): Various utility functions (scale, one-hot, distances, kernels, pca, accuracy/error measures..).
+- [**`BetaML.Perceptron`**](@ref BetaML.Perceptron): The Perceptron, Kernel Perceptron and Pegasos classification algorithms;
+- [**`BetaML.Trees`**](@ref BetaML.Trees): The Decision Trees and Random Forests algorithms for classification or regression (with missing values supported);
+- [**`BetaML.Nn`**](@ref BetaML.Nn): Implementation of Artificial Neural Networks;
+- [**`BetaML.Clustering`**](@ref BetaML.Clustering): (hard) Clustering algorithms (K-Means, K-Mdedoids)
+- [**`BetaML.GMM`**](@ref BetaML.GMM): Various algorithms (Clustering, regressor, missing imputation / collaborative filtering / recommandation systems) that use a Generative (Gaussian) mixture models (probabilistic) fitter, fitted using a EM algorithm;
+- [**`BetaML.Imputation`**](@ref BetaML.Imputation): Imputation algorithms;
+- [**`BetaML.Utils`**](@ref BetaML.Utils): Various utility functions (scale, one-hot, distances, kernels, pca, accuracy/error measures..).
 
 ## [Available models](@id models_list)
 

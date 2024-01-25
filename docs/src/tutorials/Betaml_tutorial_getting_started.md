@@ -233,6 +233,7 @@ Using either the direct call or the `eval` function, wheter in `Pyjulia` or `Jul
 > acc      <- julia_call("accuracy",yhat,ys,ignorelabels=TRUE)
 > acc
 [1] 0.8933333
+```
 
 ```@raw html
 <details><summary>Details</summary>
@@ -307,7 +308,7 @@ While other "convenience" functions are provided by the package, using  `julia_c
 </details>
 ```
 
-## [Dealing with stochasticity and reproducibility](@id dealing_with_stochasticity)
+## [Dealing with stochasticity and reproducibility](@id stochasticity_reproducibility)
 
 Machine Learning workflows include stochastic components in several steps: in the data sampling, in the model initialisation and often in the models's own algorithms (and sometimes also in the prediction step).
 All BetaML models with a stochastic components support a `rng` parameter, standing for _Random Number Generator_. A RNG is a "machine" that streams a flow of random numbers. The flow itself however is deterministically determined for each "seed" (an integer number) that the RNG has been told to use.
