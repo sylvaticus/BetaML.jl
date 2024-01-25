@@ -1,7 +1,7 @@
 # # [A classification task when labels are known - determining the country of origin of cars given the cars characteristics](@id classification_tutorial)
 
 # In this exercise we are provided with several technical characteristics (mpg, horsepower,weight, model year...) for several car's models, together with the country of origin of such models, and we would like to create a machine learning model such that the country of origin can be accurately predicted given the technical characteristics.
-# As the information to predict is a multi-class one, this is a _[classification]_(https://en.wikipedia.org/wiki/Statistical_classification) task.
+# As the information to predict is a multi-class one, this is a _[classification](https://en.wikipedia.org/wiki/Statistical_classification) task.
 # It is a challenging exercise due to the simultaneous presence of three factors: (1) presence of missing data; (2) unbalanced data - 254 out of 406 cars are US made; (3) small dataset.
 
 #
@@ -41,7 +41,7 @@ using  Test     #src
 println(now(), " - getting the data..." )  #src
 
 # Machine Learning workflows include stochastic components in several steps: in the data sampling, in the model initialisation and often in the models's own algorithms (and sometimes also in the prediciton step).
-# BetaML provides a random nuber generator  (RNG) in order to simplify reproducibility ( [`FIXEDRNG`](@ref BetaML.Utils.FIXEDRNG). This is nothing else than an istance of `StableRNG(123)` defined in the [`BetaML.Utils`](@ref utils_module) sub-module, but you can choose of course your own "fixed" RNG). See the [Dealing with stochasticity](@ref dealing_with_stochasticity) section in the [Getting started](@ref getting_started) tutorial for details.
+# BetaML provides a random nuber generator  (RNG) in order to simplify reproducibility ( [`FIXEDRNG`](@ref BetaML.Utils.FIXEDRNG). This is nothing else than an istance of `StableRNG(123)` defined in the [`BetaML.Utils`](@ref utils_module) sub-module, but you can choose of course your own "fixed" RNG). See the [Dealing with stochasticity](@ref stochasticity_reproducibility) section in the [Getting started](@ref getting_started) tutorial for details.
 
 # Here we are explicit and we use our own fixed RNG:
 seed = 123 # The table at the end of this tutorial has been obtained with seeds 123, 1000 and 10000
