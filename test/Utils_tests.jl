@@ -318,7 +318,7 @@ x    = convert(Array{Float64,2}, iris[:,1:4])
 y    = convert(Array{String,1}, iris[:,5])
 tuning_method = SuccessiveHalvingSearch(
             hpranges     = Dict(
-                "innerdims"=>[2.0,5.0,nothing]
+                "layers_size"=>[2.0,5.0,nothing]
             ),
             res_shares   = [0.2, 0.3],
             multithreads = true
