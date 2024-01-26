@@ -19,14 +19,14 @@ $(FIELDS)
 
 """
 Base.@kwdef mutable struct AutoE_hp <: BetaMLHyperParametersSet
-   "The layers (vector of `AbstractLayer`s) responsable of the encoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `innerdims`]"
+   "The layers (vector of `AbstractLayer`s) responsable of the encoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `layers_size`]"
    e_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
-   "The layers (vector of `AbstractLayer`s) responsable of the decoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `innerdims`]"
+   "The layers (vector of `AbstractLayer`s) responsable of the decoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `layers_size`]"
    d_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
-   "The number of neurons (i.e. dimensions) of the encoded data. If the value is a float it is considered a percentual (to be rounded) of the dimensionality of the data [def: `0.33`]"
-   outdims::Union{Float64,Int64}  = 0.333
-   "Inner layer dimension (i.e. number of neurons). If the value is a float it is consiered a percentual (to be rounded) of the dimensionality of the data [def: `nothing` that applies a specific heuristic]. Consider that the underlying neural network is trying to predict multiple values at the same times. Normally this requires many more neurons than a scalar prediction. If `e_layers` or `d_layers` are specified, this parameter is ignored for the respective part."
-   innerdims::Union{Int64,Float64,Nothing} = nothing 
+   "The desired size of the encoded data, that is the number of dimensions in output or the size of the latent space. This is the number of neurons of the layer sitting between the econding and decoding layers. If the value is a float it is considered a percentual (to be rounded) of the dimensionality of the data [def: `0.33`]"
+   encoded_size::Union{Float64,Int64}  = 0.333
+   "Inner layers dimension (i.e. number of neurons). If the value is a float it is considered a percentual (to be rounded) of the dimensionality of the data [def: `nothing` that applies a specific heuristic]. Consider that the underlying neural network is trying to predict multiple values at the same times. Normally this requires many more neurons than a scalar prediction. If `e_layers` or `d_layers` are specified, this parameter is ignored for the respective part."
+   layers_size::Union{Int64,Float64,Nothing} = nothing 
    """Loss (cost) function [def: `squared_cost`]
    It must always assume y and ŷ as (n x d) matrices, eventually using `dropdims` inside.
    """
@@ -46,11 +46,11 @@ Base.@kwdef mutable struct AutoE_hp <: BetaMLHyperParametersSet
    See [`SuccessiveHalvingSearch`](@ref) for the default method.
    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
    """
-  tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges = Dict("epochs"=>[100,200,400],"batch_size"=>[8,16],"outdims"=>[0.2,0.3,0.5],"innerdims"=>[1.3,2.0,5.0,10.0,nothing]),multithreads=true)
+  tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges = Dict("epochs"=>[100,200,400],"batch_size"=>[8,16],"encoded_size"=>[0.2,0.3,0.5],"layers_size"=>[1.3,2.0,5.0,10.0,nothing]),multithreads=true)
 end
 
 Base.@kwdef mutable struct AutoEncoder_lp <: BetaMLLearnableParametersSet
-   outdims_actual::Union{Int64,Nothing}                             = nothing
+   encoded_size_actual::Union{Int64,Nothing}                             = nothing
    fullnn::Union{NeuralNetworkEstimator,Nothing}                    = nothing
    n_el::Union{Nothing,Int64}                                       = nothing
    n_dl::Union{Nothing,Int64}                                       = nothing
@@ -83,7 +83,7 @@ julia> x = [0.12 0.31 0.29 3.21 0.21;
             0.35 0.93 0.91 10.04 0.71;
             0.44 1.21 1.18 13.54 0.85];
 
-julia> m    = AutoEncoder(outdims=1,epochs=400)
+julia> m    = AutoEncoder(encoded_size=1,epochs=400)
 A AutoEncoder BetaMLModel (unfitted)
 
 julia> x_reduced = fit!(m,x)
@@ -141,7 +141,21 @@ function AutoEncoder(;kwargs...)
               found = true
           end
         end
-        found || error("Keyword \"$kw\" is not part of this model.")
+        # Correction for releasing without breaking.. to remove on v0.12 onward...
+        # found || error("Keyword \"$kw\" is not part of this model.")
+        if !found
+            if kw == :outdims
+                setproperty!(m.hpar,:encoded_size,kwv)
+                found = true
+            elseif kw == :innerdims
+                setproperty!(m.hpar,:layers_size,kwv) 
+                found = true
+            else
+                error("Keyword \"$kw\" is not part of this model.")
+            end
+        end
+
+
     end
     return m
 end
@@ -152,8 +166,8 @@ function fit!(m::AutoEncoder,X)
     # Parameter alias..
     e_layers    = m.hpar.e_layers
     d_layers    = m.hpar.d_layers
-    outdims     = m.hpar.outdims
-    innerdims   = m.hpar.innerdims
+    encoded_size     = m.hpar.encoded_size
+    layers_size   = m.hpar.layers_size
     loss        = m.hpar.loss
     dloss       = m.hpar.dloss
     epochs      = m.hpar.epochs
@@ -171,13 +185,13 @@ function fit!(m::AutoEncoder,X)
     if fitted
         size(m.par.fullnn.par.nnstruct.layers[1])[1][1] == D || @error "The data used to re-fit the model have different dimensionality than the original data. [`reset!`](@ref) the model first."
         verbosity >= HIGH && @info "Re-fitting of the model on new data"
-        outdims_actual  = m.par.outdims_actual
+        encoded_size_actual  = m.par.encoded_size_actual
         fullnn          = m.par.fullnn
         n_el            = m.par.n_el
         n_dl            = m.par.n_dl 
     else
-        typeof(outdims) <: Integer ?  outdims_actual = outdims : outdims_actual = max(1,Int(round(D * outdims))) 
-        if isnothing(innerdims) 
+        typeof(encoded_size) <: Integer ?  encoded_size_actual = encoded_size : encoded_size_actual = max(1,Int(round(D * encoded_size))) 
+        if isnothing(layers_size) 
             if D == 1
                 innerSize = 3
             elseif D < 5
@@ -187,22 +201,22 @@ function fit!(m::AutoEncoder,X)
             else
                 innerSize = max(1,Int(round(D*1.3*log(2,D)))) 
             end
-        elseif typeof(innerdims) <: Integer
-            innerSize = innerdims
+        elseif typeof(layers_size) <: Integer
+            innerSize = layers_size
         else
-            innerSize = max(1,Int(round(D*innerdims)) )
+            innerSize = max(1,Int(round(D*layers_size)) )
         end
 
         if isnothing(e_layers)
             l1 = DenseLayer(D,innerSize, f=relu, df=drelu, rng=rng)
             l2 = DenseLayer(innerSize,innerSize, f=relu, df=drelu, rng=rng)
-            l3 = DenseLayer(innerSize, outdims_actual, f=identity, df=didentity, rng=rng)
+            l3 = DenseLayer(innerSize, encoded_size_actual, f=identity, df=didentity, rng=rng)
             e_layers_actual = [l1,l2,l3]
         else
             e_layers_actual = copy(e_layers)
         end
         if isnothing(d_layers)
-            l1d = DenseLayer(outdims_actual,innerSize, f=relu, df=drelu, rng=rng)
+            l1d = DenseLayer(encoded_size_actual,innerSize, f=relu, df=drelu, rng=rng)
             l2d = DenseLayer(innerSize,innerSize, f=relu, df=drelu, rng=rng)
             l3d = DenseLayer(innerSize, D, f=identity, df=didentity, rng=rng)
             d_layers_actual = [l1d,l2d,l3d]
@@ -217,7 +231,7 @@ function fit!(m::AutoEncoder,X)
     x̂ =  fit!(fullnn,X,X)
 
     par                 = AutoEncoder_lp()
-    par.outdims_actual  = outdims_actual
+    par.encoded_size_actual  = encoded_size_actual
     par.fullnn          = fullnn
     par.n_el            = n_el
     par.n_dl            = n_dl

@@ -295,7 +295,7 @@ println("** Testing pca()...")
 
 X = [1 8; 4.5 5.5; 9.5 0.5]
 expectedX = [-4.58465   6.63182;-0.308999  7.09961; 6.75092   6.70262]
-m = PCAEncoder(outdims=2)
+m = PCAEncoder(encoded_size=2)
 fit!(m,X)
 ŷ = predict(m)
 @test isapprox(ŷ,expectedX,atol=0.00001) || isapprox(ŷ, (.- expectedX),atol=0.00001)
@@ -323,9 +323,9 @@ tuning_method = SuccessiveHalvingSearch(
             res_shares   = [0.2, 0.3],
             multithreads = true
         )
-m    = AutoEncoder(epochs=400,outdims=2,autotune=true,
+m    = AutoEncoder(epochs=400,encoded_size=2,autotune=true,
 tunemethod=tuning_method, verbosity=NONE, rng=copy(TESTRNG) )
-#m    = AutoEncoder(outdims=2,rng=copy(TESTRNG))
+#m    = AutoEncoder(encoded_size=2,rng=copy(TESTRNG))
 x2   = fit!(m,x)
 x2b  = predict(m)
 x2c  = predict(m,x)
@@ -357,11 +357,13 @@ x = [0.12 0.31 0.29 3.21 0.21;
      0.22 0.61 0.58 6.43 0.42;
      0.12 0.31 0.29 3.21 0.21;
      0.44 1.21 1.18 13.54 0.85];
-m    = AutoEncoder(outdims=1,epochs=400,autotune=false) 
+m    = AutoEncoder(encoded_size=2,layers_size=15,epochs=400,autotune=false) 
 x_reduced = fit!(m,x)
 x̂ = inverse_predict(m,x_reduced)
-info(m)["rme"]
-hcat(x,x̂)
+rme = info(m)["rme"]
+@test size(x_reduced) == (10,2)
+@test size(x̂ ) == (10,5)
+@test rme < 0.1
 
 # ==================================
 # New test
@@ -741,7 +743,7 @@ import MLJBase
 const MLJ = MLJBase
 
 X, y        = MLJ.@load_iris
-model       = BetaML.Bmlj.AutoEncoder(outdims=2,rng=copy(TESTRNG))
+model       = BetaML.Bmlj.AutoEncoder(encoded_size=2,rng=copy(TESTRNG))
 ae          = MLJ.machine(model, X)
 MLJ.fit!(ae)
 X_latent    = MLJ.transform(ae, X)

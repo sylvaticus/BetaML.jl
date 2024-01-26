@@ -886,15 +886,15 @@ $(FIELDS)
 
 """
 Base.@kwdef mutable struct PCAE_hp <: BetaMLHyperParametersSet
-   "The number of dimensions to maintain (with `outdims <= size(X,2)` ) [def: `nothing`, i.e. the number of output dimensions is determined from the parameter `max_unexplained_var`]"
-   outdims::Union{Nothing,Int64} = nothing
-   "The maximum proportion of variance that we are willing to accept when reducing the number of dimensions in our data [def: 0.05]. It doesn't have any effect when the output number of dimensions is explicitly chosen with the parameter `outdims`"
+   "The size, that is the number of dimensions, to maintain (with `encoded_size <= size(X,2)` ) [def: `nothing`, i.e. the number of output dimensions is determined from the parameter `max_unexplained_var`]"
+   encoded_size::Union{Nothing,Int64} = nothing
+   "The maximum proportion of variance that we are willing to accept when reducing the number of dimensions in our data [def: 0.05]. It doesn't have any effect when the output number of dimensions is explicitly chosen with the parameter `encoded_size`"
    max_unexplained_var::Float64  = 0.05
 end
 
 Base.@kwdef mutable struct PCA_lp <: BetaMLLearnableParametersSet
    eigen_out::Union{Eigen,Nothing}     =nothing
-   outdims_actual::Union{Int64,Nothing}=nothing
+   encoded_size_actual::Union{Int64,Nothing}=nothing
 end
 
 """
@@ -909,7 +909,7 @@ For the parameters see [`PCAE_hp`](@ref) and [`BML_options`](@ref)
 # Notes:
 - PCAEncoder doesn't automatically scale the data. It is suggested to apply the [`Scaler`](@ref) model before running it. 
 - Missing data are not supported. Impute them first, see the [`Imputation`](@ref) module.
-- If one doesn't know _a priori_ the maximum unexplained variance that he is willling to accept, nor the wished number of dimensions, he can run the model with all the dimensions in output (i.e. with `outdims=size(X,2)`), analise the proportions of explained cumulative variance by dimensions in `info(mod,""explained_var_by_dim")`, choose the number of dimensions K according to his needs and finally pick from the reprojected matrix only the number of dimensions required, i.e. `out.X[:,1:K]`.
+- If one doesn't know _a priori_ the maximum unexplained variance that he is willling to accept, nor the wished number of dimensions, he can run the model with all the dimensions in output (i.e. with `encoded_size=size(X,2)`), analise the proportions of explained cumulative variance by dimensions in `info(mod,""explained_var_by_dim")`, choose the number of dimensions K according to his needs and finally pick from the reprojected matrix only the number of dimensions required, i.e. `out.X[:,1:K]`.
 
 # Example:
 
@@ -966,7 +966,16 @@ function PCAEncoder(;kwargs...)
               found = true
           end
         end
-        found || error("Keyword \"$kw\" is not part of this model.")
+        # Correction for releasing without breaking.. to remove on v0.12 onward...
+        # found || error("Keyword \"$kw\" is not part of this model.")
+        if !found
+            if kw == :outdims
+                setproperty!(m.hpar,:encoded_size,kwv)
+                found = true
+            else
+                error("Keyword \"$kw\" is not part of this model.")
+            end
+        end
     end
     return m
 end
@@ -976,7 +985,7 @@ end
 function fit!(m::PCAEncoder,X)
 
     # Parameter alias..
-    outdims                  = m.hpar.outdims
+    encoded_size                  = m.hpar.encoded_size
     max_unexplained_var = m.hpar.max_unexplained_var
     cache                    = m.opt.cache
     verbosity                = m.opt.verbosity
@@ -987,35 +996,35 @@ function fit!(m::PCAEncoder,X)
     end
 
     (N,D) = size(X)
-    if !isnothing(outdims) && outdims > D
-        @error("The parameter `outdims` must be ≤ of the number of dimensions of the input data matrix")
+    if !isnothing(encoded_size) && encoded_size > D
+        @error("The parameter `encoded_size` must be ≤ of the number of dimensions of the input data matrix")
     end
     Σ = (1/N) * X'*(I-(1/N)*ones(N)*ones(N)')*X
     E = eigen(Σ) # eigenvalues are ordered from the smallest to the largest
     # Finding oudims_actual
     totvar  = sum(E.values)
     explained_var_by_dim = cumsum(reverse(E.values)) ./ totvar
-    outdims_actual = isnothing(outdims) ? findfirst(x -> x >= (1-max_unexplained_var), explained_var_by_dim)  : outdims
+    encoded_size_actual = isnothing(encoded_size) ? findfirst(x -> x >= (1-max_unexplained_var), explained_var_by_dim)  : encoded_size
     m.par.eigen_out = E
-    m.par.outdims_actual = outdims_actual
+    m.par.encoded_size_actual = encoded_size_actual
 
     if cache
-        P = E.vectors[:,end:-1:D-outdims_actual+1]
+        P = E.vectors[:,end:-1:D-encoded_size_actual+1]
         m.cres = X*P
     end
 
     m.info["fitted_records"]  = get(m.info,"fitted_records",0) + N
     m.info["xndims"]     = D
     m.info["explained_var_by_dim"] = explained_var_by_dim
-    m.info["prop_explained_var"]   = explained_var_by_dim[outdims_actual]
-    m.info["retained_dims"]        = outdims_actual
+    m.info["prop_explained_var"]   = explained_var_by_dim[encoded_size_actual]
+    m.info["retained_dims"]        = encoded_size_actual
     m.fitted=true
     return cache ? m.cres : nothing
 end   
 
 function predict(m::PCAEncoder,X)
     D = size(m.par.eigen_out.vectors,2)
-    P = m.par.eigen_out.vectors[:,end:-1:D-m.par.outdims_actual+1]
+    P = m.par.eigen_out.vectors[:,end:-1:D-m.par.encoded_size_actual+1]
     return X*P
 end  
 
