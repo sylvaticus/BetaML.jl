@@ -172,7 +172,7 @@ function MMI.fit(m::Union{KMeansClusterer,KMedoidsClusterer}, verbosity, X)
     report=nothing
     return ((classes=assignedClasses,centers=representatives,distanceFunction=m.dist), cache, report)
 end
-MMI.fitted_params(model::Union{KMeansClusterer,KMedoidsClusterer}, fitresult) = (centers=fitresult[2], cluster_labels=CategoricalArrays.categorical(fitresults[1]))
+MMI.fitted_params(model::Union{KMeansClusterer,KMedoidsClusterer}, fitresults) = (centers=fitresults[2], cluster_labels=CategoricalArrays.categorical(fitresults[1]))
 
 # ------------------------------------------------------------------------------
 # Transform functions...
