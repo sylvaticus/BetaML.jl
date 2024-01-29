@@ -304,21 +304,30 @@ end
 # Model metadata for registration in MLJ...
 
 MMI.metadata_model(PerceptronClassifier,
-    input_scitype    = MMI.Table(MMI.Infinite),
+    input_scitype = Union{
+        MMI.Table(MMI.Infinite),
+        AbstractMatrix{<: MMI.Infinite},
+    },
     target_scitype   = AbstractVector{<: MMI.Finite},
     supports_weights = false,
 	load_path        = "BetaML.Bmlj.PerceptronClassifier"
 )
 
 MMI.metadata_model(KernelPerceptronClassifier,
-    input_scitype    = MMI.Table(MMI.Infinite),
+    input_scitype = Union{
+        MMI.Table(MMI.Infinite),
+        AbstractMatrix{<: MMI.Infinite},
+    },
     target_scitype   = AbstractVector{<: MMI.Finite},
     supports_weights = false,
 	load_path        = "BetaML.Bmlj.KernelPerceptronClassifier"
 )
 
 MMI.metadata_model(PegasosClassifier,
-    input_scitype    = MMI.Table(MMI.Infinite),
+    input_scitype = Union{
+        MMI.Table(MMI.Infinite),
+        AbstractMatrix{<: MMI.Infinite},
+    },
     target_scitype   = AbstractVector{<: MMI.Finite},
     supports_weights = false,
 	load_path        = "BetaML.Bmlj.PegasosClassifier"

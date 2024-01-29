@@ -209,7 +209,10 @@ end
 # Model metadata for registration in MLJ...
 
 MMI.metadata_model(KMeansClusterer,
-    input_scitype    = MMI.Table(MMI.Continuous),         # scitype of the inputs
+    input_scitype = Union{                                # scitype of the inputs
+        MMI.Table(MMI.Continuous),
+        AbstractMatrix{<: MMI.Continuous},
+    },      
     output_scitype   = MMI.Table(MMI.Continuous),         # scitype of the output of `transform`
     target_scitype   = AbstractArray{<:MMI.Multiclass},   # scitype of the output of `predict`
     supports_weights = false,                             # does the model support sample weights?
@@ -217,7 +220,10 @@ MMI.metadata_model(KMeansClusterer,
 )
 
 MMI.metadata_model(KMedoidsClusterer,
-    input_scitype    = MMI.Table(MMI.Continuous),         # scitype of the inputs
+    input_scitype = Union{                                # scitype of the inputs
+        MMI.Table(MMI.Continuous),
+        AbstractMatrix{<: MMI.Continuous},
+    },
     output_scitype   = MMI.Table(MMI.Continuous),         # scitype of the output of `transform`
     target_scitype   = AbstractArray{<:MMI.Multiclass},   # scitype of the output of `predict`
     supports_weights = false,                             # does the model support sample weights?

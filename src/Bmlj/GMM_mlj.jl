@@ -426,7 +426,10 @@ end
 # Model metadata for registration in MLJ...
 
 MMI.metadata_model(GaussianMixtureClusterer,
-    input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Continuous,MMI.Missing}),
+        AbstractMatrix{<:Union{MMI.Continuous,MMI.Missing}},
+    },
     output_scitype   = AbstractArray{<:MMI.Multiclass},       # scitype of the output of `transform`
     target_scitype   = AbstractArray{<:MMI.Multiclass},       # scitype of the output of `predict`
     #prediction_type  = :probabilistic,  # option not added to metadata_model function, need to do it separately
@@ -436,13 +439,19 @@ MMI.metadata_model(GaussianMixtureClusterer,
 MMI.prediction_type(::Type{<:GaussianMixtureClusterer}) = :probabilistic
 
 MMI.metadata_model(GaussianMixtureRegressor,
-    input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Infinite}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Infinite,MMI.Missing}),
+        AbstractMatrix{<:Union{MMI.Infinite,MMI.Missing}},
+    },
     target_scitype   = AbstractVector{<: MMI.Continuous},           # for a supervised model, what target?
     supports_weights = false,                                       # does the model support sample weights?
 	load_path        = "BetaML.Bmlj.GaussianMixtureRegressor"
 )
 MMI.metadata_model(MultitargetGaussianMixtureRegressor,
-    input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Infinite}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Infinite,MMI.Missing}),
+        AbstractMatrix{<:Union{MMI.Infinite,MMI.Missing}},
+    },
     target_scitype   = AbstractMatrix{<: MMI.Continuous},           # for a supervised model, what target?
     supports_weights = false,                                       # does the model support sample weights?
 	load_path        = "BetaML.Bmlj.MultitargetGaussianMixtureRegressor"

@@ -378,25 +378,37 @@ end
 # Model metadata for registration in MLJ...
 
 MMI.metadata_model(DecisionTreeRegressor,
-    input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Known,MMI.Missing}),
+        AbstractMatrix{<:Union{MMI.Known,MMI.Missing}},
+    },
     target_scitype   = AbstractVector{<: MMI.Continuous},           # for a supervised model, what target?
     supports_weights = false,                                       # does the model support sample weights?
 	load_path        = "BetaML.Bmlj.DecisionTreeRegressor"
     )
 MMI.metadata_model(RandomForestRegressor,
-    input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Known,MMI.Missing}),
+        AbstractMatrix{<:Union{MMI.Known,MMI.Missing}},
+    },
     target_scitype   = AbstractVector{<: MMI.Continuous},
     supports_weights = false,
 	load_path        = "BetaML.Bmlj.RandomForestRegressor"
     )
 MMI.metadata_model(DecisionTreeClassifier,
-    input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Known,MMI.Missing}),
+        AbstractMatrix{<:Union{MMI.Known,MMI.Missing}},
+    },
     target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite}},
     supports_weights = false,
 	load_path        = "BetaML.Bmlj.DecisionTreeClassifier"
     )
 MMI.metadata_model(RandomForestClassifier,
-    input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Known,MMI.Missing}),
+        AbstractMatrix{<:Union{MMI.Known,MMI.Missing}},
+    },
     target_scitype   = AbstractVector{<: Union{MMI.Missing,MMI.Finite}},
     supports_weights = false,
 	load_path        = "BetaML.Bmlj.RandomForestClassifier"

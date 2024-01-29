@@ -157,9 +157,11 @@ function MMI.fit(m::AutoEncoder, verbosity, X)
 
  MMI.inverse_transform(m::AutoEncoder, fitresult, Xnew) = BetaML.Api.inverse_predict(fitresult, MMI.matrix(Xnew))
 
-
  MMI.metadata_model(AutoEncoder,
-    input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Count}),
+    input_scitype = Union{
+      MMI.Table(Union{MMI.Continuous,MMI.Count}),
+      AbstractMatrix{<:Union{MMI.Continuous,MMI.Count}},
+  },
     output_scitype   = AbstractMatrix{<: Union{MMI.Continuous,MMI.Count}},
     supports_weights = false,
     load_path        = "BetaML.Bmlj.AutoEncoder"

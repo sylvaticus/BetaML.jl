@@ -110,7 +110,10 @@ function MMI.fit(m::NeuralNetworkRegressor, verbosity, X, y)
  MMI.predict(m::NeuralNetworkRegressor, fitresult, Xnew) = BetaML.Api.predict(fitresult, MMI.matrix(Xnew))
 
  MMI.metadata_model(NeuralNetworkRegressor,
-    input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Count}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Continuous,MMI.Count}),
+        AbstractMatrix{<:Union{MMI.Continuous,MMI.Count}},
+    },
     target_scitype   = AbstractVector{<: Union{MMI.Continuous,MMI.Count}},
     supports_weights = false,
     load_path        = "BetaML.Bmlj.NeuralNetworkRegressor"
@@ -223,7 +226,10 @@ function MMI.fit(m::MultitargetNeuralNetworkRegressor, verbosity, X, y)
  MMI.predict(m::MultitargetNeuralNetworkRegressor, fitresult, Xnew) = BetaML.Api.predict(fitresult, MMI.matrix(Xnew))
 
  MMI.metadata_model(MultitargetNeuralNetworkRegressor,
-    input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Count}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Continuous,MMI.Count}),
+        AbstractMatrix{<:Union{MMI.Continuous,MMI.Count}},
+    },
     target_scitype   = AbstractMatrix{<: Union{MMI.Continuous,MMI.Count}},
     supports_weights = false,
     load_path        = "BetaML.Bmlj.MultitargetNeuralNetworkRegressor"
@@ -365,7 +371,10 @@ function MMI.predict(m::NeuralNetworkClassifier, fitresult, Xnew)
 end
 
  MMI.metadata_model(NeuralNetworkClassifier,
-    input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Count}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Continuous,MMI.Count}),
+        AbstractMatrix{<:Union{MMI.Continuous,MMI.Count}},
+    },
     target_scitype = AbstractVector{<: Union{MMI.Multiclass,MMI.Finite,MMI.Count}},
     supports_weights = false,
     load_path        = "BetaML.Bmlj.NeuralNetworkClassifier"

@@ -482,27 +482,39 @@ end
 # Model metadata for registration in MLJ...
 
 MMI.metadata_model(SimpleImputer,
-    input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Continuous,MMI.Missing}),
+        AbstractMatrix{<:Union{MMI.Continuous,MMI.Missing}},
+    },
     output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
 	load_path        = "BetaML.Bmlj.SimpleImputer"
 )
 
 MMI.metadata_model(GaussianMixtureImputer,
-    input_scitype    = MMI.Table(Union{MMI.Continuous,MMI.Missing}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Continuous,MMI.Missing}),
+        AbstractMatrix{<:Union{MMI.Continuous,MMI.Missing}},
+    },
     output_scitype   = MMI.Table(MMI.Continuous),     # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
 	load_path        = "BetaML.Bmlj.GaussianMixtureImputer"
 )
 
 MMI.metadata_model(RandomForestImputer,
-    input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Known,MMI.Missing}),
+        AbstractMatrix{<:Union{MMI.Known,MMI.Missing}},
+    },
     output_scitype   = MMI.Table(MMI.Known),          # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
 	load_path        = "BetaML.Bmlj.RandomForestImputer"
 )
 MMI.metadata_model(GeneralImputer,
-    input_scitype    = MMI.Table(Union{MMI.Missing, MMI.Known}),
+    input_scitype = Union{
+        MMI.Table(Union{MMI.Known,MMI.Missing}),
+        AbstractMatrix{<:Union{MMI.Known,MMI.Missing}},
+    },
     output_scitype   = MMI.Table(MMI.Known),          # for an unsupervised, what output?
     supports_weights = false,                         # does the model support sample weights?
 	load_path        = "BetaML.Bmlj.GeneralImputer"
