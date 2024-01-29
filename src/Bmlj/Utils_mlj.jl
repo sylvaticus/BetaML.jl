@@ -94,14 +94,14 @@ julia> BetaML.relative_mean_error(MLJ.matrix(X),X_recovered)
 ```
 """
 Base.@kwdef mutable struct AutoEncoder <: MMI.Unsupervised
+    "The number of neurons (i.e. dimensions) of the encoded data. If the value is a float it is consiered a percentual (to be rounded) of the dimensionality of the data [def: `0.33`]"
+    encoded_size::Union{Float64,Int64}  = 0.333
+    "Inner layer dimension (i.e. number of neurons). If the value is a float it is considered a percentual (to be rounded) of the dimensionality of the data [def: `nothing` that applies a specific heuristic]. Consider that the underlying neural network is trying to predict multiple values at the same times. Normally this requires many more neurons than a scalar prediction. If `e_layers` or `d_layers` are specified, this parameter is ignored for the respective part."
+    layers_size::Union{Int64,Float64,Nothing} = nothing
     "The layers (vector of `AbstractLayer`s) responsable of the encoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `layers_size`]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     e_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
     "The layers (vector of `AbstractLayer`s) responsable of the decoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `layers_size`]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     d_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
-    "The number of neurons (i.e. dimensions) of the encoded data. If the value is a float it is consiered a percentual (to be rounded) of the dimensionality of the data [def: `0.33`]"
-    encoded_size::Union{Float64,Int64}  = 0.333
-    "Inner layer dimension (i.e. number of neurons). If the value is a float it is considered a percentual (to be rounded) of the dimensionality of the data [def: `nothing` that applies a specific heuristic]. Consider that the underlying neural network is trying to predict multiple values at the same times. Normally this requires many more neurons than a scalar prediction. If `e_layers` or `d_layers` are specified, this parameter is ignored for the respective part."
-    layers_size::Union{Int64,Float64,Nothing} = nothing 
     """Loss (cost) function [def: `BetaML.squared_cost`]. Should always assume y and ŷ as (n x d) matrices.
     !!! warning
         If you change the parameter `loss`, you need to either provide its derivative on the parameter `dloss` or use autodiff with `dloss=nothing`.
@@ -141,7 +141,7 @@ function MMI.fit(m::AutoEncoder, verbosity, X)
     typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
    
-    mi = BetaML.Utils.AutoEncoder(;e_layers=m.e_layers,d_layers=m.d_layers,encoded_size=m.encoded_size,layers_size=m.layers_size,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, tunemethod=m.tunemethod, cache=false, descr=m.descr, rng=m.rng, verbosity=verbosity)
+    mi = BetaML.Utils.AutoEncoder(;encoded_size=m.encoded_size,layers_size=m.layers_size,e_layers=m.e_layers,d_layers=m.d_layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, tunemethod=m.tunemethod, cache=false, descr=m.descr, rng=m.rng, verbosity=verbosity)
     Api.fit!(mi,x)
     fitresults = mi
     cache      = nothing

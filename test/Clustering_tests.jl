@@ -85,8 +85,10 @@ s = mean(silhouette(pd,ŷ))
 # ==================================
 # NEW TEST
 println("Testing MLJ interface for Clustering models....")
-import MLJBase
+import MLJBase, MLJTestInterface
 const Mlj = MLJBase
+const mljti = MLJTestInterface
+
 X, y                           = Mlj.@load_iris
 
 model                          = BetaML.Bmlj.KMeansClusterer(rng=copy(TESTRNG))
@@ -104,3 +106,14 @@ distances                      = Mlj.transform(model,fitResults,X)
 yhat                           = Mlj.predict(model, fitResults, X)
 acc = BetaML.accuracy(Mlj.levelcode.(yhat),Mlj.levelcode.(y),ignorelabels=true)
 @test acc > 0.8
+
+@testset "generic mlj interface test" begin
+    f, s = mljti.test(
+        [BetaML.Bmlj.KMeansClusterer,],
+        mljti.make_regression()[1];
+        mod=@__MODULE__,
+        verbosity=0, # bump to debug
+        throw=true,  # set to true to debug (`false` in CI)
+    )
+@test isempty(f)
+end

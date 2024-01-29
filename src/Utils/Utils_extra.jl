@@ -19,14 +19,14 @@ $(FIELDS)
 
 """
 Base.@kwdef mutable struct AutoE_hp <: BetaMLHyperParametersSet
+   "The desired size of the encoded data, that is the number of dimensions in output or the size of the latent space. This is the number of neurons of the layer sitting between the econding and decoding layers. If the value is a float it is considered a percentual (to be rounded) of the dimensionality of the data [def: `0.33`]"
+   encoded_size::Union{Float64,Int64}  = 0.333
+   "Inner layers dimension (i.e. number of neurons). If the value is a float it is considered a percentual (to be rounded) of the dimensionality of the data [def: `nothing` that applies a specific heuristic]. Consider that the underlying neural network is trying to predict multiple values at the same times. Normally this requires many more neurons than a scalar prediction. If `e_layers` or `d_layers` are specified, this parameter is ignored for the respective part."
+   layers_size::Union{Int64,Float64,Nothing} = nothing
    "The layers (vector of `AbstractLayer`s) responsable of the encoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `layers_size`]"
    e_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
    "The layers (vector of `AbstractLayer`s) responsable of the decoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `layers_size`]"
    d_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
-   "The desired size of the encoded data, that is the number of dimensions in output or the size of the latent space. This is the number of neurons of the layer sitting between the econding and decoding layers. If the value is a float it is considered a percentual (to be rounded) of the dimensionality of the data [def: `0.33`]"
-   encoded_size::Union{Float64,Int64}  = 0.333
-   "Inner layers dimension (i.e. number of neurons). If the value is a float it is considered a percentual (to be rounded) of the dimensionality of the data [def: `nothing` that applies a specific heuristic]. Consider that the underlying neural network is trying to predict multiple values at the same times. Normally this requires many more neurons than a scalar prediction. If `e_layers` or `d_layers` are specified, this parameter is ignored for the respective part."
-   layers_size::Union{Int64,Float64,Nothing} = nothing 
    """Loss (cost) function [def: `squared_cost`]
    It must always assume y and ŷ as (n x d) matrices, eventually using `dropdims` inside.
    """
@@ -154,8 +154,6 @@ function AutoEncoder(;kwargs...)
                 error("Keyword \"$kw\" is not part of this model.")
             end
         end
-
-
     end
     return m
 end
