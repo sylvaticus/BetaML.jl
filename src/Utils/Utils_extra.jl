@@ -255,7 +255,7 @@ function fit!(m::AutoEncoder,X)
     if cache
         xtemp = copy(X)
         for el in fullnn.par.nnstruct.layers[1:m.par.n_el]
-            xtemp = vcat([forward(el,r) for r in eachrow(xtemp)]'...)
+            xtemp = vcat([forward(el,r) for r in eachrow(xtemp)]'...)  # TODO: for some layers the data is not a vector!
         end
         m.cres = xtemp|> makematrix
     end
@@ -266,8 +266,12 @@ end
 
 function predict(m::AutoEncoder,X)
     xtemp = copy(X)
+    (N,D) = size(X)
+
+    #for r in eachrow(X)
+
     for el in m.par.fullnn.par.nnstruct.layers[1:m.par.n_el]
-        xtemp = vcat([forward(el,r) for r in eachrow(xtemp)]'...)
+        xtemp = vcat([forward(el,r) for r in eachrow(xtemp)]'...) # TODO: for some layers the data is not a vector!
     end
     return xtemp|> makematrix
 end  

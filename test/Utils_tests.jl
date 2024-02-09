@@ -79,18 +79,6 @@ x̂  = fit!(m,x)
 @test x̂  == x
 
 # ==================================
-# NEW TEST
-println("Testing findFirst/ findall / integerencoder / integerdecoder...")
-
-a = ["aa","cc","cc","bb","cc","aa"]
-A = [3 2 1; 2 3 1; 1 2 3]
-@test findfirst("cc",a)  == 2
-@test findall("cc",a)    == [2,3,5]
-@test findfirst(2,A)     == (2,1)
-@test findall(2,A)       == [(2,1),(1,2),(3,2)]
-@test findfirst(2,A;returnTuple=false) == CartesianIndex(2,1)
-
-# ==================================
 # TEST 2: softmax
 println("** Going through Test2 (softmax and other activation functions)...")
 @test isapprox(softmax([2,3,4],β=0.1),[0.3006096053557272,0.3322249935333472,0.36716540111092544])
