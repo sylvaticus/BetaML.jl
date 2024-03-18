@@ -723,6 +723,12 @@ size(w2) == (4,)
 eltype(w2) == Float64
 
 
+# ==================================
+# New test
+println("** Testing cosine distance....")
+x = [0,1]; y = [1,0]
+@test cosine_distance(x,y) == 1
+
 # MLJ Tests
 # ==================================
 # NEW TEST

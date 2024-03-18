@@ -250,7 +250,7 @@ $(TYPEDFIELDS)
 Base.@kwdef mutable struct KMeansC_hp <: BetaMLHyperParametersSet
     "Number of classes to discriminate the data [def: 3]"
     n_classes::Int64                  = 3
-    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
+    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`,  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
     dist::Function                    = (x,y) -> norm(x-y)
     """
     The computation method of the vector of the initial representatives.
@@ -276,7 +276,7 @@ $(TYPEDFIELDS)
 Base.@kwdef mutable struct KMedoidsC_hp <: BetaMLHyperParametersSet
     "Number of classes to discriminate the data [def: 3]"
     n_classes::Int64                  = 3
-    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
+    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`,  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
     dist::Function                    = (x,y) -> norm(x-y)
     """
     The computation method of the vector of the initial representatives.

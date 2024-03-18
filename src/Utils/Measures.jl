@@ -6,6 +6,7 @@
 # ------------------------------------------------------------------------------
 # Some common distance measures
 
+# https://weaviate.io/blog/distance-metrics-in-vector-search
 """L1 norm distance (aka _Manhattan Distance_)"""
 l1_distance(x,y)     = sum(abs.(x-y))
 """Euclidean (L2) distance"""
@@ -13,7 +14,7 @@ l2_distance(x,y)     = norm(x-y)
 """Squared Euclidean (L2) distance"""
 l2squared_distance(x,y)    = norm(x-y)^2
 """Cosine distance"""
-cosine_distance(x,y) = dot(x,y)/(norm(x)*norm(y))
+cosine_distance(x,y) = 1-dot(x,y)/(norm(x)*norm(y))
 """
 $(TYPEDSIGNATURES)
 
