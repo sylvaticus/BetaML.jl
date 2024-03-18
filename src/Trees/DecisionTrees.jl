@@ -487,6 +487,8 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_cr
     bestQuestion       = Question(1,1.0) # keep track of the feature / value that produced it
     currentUncertainty = Float64(splitting_criterion(y))
     (N,D)              = size(x)  # number of columns (the last column is the label)
+    left_buffer        = Array{Ty,1}(undef,N)
+    right_buffer       = Array{Ty,1}(undef,N)
 
     featuresToConsider = (max_features >= D) ? (1:D) : sample(rng, 1:D, max_features, replace=false)
 
@@ -497,6 +499,7 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_cr
             sortIdx = sortperm(x[:,d])
             sortedx = x[sortIdx,:]
             sortedy = y[sortIdx]
+
 
             if fast_algorithm
                 bestvalue     = findbestgain_sortedvector(sortedx,sortedy,d,sortedx;mCols=mCols,currentUncertainty=currentUncertainty,splitting_criterion=splitting_criterion,rng=rng)
@@ -521,7 +524,48 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_cr
                         continue
                     end
                     # Calculate the information gain from this split
-                    gain = infoGain(sortedy[trueIdx], sortedy[map(!,trueIdx)], currentUncertainty, splitting_criterion=splitting_criterion)
+
+                    #=
+                    @no_escape begin
+                        left  = @alloc(eltype(sortedy), length(trueIdx))
+                        right = @alloc(eltype(sortedy), length(sortedy)-sum(trueIdx))
+                        #println(length(left))
+                        #println(length(right))
+                        nl = 1; nr = 1
+                        for i in 1:length(sortedy)
+                            if trueIdx[i] 
+                                left[nl] = sortedy[i]
+                                nl += 1
+                            else
+                                right[nr] = sortedy[i]  
+                                nr += 1
+                            end
+                        end
+                        @views gain = infoGain(left, right , currentUncertainty, splitting_criterion=splitting_criterion)
+                    end
+                    =#
+
+                    nl = 1; nr = 1
+                    Nl = sum(trueIdx)
+                    Nr = N - Nl
+                    for i in 1:N
+                        if trueIdx[i] 
+                            left_buffer[nl] = sortedy[i]
+                            nl += 1
+                        else
+                            right_buffer[nr] = sortedy[i]  
+                            nr += 1
+                        end
+                    end
+                    @views gain = infoGain(left_buffer[1:Nl], right_buffer[1:Nr] , currentUncertainty, splitting_criterion=splitting_criterion)
+
+
+                    #=
+                    left  = @view sortedy[trueIdx]
+                    right = @view sortedy[map(!,trueIdx)]
+                    gain = infoGain(left, right , currentUncertainty, splitting_criterion=splitting_criterion)
+                    =#
+
                     # You actually can use '>' instead of '>=' here
                     # but I wanted the tree to look a certain way for our
                     # toy dataset.
@@ -549,16 +593,26 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_cr
                 if all(trueIdx) || ! any(trueIdx)
                     continue
                 end
+
+                nl = 1; nr = 1
+                Nl = sum(trueIdx)
+                Nr = N - Nl
+                for i in 1:N
+                    if trueIdx[i] 
+                        left_buffer[nl] = sortedy[i]
+                        nl += 1
+                    else
+                        right_buffer[nr] = sortedy[i]  
+                        nr += 1
+                    end
+                end
                 # Calculate the information gain from this split
-                gain = infoGain(sortedy[trueIdx], sortedy[map(!,trueIdx)], currentUncertainty, splitting_criterion=splitting_criterion)
-                # You actually can use '>' instead of '>=' here
-                # but I wanted the tree to look a certain way for our
-                # toy dataset.
+                @views gain = infoGain(left_buffer[1:Nl], right_buffer[1:Nr] , currentUncertainty, splitting_criterion=splitting_criterion)
+
                 if gain >= bestGain
                     bestGain, bestQuestion = gain, question
                 end
             end
-
         end
     end
     return bestGain, bestQuestion
