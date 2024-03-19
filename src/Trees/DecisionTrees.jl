@@ -816,8 +816,8 @@ Fit a [`DecisionTreeEstimator`](@ref) to the data
 """
 function fit!(m::DecisionTreeEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
 
-    if m.fitted
-        @warn "This model has already been fitted (trained) and it doesn't support multiple fitting. This fitting will override the previous one(s)"
+    if m.fitted 
+        m.opt.verbosity >= STD && @warn "This model has already been fitted (trained) and it doesn't support multiple fitting. This fitting will override the previous one(s)"
     else
         autotune!(m,(x,y))
     end

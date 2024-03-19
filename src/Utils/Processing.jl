@@ -1074,12 +1074,13 @@ julia> X = [11:19 21:29 31:39 41:49 51:59 61:69];
 julia> Y = [1:9;];
 julia> sampler = KFold(nsplits=3);
 julia> (μ,σ) = cross_validation([X,Y],sampler) do trainData,valData,rng
-                 (xtrain,ytrain) = trainData; (xval,yval) = valData
-                 trainedModel    = buildForest(xtrain,ytrain,30)
-                 ŷval            = predict(trainedModel,xval)
-                 ϵ               = relative_mean_error(yval,ŷval,normrec=false)
-                 return ϵ
-               end
+    (xtrain,ytrain) = trainData; (xval,yval) = valData
+    model           = RandomForestEstimator(n_trees=30,rng=rng)            
+    fit!(model,xtrain,ytrain)
+    ŷval            = predict(model,xval)
+    ϵ               = relative_mean_error(yval,ŷval)
+    return ϵ
+  end
 (0.3202242202242202, 0.04307662219315022)
 ```
 

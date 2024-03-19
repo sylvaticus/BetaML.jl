@@ -262,7 +262,7 @@ Fit a [`RandomForestEstimator`](@ref) to the data
 function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
 
     if m.fitted
-        @warn "This model has already been fitted and it doesn't support multiple training. This training will override the previous one(s)"
+        m.opt.verbosity >= STD && @warn "This model has already been fitted and it doesn't support multiple training. This training will override the previous one(s)"
     else
         autotune!(m,(x,y))
     end

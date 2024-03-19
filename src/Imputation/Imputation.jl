@@ -582,7 +582,7 @@ function fit!(m::RandomForestImputer,X)
     nR,nC   = size(X)
 
     if m.fitted
-        @warn "This model has already been fitted and it doesn't support multiple training. This training will override the previous one(s)"
+        m.opt.verbosity >= STD && @warn "This model has already been fitted and it doesn't support multiple training. This training will override the previous one(s)"
     end
 
     # Setting default parameters that depends from the data...
