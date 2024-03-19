@@ -54,7 +54,7 @@ Please refer to the [package documentation](https://sylvaticus.github.io/BetaML.
 
 If you are looking for an introductory material on Julia, have a look on the book "[Julia Quick Syntax Reference](https://www.julia-book.com/)"(Apress,2019) or the online course "[Scientific Programming and Machine Learning in Julia](https://sylvaticus.github.io/SPMLJ/stable/).
 
-While implemented in Julia, this package can be easily used in R or Python employing [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) or [PyJulia](https://github.com/JuliaPy/pyjulia) respectively, see [the relevant section](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#using_betaml_from_other_languages) in the documentation.
+While implemented in Julia, this package can be easily used in R or Python employing R's [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) or Python's [juliacall](https://pypi.org/project/juliacall/) respectively, see [the relevant section](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#using_betaml_from_other_languages) in the documentation.
 
 ### Examples
 
