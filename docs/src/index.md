@@ -7,12 +7,9 @@ Welcome to the documentation of the [_Beta Machine Learning toolkit_](https://gi
 The `BetaML` toolkit provides machine learning algorithms written in the Julia programming language.
 
 Aside the algorithms themselves, `BetaML` provides many "utility" functions. Because algorithms are all self-contained in the library itself (you are invited to explore their source code by typing `@edit functionOfInterest(par1,par2,...)`), the utility functions have APIs that are coordinated with the algorithms, facilitating the "preparation" of the data for the analysis, the choice of the hyper-parameters or the evaluation of the models.
-Most models have an interface for the [`MLJ`](https://github.com/alan-turing-institute/MLJ.jl) framework.
+Most models have [`an interface`](@ref BetaML.Bmlj) for the [`MLJ`](https://github.com/alan-turing-institute/MLJ.jl) framework.
 
 Aside Julia, BetaML can be accessed in R or Python using respectively [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) and [PyJulia](https://github.com/JuliaPy/pyjulia). See [the tutorial](@ref using_betaml_from_other_languages) for details.
-
-!!! Warning
-    Version 0.11 brings homogenization in the models' names and put some order on other stuff, but at the cost of severe breaking changes. Follow the updated documentation. 
 
 ## Installation
 
@@ -217,6 +214,9 @@ scatter(ytest,ŷtest,xlabel="Actual",ylabel="Estimated",label=nothing,title="Es
 
 Finally, you may want to give a look at the ["test" folder](https://github.com/sylvaticus/BetaML.jl/tree/master/test). While the primary objective of the scripts under the "test" folder is to provide automatic testing of the BetaML toolkit, they can also be used to see how functions should be called, as virtually all functions provided by BetaML are tested there.
 
+## Benchmarks
+
+A page summarising some basic benchmarks for BetaML and other leading Julia ML libraries is available [here](@ref benchmarks).
 
 ## Acknowledgements
 

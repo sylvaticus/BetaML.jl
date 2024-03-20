@@ -1,18 +1,20 @@
-# BetaML Benchmarks
+# [BetaML Benchmarks](@id benchmarks)
 
-This benchmark allows to quickly check for regressions across versions.
+This benchmark page allows us to quickly check for regressions across versions.
 As it is run and compiled using GitHub actions, and these may be powered by different computational resources, timing results are normalized using SystemBenchmark.
 
-This page also provides a basic comparison with other leading Julia libraries for the same algorithm, USING DEFAULT VALUES.
+This page also provides a basic, far-from-exhaustive, comparison with other leading Julia libraries for the same model, USING DEFAULT VALUES. Note that this could imply very different important hyperparameters.
+
 This file is intended just for benchmarking, not much as a tutorial, and it doesn't employ a full ML workflow, just the minimum preprocessing such that the algorithms work.
 
 ## Benchmark setup
 ```@setup bmk
 using Pkg
 Pkg.activate(joinpath(@__DIR__,".."))
-using Test, Statistics, Random, DelimitedFiles
+using Test, Statistics, Random, DelimitedFiles, Logging
 using  DataStructures, DataFrames, BenchmarkTools, StableRNGs, SystemBenchmark
 import DecisionTree, Flux
+import Clustering, GaussianMixtures
 using BetaML
 
 TESTRNG = StableRNG(123)
@@ -43,11 +45,11 @@ A simple regression over 500 points with y = x₁²-x₂+x₃²
 ```@setup bmk
 println("*** Benchmarking regression task..")
 
-df_regr = DataFrame(name= String[],time=Float64[],memory=Int64[],allocs=Int64[],mre_train=Float64[],std_train=Float64[],mre_test=Float64[],std_test=Float64[])
-n = 500
-seeds = rand(copy(TESTRNG),n)
-x = vcat([[s*2 (s-3)^2 s/2 0.2-s] for s in seeds]...)
-y = [r[1]*2-r[2]+r[3]^2 for r in eachrow(x)]
+bm_regression = DataFrame(name= String[],time=Float64[],memory=Int64[],allocs=Int64[],mre_train=Float64[],std_train=Float64[],mre_test=Float64[],std_test=Float64[])
+n             = 500
+seeds         = rand(copy(TESTRNG),n)
+x             = vcat([[s*2 (s-3)^2 s/2 0.2-s] for s in seeds]...)
+y             = [r[1]*2-r[2]+r[3]^2 for r in eachrow(x)]
 
 bml_models = OrderedDict("DT"=>DecisionTreeEstimator(rng=copy(TESTRNG),verbosity=NONE),
                   "RF"=>RandomForestEstimator(rng=copy(TESTRNG),verbosity=NONE),
@@ -79,7 +81,7 @@ for (mname,m) in bml_models
     std_train = std([r[1] for r in cv_out])
     mre_test = mean([r[2] for r in cv_out])
     std_test = std([r[2] for r in cv_out])
-    push!(df_regr,[mname, m_time, m_memory, m_allocs, mre_train, std_train, mre_test, std_test])
+    push!(bm_regression,[mname, m_time, m_memory, m_allocs, mre_train, std_train, mre_test, std_test])
     @test mre_test <= 0.05
 end
 
@@ -113,7 +115,7 @@ for (mname,m) in dt_models
     std_train = std([r[1] for r in cv_out])
     mre_test = mean([r[2] for r in cv_out])
     std_test = std([r[2] for r in cv_out])
-    push!(df_regr,[mname, m_time, m_memory, m_allocs, mre_train, std_train, mre_test, std_test])
+    push!(bm_regression,[mname, m_time, m_memory, m_allocs, mre_train, std_train, mre_test, std_test])
     @test mre_test <= 0.05
 end
 
@@ -150,14 +152,14 @@ mre_train = mean([r[1] for r in cv_out])
 std_train = std([r[1] for r in cv_out])
 mre_test = mean([r[2] for r in cv_out])
 std_test = std([r[2] for r in cv_out])
-push!(df_regr,["NN (Flux.jl)", m_time, m_memory, m_allocs, mre_train, std_train, mre_test, std_train])
+push!(bm_regression,["NN (Flux.jl)", m_time, m_memory, m_allocs, mre_train, std_train, mre_test, std_train])
 @test mre_test <= 0.05
 
-df_regr.time .= df_regr.time ./ avg_factor_to_ref
+bm_regression.time .= bm_regression.time ./ avg_factor_to_ref
 ```
 
 ```@example bmk
-df_regr
+bm_regression
 ```
 
 ## Classification
@@ -169,12 +171,12 @@ A dicotomic diagnostic breast cancer classification based on the [Wisconsin Brea
 println("*** Benchmarking classification task..")
 
 bcancer_file = joinpath(@__DIR__,"..","..","test","data","breast_wisconsin","wdbc.data")
-bcancer  = readdlm(bcancer_file,',')
-x = fit!(Scaler(),convert(Matrix{Float64},bcancer[:,3:end]))
-y = convert(Vector{String},bcancer[:,2])
-ohm = OneHotEncoder()
-yoh = fit!(ohm,y)
-df_class = DataFrame(name= String[],time=Float64[],memory=Int64[],allocs=Int64[],acc_train=Float64[],std_train=Float64[],acc_test=Float64[],std_test=Float64[])
+bcancer      = readdlm(bcancer_file,',')
+x            = fit!(Scaler(),convert(Matrix{Float64},bcancer[:,3:end]))
+y            = convert(Vector{String},bcancer[:,2])
+ohm          = OneHotEncoder()
+yoh          = fit!(ohm,y)
+bm_classification = DataFrame(name= String[],time=Float64[],memory=Int64[],allocs=Int64[],acc_train=Float64[],std_train=Float64[],acc_test=Float64[],std_test=Float64[])
 
 bml_models = OrderedDict("DT"=>DecisionTreeEstimator(rng=copy(TESTRNG),verbosity=NONE),
                   "RF"=>RandomForestEstimator(rng=copy(TESTRNG),verbosity=NONE),
@@ -222,7 +224,7 @@ for (mname,m) in bml_models
     std_train = std([r[1] for r in cv_out])
     acc_test = mean([r[2] for r in cv_out])
     std_test = std([r[2] for r in cv_out])
-    push!(df_class,[mname, m_time, m_memory, m_allocs, acc_train, std_train, acc_test, std_test])
+    push!(bm_classification,[mname, m_time, m_memory, m_allocs, acc_train, std_train, acc_test, std_test])
     @test acc_test >= 0.6
 end
 
@@ -257,7 +259,7 @@ for (mname,m) in dt_models
     std_train = std([r[1] for r in cv_out])
     acc_test = mean([r[2] for r in cv_out])
     std_test = std([r[2] for r in cv_out])
-    push!(df_class,[mname, m_time, m_memory, m_allocs, acc_train, std_train, acc_test, std_test])
+    push!(bm_classification,[mname, m_time, m_memory, m_allocs, acc_train, std_train, acc_test, std_test])
     @test acc_test >= 0.8
 end
 
@@ -295,19 +297,134 @@ acc_train = mean([r[1] for r in cv_out])
 std_train = std([r[1] for r in cv_out])
 acc_test = mean([r[2] for r in cv_out])
 std_test = std([r[2] for r in cv_out])
-push!(df_class,["NN (Flux.jl)", m_time, m_memory, m_allocs, acc_train, std_train, acc_test, std_test])
+push!(bm_classification,["NN (Flux.jl)", m_time, m_memory, m_allocs, acc_train, std_train, acc_test, std_test])
 @test acc_test >= 0.8
 
-df_class.time .= df_class.time ./ avg_factor_to_ref
+bm_classification.time .= bm_classification.time ./ avg_factor_to_ref
 ```
 
 ```@example bmk
-df_class
+bm_classification
 ```
 
 ## Clustering
 
-TODO :-)
+Cluster benchmarks using the iris dataset. Note that all algorithms use only the features, the label is used only to asses the cluster accuracy score.
+
+```@setup bmk
+println("*** Benchmarking clustering task..")
+
+iris     = readdlm(joinpath(@__DIR__,"..","..","test","data","iris_shuffled.csv"),',',skipstart=1)
+x        = convert(Array{Float64,2}, iris[:,1:4])
+ystrings = convert(Array{String,1}, iris[:,5])
+ylabels  = unique(ystrings)
+y        = fit!(OrdinalEncoder(categories=ylabels),ystrings)
+
+
+bm_clustering = DataFrame(name= String[],time=Float64[],memory=Int64[],allocs=Int64[],acc_mean=Float64[],acc_std=Float64[],sil_mean=Float64[], sil_std=Float64[])
+
+bml_models = OrderedDict(
+        "KMeans"=>KMeansClusterer(n_classes=3, rng=copy(TESTRNG), verbosity=NONE),
+        "KMedoids"=>KMedoidsClusterer(n_classes=3, rng=copy(TESTRNG), verbosity=NONE),
+        "GMM"=>GaussianMixtureClusterer(n_classes=3, rng=copy(TESTRNG), verbosity=NONE),
+);
+
+bml_functions = OrderedDict(
+        "KMeans"   => x -> fit!(KMeansClusterer(n_classes=3, rng=copy(TESTRNG), verbosity=NONE), x),
+        "KMedoids" => x -> fit!(KMedoidsClusterer(n_classes=3, rng=copy(TESTRNG), verbosity=NONE),x),
+        "GMM"      => x -> mode(fit!(GaussianMixtureClusterer(n_classes=3, rng=copy(TESTRNG), verbosity=NONE),x))
+);
+
+
+for (mname,f) in bml_functions
+    #m = GaussianMixtureClusterer(n_classes=3, rng=copy(TESTRNG), verbosity=NONE)
+    #mname = "GMM"
+    println("Processing model $mname ... ")
+    #bres     = @benchmark fit!(m2,$x) setup=(m2 = deepcopy($m))
+    bres     = @benchmark $f($x)
+    m_time   = median(bres.times)
+    m_memory = bres.memory
+    m_allocs = bres.allocs
+    sampler = KFold(nsplits=10,rng=copy(TESTRNG));
+    cv_out  = cross_validation([x,y],sampler,return_statistics=false) do trainData,testData,rng
+        # For unsupervised learning we use only the train data.
+        # Also, we use the associated labels only to measure the performances
+        (xtrain,ytrain)  = trainData;
+        #m2         = deepcopy(m)
+        #if mname == "GMM"
+        #    ŷtrain     = fit!(m2,xtrain) |> mode
+        #else
+        #    ŷtrain     = fit!(m2,xtrain)
+        #end
+        ŷtrain     = f(xtrain)       
+        acc_train  = accuracy(ytrain,ŷtrain,ignorelabels=true)
+        pd         = pairwise(xtrain) 
+        sil_score  = mean(silhouette(pd,ŷtrain))
+        return (acc_train, sil_score)
+    end
+    acc_mean = mean([r[1] for r in cv_out])
+    acc_std = std([r[1] for r in cv_out])
+    sil_mean = mean([r[2] for r in cv_out])
+    sil_std = std([r[2] for r in cv_out])
+    push!(bm_clustering,[mname, m_time, m_memory, m_allocs, acc_mean, acc_std, sil_mean, sil_std])
+    @test acc_mean >= 0.6
+end
+
+# Clustering.jl and GaussainMixtures.jl models
+
+
+
+othcl_functions = OrderedDict(
+        "KMeans (Clustering.jl)"    => x -> getfield(Clustering.kmeans(x',3),:assignments),
+        "KMedoids  (Clustering.jl)" => x -> getfield(Clustering.kmedoids(pairwise(x), 3),:assignments),
+        "HC (Clustering.jl)"        => x -> Clustering.cutree(Clustering.hclust(pairwise(x)),k=3),
+        "DBSCAN (Clustering.jl)"    => x -> getfield(Clustering.dbscan(x', 0.8),:assignments),
+        "GMM (GaussianMixtures.jl)" => x -> mode(getindex(GaussianMixtures.gmmposterior(GaussianMixtures.GMM(3, x), x),1))
+);
+
+
+for (mname,f) in othcl_functions
+    #f = x -> getfield(Clustering.kmeans(x',3),:assignments)
+    #mname = "GMM"
+    println("Processing model $mname ... ")
+    Random.seed!(123)
+    old_logger = Logging.current_logger()
+    oldstdout = stdout
+    #redirect_stdout(devnull)
+    #global_logger(NullLogger())
+
+    bres     = @benchmark $f($x)
+    m_time   = median(bres.times)
+    m_memory = bres.memory
+    m_allocs = bres.allocs
+
+    sampler = KFold(nsplits=10,rng=copy(TESTRNG));
+    cv_out  = cross_validation([x,y],sampler,return_statistics=false) do trainData,testData,rng
+        # For unsupervised learning we use only the train data.
+        # Also, we use the associated labels only to measure the performances
+        (xtrain,ytrain)  = trainData;
+        ŷtrain     = f(xtrain)     
+        acc_train  = accuracy(ytrain,ŷtrain,ignorelabels=true)
+        pd         = pairwise(xtrain) 
+        sil_score  = mean(silhouette(pd,ŷtrain))
+        return (acc_train, sil_score)
+    end
+    acc_mean = mean([r[1] for r in cv_out])
+    acc_std = std([r[1] for r in cv_out])
+    sil_mean = mean([r[2] for r in cv_out])
+    sil_std = std([r[2] for r in cv_out])
+    push!(bm_clustering,[mname, m_time, m_memory, m_allocs, acc_mean, acc_std, sil_mean, sil_std])
+    #redirect_stdout(oldstdout)
+    #global_logger(old_logger)
+    @test acc_mean >= 0.6
+end
+
+bm_clustering.time .= bm_clustering.time ./ avg_factor_to_ref
+```
+
+```@example bmk
+bm_clustering
+```
 
 ## Missing imputation
 
