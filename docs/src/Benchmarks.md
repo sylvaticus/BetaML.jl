@@ -388,10 +388,10 @@ for (mname,f) in othcl_functions
     #mname = "GMM"
     println("Processing model $mname ... ")
     Random.seed!(123)
-    old_logger = Logging.current_logger()
+    old_logger = Logging.global_logger() 
     oldstdout = stdout
-    #redirect_stdout(devnull)
-    #global_logger(NullLogger())
+    redirect_stdout(devnull)
+    global_logger(NullLogger())
 
     bres     = @benchmark $f($x)
     m_time   = median(bres.times)
@@ -414,8 +414,8 @@ for (mname,f) in othcl_functions
     sil_mean = mean([r[2] for r in cv_out])
     sil_std = std([r[2] for r in cv_out])
     push!(bm_clustering,[mname, m_time, m_memory, m_allocs, acc_mean, acc_std, sil_mean, sil_std])
-    #redirect_stdout(oldstdout)
-    #global_logger(old_logger)
+    redirect_stdout(oldstdout)
+    global_logger(old_logger)
     @test acc_mean >= 0.6
 end
 
