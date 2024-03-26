@@ -3,7 +3,7 @@
 This benchmark page allows us to quickly check for regressions across versions.
 As it is run and compiled using GitHub actions, and these may be powered by different computational resources, timing results are normalized using SystemBenchmark.
 
-This page also provides a basic, far-from-exhaustive, comparison with other leading Julia libraries for the same model, USING DEFAULT VALUES. Note that this could imply very different important hyperparameters.
+This page also provides a basic, far-from-exhaustive, comparison with other leading Julia libraries for the same model. Note that while we did try to match hyperparameters to the BetaML default ones, differences still occour and may in part explain the different model's performances and scores.
 
 This file is intended just for benchmarking, not much as a tutorial, and it doesn't employ a full ML workflow, just the minimum preprocessing such that the algorithms work.
 
@@ -87,9 +87,9 @@ end
 
 ### DecisionTree
 Random.seed!(123)
-dt_models = OrderedDict("DT (DecisionTrees.jl)"=>DecisionTree.DecisionTreeRegressor(),
-                        "RF (DecisionTrees.jl)"=>DecisionTree.RandomForestRegressor(),
-);
+dt_models = OrderedDict("DT (DecisionTrees.jl)"=>DecisionTree.DecisionTreeRegressor(rng=copy(TESTRNG)),
+                        "RF (DecisionTrees.jl)"=>DecisionTree.RandomForestRegressor(n_trees=30, partial_sampling=1.0, rng=copy(TESTRNG)),
+)
 
 for (mname,m) in dt_models
     #mname = "DT"
@@ -230,8 +230,8 @@ end
 
 
 Random.seed!(123)
-dt_models = OrderedDict("DT (DT.jl)"=>DecisionTree.DecisionTreeClassifier(),
-                 "RF (DT.jl)"=>DecisionTree.RandomForestClassifier(),
+dt_models = OrderedDict("DT (DT.jl)"=>DecisionTree.DecisionTreeClassifier(rng=copy(TESTRNG)),
+                 "RF (DT.jl)"=>DecisionTree.RandomForestClassifier(n_trees=30, partial_sampling=1.0, rng=copy(TESTRNG)),
 );
 
 
@@ -388,34 +388,36 @@ for (mname,f) in othcl_functions
     #mname = "GMM"
     println("Processing model $mname ... ")
     Random.seed!(123)
-    old_logger = Logging.global_logger() 
-    oldstdout = stdout
-    redirect_stdout(devnull)
-    global_logger(NullLogger())
+    with_logger(NullLogger())
+        #old_logger = Logging.global_logger() 
+        #oldstdout = stdout
+        #redirect_stdout(devnull)
+        #global_logger(NullLogger())
 
-    bres     = @benchmark $f($x)
-    m_time   = median(bres.times)
-    m_memory = bres.memory
-    m_allocs = bres.allocs
+        bres     = @benchmark $f($x)
+        m_time   = median(bres.times)
+        m_memory = bres.memory
+        m_allocs = bres.allocs
 
-    sampler = KFold(nsplits=10,rng=copy(TESTRNG));
-    cv_out  = cross_validation([x,y],sampler,return_statistics=false) do trainData,testData,rng
-        # For unsupervised learning we use only the train data.
-        # Also, we use the associated labels only to measure the performances
-        (xtrain,ytrain)  = trainData;
-        ŷtrain     = f(xtrain)     
-        acc_train  = accuracy(ytrain,ŷtrain,ignorelabels=true)
-        pd         = pairwise(xtrain) 
-        sil_score  = mean(silhouette(pd,ŷtrain))
-        return (acc_train, sil_score)
+        sampler = KFold(nsplits=10,rng=copy(TESTRNG));
+        cv_out  = cross_validation([x,y],sampler,return_statistics=false) do trainData,testData,rng
+            # For unsupervised learning we use only the train data.
+            # Also, we use the associated labels only to measure the performances
+            (xtrain,ytrain)  = trainData;
+            ŷtrain     = f(xtrain)     
+            acc_train  = accuracy(ytrain,ŷtrain,ignorelabels=true)
+            pd         = pairwise(xtrain) 
+            sil_score  = mean(silhouette(pd,ŷtrain))
+            return (acc_train, sil_score)
+        end
+        acc_mean = mean([r[1] for r in cv_out])
+        acc_std = std([r[1] for r in cv_out])
+        sil_mean = mean([r[2] for r in cv_out])
+        sil_std = std([r[2] for r in cv_out])
+        push!(bm_clustering,[mname, m_time, m_memory, m_allocs, acc_mean, acc_std, sil_mean, sil_std])
+        #redirect_stdout(oldstdout)
+        #global_logger(old_logger)
     end
-    acc_mean = mean([r[1] for r in cv_out])
-    acc_std = std([r[1] for r in cv_out])
-    sil_mean = mean([r[2] for r in cv_out])
-    sil_std = std([r[2] for r in cv_out])
-    push!(bm_clustering,[mname, m_time, m_memory, m_allocs, acc_mean, acc_std, sil_mean, sil_std])
-    redirect_stdout(oldstdout)
-    global_logger(old_logger)
     @test acc_mean >= 0.6
 end
 

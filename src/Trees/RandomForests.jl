@@ -47,6 +47,8 @@ Base.@kwdef mutable struct RandomForestE_hp <: BetaMLHyperParametersSet
     min_records::Int64                           = 2
     "The maximum number of (random) features to consider when choosing the optimal partition of the dataset [def: `nothing`, i.e. square root of the dimensions of the training data`]"
     max_features::Union{Nothing,Int64}           = nothing
+    "Share of samples to bootstrap for each individual tree [def: `1.0`]"
+    sampling_share::Float64                      = 1.0
     "Whether to force a classification task even if the labels are numerical (typically when labels are integers encoding some feature rather than representing a real cardinal measure) [def: `false`]"
     force_classification::Bool                   = false
     "Either `gini`, `entropy` or `variance`. This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `nothing`, i.e. `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]. It can be an anonymous function."
@@ -199,7 +201,7 @@ See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with
 - This function optionally reports a weight distribution of the performances of eanch individual trees, as measured using the records he has not being trained with. These weights can then be (optionally) used in the `predict` function. The parameter `β ≥ 0` regulate the distribution of these weights: larger is `β`, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of β depends on the problem under exam (and the chosen caratteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
 - Note that this function uses multiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
 """
-function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1), min_gain=0.0, min_records=2, max_features=Int(round(sqrt(size(x,2)))), force_classification=false, splitting_criterion = (Ty <: Number && !force_classification) ? variance : gini, integer_encoded_cols=nothing, fast_algorithm=false, β=0, oob=false,rng = Random.GLOBAL_RNG, verbosity=NONE) where {Ty}
+function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1), min_gain=0.0, min_records=2, max_features=Int(round(sqrt(size(x,2)))), sampling_share=1.0, force_classification=false, splitting_criterion = (Ty <: Number && !force_classification) ? variance : gini, integer_encoded_cols=nothing, fast_algorithm=false, β=0, oob=false,rng = Random.GLOBAL_RNG, verbosity=NONE) where {Ty}
     # Force what would be a regression task into a classification task
     if force_classification && Ty <: Number
         y = string.(y)
@@ -228,7 +230,7 @@ function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1
     Threads.@threads for i in 1:n_trees
         tsrng = rngs[Threads.threadid()] # Thread safe random number generator
         Random.seed!(tsrng,masterSeed+i*10)
-        toSample = rand(tsrng, 1:N,N)
+        toSample = rand(tsrng, 1:N, Int(round(N*sampling_share)))
         notToSample = setdiff(1:N,toSample)
         bootstrappedx = x[toSample,:] # "boosted is different than "bootstrapped": https://towardsdatascience.com/random-forest-and-its-implementation-71824ced454f
         bootstrappedy = y[toSample]
@@ -280,6 +282,7 @@ function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
     # Setting schortcuts to other hyperparameters/options....
     min_gain             = m.hpar.min_gain
     min_records          = m.hpar.min_records
+    sampling_share       = m.hpar.sampling_share
     force_classification = m.hpar.force_classification
     n_trees              = m.hpar.n_trees
     fast_algorithm       = m.hpar.fast_algorithm
@@ -290,7 +293,7 @@ function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
     rng                 = m.opt.rng
     verbosity           = m.opt.verbosity
     
-    forest = buildForest(x, y, n_trees; max_depth = max_depth, min_gain=min_gain, min_records=min_records, max_features=max_features, force_classification=force_classification, splitting_criterion = splitting_criterion, fast_algorithm=fast_algorithm, integer_encoded_cols=integer_encoded_cols, β=β, oob=false,  rng = rng)
+    forest = buildForest(x, y, n_trees; max_depth = max_depth, min_gain=min_gain, min_records=min_records, sampling_share=sampling_share, max_features=max_features, force_classification=force_classification, splitting_criterion = splitting_criterion, fast_algorithm=fast_algorithm, integer_encoded_cols=integer_encoded_cols, β=β, oob=false,  rng = rng)
 
     m.par = RF_lp(forest,Tynm)
 
