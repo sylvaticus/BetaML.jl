@@ -736,3 +736,309 @@ function relative_mean_error(y,ŷ;normdim=false,normrec=false,p=1)
     end
     return avgϵRel
 end
+
+
+# ------------------------------------------------------------------------------
+# VariableImportance
+
+"""
+$(TYPEDEF)
+
+Hyperparameters for [`VariableImportance`](@ref)
+
+# Parameters:
+$(FIELDS)
+"""
+Base.@kwdef mutable struct VariableImportance_hp <: BetaMLHyperParametersSet
+    "Estimator model"
+    model
+    "Method to employ. Currently two methods are provided, \"sobol\" uses the variance-analysis based Sobol index, \"mda\" uses the mean decrease in accuracy"
+    method::String = "sobol"
+    "Function to apply the sobol index between ŷ and ŷ⁽⁻ʲ⁾, i.e. the reduction in output explained variance if the jth output variable is removed. Emploied only if `method` is \"sobol\". Note that the default function works only for regression tasks."
+    sobol_loss::Function = sobol_index
+    "Function to apply the loss between y and ŷ,. If `nothing` a loss function is applied that adapt to both regression and classification problems. Emploied only if `method` is \"mda\""
+    mda_loss::Union{Function,Nothing} = nothing
+    "The default `sobol_loss` and `mda_loss` functions treat integer Y as regression. Use `force_classification = true` to treat that integers as classes. Note that this has no effect on model training, where it has to be determined eventually in the model hyperparameters"
+    force_classification = false
+    "If `false` the variance importance is computed in a single loop over all the variables, otherwise the less important variable is removed (and provided) and then the algorithm is run again with the remaining variabels, recursively"
+    recursive::Bool = false
+    "Number of splits in the cross-validation function used to judge the importance of each dimension"
+    nsplits::Int64 = 5
+    """Minimum number of records (or share of it, if a float) to consider in the first loop used to retrieve the less important variable. The sample is then linearly increased up to `sample_max` to retrieve the most important variable.
+    This parameter is ignored if `recursive=false`.
+    Note that there is a fixed limit of `nplits*5` that prevails if lower."""
+    sample_min::Union{Float64,Int64} = 30
+    """Maximum number of records (or share of it, if a float) to consider in the last loop used to retrieve the most important variable, or if `recursive=false`."""
+    sample_max::Union{Float64,Int64} = 1.0
+    "The function used by the estimator(s) to fit the model. It should take as fist argument the model itself, as second argument a matrix representing the features, and as third argument a vector representing the labels. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.fit!`]"
+    fit_function::Function     = fit!
+    "The function used by the estimator(s) to predict the labels. It should take as fist argument the model itself and as second argument a matrix representing the features. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.predict`]"
+    predict_function::Function = predict
+    "The keyword to ignore specific dimensions in prediction. If the model supports this keyword in the prediciton function, when we loop over the various dimensions we use only prediction with this keyword instead of retraining."
+    # See https://towardsdatascience.com/variable-importance-in-random-forests-20c6690e44e0
+    ignore_dims_keyword::String = "ignore_dims"
+end
+
+Base.@kwdef struct VariableImportance_lp <: BetaMLLearnableParametersSet
+    fitted_models::Dict = Dict() # Dictionary of array of of column indices and fitted models. For example [1,2,4] => a_fitted_RF_model store the fidded model for cols 1, 2 and 4
+    variable_scores::Vector{Int64} = Int64[]
+end
+
+"""
+$(TYPEDEF)
+
+Compute Variable Importance
+
+Key principles:
+- can choose recursive or not
+- can increase samples to determine most important variables
+- can use Sobol index or mean average decreased accuracy
+- can exploit models that can predict ignoring columns without retraining
+
+See [`VariableImportance_hp`](@ref) for all the hyper-parameters.
+
+# Examples:
+
+"""
+mutable struct VariableImportance <: BetaMLModel
+    hpar::VariableImportance_hp
+    opt::BML_options
+    par::Union{VariableImportance_lp,Nothing}
+    cres
+    fitted::Bool
+    info::Dict{String,Any}    
+end
+
+function VariableImportance(;kwargs...)
+    
+    hps = VariableImportance_hp()
+    m   = VariableImportance(hps,BML_options(),VariableImportance_lp(),nothing,false,Dict{Symbol,Any}())
+    thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
+    for (kw,kwv) in kwargs
+       found = false
+       for f in thisobjfields
+          fobj = getproperty(m,f)
+          if kw in fieldnames(typeof(fobj))
+              setproperty!(fobj,kw,kwv)
+              found = true
+          end
+        end
+        found || error("Keyword \"$kw\" is not part of this model.")
+    end
+    return m
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Fit a Variable Importance  model using [`VariableImportance`](@ref)
+"""
+function fit!(m::VariableImportance,X,y)
+    nR,nC   = size(X)
+    multiple_imputations  = m.hpar.multiple_imputations
+    recursive_passages    = m.hpar.recursive_passages
+    cache                = m.opt.cache
+    verbosity            = m.opt.verbosity 
+    rng                  = m.opt.rng
+
+    # determining cols_to_impute...
+    if m.hpar.cols_to_impute == "auto"
+        cols2imp = findall(i -> i==true, [any(ismissing.(c)) for c in eachcol(X)]) #  ismissing.(sum.(eachcol(X))))
+    elseif m.hpar.cols_to_impute == "all"
+        cols2imp = collect(1:size(X,2))
+    else
+        cols2imp = m.hpar.cols_to_impute
+    end
+
+    nD2Imp = length(cols2imp)
+
+    # Setting `estimators`, a matrix of multiple_imputations x nD2Imp individual models...
+    if ! m.fitted
+        if m.hpar.estimator == nothing
+            estimators = [RandomForestEstimator(rng = m.opt.rng, verbosity=verbosity) for i in 1:multiple_imputations, d in 1:nD2Imp]
+        elseif typeof(m.hpar.estimator) <: AbstractVector
+            length(m.hpar.estimator) == nD2Imp || error("I can't use $(length(m.hpar.estimator)) estimators to impute $(nD2Imp) columns.")
+            estimators = vcat([permutedims(deepcopy(m.hpar.estimator)) for i in 1:multiple_imputations]...)
+        else # single estimator
+            estimators = [deepcopy(m.hpar.estimator) for i in 1:multiple_imputations, j in 1:nD2Imp]
+        end
+    else
+        m.opt.verbosity >= STD && @warn "This imputer has already been fitted. Not all learners support multiple training."
+        estimators = m.par.fittedModels
+    end
+
+    missing_supported = typeof(m.hpar.missing_supported) <: AbstractArray ? m.hpar.missing_supported : fill(m.hpar.missing_supported,nD2Imp) 
+    fit_functions = typeof(m.hpar.fit_function) <: AbstractArray ? m.hpar.fit_function : fill(m.hpar.fit_function,nD2Imp) 
+    predict_functions = typeof(m.hpar.predict_function) <: AbstractArray ? m.hpar.predict_function : fill(m.hpar.predict_function,nD2Imp) 
+
+
+    imputed = fill(similar(X),multiple_imputations)
+
+    missingMask    = ismissing.(X)
+    nonMissingMask = .! missingMask 
+    n_imputed_values = sum(missingMask)
+    x_used_cols = [Int64[] for d in 1:size(X,2)]
+
+    for imputation in 1:multiple_imputations
+        verbosity >= STD && println("** Processing imputation $imputation")
+        Xout           = copy(X)
+        sortedDims     = reverse(sortperm(makecolvector(sum(missingMask,dims=1)))) # sorted from the dim with more missing values
+        for pass in 1:recursive_passages
+            Xout_passage = copy(Xout)
+            m.opt.verbosity >= HIGH && println("- processing passage $pass")
+            if pass > 1
+                shuffle!(rng, sortedDims) # randomise the order we go trough the various dimensions at this passage
+            end 
+            for d in sortedDims
+                !(d in cols2imp) && continue
+                dIdx = findfirst(x -> x == d, cols2imp)
+                verbosity >= FULL && println("  - processing dimension $d")
+                msup = missing_supported[dIdx]
+                if msup # missing is support, I consider all non-missing y rows and all dimensions..
+                    nmy  = nonMissingMask[:,d]
+                    y    = identity.(X[nmy,d]) # otherwise for some models it remains a classification
+                    ty   = nonmissingtype(eltype(y))
+                    y    = convert(Vector{ty},y)
+                    Xd   = Matrix(Xout[nmy,[1:(d-1);(d+1):end]])
+                    x_used_cols[d] = setdiff(collect(1:nC),d)
+                else # missing is NOT supported, I consider only cols with nonmissing data in rows to impute and full rows in the remaining cols
+                    nmy  = nonMissingMask[:,d]
+                    # Step 1 removing cols with missing values in the rows that we will need to impute (i.e. that are also missing in the the y col)..
+                    # I need to remove col and not row, as I need to impute this value, I can't just skip the row
+                    candidates_d = setdiff(collect(1:nC),d)
+                    for (ri,r) in enumerate(eachrow(Xout))
+                        !nmy[ri] || continue # we want to look only where y is missing to remove cols 
+                        for dc in candidates_d
+                            if ismissing(r[dc])
+                                candidates_d = setdiff(candidates_d,dc)
+                            end
+                        end
+                    end
+                    x_used_cols[d] = candidates_d
+                    Xd = Xout[:,candidates_d]
+                    # Step 2: for training, consider only the rows where not-dropped cols values are all nonmissing
+                    nmxrows = [all(.! ismissing.(r)) for r in eachrow(Xd)]
+                    nmrows = nmxrows .& nmy # non missing both in Y and remained X rows
+
+                    y    = identity.(X[nmrows,d]) # otherwise for some models it remains a classification
+                    ty   = nonmissingtype(eltype(y))
+                    y    = convert(Vector{ty},y)
+                    tX   = nonmissingtype(eltype(Xd))
+                    Xd   = convert(Matrix{tX},Matrix(Xd[nmrows,:]))
+
+                end
+                dmodel = deepcopy(estimators[imputation,dIdx])
+                fit_functions[dIdx](dmodel,Xd,y)
+
+                # imputing missing values in d...
+                for i in 1:nR
+                    if ! missingMask[i,d]
+                        continue
+                    end
+                    xrow = Vector(Xout[i,x_used_cols[d]])
+                    if !msup # no missing supported, the row shoudn't contain missing values
+                        xrow = Utils.disallowmissing(xrow)
+                    end
+                    yest = predict_functions[dIdx](dmodel,xrow)
+                    # handling some particualr cases... 
+                    if typeof(yest) <: AbstractMatrix
+                        yest = yest[1,1]
+                    elseif typeof(yest) <: AbstractVector
+                        yest = yest[1]
+                    end
+                    if typeof(yest) <: AbstractVector{<:AbstractDict}
+                        yest = mode(yest[1],rng=rng)
+                    elseif typeof(yest) <: AbstractDict
+                        yest = mode(yest,rng=rng)
+                    end
+                    
+                    if ty <: Int 
+                        if typeof(yest) <: AbstractString
+                            yest = parse(ty,yest)
+                        elseif typeof(yest) <: Number
+                            yest = Int(round(yest))
+                        else
+                            error("I don't know how to convert this type $(typeof(yest)) to an integer!")
+                        end
+                    end
+
+                    Xout_passage[i,d] = yest
+                    #return Xout
+                end
+                # This is last passage: save the model
+                if pass == recursive_passages 
+                    estimators[imputation,dIdx] = dmodel 
+                end
+            end # end dimension
+            Xout = copy(Xout_passage)
+        end # end recursive passage pass
+        imputed[imputation]   = Xout
+    end # end individual imputation
+    m.par = GeneralImputer_lp(estimators,cols2imp,x_used_cols)
+    if cache
+        if multiple_imputations == 1
+            m.cres = Utils.disallowmissing(imputed[1])
+        else
+            m.cres = Utils.disallowmissing.(imputed)
+        end
+    end 
+    m.info["n_imputed_values"] = n_imputed_values
+    m.fitted = true
+    return cache ? m.cres : nothing
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+
+"""
+function predict(m::VariableImportance,X,y)
+
+end
+
+function show(io::IO, ::MIME"text/plain", m::VariableImportance)
+    if m.fitted == false
+        print(io,"VariableImportance - A meta-model to extract variable importance of an arbitrary regressor/classifier (unfitted)")
+    else
+        print(io,"VariableImportance - A meta-model to extract variable importance of an arbitrary regressor/classifier (fitted)")
+    end
+end
+
+function show(io::IO, m::VariableImportance)
+    m.opt.descr != "" && println(io,m.opt.descr)
+    if m.fitted == false
+        print(io,"VariableImportance - A meta-model to extract variable importance of an arbitrary regressor/classifier (unfitted)")
+    else
+        print(io,"VariableImportance - A meta-model to extract variable importance of an arbitrary regressor/classifier (fitted)")
+        println(io,m.info)
+    end
+end
+
+# ------------------------------------------------------------------------------
+
+"""
+$(TYPEDSIGNATURES)
+
+Compute the variance-analysis based Sobol index.
+
+Provided the first input is the model output with all the variables (dimensions) considered and the second input it the model output with the variable _j_ removed, the Sobol index returns the reduction in output explained variance if the jth output variable is removed, i.e. higher values highliths a more important variable
+
+# Example
+```julia
+julia> ŷ   = [1.0, 2.4, 1.5, 1.8];
+julia> ŷ₋₁ = [0.8, 2.5, 1.5, 1.7];
+julia> ŷ₋₂ = [0.7,2.6,1.4,1.6];
+julia> sobol_index(ŷ,ŷ₋₁)
+0.03892944038929439
+julia> sobol_index(ŷ,ŷ₋₂)
+0.15571776155717756
+```
+"""
+# https://towardsdatascience.com/variable-importance-in-random-forests-20c6690e44e0
+# https://en.wikipedia.org/wiki/Variance-based_sensitivity_analysis
+function sobol_index(ŷ,ŷ₋ⱼ)
+    mean_prediction = mean(ŷ)
+    return sum(ŷ .- ŷ₋ⱼ)^2/sum((ŷ .- mean_prediction).^2)
+end
+

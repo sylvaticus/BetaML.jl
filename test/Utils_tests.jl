@@ -729,6 +729,16 @@ println("** Testing cosine distance....")
 x = [0,1]; y = [1,0]
 @test cosine_distance(x,y) == 1
 
+
+# ==================================
+# New test
+println("** Testing Sobol Index....")
+ŷ   = [1.0, 2.4, 1.5, 1.8];
+ŷ₋₁ = [0.8, 2.5, 1.5, 1.7];
+@test sobol_index(ŷ,ŷ₋₁) ≈ 0.03892944038929439
+
+
+
 # MLJ Tests
 # ==================================
 # NEW TEST

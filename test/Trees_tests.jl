@@ -11,6 +11,7 @@ import BetaML.Trees: buildTree, buildForest
 import BetaML.Trees: findbestgain_sortedvector
 import AbstractTrees: printnode
 import AbstractTrees: print_tree
+import BetaML.Trees: predictSingle
 
 #TESTRNG = FIXEDRNG # This could change...
 TESTRNG = StableRNG(123)
@@ -32,10 +33,13 @@ xtrain = [
 
 ytrain = ["Apple",  "Apple", "Grape", "Grape", "Lemon"]
 myTree = buildTree(xtrain,ytrain,rng=copy(TESTRNG))
+# col 2 == 3.0 ? (col 1 == "Yellow" ? Dict("Lemon"=>0.5,"Apple"=>0.5) : Dict("Apple" => 1.0) : Dict("Grape" => 1.0) 
 m = DecisionTreeEstimator(rng=copy(TESTRNG))
 fit!(m,xtrain,ytrain)
 
 ŷtrain  = predict(myTree, xtrain,rng=copy(TESTRNG))
+@test predictSingle(myTree, xtrain[5,:], ignore_dims=[2]) == (Dict("Grape" => 0.5, "Lemon" => 0.25, "Apple" => 0.25), 4)
+@test predictSingle(myTree, xtrain[5,:], ignore_dims=[1]) == (Dict("Lemon" => 0.3333333333333333, "Apple" => 0.6666666666666666), 3)
 ŷtrain2 = predict(m,xtrain)
 ŷtrain3 = predict(m) # using cached elements
 

@@ -133,6 +133,19 @@ julia> x2_back = inverse_predict(mod,x2_oh)
  "c"
 ```
 
+The model works on a single column. To one-hot encode a matrix you can use a loop, like:
+
+```julia
+julia> m = [1 2; 2 1; 1 1; 2 2; 2 3; 1 3]; # 2 categories in the first col, 3 in the second one
+julia> m_oh = hcat([fit!(OneHotEncoder(),c)  for c in eachcol(m)]...)
+6×5 Matrix{Bool}:
+ 1  0  0  1  0
+ 0  1  1  0  0
+ 1  0  1  0  0
+ 0  1  0  1  0
+ 0  1  0  0  1
+ 1  0  0  0  1
+```
 """
 mutable struct OneHotEncoder <: BetaMLUnsupervisedModel
     hpar::OneHotE_hp

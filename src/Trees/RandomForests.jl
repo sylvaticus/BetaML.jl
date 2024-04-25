@@ -298,7 +298,7 @@ function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
     m.par = RF_lp(forest,Tynm)
 
     if cache
-        rawout = predictSingle.(Ref(forest),eachrow(x),rng=rng)
+        rawout = predictSingle.(Ref(forest),eachrow(x),rng=rng) # TODO
         if (Tynm <: Integer && m.hpar.force_classification)
            out = [ Dict([convert(Tynm,k) => v for (k,v) in e]) for e in rawout]
         else
@@ -333,10 +333,10 @@ end
 
 Predict the label of a single feature record. See [`predict`](@ref).
 """
-function predictSingle(forest::Forest{Ty}, x; rng = Random.GLOBAL_RNG) where {Ty}
+function predictSingle(forest::Forest{Ty}, x; ignore_dims=[], rng = Random.GLOBAL_RNG) where {Ty}
     trees   = forest.trees
     weights = forest.weights
-    predictions  = predictSingle.(trees,Ref(x),rng=rng)
+    predictions  = [v[1] for v in predictSingle.(trees,Ref(x),ignore_dims=ignore_dims,rng=rng)] # TODO
     if eltype(predictions) <: AbstractDict   # categorical
         #weights = 1 .- treesErrors # back to the accuracy
         return mean_dicts(predictions,weights=weights)
@@ -362,8 +362,8 @@ If the labels were categorical, the prediction is a dictionary with the probabil
 
 In the first case (numerical predictions) use `relative_mean_error(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 """
-function predict(forest::Forest{Ty}, x;rng = Random.GLOBAL_RNG) where {Ty}
-    predictions = predictSingle.(Ref(forest),eachrow(x),rng=rng)
+function predict(forest::Forest{Ty}, x;ignore_dims=[], rng = Random.GLOBAL_RNG) where {Ty}
+    predictions = predictSingle.(Ref(forest),eachrow(x),ignore_dims=ignore_dims,rng=rng)
     return predictions
 end
 
@@ -374,7 +374,7 @@ $(TYPEDSIGNATURES)
 Predict the labels associated to some feature data using a trained [`RandomForestEstimator`](@ref)
 
 """
-function predict(m::RandomForestEstimator,x)
+function predict(m::RandomForestEstimator,x; ignore_dims=[])
     #TODO: get Tynm here! and OrdinalEncoder!
     #Ty = get_parametric_types(m.par)[1] |> nonmissingtype
     Ty = m.par.Ty # this should already be the nonmissing type
@@ -386,7 +386,7 @@ function predict(m::RandomForestEstimator,x)
     else
         x = permutedims([x])
     end 
-    rawout = predictSingle.(Ref(m.par.forest),eachrow(x),rng=m.opt.rng)
+    rawout = predictSingle.(Ref(m.par.forest),eachrow(x),ignore_dims=ignore_dims,rng=m.opt.rng)
     if (Ty <: Integer && m.hpar.force_classification)
         return [ Dict([convert(Ty,k) => v for (k,v) in e]) for e in rawout]
     else

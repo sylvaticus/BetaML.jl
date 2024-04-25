@@ -54,6 +54,7 @@ A tree's leaf (terminal) node.
 struct Leaf{Ty} <: AbstractLeaf
     predictions::Union{Number,Dict{Ty,Float64}}
     depth::Int64
+    npoints::Int64
     function Leaf(y::AbstractArray{Ty,1},depth::Int64) where {Ty}
         if eltype(y) <: Number
             rawPredictions = y
@@ -64,7 +65,7 @@ struct Leaf{Ty} <: AbstractLeaf
             predictions = Dict{Ty,Float64}()
             [predictions[k] = rawPredictions[k] / total for k in keys(rawPredictions)]
         end
-        new{Ty}(predictions,depth)
+        new{Ty}(predictions,depth,length(y))
     end
 end
 
@@ -848,7 +849,7 @@ function fit!(m::DecisionTreeEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
     if cache
        #println(Tynm)
        #println("zzz")
-       rawout = predictSingle.(Ref(tree),eachrow(x),rng=rng)
+       rawout = [v[1] for v in predictSingle.(Ref(tree),eachrow(x),rng=rng)]
        if (Tynm <: Integer && m.hpar.force_classification)
           #println("foo")
           #println(rawout)
@@ -883,25 +884,55 @@ Predict the label of a single feature record. See [`predict`](@ref).
 
 
 """
-function predictSingle(node::Union{DecisionNode{Tx},Leaf{Ty}}, x;rng = Random.GLOBAL_RNG) where {Tx,Ty}
+function predictSingle(node::Union{DecisionNode{Tx},Leaf{Ty}}, x;ignore_dims=[], rng = Random.GLOBAL_RNG) where {Tx,Ty}
     # Base case: we've reached a leaf
     if typeof(node) <: Leaf
-        return node.predictions
+        return node.predictions, node.npoints
     end
     # Decide whether to follow the true-branch or the false-branch.
     # Compare the feature / value stored in the node,
     # to the example we're considering.
 
+    
+    # If this node concerns a dimension to ignore, we follow both branches and merge their results
+    if in(node.question.column,ignore_dims)
+        #println("I am in ignore_cols")
+        true_vals,true_npoints   = predictSingle(node.trueBranch,x,ignore_dims=ignore_dims,rng=rng) 
+        false_vals,false_npoints = predictSingle(node.falseBranch,x,ignore_dims=ignore_dims,rng=rng) 
+        total_npoints = true_npoints + false_npoints 
+
+        if typeof(true_vals) <: Dict
+            # Not a number or an integer with force classification: a classification
+           # println("A classification task")
+           # println(true_vals)
+            #return true_vals, true_npoints # TODO
+            return mean_dicts([true_vals,false_vals],weights=[true_npoints,false_npoints]),total_npoints
+        else
+            #println("A regression task")
+            return true_vals * true_points/total_npoints + false_vals * false_points/total_npoints, total_points
+        end
+
+
+  #      if (Ty <: Integer && m.hpar.force_classification)
+  #          return [ Dict([convert(Ty,k) => v for (k,v) in e]) for e in rawout]
+  #      else
+  #          return rawout
+  #      end
+
+
+    end
+    
+    
     # If the feature on which to base prediction is missing, we follow the true branch with a probability equal to the share of true
     # records over all the records during this node training..
     if ismissing(x[node.question.column])
         r = rand(rng)
-        return (node.pTrue >= r) ? predictSingle(node.trueBranch,x,rng=rng) : predictSingle(node.falseBranch,x,rng=rng)
+        return (node.pTrue >= r) ? predictSingle(node.trueBranch,x,ignore_dims=ignore_dims,rng=rng) : predictSingle(node.falseBranch,x,ignore_dims=ignore_dims,rng=rng)
     end
     if match(node.question,x)
-        return predictSingle(node.trueBranch,x,rng=rng)
+        return predictSingle(node.trueBranch,x,ignore_dims=ignore_dims,rng=rng)
     else
-        return predictSingle(node.falseBranch,x,rng=rng)
+        return predictSingle(node.falseBranch,x,ignore_dims=ignore_dims,rng=rng)
     end
 end
 
@@ -920,8 +951,8 @@ If the labels were categorical, the prediction is a dictionary with the probabil
 
 In the first case (numerical predictions) use `relative_mean_error(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
 """
-function predict(tree::Union{DecisionNode{Tx}, Leaf{Ty}}, x; rng = Random.GLOBAL_RNG) where {Tx,Ty}
-    predictions = predictSingle.(Ref(tree),eachrow(x),rng=rng)
+function predict(tree::Union{DecisionNode{Tx}, Leaf{Ty}}, x; ignore_dims=[],rng = Random.GLOBAL_RNG) where {Tx,Ty}
+    predictions = [v[1] for v in predictSingle.(Ref(tree),eachrow(x),ignore_dims=ignore_dims,rng=rng)]
     return predictions
 end
 
@@ -932,7 +963,7 @@ $(TYPEDSIGNATURES)
 Predict the labels associated to some feature data using a trained [`DecisionTreeEstimator`](@ref)
 
 """
-function predict(m::DecisionTreeEstimator,x)
+function predict(m::DecisionTreeEstimator,x;ignore_dims=[])
     Ty = m.par.Ty # this should already be the nonmissing type
     # we want a row
     if typeof(x) <: AbstractArray
@@ -942,7 +973,7 @@ function predict(m::DecisionTreeEstimator,x)
     else
         x = permutedims([x])
     end 
-    rawout = predictSingle.(Ref(m.par.tree),eachrow(x),rng=m.opt.rng)
+    rawout = [v[1] for v in predictSingle.(Ref(m.par.tree),eachrow(x),ignore_dims=ignore_dims,rng=m.opt.rng)]
     if (Ty <: Integer && m.hpar.force_classification)
         return [ Dict([convert(Ty,k) => v for (k,v) in e]) for e in rawout]
     else
