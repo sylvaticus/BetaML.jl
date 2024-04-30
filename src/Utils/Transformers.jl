@@ -204,9 +204,11 @@ end
 """
    entropy(x)
 
-Calculate the entropy for a list of items (or rows).
+Calculate the entropy for a list of items (or rows) using logarithms in base 2.
 
 See: https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity
+
+Note that this function input is the list of items. This list is conerted to a PMF and then the entropy is computed over the PMF.
 """
 function entropy(x)
     counts = class_counts(x)

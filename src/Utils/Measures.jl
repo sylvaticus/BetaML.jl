@@ -69,6 +69,14 @@ To be used in classification problems.
 crossentropy(y,ŷ ; weight = ones(eltype(y),length(y)))  = -sum(y .* log.(ŷ .+ 1e-15) .* weight)
 dcrossentropy(y,ŷ; weight = ones(eltype(y),length(y))) = - y .* weight ./ (ŷ .+ 1e-15)
 
+"""
+    kl_divergence(distribution1,distribution2,base2=true)
+
+Compute the Kullback–Leibler divergence between two PMFs
+"""
+# Note that the KL divergence can also be written as cross entropy - entropy:
+# kl_divergence(d1,d2) = - sum(d1 .* log2.(d2 .+ 1e-15 )) - ( - sum(d1 .* log2.(d1 .+ 1e-15)) )
+kl_divergence(d1,d2,base2=true) = base2 ?  sum(d1 .* log2.((d1 .+ 1e-15) ./ (d2 .+ 1e-15))  ) : sum(d1 .* log.((d1 .+ 1e-15) ./ (d2 .+ 1e-15))  )
 
 """ accuracy(ŷ,y;ignorelabels=false) - Categorical accuracy between two vectors (T vs T). """
 function accuracy(y::AbstractArray{T,1},ŷ::AbstractArray{T,1}; ignorelabels=false)  where {T}
@@ -764,6 +772,8 @@ Base.@kwdef mutable struct VariableImportance_hp <: BetaMLHyperParametersSet
     recursive::Bool = false
     "Number of splits in the cross-validation function used to judge the importance of each dimension"
     nsplits::Int64 = 5
+    "Number of different sample rounds in cross validation. Increase this if your dataset is very small"
+    nrepeats::Int64 = 1
     """Minimum number of records (or share of it, if a float) to consider in the first loop used to retrieve the less important variable. The sample is then linearly increased up to `sample_max` to retrieve the most important variable.
     This parameter is ignored if `recursive=false`.
     Note that there is a fixed limit of `nplits*5` that prevails if lower."""
@@ -1020,7 +1030,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Compute the variance-analysis based Sobol index.
+Compute the variance-analysis based (total) Sobol index.
 
 Provided the first input is the model output with all the variables (dimensions) considered and the second input it the model output with the variable _j_ removed, the Sobol index returns the reduction in output explained variance if the jth output variable is removed, i.e. higher values highliths a more important variable
 
@@ -1037,8 +1047,24 @@ julia> sobol_index(ŷ,ŷ₋₂)
 """
 # https://towardsdatascience.com/variable-importance-in-random-forests-20c6690e44e0
 # https://en.wikipedia.org/wiki/Variance-based_sensitivity_analysis
-function sobol_index(ŷ,ŷ₋ⱼ)
-    mean_prediction = mean(ŷ)
-    return sum(ŷ .- ŷ₋ⱼ)^2/sum((ŷ .- mean_prediction).^2)
-end
+# https://arxiv.org/pdf/2102.13347
+# https://arxiv.org/pdf/2401.00800
+# https://towardsdatascience.com/sobol-indices-to-measure-feature-importance-54cedc3281bc
+# https://artowen.su.domains/reports/sobolshapley.pdf
+# https://hal.science/hal-03741384/document
+# https://www.sciencedirect.com/science/article/abs/pii/S0167473023000504
+# https://onlinelibrary.wiley.com/doi/full/10.1002/qre.3398
+# https://scanr.enseignementsup-recherche.gouv.fr/publication/doi10.1007%25252f978-3-031-12402-0_3
+# https://erwanscornet.github.io/talks/mdi.pdf
+# https://towardsdatascience.com/random-forests-in-2023-modern-extensions-of-a-powerful-method-b62debaf1d62
 
+function sobol_index(ŷ::Array{T,1},ŷ₋ⱼ::Array{T,1}) where {T}
+    mean_prediction = mean(ŷ)
+    return sum((ŷ .- ŷ₋ⱼ).^2)/sum((ŷ .- mean_prediction).^2)
+end
+# Input is nrecords (rows) by D cols (PMF or OHE) 
+function sobol_index(ŷ::Array{T,2},ŷ₋ⱼ::Array{T,2}) where {T}
+    ymean = mean(ŷ,dims=1)
+    N = size(ŷ,1)
+    return sum( kl_divergence(ŷ[i,:],ŷ₋ⱼ[i,:])^2 for i in 1:N)/sum(kl_divergence(ŷ[i,:],ymean)^2 for i in 1:N)
+end

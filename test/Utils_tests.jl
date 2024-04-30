@@ -735,9 +735,39 @@ x = [0,1]; y = [1,0]
 println("** Testing Sobol Index....")
 ŷ   = [1.0, 2.4, 1.5, 1.8];
 ŷ₋₁ = [0.8, 2.5, 1.5, 1.7];
-@test sobol_index(ŷ,ŷ₋₁) ≈ 0.03892944038929439
+ŷ₋₂ = [0.7,2.6,1.4,1.6];
+@test sobol_index(ŷ,ŷ₋₁) ≈ 0.058394160583941625
+@test sobol_index(ŷ,ŷ₋₂) ≈ 0.1751824817518249
+@test sobol_index(ŷ,ŷ)   ≈ 0.0
+y   = ["a", "c", "c", "b", "c", "a", "c", "b"];
+y1 = ["a", "c", "b", "b", "c", "a", "c", "c"];
+y2 = ["c", "c", "b", "b", "c", "a", "b", "c"];
+yoh = fit!(OneHotEncoder(),y)
+y1oh = fit!(OneHotEncoder(),y1)
+y2oh = fit!(OneHotEncoder(),y2)
+@test sobol_index(yoh,y1oh) ≈ 24.829214102104547
+@test sobol_index(yoh,y2oh) ≈ 62.07303525526137
+@test sobol_index(yoh,yoh)  ≈ 0.0
+y = [0.4 0.3 0.3
+     0.1 0.4 0.5
+     0.0 0.0  1
+     0.3 0.2 0.5
+]
+y1 = [0.5 0.3 0.2
+      0.1 0.3 0.6
+      0.0 1.0  0.0
+      0.4 0.2 0.4
+]
+@test sobol_index(y,y1) ≈ 82.24215978182593
+@test sobol_index(y,y) ≈ 0.0 
 
 
+# Testing kl_divergence
+
+y  = [0.4,0.3,0.3]
+y1 = [0.5,0.3,0.2]
+@test kl_divergence(y,y1) ≈ 0.0467175122614015
+@test kl_divergence(y,y) ≈ 0.0
 
 # MLJ Tests
 # ==================================
