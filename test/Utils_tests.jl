@@ -1,4 +1,4 @@
-using Test, Statistics, CategoricalArrays, Random, StableRNGs, DelimitedFiles
+using Test, Statistics, LinearAlgebra, CategoricalArrays, Random, StableRNGs, DelimitedFiles, Distributions
 #using StableRNGs
 #rng = StableRNG(123)
 using BetaML
@@ -768,6 +768,114 @@ y  = [0.4,0.3,0.3]
 y1 = [0.5,0.3,0.2]
 @test kl_divergence(y,y1) ≈ 0.0467175122614015
 @test kl_divergence(y,y) ≈ 0.0
+
+# Testig l2loss_by_cv
+x = vcat(rand(copy(TESTRNG),0:0.001:0.6,50,5), rand(copy(TESTRNG),0.4:0.001:1,50,5))
+y = [2 * r[1] ^2 - 3 * (r[3] + rand(copy(TESTRNG),0:0.001:0.3)) + 12 + 2 * r[5]  - 0.3 * r[1] * r[2] for r in eachrow(x) ]
+ycat = [(i < 10) ?  "c" :  ( (i < 13) ? "a" : "b")  for i in y]
+
+losses = ones(7)
+losses[1] = l2loss_by_cv(RandomForestEstimator(rng=copy(TESTRNG), verbosity=NONE),(x,y),rng=copy(TESTRNG))
+losses[2] = l2loss_by_cv(RandomForestEstimator(rng=copy(TESTRNG), verbosity=NONE),(x,y),rng=copy(TESTRNG))
+losses[3] = l2loss_by_cv(RandomForestEstimator(rng=copy(TESTRNG), verbosity=NONE),(x,ycat),rng=copy(TESTRNG))
+losses[4] = l2loss_by_cv(NeuralNetworkEstimator(rng=copy(TESTRNG), verbosity=NONE),(x,y),rng=copy(TESTRNG))
+losses[5] = l2loss_by_cv(NeuralNetworkEstimator(rng=copy(TESTRNG), verbosity=NONE),(x,fit!(OneHotEncoder(),ycat)),rng=copy(TESTRNG))
+losses[6] = l2loss_by_cv(PerceptronClassifier(rng=copy(TESTRNG), verbosity=NONE),(x,ycat),rng=copy(TESTRNG))
+losses[7] = l2loss_by_cv(AutoEncoder(rng=copy(TESTRNG), verbosity=NONE),(x,),rng=copy(TESTRNG))
+
+@test losses[1] ≈ losses[2]
+@test all(losses .< 0.45)
+@test all(losses[[1:3;5:end]] .< 0.26)
+
+
+# Testing variable importance
+# x1: high importance, x2: little importance, x3: mixed effects with x1, x4: highly correlated with x1 but no effects on Y, x5 and x6: no effects on Y 
+
+N     = 2000
+D     = 6
+xa    = rand(copy(TESTRNG),0:0.0001:10,N,3)
+xb    = (xa[:,1] .* 2 .* rand(0.8:0.001:1.2)) .+ 10 
+xc    = rand(copy(TESTRNG),0:0.0001:10,N,D-4)
+x     = hcat(xa,xb,xc)  
+y     = [10*r[1]-r[2]-0.1*r[3]*r[1] for r in eachrow(x) ]
+ysort = sort(y)
+ycat  = [(i < ysort[Int(round(N/3))]) ?  "c" :  ( (i < ysort[Int(round(2*N/3))]) ? "a" : "b")  for i in y]
+yoh    = fit!(OneHotEncoder(),ycat)
+
+#=
+# Data generation from https://towardsdatascience.com/variable-importance-in-random-forests-20c6690e44e0
+D = 10
+xa = rand(copy(TESTRNG),Uniform(-1,1),N,2)
+xb = xa[:,1] .+ rand(copy(TESTRNG),Uniform(-1,1),N)
+xc = rand(copy(TESTRNG),Uniform(-1,1),N,7)
+x = hcat(xa,xb,xc)
+y  = [rand(Normal(0.8*(x[n,1] > 0), (1+(x[n,2] > 0)) )) for n in 1:N] 
+ysort = sort(y)
+ycat  = [(i < ysort[Int(round(N/3))]) ?  "c" :  ( (i < ysort[Int(round(2*N/3))]) ? "a" : "b")  for i in y]
+yoh    = fit!(OneHotEncoder(),ycat)
+=#
+
+
+vi = FeatureImportanceIndicator(model=RandomForestEstimator(verbosity=NONE),nsplits=5,nrepeats=1,recursive=false,method="sobol",ignore_dims_keyword="blabla")
+a = fit!(vi,x,y)
+
+# Manual test
+
+((xtrain,xtest),(ytrain,ytest),(ycattrain,ycattest),(yohtrain,yohtest)) = partition([x,y,ycat,yoh],[0.8,0.2],rng=copy(TESTRNG))
+
+
+xtrain2 = deepcopy(xtrain)
+xtest2 = deepcopy(xtest)
+# regression with random forests
+
+m = RandomForestEstimator(n_trees=300)
+#m = NeuralNetworkEstimator(epochs=100)
+means_by_cols = reshape((mean(x,dims=1)),D)
+
+# full cols
+fit!(m,xtrain,ytrain)
+ŷtest = predict(m,xtest)
+loss = norm(ytest-ŷtest)/length(ytest)
+
+loss_by_cols  = zeros(D)
+sobol_by_cols = zeros(D)
+loss_by_cols2  = zeros(D)
+sobol_by_cols2 = zeros(D)
+diffest_bycols = zeros(D)
+for d in 1:D
+    println("doing without dimension $d ....")
+    #xd_train = hcat(xtrain[:,1:d-1],shuffle(xtrain[:,d]),xtrain[:,d+1:end])
+    #xd_test = hcat(xtest[:,1:d-1],shuffle(xtest[:,d]),xtest[:,d+1:end])  
+    xd_train = hcat(xtrain[:,1:d-1],fill(means_by_cols[d],size(xtrain,1)),xtrain[:,d+1:end])
+    xd_test = hcat(xtest[:,1:d-1],fill(means_by_cols[d],size(xtest,1)),xtest[:,d+1:end])  
+    #xd_train = hcat(xtrain[:,1:d-1],xtrain[:,d+1:end])
+    #xd_test = hcat(xtest[:,1:d-1],xtest[:,d+1:end])  
+    md = RandomForestEstimator(n_trees=300)
+    #md = NeuralNetworkEstimator(epochs=100,verbosity=NONE)
+    fit!(md,xd_train,ytrain)
+    ŷdtest = predict(md,xd_test)
+    loss_by_cols[d]  = norm(ytest-ŷdtest)/length(ytest)
+    sobol_by_cols[d] = sobol_index(ŷtest,ŷdtest) 
+    ŷdtest2 = predict(m,xtest,ignore_dims=d)
+    loss_by_cols2[d]  = norm(ytest-ŷdtest2)/length(ytest)
+    sobol_by_cols2[d] = sobol_index(ŷtest,ŷdtest2) 
+    diffest_bycols[d] = norm(ŷdtest-ŷdtest2)/length(ytest)
+end
+
+d=6
+println("doing without dimension $d ....")
+xd_train = hcat(xtrain[:,1:d-1],shuffle(xtrain[:,d]),xtrain[:,d+1:end])
+xd_test = hcat(xtest[:,1:d-1],shuffle(xtest[:,d]),xtest[:,d+1:end])  
+#xd_train = hcat(xtrain[:,1:d-1],fill(means_by_cols[d],size(xtrain,1)),xtrain[:,d+1:end])
+#xd_test = hcat(xtest[:,1:d-1],fill(means_by_cols[d],size(xtest,1)),xtest[:,d+1:end])  
+#xd_train = hcat(xtrain[:,1:d-1],xtrain[:,d+1:end])
+#xd_test = hcat(xtest[:,1:d-1],xtest[:,d+1:end])  
+md = RandomForestEstimator()
+#md = NeuralNetworkEstimator(epochs=100,verbosity=NONE)
+fit!(md,xd_train,ytrain)
+ŷdtest = predict(md,xd_test)
+
+
 
 # MLJ Tests
 # ==================================

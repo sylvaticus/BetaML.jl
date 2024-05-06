@@ -909,7 +909,7 @@ function predictSingle(node::Union{DecisionNode{Tx},Leaf{Ty}}, x;ignore_dims=[],
             return mean_dicts([true_vals,false_vals],weights=[true_npoints,false_npoints]),total_npoints
         else
             #println("A regression task")
-            return true_vals * true_points/total_npoints + false_vals * false_points/total_npoints, total_points
+            return true_vals * true_npoints/total_npoints + false_vals * false_npoints/total_npoints, total_npoints
         end
 
 

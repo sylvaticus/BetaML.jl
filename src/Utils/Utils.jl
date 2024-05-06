@@ -65,7 +65,9 @@ export @codelocation, generate_parallel_rngs,
        PCAEncoder, PCAE_hp,
        OneHotEncoder, OrdinalEncoder, OneHotE_hp,
        @threadsif,
-       get_parametric_types, isinteger_bml
+       get_parametric_types, isinteger_bml,
+       FeatureImportanceIndicator,
+       online_mean
 
 # Various functions that we add a method to
 import Base.print, Base.println, Base.error, Random.shuffle, Base.show

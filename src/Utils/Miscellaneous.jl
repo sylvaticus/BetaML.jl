@@ -53,3 +53,10 @@ isinteger_bml(_::Integer) = true
 isinteger_bml(_::Nothing) = error("Trying to run isinteger() over a `Nothing` value")
 isinteger_bml(_::Missing) = missing
 isinteger_bml(x::AbstractFloat)   = isinteger(x)
+
+"""
+    online_mean(new;mean=0.0,n=0)
+
+Update the mean with new values.   
+"""
+online_mean(new;mean=0.0,n=0) =  ((mean*n)+new)/(n+1)

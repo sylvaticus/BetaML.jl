@@ -43,8 +43,14 @@ ŷtrain  = predict(myTree, xtrain,rng=copy(TESTRNG))
 ŷtrain2 = predict(m,xtrain)
 ŷtrain3 = predict(m) # using cached elements
 
+ŷtrain_partial = predict(myTree, xtrain, ignore_dims=[1])
+
 @test accuracy(ytrain,ŷtrain,rng=copy(TESTRNG)) >= 0.8
+
+@test accuracy(ytrain,ŷtrain_partial,rng=copy(TESTRNG)) < accuracy(ytrain,ŷtrain,rng=copy(TESTRNG))
+
 @test ŷtrain == ŷtrain2 ==  ŷtrain3
+
 
 ytrainI = fit!(OrdinalEncoder(),ytrain)
 mi = DecisionTreeEstimator(rng=copy(TESTRNG),force_classification=true)
@@ -81,6 +87,24 @@ ŷtest2 = predict(m, xtest)
 @test accuracy(ytest,ŷtest,rng=copy(TESTRNG)) >= 0.8
 @test ŷtest == ŷtest2
 @test info(m) == Dict{String,Any}("job_is_regression" => 0,"fitted_records" => 5,"xndims" => 2,"avg_depth" => 2.6666666666666665, "max_reached_depth" => 3)
+
+
+# Testing that ignore dims doesn't really depend from the dimension we want to ignore
+xtrain = rand(100,3)
+ytrain = [r[1] * 2 - r[2]*r[1]*1.5-r[2]*5+10 for r in eachrow(xtrain)] 
+xtrain2 = deepcopy(xtrain)
+m = DecisionTreeEstimator(rng=copy(TESTRNG))
+fit!(m,xtrain2,ytrain)
+y1 = predict(m, xtrain2, ignore_dims=[1])
+xtrain3 = hcat(shuffle(xtrain2[:,1]),xtrain2[:,2:end])
+y1bis = predict(m, xtrain3, ignore_dims=[1])
+@test y1 ≈ y1bis # This must be exactly the same
+m2 = DecisionTreeEstimator(rng=copy(TESTRNG))
+fit!(m2,xtrain3,ytrain)
+y1ter = predict(m2, xtrain3, ignore_dims=[1])
+# @test y1ter == y1bis # This is not true in general
+@test relative_mean_error(y1bis,y1ter) <= 0.05
+
 
 # Testing print_tree
 X = [1.8 2.5; 0.5 20.5; 0.6 18; 0.7 22.8; 0.4 31; 1.7 3.7];

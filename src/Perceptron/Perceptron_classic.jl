@@ -213,7 +213,7 @@ Predict a binary label {-1,1} given the feature vector and the linear coefficien
 julia> predict([1.1 2.1; 5.3 4.2; 1.8 1.7], [3.2,1.2])
 ```
 """
-function predict(x,θ,θ₀=0.0)
+function predict(x::Matrix,θ,θ₀=0.0)
     x = makematrix(x)
     θ = makecolvector(θ)
     (n,d) = size(x)
