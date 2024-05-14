@@ -800,14 +800,14 @@ $(TYPEDEF)
 
 A flexible estimator of variable ranking using several variable importance metrics
 
-FeatureRanker helps in determine feature importance in predicitons of any black-box machine learning model (not necessarily from the BetaML suit), internally using cross-validation.
+FeatureRanker helps in determine feature importance in predictions of any black-box machine learning model (not necessarily from the BetaML suit), internally using cross-validation.
 
-By default it ranks variables (columns) in a single passage without retraining on each one, but it is possibly to specify the model to use multiple passages (where on each passage the less important variable is permuted) or to refit the model on each variable that is temporanely permuted to test the model without it ("permute and relearn")
-Further, it the ML model to assess supports ignoring variables during predicition (e.g. BetaML trees models), it is possible to specify the keyword argument for such option in the target model prediction function.
+By default it ranks variables (columns) in a single passage without retraining on each one, but it is possibly to specify the model to use multiple passages (where on each passage the less important variable is permuted) or to refit the model on each variable that is temporanely permuted to test the model without it ("permute and relearn").
+Further, if the ML model to assess supports ignoring variables during prediction (e.g. BetaML trees models), it is possible to specify the keyword argument for such option in the target model prediction function.
 
 See [`FR_hp`](@ref) for all the hyper-parameters.
 
-The `predict(m::FeatureRanker)` function returns the variable ranking. Use `info(m)` for further informations, like the loss per (omitted) comumn or the sobol (total) indices and their standard deviations in the various cross-validation trials.
+The `predict(m::FeatureRanker)` function returns the variable ranking, from the less important to the most one. Use `info(m)` for further informations, like the loss per (omitted) comumn or the sobol (total) indices and their standard deviations in the various cross-validation trials.
 
 # Examples:
 
@@ -833,12 +833,12 @@ julia> sobol_by_col = info(fr)["sobol_by_col"]
 julia> ntrials_per_metric = info(fr)["ntrials_per_metric"]
 5
 julia> bar(string.(rank),sobol_by_col[rank],label="Sobol by col", yerror=quantile(Normal(1,0),0.975) .* (sobol_by_col_sd[rank]./sqrt(ntrials_per_metric)))
-savefig("feature_rank.png")
 ```
+![Feature Ranker plot](assets/feature_rank.png) 
 
 # Notes:
-- rank can not match sortperm() for recursive models
-
+- when `recursive=true` the reported loss by column is the cumulative one, when at each loop the previous dimensions identified as non important plus the one under test are all permuted, except for the most important variable where the metric reported is the one on the same loop as the second to last less important variable 
+- the reported ranking may not match `sortperm([measure])` when `recursive=true` because removing variables with very bad informative power may by chance increase the model accuracy for the remaining variables that are tested
 """
 mutable struct FeatureRanker <: BetaMLModel
     hpar::FR_hp
@@ -907,7 +907,6 @@ function fit!(m::FeatureRanker,X,y)
         ohD = info(ohm)["n_categories"]
     end
     ŷfull = similar(y)
-    display(force_classification)
     if (  !(eltype(y) <: Number) || (eltype(y) <: Integer && force_classification))
         ŷfull =  Array{Float64,2}(undef,nR,ohD)
     end
@@ -1054,9 +1053,6 @@ function compute_cols_losses(m,X,y,ia,ns,cols_ids,ohm)
     mda_σ      = metrics_σ[2:n_cols_totest+1]
     sobol_σ    = metrics_σ[n_cols_totest+2:end]
 
-    #println("metrics_μ: $metrics_μ")
-    #println("metrics_σ: $metrics_σ")
-    #println(length(metrics_μ))
 
     return ((fullloss_μ,fullloss_σ),(mda_μ,sobol_μ), (mda_σ,sobol_σ))
 end
@@ -1071,17 +1067,6 @@ $(TYPEDSIGNATURES)
 """
 function predict(m::FeatureRanker,X)
     m.opt.verbosity >= STD && @warn "FeatureRanker doesn't extend to new data. X is ignored. Use `predict(m::FeatureRanker)` to avoid this warning."
-    return m.par.ranks
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-
-"""
-function predict(m::FeatureRanker,X,y)
-    m.opt.verbosity >= STD && @warn "FeatureRanker doesn't extend to new data. X and y are ignored. Use `predict(m::FeatureRanker)` to avoid this warning."
     return m.par.ranks
 end
 

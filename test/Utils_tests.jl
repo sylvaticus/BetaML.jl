@@ -1,4 +1,6 @@
-using Test, Statistics, LinearAlgebra, CategoricalArrays, Random, StableRNGs, DelimitedFiles, Distributions
+using Test, Statistics, LinearAlgebra, CategoricalArrays, Random, StableRNGs, DelimitedFiles
+import Distributions: Normal
+
 #using StableRNGs
 #rng = StableRNG(123)
 using BetaML
@@ -818,6 +820,9 @@ yoh    = fit!(OneHotEncoder(),ycat)
 # Several combinations...
 fr = FeatureRanker(model=RandomForestEstimator(verbosity=NONE,rng=TEMPRNG),nsplits=5,nrepeats=1,recursive=false,ranking_metric="mda",ignore_dims_keyword="ignore_dims",verbosity=NONE,refit=false)
 rank = fit!(fr,x,y)
+rank2 = predict(fr)
+rank3 = predict(fr,x)
+@test rank == rank2 == rank3
 @test rank[end] == 1
 loss_by_col        = info(fr)["loss_by_col"]
 sobol_by_col       = info(fr)["sobol_by_col"]
@@ -840,7 +845,7 @@ ntrials_per_metric = info(fr)["ntrials_per_metric"]
 # The order to retain is the rank one. 
 # @test sortperm(sobol_by_col) == rank
 
-bar(string.(sortperm(sobol_by_col)),sobol_by_col[sortperm(sobol_by_col)],label="sobol by col", yerror=quantile(Normal(1,0),0.975) .* (sobol_by_col_sd[sortperm(sobol_by_col)]./sqrt(3)))
+#bar(string.(sortperm(sobol_by_col)),sobol_by_col[sortperm(sobol_by_col)],label="sobol by col", yerror=quantile(Normal(1,0),0.975) .* (sobol_by_col_sd[sortperm(sobol_by_col)]./sqrt(3)))
 # bar(string.(sortperm(sobol_by_col)),sobol_by_col[sortperm(sobol_by_col)],label="sobol by col")
 #bar(string.(rank),sobol_by_col[rank],label="sobol by col following rank")
 # -
