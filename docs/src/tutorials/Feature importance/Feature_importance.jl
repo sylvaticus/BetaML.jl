@@ -66,7 +66,7 @@ bar(string.(sortperm(sobol_by_col)),sobol_by_col[sortperm(sobol_by_col)],label="
 
 # For Shapley values we need first to have a trained model
 m = RandomForestEstimator(rng=TEMPRNG)
-fit!(m,xtrain,ytrain)
+fit!(m,x,y)
 
 function predict_function(model, data)
   data_pred = DataFrame(y_pred = BetaML.predict(model, Matrix(data)))
