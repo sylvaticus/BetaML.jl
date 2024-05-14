@@ -749,28 +749,28 @@ end
 
 
 # ------------------------------------------------------------------------------
-# FeatureImportanceIndicator
+# FeatureRanker
+
+# https://towardsdatascience.com/stop-permuting-features-c1412e31b63f
 
 """
 $(TYPEDEF)
 
-Hyperparameters for [`FeatureImportanceIndicator`](@ref)
+Hyperparameters for [`FeatureRanker`](@ref)
 
 # Parameters:
 $(FIELDS)
 """
-Base.@kwdef mutable struct FII_hp <: BetaMLHyperParametersSet
-    "Estimator model"
+Base.@kwdef mutable struct FR_hp <: BetaMLHyperParametersSet
+    "The estimator model to test"
     model = nothing
-    "Method to employ. Currently two methods are provided, \"sobol\" uses the variance-analysis based Sobol index, \"mda\" uses the mean decrease in accuracy"
-    method::String = "sobol"
-    "Function to apply the sobol index between ŷ and ŷ⁽⁻ʲ⁾, i.e. the reduction in output explained variance if the jth output variable is removed. Emploied only if `method` is \"sobol\". Note that the default function works only for regression tasks."
-    sobol_loss::Function = sobol_index
-    "Function to apply the loss between y and ŷ,. If `nothing` a loss function is applied that adapt to both regression and classification problems. Emploied only if `method` is \"mda\""
-    mda_loss::Union{Function,Nothing} = nothing
-    "The default `sobol_loss` and `mda_loss` functions treat integer Y as regression. Use `force_classification = true` to treat that integers as classes. Note that this has no effect on model training, where it has to be determined eventually in the model hyperparameters"
+    """Metric to compute the default column ranking. Currently two metrics are provided: \"sobol\" uses the variance-decomposition based Sobol (total) index comparing ŷ with ŷ₋ⱼ; \"mda\" uses the mean decrease in accuracy comparing y with ŷ. Note that independently from this setting both measures (μ and σ) are available quering the model with `info()`, this setting jut determine the one to use for the default predict output ranking and for the columns to remove if `recursive` is true."""
+    ranking_metric::String = "sobol"
+    """Wheter to refit the estimator model for each omitted dimension [def: false]. If false the respective column is randomly shuffled but no "new" fit is performed. This option is ignored for models that support prediction with omitted dimensions."""
+    refit = false
+    "The `sobol` and `mda` metrics treat integer Y as regression. Use `force_classification = true` to treat that integers as classes. Note that this has no effect on model training, where it has to be determined eventually in the model hyperparameters"
     force_classification = false
-    "If `false` the variance importance is computed in a single loop over all the variables, otherwise the less important variable is removed (and provided) and then the algorithm is run again with the remaining variabels, recursively"
+    "If `false` the variance importance is computed in a single loop over all the variables, otherwise the less important variable is removed (according to `metric`) and then the algorithm is run again with the remaining variables, recursively."
     recursive::Bool = false
     "Number of splits in the cross-validation function used to judge the importance of each dimension"
     nsplits::Int64 = 5
@@ -786,45 +786,73 @@ Base.@kwdef mutable struct FII_hp <: BetaMLHyperParametersSet
     fit_function::Function     = fit!
     "The function used by the estimator(s) to predict the labels. It should take as fist argument the model itself and as second argument a matrix representing the features. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.predict`]"
     predict_function::Function = predict
-    "The keyword to ignore specific dimensions in prediction. If the model supports this keyword in the prediciton function, when we loop over the various dimensions we use only prediction with this keyword instead of retraining."
+    "The keyword to ignore specific dimensions in prediction. If the model supports this keyword in the prediction function, when we loop over the various dimensions we use only prediction with this keyword instead of re-training."
     # See https://towardsdatascience.com/variable-importance-in-random-forests-20c6690e44e0
     ignore_dims_keyword::String = "ignore_dims"
 end
 
-Base.@kwdef struct FII_lp <: BetaMLLearnableParametersSet
-    fitted_models::Dict = Dict() # Dictionary of array of of column indices and fitted models. For example [1,2,4] => a_fitted_RF_model store the fidded model for cols 1, 2 and 4
-    variable_scores::Vector{Int64} = Int64[]
+Base.@kwdef struct FR_lp <: BetaMLLearnableParametersSet
+    ranks::Vector{Int64} = Int64[]
 end
 
 """
 $(TYPEDEF)
 
-Compute Variable Importance
+A flexible estimator of variable ranking using several variable importance metrics
 
-Key principles:
-- can choose recursive or not
-- can increase samples to determine most important variables
-- can use Sobol index or mean average decreased accuracy
-- can exploit models that can predict ignoring columns without retraining
+FeatureRanker helps in determine feature importance in predicitons of any black-box machine learning model (not necessarily from the BetaML suit), internally using cross-validation.
 
-See [`FII_hp`](@ref) for all the hyper-parameters.
+By default it ranks variables (columns) in a single passage without retraining on each one, but it is possibly to specify the model to use multiple passages (where on each passage the less important variable is permuted) or to refit the model on each variable that is temporanely permuted to test the model without it ("permute and relearn")
+Further, it the ML model to assess supports ignoring variables during predicition (e.g. BetaML trees models), it is possible to specify the keyword argument for such option in the target model prediction function.
+
+See [`FR_hp`](@ref) for all the hyper-parameters.
+
+The `predict(m::FeatureRanker)` function returns the variable ranking. Use `info(m)` for further informations, like the loss per (omitted) comumn or the sobol (total) indices and their standard deviations in the various cross-validation trials.
 
 # Examples:
 
+```julia
+julia> using BetaML, Distributions, Plots
+julia> N     = 1000;
+julia> xa    = rand(N,3);
+julia> xb    = xa[:,1] .* rand.(Normal(1,0.5)); # a correlated but uninfluent variable
+julia> x     = hcat(xa,xb);
+julia> y     = [10*r[1]^2-5 for r in eachrow(x)]; # only the first variable influence y
+julia> rank = fit!(fr,x,y) # from the less influent to the most one
+4-element Vector{Int64}:
+ 3
+ 2
+ 4
+ 1
+julia> sobol_by_col = info(fr)["sobol_by_col"]
+4-element Vector{Float64}:
+ 0.705723128278327
+ 0.003127023154446514
+ 0.002676421850738828
+ 0.018814767195347915
+julia> ntrials_per_metric = info(fr)["ntrials_per_metric"]
+5
+julia> bar(string.(rank),sobol_by_col[rank],label="Sobol by col", yerror=quantile(Normal(1,0),0.975) .* (sobol_by_col_sd[rank]./sqrt(ntrials_per_metric)))
+savefig("feature_rank.png")
+```
+
+# Notes:
+- rank can not match sortperm() for recursive models
+
 """
-mutable struct FeatureImportanceIndicator <: BetaMLModel
-    hpar::FII_hp
+mutable struct FeatureRanker <: BetaMLModel
+    hpar::FR_hp
     opt::BML_options
-    par::Union{FII_lp,Nothing}
-    cres
+    par::Union{FR_lp,Nothing}
+    cres::Vector{Int64}
     fitted::Bool
     info::Dict{String,Any}    
 end
 
-function FeatureImportanceIndicator(;kwargs...)
+function FeatureRanker(;kwargs...)
     
-    hps = FII_hp()
-    m   = FeatureImportanceIndicator(hps,BML_options(),FII_lp(),nothing,false,Dict{Symbol,Any}())
+    hps = FR_hp()
+    m   = FeatureRanker(hps,BML_options(),FR_lp(),[],false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -843,37 +871,27 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Fit a Variable Importance  model using [`FeatureImportanceIndicator`](@ref)
+Fit a Variable Importance  model using [`FeatureRanker`](@ref)
 """
-function fit!(m::FeatureImportanceIndicator,X,y)
+function fit!(m::FeatureRanker,X,y)
+
+
+    (m.fitted && m.opt.verbosity >= STD) && @warn "This FeatureRanker has already been fitted. This fit overrides the previous one(s)"
+
     nR,nC   = size(X)
     rng     = m.opt.rng
     nsplits = m.hpar.nsplits
     nrepeats = m.hpar.nrepeats
-    force_classification = m.hpar.nrepeats
+    force_classification = m.hpar.force_classification
     recursive = m.hpar.recursive
-    model     = m.hpar.model
-    fit_function = m.hpar.fit_function
-    predict_function = m.hpar.predict_function
-    ignore_dims_keyword = m.hpar.ignore_dims_keyword
-    method     = m.hpar.method
-    sobol_loss = m.hpar.sobol_loss
-    mda_loss   = m.hpar.mda_loss
-    partial_predict_supported = hasmethod(predict_function,Tuple{typeof(model),Array},(Symbol(ignore_dims_keyword),))
-
+    ranking_metric     = m.hpar.ranking_metric
+    cache = m.opt.cache
 
     sample_min = typeof(m.hpar.sample_min) <: AbstractFloat ? max(nsplits*5, Int64(round(m.hpar.sample_min * nR ))) : max(nsplits*5,m.hpar.sample_min)
     sample_max = typeof(m.hpar.sample_max) <: AbstractFloat ? max(sample_min, Int64(round(m.hpar.sample_max * nR ))) : max(sample_min,m.hpar.sample_max)
-
-    println("nR: $nR")
-    println("sample_min: $sample_min")
-    println("sample_max: $sample_max")
-    println("nC: $nC")
-    
+   
     sample_max <= nR || @error "Not enought records"
     recursive &&  (sample_max - sample_min < nC) && @error "Not enought records for a recursive anaylis"
-
-    losses_by_cols = zeros(nC) # this will be the output
 
     # This is the number of samples for each recursive lookup of important cols
     if recursive
@@ -882,89 +900,92 @@ function fit!(m::FeatureImportanceIndicator,X,y)
         nsamples = [sample_max]
     end
 
-
-    sampler = KFold(nsplits=nsplits,nrepeats=nrepeats,rng=rng)
     ohm = nothing
     if ( (ndims(y) == 1) &&  (  !(eltype(y) <: Number) || (eltype(y) <: Integer && force_classification))  )
-        ohm = OneHotEncoder(handle_unknown="infrequent",cache=false)
+        ohm = OneHotEncoder(handle_unknown="infrequent",cache=false,rng=rng)
         fit!(ohm,y)
         ohD = info(ohm)["n_categories"]
     end
     ŷfull = similar(y)
+    display(force_classification)
     if (  !(eltype(y) <: Number) || (eltype(y) <: Integer && force_classification))
         ŷfull =  Array{Float64,2}(undef,nR,ohD)
     end
 
-    # Full dims. Th objective is, for the sobol method, to save ŷval with the full model, and for the MDA the loss
-    # Note that if we are in the partial_predict_supported we need to save the whole model too
-    batch = 1
-    repetition = 1
-    (μ,σ) = cross_validation([X,y,1:nR],sampler) do trainData,valData,rng
-        repetition = Int(ceil(batch/nsplits)) 
-        (xtrain,ytrain,ids_train) = trainData; (xval,yval,ids_val) = valData
-        fit_function(model,xtrain,ytrain)
-        ŷval     = predict_function(model,xval)
-        if (eltype(ŷval) <: Dict)
-            yval = predict(ohm,yval)
-            ŷval = predict(ohm,ŷval)
-            if repetition == 1
-                ŷfull[ids_val,:] =  ŷval
-            else
-                ŷfull[ids_val,:]  .=  [online_mean( ŷval[i,j],mean=ŷfull[ids_val[i],j],n=repetition-1) for i in 1:length(ids_val), j in 1:ohD]
-            end
-        else
-            if repetition == 1
-                ŷfull[ids_val] =  ŷval
-            end
-        end
-        ϵ               = norm(yval-ŷval)/size(yval,1) 
-        #partial_predict_supported || reset!(model)
-        reset!(model)
-        
-        # ok!!!
-        #if in(70,ids_val)
-        #    display(ids_val)
-        #    display(ŷval)
-        #    display(ŷfulloh[ids_val,:])
-        #end
+    # Output containers...
+    ranks  = zeros(Int64,nC)
+    metric_scores = Dict(
+        "mda"=>zeros(nC),
+        "sobol"=>zeros(nC),
+        "mda_sd"=>zeros(nC),
+        "sobol_sd"=>zeros(nC),       
+    )
+    μ_full_full = 0.0
+    σ_full_full = 0.0
 
-        batch += 1
-        return ismissing(ϵ) ? Inf : ϵ 
-    end
-
-    cols_ids   = zeros(Int64,nC)
-    cols_loss  = zeros(nC)
-
+    # Loop for each repetition (could be just one)...
     for (ia,ns) in enumerate(nsamples)
-        colids_nottotest = cols_ids[cols_ids.>0]
+        m.opt.verbosity > STD && @info "Processing round $ia over $(length(nsamples)).."
+        colids_nottotest = ranks[ranks.>0]
         colids_ontest    = setdiff(1:nC,colids_nottotest)
-        println("colids_nottotest: $colids_nottotest")
-        println("colids_ontest: $colids_ontest")
-        losses = compute_cols_losses(m,X,y,ia,ns,colids_nottotest,ŷfull,μ,ohm)
-        sorted_ids = sortperm(losses) # from the lower loss to the bigger one
-        println("sorted_ids: $sorted_ids")
-        sorted_losses = losses[sorted_ids]
-        sorted_colids = colids_ontest[sorted_ids]
-        println("sorted_colids: $sorted_colids")
-        if recursive
-            cols_ids[ia]  =  sorted_colids[1]
-            cols_loss[ia] =  sorted_losses[1]
+        ((μ_full,σ_full),(metric_mda,metric_sobol),(mda_sd,sobol_sd)) = compute_cols_losses(m,X,y,ia,ns,colids_nottotest,ohm)
+        # Storing full dims model output if this is the first round
+        if ia == 1
+            μ_full_full = μ_full
+            σ_full_full = σ_full
+        end
+        # Stroring outcomes of cols on test...
+        metric_scores["mda"][colids_ontest]      .= metric_mda
+        metric_scores["sobol"][colids_ontest]    .= metric_sobol
+        metric_scores["mda_sd"][colids_ontest]   .= mda_sd
+        metric_scores["sobol_sd"][colids_ontest] .= sobol_sd
+        # Sorting outcomes of cols on test...
+        if ranking_metric == "mda"
+            sorted_colids_ontest = colids_ontest[sortperm(metric_mda)] # from the lower loss to the bigger one
+        elseif ranking_metric == "sobol"
+            sorted_colids_ontest = colids_ontest[sortperm(metric_sobol)]
         else
-            cols_ids  = sorted_colids
-            cols_loss = sorted_losses
+            @error "Unknown ranking metric."
+        end
+        if recursive
+            ranks[ia] = sorted_colids_ontest[1]
+            # If this is the last "match" me need to add  also the most important col
+            if ia == length(nsamples)
+                ranks[ia+1] = sorted_colids_ontest[2]
+            end
+        else
+            ranks = sorted_colids_ontest
         end
     end    
 
-    return (cols_ids,cols_loss)
+    m.par    = FR_lp(ranks)
+    m.fitted = true
+    if cache
+       m.cres = cache ? ranks : nothing
+    end
+
+    m.info["fitted_records"]     = nR
+    m.info["xndims"]             = nC
+    m.info["loss_by_col"]        = metric_scores["mda"]
+    m.info["loss_by_col_sd"]     = metric_scores["mda_sd"]
+    m.info["sobol_by_col"]       = metric_scores["sobol"]
+    m.info["sobol_by_col_sd"]    = metric_scores["sobol_sd"] 
+    m.info["loss_all_cols"]      = μ_full_full
+    m.info["loss_all_cols_sd"]   = σ_full_full
+    m.info["ntrials_per_metric"] = nsplits*nrepeats
+    m.fitted = true
+    return cache ? m.cres : nothing
+
 end
 
-function compute_cols_losses(m,X,y,ia,ns,cols_ids,ŷfull,μ,ohm)
+function compute_cols_losses(m,X,y,ia,ns,cols_ids,ohm)
 
     rec_ids = StatsBase.sample(1:size(X,1), ns; replace=false)
     X = X[rec_ids,:]
     y = (ndims(y) ==1 ) ? y[rec_ids] : y[rec_ids,:]
     nR,nC   = size(X)
     partial_predict_supported = hasmethod(m.hpar.predict_function,Tuple{typeof(m.hpar.model),Array},(Symbol(m.hpar.ignore_dims_keyword),))
+    refit = m.hpar.refit
 
     # random shuffle all cols already removed
     for idcol in cols_ids
@@ -972,7 +993,8 @@ function compute_cols_losses(m,X,y,ia,ns,cols_ids,ŷfull,μ,ohm)
     end
 
     # determine cols to test for removal
-    cols_totest = setdiff(1:nC,cols_ids)
+    cols_totest   = setdiff(1:nC,cols_ids)
+    n_cols_totest = length(cols_totest)
 
     sampler = KFold(nsplits=m.hpar.nsplits,nrepeats=m.hpar.nrepeats,rng=m.opt.rng)
 
@@ -980,9 +1002,10 @@ function compute_cols_losses(m,X,y,ia,ns,cols_ids,ŷfull,μ,ohm)
 
     batch = 1
     repetition = 1
-    (μs,σ) = cross_validation([X,y,1:nR],sampler, return_statistics=true) do trainData,valData,rng
+    (metrics_μ,metrics_σ) = cross_validation([X,y],sampler, return_statistics=true) do trainData,valData,rng
+        m.opt.verbosity > HIGH && @info "- processing batch $batch ..."
         repetition = Int(ceil(batch/m.hpar.nsplits)) 
-        (xtrain,ytrain,ids_train) = trainData; (xval,yval,ids_val) = valData
+        (xtrain,ytrain) = trainData; (xval,yval) = valData
 
         m.hpar.fit_function(m.hpar.model,xtrain,ytrain)
         ŷval     = m.hpar.predict_function(m.hpar.model,xval)
@@ -992,45 +1015,51 @@ function compute_cols_losses(m,X,y,ia,ns,cols_ids,ŷfull,μ,ohm)
             ŷval = predict(ohm,ŷval)
         end
         ϵ               = norm(yval-ŷval)/size(yval,1) 
-        partial_predict_supported || reset!(m.hpar.model)
+        #partial_predict_supported || reset!(m.hpar.model)
         #reset!(model)
-        losses_by_cols = fill(0.0, length(cols_totest)) # this will be the output
+        metric_by_cols_mda   = fill(0.0, n_cols_totest) # this will be the output
+        metric_by_cols_sobol = fill(0.0, n_cols_totest) # this will be the output
         for (i,col_totest) in enumerate(cols_totest)
-            xtrain = hcat(xtrain[:,1:col_totest-1],shuffle(xtrain[:,col_totest]),xtrain[:,col_totest+1:end])
-            xval = hcat(xval[:,1:col_totest-1],shuffle(xval[:,col_totest]),xval[:,col_totest+1:end])
+            m.opt.verbosity > HIGH && @info "- testing col id $col_to_test ..."
+            xtraind = hcat(xtrain[:,1:col_totest-1],shuffle(rng, xtrain[:,col_totest]),xtrain[:,col_totest+1:end])
+            xvald = hcat(xval[:,1:col_totest-1],shuffle(rng, xval[:,col_totest]),xval[:,col_totest+1:end])
             if ! partial_predict_supported
-                m.hpar.fit_function(m.hpar.model,xtrain,ytrain)
-                ŷval_i     = m.hpar.predict_function(m.hpar.model,xval)
+                if refit
+                    m.hpar.fit_function(m.hpar.model,xtraind,ytrain)
+                    ŷval_i     = m.hpar.predict_function(m.hpar.model,xvald)
+                    reset!(m.hpar.model)
+                else
+                    ŷval_i     = m.hpar.predict_function(m.hpar.model,xvald)
+                end
             else
-                ŷval_i     = m.hpar.predict_function(m.hpar.model,xval;Symbol(m.hpar.ignore_dims_keyword)=>[col_totest])
+                ŷval_i     = m.hpar.predict_function(m.hpar.model,xvald;Symbol(m.hpar.ignore_dims_keyword)=>[col_totest])
                 #ŷval_i     = predict(m.hpar.model,xval;ignore_dims=[col_totest])
             end
 
             if (eltype(ŷval_i) <: Dict)
                 ŷval_i = predict(ohm,ŷval_i)
             end
-            if m.hpar.method == "mda"
-                losses_by_cols[i] = norm(yval-ŷval_i)/size(yval,1) 
-            elseif m.hpar.method == "sobol"
-                losses_by_cols[i] = sobol_index(ŷval,ŷval_i) 
-            end
+            metric_by_cols_mda[i]   = norm(yval-ŷval_i)/size(yval,1) 
+            metric_by_cols_sobol[i] = sobol_index(ŷval,ŷval_i)
         end
         reset!(m.hpar.model)
         batch += 1
-        return losses_by_cols 
+        # cross validation stats works for salars and vector results but not vector of vector, I need to concatenate them
+        return vcat(ϵ, metric_by_cols_mda, metric_by_cols_sobol) 
     end
+    fullloss_μ = metrics_μ[1]
+    mda_μ      = metrics_μ[2:n_cols_totest+1]
+    sobol_μ    = metrics_μ[n_cols_totest+2:end]
+    fullloss_σ = metrics_σ[1]
+    mda_σ      = metrics_σ[2:n_cols_totest+1]
+    sobol_σ    = metrics_σ[n_cols_totest+2:end]
 
+    #println("metrics_μ: $metrics_μ")
+    #println("metrics_σ: $metrics_σ")
+    #println(length(metrics_μ))
 
-    println("μs: $μs")
-    println(length(μs))
-
-   
-
-
-    return μs
+    return ((fullloss_μ,fullloss_σ),(mda_μ,sobol_μ), (mda_σ,sobol_σ))
 end
-
-
 
 
 
@@ -1040,24 +1069,36 @@ $(TYPEDSIGNATURES)
 
 
 """
-function predict(m::FeatureImportanceIndicator,X,y)
-
+function predict(m::FeatureRanker,X)
+    m.opt.verbosity >= STD && @warn "FeatureRanker doesn't extend to new data. X is ignored. Use `predict(m::FeatureRanker)` to avoid this warning."
+    return m.par.ranks
 end
 
-function show(io::IO, ::MIME"text/plain", m::FeatureImportanceIndicator)
+
+"""
+$(TYPEDSIGNATURES)
+
+
+"""
+function predict(m::FeatureRanker,X,y)
+    m.opt.verbosity >= STD && @warn "FeatureRanker doesn't extend to new data. X and y are ignored. Use `predict(m::FeatureRanker)` to avoid this warning."
+    return m.par.ranks
+end
+
+function show(io::IO, ::MIME"text/plain", m::FeatureRanker)
     if m.fitted == false
-        print(io,"FeatureImportanceIndicator - A meta-model to extract variable importance of an arbitrary regressor/classifier (unfitted)")
+        print(io,"FeatureRanker - A meta-model to extract variable importance of an arbitrary regressor/classifier (unfitted)")
     else
-        print(io,"FeatureImportanceIndicator - A meta-model to extract variable importance of an arbitrary regressor/classifier (fitted)")
+        print(io,"FeatureRanker - A meta-model to extract variable importance of an arbitrary regressor/classifier (fitted)")
     end
 end
 
-function show(io::IO, m::FeatureImportanceIndicator)
+function show(io::IO, m::FeatureRanker)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"FeatureImportanceIndicator - A meta-model to extract variable importance of an arbitrary regressor/classifier (unfitted)")
+        print(io,"FeatureRanker - A meta-model to extract variable importance of an arbitrary regressor/classifier (unfitted)")
     else
-        print(io,"FeatureImportanceIndicator - A meta-model to extract variable importance of an arbitrary regressor/classifier (fitted)")
+        print(io,"FeatureRanker - A meta-model to extract variable importance of an arbitrary regressor/classifier (fitted)")
         println(io,m.info)
     end
 end

@@ -582,8 +582,21 @@ sampler = KFold(nsplits=3,nrepeats=1,shuffle=true,rng=copy(TESTRNG))
         ϵ = relative_mean_error(yval,predictions,normrec=false)
         return ϵ
     end
-
 @test (μ,σ) == (0.3202242202242202, 0.04307662219315022)
+# test on stats on multiple outputs...
+sampler = KFold(nsplits=3,nrepeats=1,shuffle=true,rng=copy(TESTRNG))
+((μ1,μ2),(σ1,σ2)) = cross_validation([X,Y],sampler,verbosity=FULL) do trainData,valData,rng
+        (xtrain,ytrain) = trainData; (xval,yval) = valData
+        rfmod = RandomForestEstimator(n_trees=30,rng=rng)
+        fit!(rfmod,xtrain,ytrain)
+        predictions = predict(rfmod,xval)
+        ϵ = relative_mean_error(yval,predictions,normrec=false)
+        return [ϵ, ϵ .+ 0.1]
+end
+@test μ1 == μ
+@test μ2 ≈ (μ + 0.1)
+@test σ1 ≈ σ ≈ σ2
+
 
 println("** Testing autotuning...")
 
@@ -787,93 +800,67 @@ losses[7] = l2loss_by_cv(AutoEncoder(rng=copy(TESTRNG), verbosity=NONE),(x,),rng
 @test all(losses .< 0.45)
 @test all(losses[[1:3;5:end]] .< 0.26)
 
+# ------------------------------------------------------------------------------
+# Feature importance
 
-# Testing variable importance
-# x1: high importance, x2: little importance, x3: mixed effects with x1, x4: highly correlated with x1 but no effects on Y, x5 and x6: no effects on Y 
-
-N     = 2000
-D     = 6
-xa    = rand(copy(TESTRNG),0:0.0001:10,N,3)
-xb    = (xa[:,1] .* 2 .* rand(0.8:0.001:1.2)) .+ 10 
-xc    = rand(copy(TESTRNG),0:0.0001:10,N,D-4)
-x     = hcat(xa,xb,xc)  
-y     = [10*r[1]-r[2]-0.1*r[3]*r[1] for r in eachrow(x) ]
+# Data generation
+TEMPRNG = copy(TESTRNG)
+N     = 1000
+xa    = rand(TEMPRNG,N,3)
+xb    = xa[:,1] .* rand.(TEMPRNG,Normal(1,0.5))
+x     = hcat(xa,xb)  
+y     = [10*r[1]^2-5 for r in eachrow(x)]
 ysort = sort(y)
 ycat  = [(i < ysort[Int(round(N/3))]) ?  "c" :  ( (i < ysort[Int(round(2*N/3))]) ? "a" : "b")  for i in y]
 yoh    = fit!(OneHotEncoder(),ycat)
+((xtrain,xtest),(ytrain,ytest),(ycattrain,ycattest),(yohtrain,yohtest)) = partition([x,y,ycat,yoh],[0.8,0.2],rng=TEMPRNG)
 
-#=
-# Data generation from https://towardsdatascience.com/variable-importance-in-random-forests-20c6690e44e0
-D = 10
-xa = rand(copy(TESTRNG),Uniform(-1,1),N,2)
-xb = xa[:,1] .+ rand(copy(TESTRNG),Uniform(-1,1),N)
-xc = rand(copy(TESTRNG),Uniform(-1,1),N,7)
-x = hcat(xa,xb,xc)
-y  = [rand(Normal(0.8*(x[n,1] > 0), (1+(x[n,2] > 0)) )) for n in 1:N] 
-ysort = sort(y)
-ycat  = [(i < ysort[Int(round(N/3))]) ?  "c" :  ( (i < ysort[Int(round(2*N/3))]) ? "a" : "b")  for i in y]
-yoh    = fit!(OneHotEncoder(),ycat)
-=#
+# Several combinations...
+fr = FeatureRanker(model=RandomForestEstimator(verbosity=NONE,rng=TEMPRNG),nsplits=5,nrepeats=1,recursive=false,ranking_metric="mda",ignore_dims_keyword="ignore_dims",verbosity=NONE,refit=false)
+rank = fit!(fr,x,y)
+@test rank[end] == 1
+loss_by_col        = info(fr)["loss_by_col"]
+sobol_by_col       = info(fr)["sobol_by_col"]
+loss_by_col_sd     = info(fr)["loss_by_col_sd"]
+sobol_by_col_sd    = info(fr)["sobol_by_col_sd"]
+loss_fullmodel     = info(fr)["loss_all_cols"]
+loss_fullmodel_sd  = info(fr)["loss_all_cols_sd"]
+ntrials_per_metric = info(fr)["ntrials_per_metric"]
+@test size(loss_by_col) == size(sobol_by_col) == size(loss_by_col_sd) == size(loss_by_col_sd) == (4,) 
+@test sortperm(loss_by_col) == rank
+# -
+fr = FeatureRanker(model=RandomForestEstimator(verbosity=NONE,rng=TEMPRNG),nsplits=3,nrepeats=2,recursive=true,ranking_metric="sobol",ignore_dims_keyword="ignore_dims",verbosity=NONE,refit=false)
+rank = fit!(fr,x,ycat)
+@test rank[end] == 1
+loss_by_col        = info(fr)["loss_by_col"]
+sobol_by_col       = info(fr)["sobol_by_col"]
+ntrials_per_metric = info(fr)["ntrials_per_metric"]
+@test ntrials_per_metric == 6
+# This is not necessarily true in recursive models because by omitting less important variables we may by chance improve the loss of the next important variables.
+# The order to retain is the rank one. 
+# @test sortperm(sobol_by_col) == rank
 
-
-vi = FeatureImportanceIndicator(model=RandomForestEstimator(verbosity=NONE),nsplits=5,nrepeats=1,recursive=false,method="sobol",ignore_dims_keyword="blabla")
-a = fit!(vi,x,y)
-
-# Manual test
-
-((xtrain,xtest),(ytrain,ytest),(ycattrain,ycattest),(yohtrain,yohtest)) = partition([x,y,ycat,yoh],[0.8,0.2],rng=copy(TESTRNG))
-
-
-xtrain2 = deepcopy(xtrain)
-xtest2 = deepcopy(xtest)
-# regression with random forests
-
-m = RandomForestEstimator(n_trees=300)
-#m = NeuralNetworkEstimator(epochs=100)
-means_by_cols = reshape((mean(x,dims=1)),D)
-
-# full cols
-fit!(m,xtrain,ytrain)
-ŷtest = predict(m,xtest)
-loss = norm(ytest-ŷtest)/length(ytest)
-
-loss_by_cols  = zeros(D)
-sobol_by_cols = zeros(D)
-loss_by_cols2  = zeros(D)
-sobol_by_cols2 = zeros(D)
-diffest_bycols = zeros(D)
-for d in 1:D
-    println("doing without dimension $d ....")
-    #xd_train = hcat(xtrain[:,1:d-1],shuffle(xtrain[:,d]),xtrain[:,d+1:end])
-    #xd_test = hcat(xtest[:,1:d-1],shuffle(xtest[:,d]),xtest[:,d+1:end])  
-    xd_train = hcat(xtrain[:,1:d-1],fill(means_by_cols[d],size(xtrain,1)),xtrain[:,d+1:end])
-    xd_test = hcat(xtest[:,1:d-1],fill(means_by_cols[d],size(xtest,1)),xtest[:,d+1:end])  
-    #xd_train = hcat(xtrain[:,1:d-1],xtrain[:,d+1:end])
-    #xd_test = hcat(xtest[:,1:d-1],xtest[:,d+1:end])  
-    md = RandomForestEstimator(n_trees=300)
-    #md = NeuralNetworkEstimator(epochs=100,verbosity=NONE)
-    fit!(md,xd_train,ytrain)
-    ŷdtest = predict(md,xd_test)
-    loss_by_cols[d]  = norm(ytest-ŷdtest)/length(ytest)
-    sobol_by_cols[d] = sobol_index(ŷtest,ŷdtest) 
-    ŷdtest2 = predict(m,xtest,ignore_dims=d)
-    loss_by_cols2[d]  = norm(ytest-ŷdtest2)/length(ytest)
-    sobol_by_cols2[d] = sobol_index(ŷtest,ŷdtest2) 
-    diffest_bycols[d] = norm(ŷdtest-ŷdtest2)/length(ytest)
-end
-
-d=6
-println("doing without dimension $d ....")
-xd_train = hcat(xtrain[:,1:d-1],shuffle(xtrain[:,d]),xtrain[:,d+1:end])
-xd_test = hcat(xtest[:,1:d-1],shuffle(xtest[:,d]),xtest[:,d+1:end])  
-#xd_train = hcat(xtrain[:,1:d-1],fill(means_by_cols[d],size(xtrain,1)),xtrain[:,d+1:end])
-#xd_test = hcat(xtest[:,1:d-1],fill(means_by_cols[d],size(xtest,1)),xtest[:,d+1:end])  
-#xd_train = hcat(xtrain[:,1:d-1],xtrain[:,d+1:end])
-#xd_test = hcat(xtest[:,1:d-1],xtest[:,d+1:end])  
-md = RandomForestEstimator()
-#md = NeuralNetworkEstimator(epochs=100,verbosity=NONE)
-fit!(md,xd_train,ytrain)
-ŷdtest = predict(md,xd_test)
+bar(string.(sortperm(sobol_by_col)),sobol_by_col[sortperm(sobol_by_col)],label="sobol by col", yerror=quantile(Normal(1,0),0.975) .* (sobol_by_col_sd[sortperm(sobol_by_col)]./sqrt(3)))
+# bar(string.(sortperm(sobol_by_col)),sobol_by_col[sortperm(sobol_by_col)],label="sobol by col")
+#bar(string.(rank),sobol_by_col[rank],label="sobol by col following rank")
+# -
+fr = FeatureRanker(model=NeuralNetworkEstimator(verbosity=NONE,rng=TEMPRNG),nsplits=3,nrepeats=1,recursive=false,ranking_metric="sobol",verbosity=NONE,refit=false)
+rank = fit!(fr,x,yoh) 
+@test rank[end] == 1
+loss_by_col        = info(fr)["loss_by_col"]
+sobol_by_col       = info(fr)["sobol_by_col"]
+loss_by_col_sd     = info(fr)["loss_by_col_sd"]
+sobol_by_col_sd    = info(fr)["sobol_by_col_sd"]
+@test sortperm(sobol_by_col) == rank 
+#bar(string.(sortperm(loss_by_col)),loss_by_col[sortperm(loss_by_col)],label="loss by col", yerror=quantile(Normal(1,0),0.975) .* (loss_by_col_sd[sortperm(loss_by_col)]./sqrt(3)))
+#bar(string.(sortperm(sobol_by_col)),sobol_by_col[sortperm(sobol_by_col)],label="sobol by col", yerror=quantile(Normal(1,0),0.975) .* (sobol_by_col_sd[sortperm(sobol_by_col)]./sqrt(3)))
+# -
+fr = FeatureRanker(model=NeuralNetworkEstimator(verbosity=NONE,rng=TEMPRNG),nsplits=3,nrepeats=1,recursive=false,ranking_metric="sobol",verbosity=NONE,refit=true)
+rank = fit!(fr,x,y) # TODO
+@test rank[end] == 1
+loss_by_col        = info(fr)["loss_by_col"]
+sobol_by_col       = info(fr)["sobol_by_col"]
+@test sortperm(sobol_by_col) == rank
 
 
 
