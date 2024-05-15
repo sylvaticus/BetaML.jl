@@ -761,55 +761,55 @@ Hyperparameters for [`FeatureRanker`](@ref)
 # Parameters:
 $(FIELDS)
 """
-Base.@kwdef mutable struct FR_hp <: BetaMLHyperParametersSet
-    "The estimator model to test"
+Base.@kwdef mutable struct FeatureR_hp <: BetaMLHyperParametersSet
+    "The estimator model to test."
     model = nothing
-    """Metric to compute the default column ranking. Currently two metrics are provided: \"sobol\" uses the variance-decomposition based Sobol (total) index comparing ŷ with ŷ₋ⱼ; \"mda\" uses the mean decrease in accuracy comparing y with ŷ. Note that independently from this setting both measures (μ and σ) are available quering the model with `info()`, this setting jut determine the one to use for the default predict output ranking and for the columns to remove if `recursive` is true."""
-    ranking_metric::String = "sobol"
-    """Wheter to refit the estimator model for each omitted dimension [def: false]. If false the respective column is randomly shuffled but no "new" fit is performed. This option is ignored for models that support prediction with omitted dimensions."""
+    """Metric used to calculate the default column ranking. Two metrics are currently provided: "sobol" uses the variance decomposition based Sobol (total) index comparing ŷ vs. ŷ₋ⱼ; "mda" uses the mean decrease in accuracy comparing y vs. ŷ. Note that regardless of this setting, both measures are available by querying the model with `info()`, this setting only determines which one to use for the default ranking of the prediction output and which columns to remove if `recursive` is true [def: `"sobol"`]."""
+    metric::String = "sobol"
+    """Wheter to refit the estimator model for each omitted dimension. If false, the respective column is randomly shuffled but no "new" fit is performed. This option is ignored for models that support prediction with omitted dimensions [def: `false`]."""
     refit = false
-    "The `sobol` and `mda` metrics treat integer Y as regression. Use `force_classification = true` to treat that integers as classes. Note that this has no effect on model training, where it has to be determined eventually in the model hyperparameters"
+    "The `sobol` and `mda` metrics treat integer y's as regression tasks. Use `force_classification = true` to force that integers to be treated as classes. Note that this has no effect on model training, where it has to be set eventually in the model's own hyperparameters [def: `false`]."
     force_classification = false
-    "If `false` the variance importance is computed in a single loop over all the variables, otherwise the less important variable is removed (according to `metric`) and then the algorithm is run again with the remaining variables, recursively."
+    "If `false` the variance importance is computed in a single stage over all the variables, otherwise the less important variable is removed (according to `metric`) and then the algorithm is run again with the remaining variables, recursively [def: `false`]."
     recursive::Bool = false
-    "Number of splits in the cross-validation function used to judge the importance of each dimension"
+    "Number of splits in the cross-validation function used to judge the importance of each dimension [def: `5`]."
     nsplits::Int64 = 5
-    "Number of different sample rounds in cross validation. Increase this if your dataset is very small"
+    "Number of different sample rounds in cross validation. Increase this if your dataset is very small [def: `1`]."
     nrepeats::Int64 = 1
     """Minimum number of records (or share of it, if a float) to consider in the first loop used to retrieve the less important variable. The sample is then linearly increased up to `sample_max` to retrieve the most important variable.
     This parameter is ignored if `recursive=false`.
-    Note that there is a fixed limit of `nsplits*5` that prevails if lower."""
+    Note that there is a fixed limit of `nsplits*5` that prevails if lower  [def: `25`]."""
     sample_min::Union{Float64,Int64} = 25
-    """Maximum number of records (or share of it, if a float) to consider in the last loop used to retrieve the most important variable, or if `recursive=false`."""
+    """Maximum number of records (or share of it, if a float) to consider in the last loop used to retrieve the most important variable, or if `recursive=false` [def: `1.0`]."""
     sample_max::Union{Float64,Int64} = 1.0
     "The function used by the estimator(s) to fit the model. It should take as fist argument the model itself, as second argument a matrix representing the features, and as third argument a vector representing the labels. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.fit!`]"
     fit_function::Function     = fit!
     "The function used by the estimator(s) to predict the labels. It should take as fist argument the model itself and as second argument a matrix representing the features. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.predict`]"
     predict_function::Function = predict
-    "The keyword to ignore specific dimensions in prediction. If the model supports this keyword in the prediction function, when we loop over the various dimensions we use only prediction with this keyword instead of re-training."
+    """The keyword to ignore specific dimensions in prediction. If the model supports this keyword in the prediction function, when we loop over the various dimensions we use only prediction with this keyword instead of re-training [def: `"ignore_dims"`]."""
     # See https://towardsdatascience.com/variable-importance-in-random-forests-20c6690e44e0
     ignore_dims_keyword::String = "ignore_dims"
 end
 
-Base.@kwdef struct FR_lp <: BetaMLLearnableParametersSet
+Base.@kwdef struct FeatureR_lp <: BetaMLLearnableParametersSet
     ranks::Vector{Int64} = Int64[]
 end
 
 """
 $(TYPEDEF)
 
-A flexible estimator of variable ranking using several variable importance metrics
+A flexible feature ranking estimator using multiple feature importance metrics
 
-FeatureRanker helps in determine feature importance in predictions of any black-box machine learning model (not necessarily from the BetaML suit), internally using cross-validation.
+FeatureRanker helps to determine the importance of features in predictions of any black-box machine learning model (not necessarily from the BetaML suit), internally using cross-validation.
 
-By default it ranks variables (columns) in a single passage without retraining on each one, but it is possibly to specify the model to use multiple passages (where on each passage the less important variable is permuted) or to refit the model on each variable that is temporanely permuted to test the model without it ("permute and relearn").
-Further, if the ML model to assess supports ignoring variables during prediction (e.g. BetaML trees models), it is possible to specify the keyword argument for such option in the target model prediction function.
+By default, it ranks variables (columns) in a single pass, without retraining on each one. However, it is possible to specify the model to use multiple passages (where in each passage the less important variable is permuted) or to retrain the model on each variable that is temporarily permuted to test the model without it ("permute and relearn").
+Furthermore, if the ML model under evaluation supports ignoring variables during prediction (as BetaML tree models do), it is possible to specify the keyword argument for such an option in the prediction function of the target model.
 
-See [`FR_hp`](@ref) for all the hyper-parameters.
+See [`FeatureR_hp`](@ref) for all hyperparameters.
 
-The `predict(m::FeatureRanker)` function returns the variable ranking, from the less important to the most one. Use `info(m)` for further informations, like the loss per (omitted) comumn or the sobol (total) indices and their standard deviations in the various cross-validation trials.
+The `predict(m::FeatureRanker)` function returns the ranking of the features, from least to most important. Use `info(m)` for more information, such as the loss per (omitted) variable or the Sobol (total) indices and their standard deviations in the different cross-validation trials.
 
-# Examples:
+# Example:
 
 ```julia
 julia> using BetaML, Distributions, Plots
@@ -837,13 +837,14 @@ julia> bar(string.(rank),sobol_by_col[rank],label="Sobol by col", yerror=quantil
 ![Feature Ranker plot](assets/feature_rank.png) 
 
 # Notes:
-- when `recursive=true` the reported loss by column is the cumulative one, when at each loop the previous dimensions identified as non important plus the one under test are all permuted, except for the most important variable where the metric reported is the one on the same loop as the second to last less important variable 
-- the reported ranking may not match `sortperm([measure])` when `recursive=true` because removing variables with very bad informative power may by chance increase the model accuracy for the remaining variables that are tested
+- When `recursive=true`, the reported loss by column is the cumulative loss when, at each loop, the previous dimensions identified as unimportant plus the one under test are all permuted, except for the most important variable, where the metric reported is the one on the same loop as the second to last less important variable. 
+- The reported ranking may not be equal to `sortperm([measure])` when `recursive=true`, because removing variables with very low power may, by chance, increase the accuracy of the model for the remaining tested variables.
+- To use `FeatureRanker` with a third party estimator model, it needs to be wrapped in a BetaML-like API: `m=ModelName(hyperparameters...); fit_function(m,x,y); predict_function(m,x)` where `fit_function` and `predict_function` can be specified in the `FeatureRanker` options.
 """
 mutable struct FeatureRanker <: BetaMLModel
-    hpar::FR_hp
+    hpar::FeatureR_hp
     opt::BML_options
-    par::Union{FR_lp,Nothing}
+    par::Union{FeatureR_lp,Nothing}
     cres::Vector{Int64}
     fitted::Bool
     info::Dict{String,Any}    
@@ -851,8 +852,8 @@ end
 
 function FeatureRanker(;kwargs...)
     
-    hps = FR_hp()
-    m   = FeatureRanker(hps,BML_options(),FR_lp(),[],false,Dict{Symbol,Any}())
+    hps = FeatureR_hp()
+    m   = FeatureRanker(hps,BML_options(),FeatureR_lp(),[],false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -884,7 +885,7 @@ function fit!(m::FeatureRanker,X,y)
     nrepeats = m.hpar.nrepeats
     force_classification = m.hpar.force_classification
     recursive = m.hpar.recursive
-    ranking_metric     = m.hpar.ranking_metric
+    metric     = m.hpar.metric
     cache = m.opt.cache
 
     sample_min = typeof(m.hpar.sample_min) <: AbstractFloat ? max(nsplits*5, Int64(round(m.hpar.sample_min * nR ))) : max(nsplits*5,m.hpar.sample_min)
@@ -939,9 +940,9 @@ function fit!(m::FeatureRanker,X,y)
         metric_scores["mda_sd"][colids_ontest]   .= mda_sd
         metric_scores["sobol_sd"][colids_ontest] .= sobol_sd
         # Sorting outcomes of cols on test...
-        if ranking_metric == "mda"
+        if metric == "mda"
             sorted_colids_ontest = colids_ontest[sortperm(metric_mda)] # from the lower loss to the bigger one
-        elseif ranking_metric == "sobol"
+        elseif metric == "sobol"
             sorted_colids_ontest = colids_ontest[sortperm(metric_sobol)]
         else
             @error "Unknown ranking metric."
@@ -957,7 +958,7 @@ function fit!(m::FeatureRanker,X,y)
         end
     end    
 
-    m.par    = FR_lp(ranks)
+    m.par    = FeatureR_lp(ranks)
     m.fitted = true
     if cache
        m.cres = cache ? ranks : nothing

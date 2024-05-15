@@ -8,6 +8,9 @@ Aside this page, the tutorial is divided in the following sections:
 -  [Classification tutorial](@ref classification_tutorial) - Topics: _Decision trees and random forests, neural networks (softmax), dealing with stochasticity, loading data from internet_
 -  [Regression tutorial](@ref regression_tutorial) - Topics: _Decision trees, Random forests, neural networks, hyper-parameters autotuning, one-hot encoding, continuous error measures_
 -  [Clustering tutorial](@ref clustering_tutorial) - Topics: _k-means, kmedoids, generative (gaussian) mixture models (gmm), cross-validation, ordinal encoding_
+-  [Multi-branch neural network](@ref multibranch_nn_tutorial) - Topics: _neural networks regression, multi-branch neural network_
+-  [Feature importance](@ref variable_importance_tutorial) - Topics: _feature importance, Sobol indices, mean decrease accuracy (mda), Shapley values_
+
 
 Detailed usage instructions on each algorithm can be found on each model struct (listed [here](@ref models_list)), while theoretical notes describing most of them can be found at the companion repository [https://github.com/sylvaticus/MITx_6.86x](https://github.com/sylvaticus/MITx_6.86x).
 

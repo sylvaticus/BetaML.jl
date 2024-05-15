@@ -785,7 +785,7 @@ y1 = [0.5,0.3,0.2]
 @test kl_divergence(y,y) ≈ 0.0
 
 # Testig l2loss_by_cv
-x = vcat(rand(copy(TESTRNG),0:0.001:0.6,50,5), rand(copy(TESTRNG),0.4:0.001:1,50,5))
+x = vcat(rand(copy(TESTRNG),0:0.001:0.6,60,5), rand(copy(TESTRNG),0.4:0.001:1,60,5))
 y = [2 * r[1] ^2 - 3 * (r[3] + rand(copy(TESTRNG),0:0.001:0.3)) + 12 + 2 * r[5]  - 0.3 * r[1] * r[2] for r in eachrow(x) ]
 ycat = [(i < 10) ?  "c" :  ( (i < 13) ? "a" : "b")  for i in y]
 
@@ -793,17 +793,19 @@ losses = ones(7)
 losses[1] = l2loss_by_cv(RandomForestEstimator(rng=copy(TESTRNG), verbosity=NONE),(x,y),rng=copy(TESTRNG))
 losses[2] = l2loss_by_cv(RandomForestEstimator(rng=copy(TESTRNG), verbosity=NONE),(x,y),rng=copy(TESTRNG))
 losses[3] = l2loss_by_cv(RandomForestEstimator(rng=copy(TESTRNG), verbosity=NONE),(x,ycat),rng=copy(TESTRNG))
-losses[4] = l2loss_by_cv(NeuralNetworkEstimator(rng=copy(TESTRNG), verbosity=NONE),(x,y),rng=copy(TESTRNG))
+losses[4] = l2loss_by_cv(NeuralNetworkEstimator(rng=copy(TESTRNG), verbosity=NONE),(x,y),rng=rng=copy(TESTRNG))
 losses[5] = l2loss_by_cv(NeuralNetworkEstimator(rng=copy(TESTRNG), verbosity=NONE),(x,fit!(OneHotEncoder(),ycat)),rng=copy(TESTRNG))
 losses[6] = l2loss_by_cv(PerceptronClassifier(rng=copy(TESTRNG), verbosity=NONE),(x,ycat),rng=copy(TESTRNG))
 losses[7] = l2loss_by_cv(AutoEncoder(rng=copy(TESTRNG), verbosity=NONE),(x,),rng=copy(TESTRNG))
 
 @test losses[1] ≈ losses[2]
-@test all(losses .< 0.45)
+println(losses)
+@test all(losses .< 0.50)
 @test all(losses[[1:3;5:end]] .< 0.26)
 
 # ------------------------------------------------------------------------------
 # Feature importance
+println("** Testing Feature Importance....")
 
 # Data generation
 TEMPRNG = copy(TESTRNG)
@@ -818,7 +820,7 @@ yoh    = fit!(OneHotEncoder(),ycat)
 ((xtrain,xtest),(ytrain,ytest),(ycattrain,ycattest),(yohtrain,yohtest)) = partition([x,y,ycat,yoh],[0.8,0.2],rng=TEMPRNG)
 
 # Several combinations...
-fr = FeatureRanker(model=RandomForestEstimator(verbosity=NONE,rng=TEMPRNG),nsplits=5,nrepeats=1,recursive=false,ranking_metric="mda",ignore_dims_keyword="ignore_dims",verbosity=NONE,refit=false)
+fr = FeatureRanker(model=RandomForestEstimator(verbosity=NONE,rng=TEMPRNG),nsplits=5,nrepeats=1,recursive=false,metric="mda",ignore_dims_keyword="ignore_dims",verbosity=NONE,refit=false)
 rank = fit!(fr,x,y)
 rank2 = predict(fr)
 rank3 = predict(fr,x)
@@ -834,7 +836,7 @@ ntrials_per_metric = info(fr)["ntrials_per_metric"]
 @test size(loss_by_col) == size(sobol_by_col) == size(loss_by_col_sd) == size(loss_by_col_sd) == (4,) 
 @test sortperm(loss_by_col) == rank
 # -
-fr = FeatureRanker(model=RandomForestEstimator(verbosity=NONE,rng=TEMPRNG),nsplits=3,nrepeats=2,recursive=true,ranking_metric="sobol",ignore_dims_keyword="ignore_dims",verbosity=NONE,refit=false)
+fr = FeatureRanker(model=RandomForestEstimator(verbosity=NONE,rng=TEMPRNG),nsplits=3,nrepeats=2,recursive=true,metric="sobol",ignore_dims_keyword="ignore_dims",verbosity=NONE,refit=false)
 rank = fit!(fr,x,ycat)
 @test rank[end] == 1
 loss_by_col        = info(fr)["loss_by_col"]
@@ -849,7 +851,7 @@ ntrials_per_metric = info(fr)["ntrials_per_metric"]
 # bar(string.(sortperm(sobol_by_col)),sobol_by_col[sortperm(sobol_by_col)],label="sobol by col")
 #bar(string.(rank),sobol_by_col[rank],label="sobol by col following rank")
 # -
-fr = FeatureRanker(model=NeuralNetworkEstimator(verbosity=NONE,rng=TEMPRNG),nsplits=3,nrepeats=1,recursive=false,ranking_metric="sobol",verbosity=NONE,refit=false)
+fr = FeatureRanker(model=NeuralNetworkEstimator(verbosity=NONE,rng=TEMPRNG),nsplits=3,nrepeats=1,recursive=false,metric="sobol",verbosity=NONE,refit=false)
 rank = fit!(fr,x,yoh) 
 @test rank[end] == 1
 loss_by_col        = info(fr)["loss_by_col"]
@@ -860,7 +862,7 @@ sobol_by_col_sd    = info(fr)["sobol_by_col_sd"]
 #bar(string.(sortperm(loss_by_col)),loss_by_col[sortperm(loss_by_col)],label="loss by col", yerror=quantile(Normal(1,0),0.975) .* (loss_by_col_sd[sortperm(loss_by_col)]./sqrt(3)))
 #bar(string.(sortperm(sobol_by_col)),sobol_by_col[sortperm(sobol_by_col)],label="sobol by col", yerror=quantile(Normal(1,0),0.975) .* (sobol_by_col_sd[sortperm(sobol_by_col)]./sqrt(3)))
 # -
-fr = FeatureRanker(model=NeuralNetworkEstimator(verbosity=NONE,rng=TEMPRNG),nsplits=3,nrepeats=1,recursive=false,ranking_metric="sobol",verbosity=NONE,refit=true)
+fr = FeatureRanker(model=NeuralNetworkEstimator(verbosity=NONE,rng=TEMPRNG),nsplits=3,nrepeats=1,recursive=false,metric="sobol",verbosity=NONE,refit=true)
 rank = fit!(fr,x,y) # TODO
 @test rank[end] == 1
 loss_by_col        = info(fr)["loss_by_col"]

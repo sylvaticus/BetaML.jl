@@ -41,8 +41,8 @@ Currently the following models are available:
 | [`AutoEncoder`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.AutoEncoder) | [`AutoEncoderMLJ`](https://sylvaticus.github.io/BetaML.jl/stable/MLJ_interface.html#BetaML.Bmlj.AutoEncoderMLJ) | _Unsupervised non-linear dimensionality reduction_ |
 | [`OneHotEncoder`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.OneHotEncoder) |  | _Data transformer_ |
 | [`OrdinalEncoder`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.OrdinalEncoder) |  | _Data transformer_ |
-| [`ConfusionMatrix`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.ConfusionMatrix) | | _Predictions assessment_ |
-
+| [`ConfusionMatrix`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.ConfusionMatrix) | | _Predictions analysis_ |
+| [`FeatureRanker`](https://sylvaticus.github.io/BetaML.jl/stable/Utils.html#BetaML.Utils.FeatureRanker) | | _Predictions analysis_ |
 
 Theoretical notes describing many of these algorithms are at the companion repository https://github.com/sylvaticus/MITx_6.86x.
 

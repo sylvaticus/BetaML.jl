@@ -66,7 +66,7 @@ export @codelocation, generate_parallel_rngs,
        OneHotEncoder, OrdinalEncoder, OneHotE_hp,
        @threadsif,
        get_parametric_types, isinteger_bml,
-       FeatureRanker,
+       FeatureRanker, FeatureR_hp,
        online_mean
 
 # Various functions that we add a method to
