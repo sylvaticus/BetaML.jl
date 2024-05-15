@@ -34,7 +34,7 @@ y     = [10*r[1]-r[2]+0.1*r[3]*r[1] for r in eachrow(x) ];
 
 ysort = sort(y)
 ycat  = [(i < ysort[Int(round(N/3))]) ?  "c" :  ( (i < ysort[Int(round(2*N/3))]) ? "a" : "b")  for i in y]
-yoh    = fit!(OneHotEncoder(),ycat)
+yoh    = fit!(OneHotEncoder(),ycat);
 
 # We first try a Random Forest regressor. The BetaML `RandomForestEstimator` model supports a `predict` function with the option to ignore specific dimensions. This allow us to "test" the various variables without retraining the model:
 
@@ -67,7 +67,7 @@ bar(string.(sortperm(sobol_by_col)),sobol_by_col[sortperm(sobol_by_col)],label="
 
 # For Shapley values we need first to have a trained model
 m = RandomForestEstimator()
-fit!(m,x,y)
+fit!(m,x,y);
 
 # We need then to wrap the predict function, accounting with the fact that BetaML models works with standard arrays, while `ShapML` assume data in DataFrame format:
 function predict_function(model, data)
@@ -79,16 +79,16 @@ end
 explain   = DataFrame(x[1:300, :],:auto) 
 reference = DataFrame(x,:auto) 
 
-sample_size = 60  # Number of Monte Carlo samples.
+sample_size = 60 ; # Number of Monte Carlo samples.
 
-# and finally compute the stochastic Shapley values per individual record:
+# ...and finally compute the stochastic Shapley values per individual record:
 data_shap = ShapML.shap(explain = explain,
                         reference = reference,
                         model = m,
                         predict_function = predict_function,
                         sample_size = sample_size,
                         seed = 1
-                        )
+                        );
 # We aggregate the Shape values by feature
 shap_aggregated =combine(groupby(data_shap,[:feature_name])) do subdf 
             (mean_effect = mean(abs.(subdf.shap_effect)), std = std(abs.(subdf.shap_effect)), n = size(subdf,1)  )
@@ -132,11 +132,11 @@ var_names = [
   "B",       # 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town
   "LSTAT",   # % lower status of the population
 ]
-y_name = "MEDV" # Median value of owner-occupied homes in $1000's
+y_name = "MEDV" ;# Median value of owner-occupied homes in $1000's
 
 # Our features are a set of 13 explanatory variables, while the label that we want to estimate is the average housing prices:
 x = Matrix(data[:,1:13])
-y = data[:,14]
+y = data[:,14];
 
 # We use a Random Forest model as regressor and we compute the variable importance for this model as we did for the synthetic data:
 fr = FeatureRanker(model=RandomForestEstimator(),nsplits=3,nrepeats=2,recursive=false)
