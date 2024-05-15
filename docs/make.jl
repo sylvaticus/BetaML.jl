@@ -172,7 +172,7 @@ makedocs(sitename="BetaML.jl Documentation",
               "Utils"                    => "Utils.md",
             ],
             "MLJ interface"            => "MLJ_interface.md",
-            "Benchmarks"               => "Benchmarks.md",
+#            "Benchmarks"               => "Benchmarks.md", #TODO: until https://github.com/IanButterworth/SystemBenchmark.jl/issues/64 is solved
          ],
          format = Documenter.HTML(prettyurls = false, analytics = "G-JYKX8QY5JW"),
          warnonly = true,
