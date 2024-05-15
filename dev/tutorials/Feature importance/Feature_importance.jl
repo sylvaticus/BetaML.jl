@@ -91,7 +91,7 @@ data_shap = ShapML.shap(explain = explain,
                         sample_size = sample_size,
                         seed = 1
                         );
-# We aggregate the Shape values by feature
+# We aggregate the Shape values by feature and plot:
 shap_aggregated =combine(groupby(data_shap,[:feature_name])) do subdf 
             (mean_effect = mean(abs.(subdf.shap_effect)), std = std(abs.(subdf.shap_effect)), n = size(subdf,1)  )
 end    
@@ -153,13 +153,13 @@ loss_fullmodel_sd  = info(fr)["loss_all_cols_sd"]
 ntrials_per_metric = info(fr)["ntrials_per_metric"]
 
 # Finally we can plot the variable importance:
-bar(var_names[sortperm(loss_by_col)], loss_by_col[sortperm(loss_by_col)],label="Loss by var", permute=(:x,:y), yerror=quantile(Normal(1,0),0.975) .* (loss_by_col_sd[sortperm(loss_by_col)]./sqrt(ntrials_per_metric)), yrange=[0,0.5])
+bar(var_names[sortperm(loss_by_col)], loss_by_col[sortperm(loss_by_col)],label="Loss by var", permute=(:x,:y), yerror=quantile(Normal(1,0),0.975) .* (loss_by_col_sd[sortperm(loss_by_col)]./sqrt(ntrials_per_metric)), yrange=[0,0.6])
 vline!([loss_fullmodel], label="Loss with all vars",linewidth=2)
 vline!([loss_fullmodel-quantile(Normal(1,0),0.975) * loss_fullmodel_sd/sqrt(ntrials_per_metric),
         loss_fullmodel+quantile(Normal(1,0),0.975) * loss_fullmodel_sd/sqrt(ntrials_per_metric),
 ], label=nothing,linecolor=:black,linestyle=:dot,linewidth=1)
 
 #-
-bar(var_names[sortperm(sobol_by_col)],sobol_by_col[sortperm(sobol_by_col)],label="Sobol index by col", permute=(:x,:y), yerror=quantile(Normal(1,0),0.975) .* (sobol_by_col_sd[sortperm(sobol_by_col)]./sqrt(ntrials_per_metric)), yrange=[0,0.4])
+bar(var_names[sortperm(sobol_by_col)],sobol_by_col[sortperm(sobol_by_col)],label="Sobol index by col", permute=(:x,:y), yerror=quantile(Normal(1,0),0.975) .* (sobol_by_col_sd[sortperm(sobol_by_col)]./sqrt(ntrials_per_metric)), yrange=[0,0.5])
 
 # As we can see, the two analyses agree on the most important variables, showing that the size of the house (number of rooms), the percentage of low-income population in the neighbourhood and, to a lesser extent, the distance to employment centres are the most important explanatory variables of house price in the Boston area.
