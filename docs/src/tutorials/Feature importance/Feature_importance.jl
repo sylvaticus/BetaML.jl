@@ -1,6 +1,6 @@
 # # [Understanding variable importance in black-box machine learning models](@id variable_importance_tutorial)
 
-# Often we want to understand the contribution of different variables (x columns) to the prediction accuracy of a black-box machine learning model.
+# Often we want to understand the contribution of the different variables (x columns) to the prediction accuracy of a black-box machine learning model.
 # To this end, BetaML 0.12 introduces [`FeatureRanker`](@ref), a flexible variable ranking estimator that employs multiple variable importance metrics. 
 # `FeatureRanker` helps to determine the importance of features in predictions from any black-box machine learning model (not necessarily the BetaML suit), internally using cross-validation to assess the quality of the predictions (`metric="mda"`), or the contribution of the variable to the variance of the predictions (`metric="sobol"`), with or without a given variable.
 
@@ -36,10 +36,12 @@ ysort = sort(y)
 ycat  = [(i < ysort[Int(round(N/3))]) ?  "c" :  ( (i < ysort[Int(round(2*N/3))]) ? "a" : "b")  for i in y]
 yoh    = fit!(OneHotEncoder(),ycat);
 
-# We first try a Random Forest regressor. The BetaML `RandomForestEstimator` model supports a `predict` function with the option to ignore specific dimensions. This allow us to "test" the various variables without retraining the model:
+# We run this example using a Random Forest regressor. The BetaML `RandomForestEstimator` model supports a `predict` function with the option to ignore specific dimensions. This allow us to "test" the various variables without retraining the model:
 
 fr = FeatureRanker(model=RandomForestEstimator(),nsplits=5,nrepeats=1,recursive=false,metric="mda",ignore_dims_keyword="ignore_dims")
-rank = fit!(fr,x,y) # As for the other BetaML models, `fit!` by default returns the predictions, in this case the ranking, avoiding a `predict` call
+
+# We can now fit the `FeatureRanker` to our data. Note that, as for the other BetaML models, `fit!` by default returns the predictions, in this case the ranking, avoiding a separate `predict` call. The returned raking goes from the lowest to the most important variable, according to the given metric.
+rank = fit!(fr,x,y) 
 
 # As expected, the ranking shows `x1` as the most important variable. Let's look in detail at the metrics that we can obtain by querying the model with `info(fr)`:
 
