@@ -219,7 +219,8 @@ function l2loss_by_cv(m,data;nsplits=5,nrepeats=1,rng=Random.GLOBAL_RNG)
         (μ,σ) = cross_validation([x],sampler) do trainData,valData,rng
             (xtrain,) = trainData; (xval,) = valData
             fit!(m,xtrain)
-            x̂val     = inverse_predict(m,xval)
+            x̂val_red = predict(m,xval)
+            x̂val     = inverse_predict(m,x̂val_red)
             ϵ        = norm(xval .- x̂val)/size(xval,1) 
             reset!(m)
             return ismissing(ϵ) ? Inf : ϵ 
