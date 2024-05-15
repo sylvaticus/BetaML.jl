@@ -1,3 +1,6 @@
+TODO: This benchmark page will need to be re-added when the issue with the installation of SystemBenchmarks will be solved
+https://github.com/IanButterworth/SystemBenchmark.jl/issues/64
+
 # [BetaML Benchmarks](@id benchmarks)
 
 This benchmark page allows us to quickly check for regressions across versions.
