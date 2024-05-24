@@ -162,4 +162,4 @@ vline!([loss_fullmodel-quantile(Normal(1,0),0.975) * loss_fullmodel_sd/sqrt(ntri
 #-
 bar(var_names[sortperm(sobol_by_col)],sobol_by_col[sortperm(sobol_by_col)],label="Sobol index by col", permute=(:x,:y), yerror=quantile(Normal(1,0),0.975) .* (sobol_by_col_sd[sortperm(sobol_by_col)]./sqrt(ntrials_per_metric)), yrange=[0,0.5])
 
-# As we can see, the two analyses agree on the most important variables, showing that the size of the house (number of rooms), the percentage of low-income population in the neighbourhood and, to a lesser extent, the distance to employment centres are the most important variables for the estimation of house price in the Boston area.
+# As we can see, the two analyses agree on the most important variables, showing that the size of the house (number of rooms), the percentage of low-income population in the neighbourhood and, to a lesser extent, the distance to employment centres are the most important explanatory variables of house price in the Boston area.
