@@ -167,7 +167,7 @@ Neural Networks |  [Flux.jl](https://fluxml.ai/), [Knet](https://github.com/deni
 Decision Trees | [DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl)
 Clustering | [Clustering.jl](https://github.com/JuliaStats/Clustering.jl), [GaussianMixtures.jl](https://github.com/davidavdav/GaussianMixtures.jl)
 Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl), [Mice.jl](https://github.com/tom-metherell/Mice.jl)
-
+Variable importance | [ShapML.jl](https://github.com/nredell/ShapML.jl)
 
 
 ## TODO
@@ -175,7 +175,7 @@ Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl), [Mice.jl
 ### Short term
 
 - Implement autotuning of `GaussianMixtureClusterer` using  `BIC` or `AIC`
-- Add Silhouette method to check cluster validity
+- <del>Add Silhouette method to check cluster validity</del>
 - Implement PAM and/or variants for kmedoids
 
 ### Mid/Long term
@@ -183,7 +183,7 @@ Missing imputation | [Impute.jl](https://github.com/invenia/Impute.jl), [Mice.jl
 - Add RNN support and improve convolutional layers speed
 - Reinforcement learning (Markov decision processes)
 - Standardize data sampling in training
-- Convert to GPU
+- Add GPU
 
 ## Contribute
 
