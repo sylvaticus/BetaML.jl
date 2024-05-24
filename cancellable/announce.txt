@@ -1,0 +1,85 @@
+@JuliaRegistrator register
+
+Release notes:
+
+- Added `FeatureRanker`, a flexible feature ranking estimator using multiple feature importance metrics
+- new functions `kl_divergence` and `sobol_index`
+- added option to RF/DT models to ignore specific variables in prediction, by following _both_ the splits on nodes occurring on that dimensions, as the keyword `ignore_dims` to the `predict` function
+- added option `sampling_share` to `RandomForestEstimator` model
+- DOC: added Benchmarks (but then temporarily removed due to the issue of SystemBenchmark not installable, see [this issue](https://github.com/IanButterworth/SystemBenchmark.jl/issues/64) )
+- DOC: added `FeatureRanker` tutorial  
+- bugfix on l2loss_by_cv for unsupervised models
+
+
+[Announce]: FeatureRanking: learn which variables contribute the most to the estimation of black box models
+
+I am pleased to announce the availability of [`FeatureRanker`](https://sylvaticus.github.io/BetaML.jl/dev/Utils.html#BetaML.Utils.FeatureRanker), a simple yet flexible feature ranking estimator where different metrics can be used to estimate the importance of individual variables.
+
+Key features: 
+- Choose between loss-based or variance-based (Sobol indices) metrics
+- Choose between _permute and relearn_ or _permute only_ strategies, or exploit the ability of some models (typically tree-based) to "ignore" variables at prediction time.
+- Choose whether to generate the rank in a single stage (a single loop) or recursively, where at each stage the less important variable is "removed".
+- Choose the number of splits and possibly the number of iterations of the splits in the cross-validation used internally to produce the rank
+- Works with any estimator model (not just from the BetaML suit) that can be wrapped in a BetaML-like API (`m=ModelName(hyperparameters...); fit_function(m,x,y); predict_function(m,x)` where `fit_function` and `predict_function` can be specified in the `FeatureRanker` options).
+
+In the following example, we estimate the importance of different variables in predicting house prices using the Boston dataset:
+
+```julia
+# Loading packages...
+using Random, Pipe, HTTP, CSV, DataFrames, Plots, BetaML
+import Distributions: Normal, quantile
+Random.seed!(123)
+
+# We download the Boston house prices dataset from internet and split it into x and y
+dataURL = "https://archive.ics.uci.edu/ml/machine-learning-databases/housing/housing.data"
+data    = @pipe HTTP.get(dataURL).body |> CSV.File(_, delim=' ', header=false, ignorerepeated=true) |> DataFrame
+
+var_names = [
+  "CRIM",    # per capita crime rate by town
+  "ZN",      # proportion of residential land zoned for lots over 25,000 sq.ft.
+  "INDUS",   # proportion of non-retail business acres per town
+  "CHAS",    # Charles River dummy variable (= 1 if tract bounds river; 0 otherwise)
+  "NOX",     # nitric oxides concentration (parts per 10 million)
+  "RM",      # average number of rooms per dwelling
+  "AGE",     # proportion of owner-occupied units built prior to 1940
+  "DIS",     # weighted distances to five Boston employment centres
+  "RAD",     # index of accessibility to radial highways
+  "TAX",     # full-value property-tax rate per $10,000
+  "PTRATIO", # pupil-teacher ratio by town
+  "B",       # 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town
+  "LSTAT",   # % lower status of the population
+]
+y_name = "MEDV" # Median value of owner-occupied homes in $1000's
+
+# Our features are a set of 13 explanatory variables, while the label that we want to estimate is the average housing prices:
+x = Matrix(data[:,1:13])
+y = data[:,14]
+
+# We use a Random Forest model as regressor and we compute the variable importance for this model :
+fr = FeatureRanker(model=RandomForestEstimator(),nsplits=3,nrepeats=2,recursive=false, ignore_dims_keyword="ignore_dims")
+rank = fit!(fr,x,y)
+
+loss_by_col        = info(fr)["loss_by_col"]
+sobol_by_col       = info(fr)["sobol_by_col"]
+loss_by_col_sd     = info(fr)["loss_by_col_sd"]
+sobol_by_col_sd    = info(fr)["sobol_by_col_sd"]
+loss_fullmodel     = info(fr)["loss_all_cols"]
+loss_fullmodel_sd  = info(fr)["loss_all_cols_sd"]
+ntrials_per_metric = info(fr)["ntrials_per_metric"]
+
+# Finally we can plot the variable importance, first using the loss metric ("mda") and then the sobol one:
+bar(var_names[sortperm(loss_by_col)], loss_by_col[sortperm(loss_by_col)],label="Loss by var", permute=(:x,:y), yerror=quantile(Normal(1,0),0.975) .* (loss_by_col_sd[sortperm(loss_by_col)]./sqrt(ntrials_per_metric)), yrange=[0,0.5])
+vline!([loss_fullmodel], label="Loss with all vars",linewidth=2)
+vline!([loss_fullmodel-quantile(Normal(1,0),0.975) * loss_fullmodel_sd/sqrt(ntrials_per_metric),
+        loss_fullmodel+quantile(Normal(1,0),0.975) * loss_fullmodel_sd/sqrt(ntrials_per_metric),
+], label=nothing,linecolor=:black,linestyle=:dot,linewidth=1)
+
+bar(var_names[sortperm(sobol_by_col)],sobol_by_col[sortperm(sobol_by_col)],label="Sobol index by col", permute=(:x,:y), yerror=quantile(Normal(1,0),0.975) .* (sobol_by_col_sd[sortperm(sobol_by_col)]./sqrt(ntrials_per_metric)), yrange=[0,0.4])
+```
+
+As we can see, the two analyses agree on the most important variables, showing that the size of the house (number of rooms), the percentage of low-income population in the neighbourhood and, to a lesser extent, the distance to employment centres are the most important variables for the estimation of house price in the Boston area.
+
+`FeatureRanker` is shipped with the [Beta Machine Learning Toolkit (BetaML.jl)](https://github.com/sylvaticus/BetaML.jl) v0.12.  A tutorial is available [here](https://sylvaticus.github.io/BetaML.jl/dev/tutorials/Feature%20importance/Feature_importance.html).
+
+
+
