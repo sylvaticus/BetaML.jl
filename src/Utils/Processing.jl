@@ -634,7 +634,13 @@ end
 
 function _fit(m::MinMaxScaler,skip,X,cache)
     actualRanges = Tuple{Float64,Float64}[]
-    X_scaled = cache ? float.(X) : nothing 
+    if cache
+      Tout = Union{eltype(X),Float64}
+      X_scaled = Array{Tout,ndims(X)}(undef,size(X))
+      X_scaled .= X
+    else
+      X_scaled = nothing
+    end 
     for (ic,c) in enumerate(eachcol(X))
         if !(ic in skip)
           imin,imax =   (m.inputRange[1](skipmissing(c)),  m.inputRange[2](skipmissing(c)) )
@@ -655,7 +661,13 @@ function _fit(m::StandardScaler,skip,X::AbstractArray,cache)
     nD = (nDims == 1) ? 1 : size(X,2)
     sfμ   = zeros(nD)
     sfσ   = ones(nD)
-    X_scaled = cache ? float.(X) : nothing
+    if cache
+        Tout = Union{eltype(X),Float64}
+        X_scaled = Array{Tout,ndims(X)}(undef,size(X))
+        X_scaled .= X
+      else
+        X_scaled = nothing
+      end 
     for (ic,c) in enumerate(eachcol(X))
         if !(ic in skip)
             μ  = m.center ? mean(skipmissing(c)) : 0.0
@@ -673,7 +685,9 @@ end
 
 function _predict(m::MinMaxScaler,pars::MinMaxScaler_lp,skip,X;inverse=false)
     if !inverse
-        xnew = float.(X)
+        Tout  = Union{eltype(X),Float64}
+        xnew  = Array{Tout,ndims(X)}(undef,size(X))
+        xnew .= X
         for (ic,c) in enumerate(eachcol(X))
             if !(ic in skip)
                 imin,imax = pars.inputRangeApplied[ic]
@@ -696,7 +710,9 @@ function _predict(m::MinMaxScaler,pars::MinMaxScaler_lp,skip,X;inverse=false)
 end
 function _predict(m::StandardScaler,pars::StandardScaler_lp,skip,X;inverse=false)
     if !inverse
-        xnew = float.(X)
+        Tout  = Union{eltype(X),Float64}
+        xnew  = Array{Tout,ndims(X)}(undef,size(X))
+        xnew .= X
         for (ic,c) in enumerate(eachcol(X))
             if !(ic in skip)
                 xnew[:,ic] = (c .+ pars.sfμ[ic]) .* pars.sfσ[ic] 

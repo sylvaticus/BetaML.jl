@@ -245,6 +245,17 @@ m = Scaler()
 X2s1c = fit!(m,X2)
 inverse_predict(m,X2s1c) == X2
 
+# Test for issue #73
+X       = [[4000,1000,2000,3000] ["a", "categorical", "variable", "not to scale"] [4,1,2,3] [0.4, 0.1, 0.2, 0.3]]
+m1     = Scaler(MinMaxScaler(),skip=[2])
+xs1 = fit!(m1,X)
+predict(m1,X)
+inverse_predict(m1,xs1)
+m2     = Scaler(skip=[2])
+xs2 = fit!(m2,X)
+predict(m2,X)
+inverse_predict(m2,xs2)
+
 # ==================================
 # New test
 println("** Testing batch()...")
