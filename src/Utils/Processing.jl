@@ -1392,7 +1392,7 @@ end
 Return the key with highest mode (using rand in case of multimodal values)
 
 """
-function mode(dict::Dict{T,Float64};rng = Random.GLOBAL_RNG) where {T}
+function mode(dict::Dict{T,T2};rng = Random.GLOBAL_RNG) where {T, T2 <: Number}
     mks = [k for (k,v) in dict if v==maximum(values(dict))]
     if length(mks) == 1
         return mks[1]
@@ -1428,15 +1428,22 @@ Use it to return a unique value from a multiclass classifier returning probabili
 - If multiple classes have the highest mode, one is returned at random (use the parameter `rng` to fix the stochasticity)
 
 """
-function mode(dicts::AbstractArray{Dict{T,Float64}};rng = Random.GLOBAL_RNG) where {T}
+function mode(dicts::AbstractArray{AbstractDict{T,<: Number}};rng = Random.GLOBAL_RNG) where {T}
     return mode.(dicts;rng=rng)
 end
 
 function mode(vals::AbstractArray{T,1};rng = Random.GLOBAL_RNG) where {T <: AbstractArray{T2,1} where T2 <: Number}
     return mode.(vals;rng=rng)
 end
+function mode(vals::AbstractArray{T,1};rng = Random.GLOBAL_RNG) where {T <: AbstractDict{T2,<: Number} where T2 }
+    return mode.(vals;rng=rng)
+end
+
 function mode(vals::AbstractArray{T,2};rng = Random.GLOBAL_RNG) where {T <: Number}
     return [mode(r;rng=rng) for r in eachrow(vals)]
+end
+function mode(vals::AbstractArray{T,1};rng = Random.GLOBAL_RNG) where {T}
+    return mode(class_counts_with_labels(vals);rng=rng)
 end
 
 

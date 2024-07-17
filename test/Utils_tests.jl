@@ -3,7 +3,7 @@ import Distributions: Normal
 
 #using StableRNGs
 #rng = StableRNG(123)
-using BetaML
+#using BetaML
 #import BetaML.Utils
 
 TESTRNG = FIXEDRNG # This could change...
@@ -405,6 +405,9 @@ y = [y1,y2]
 @test mode(y,rng=copy(TESTRNG)) == [4,3]
 y = vcat(y1',y2')
 mode(y,rng=copy(TESTRNG)) == [4,3]
+
+x = ["a","b","b","a","d","b"]
+@test mode(x,rng=copy(TESTRNG)) == "b"
 
 # ==================================
 # New test

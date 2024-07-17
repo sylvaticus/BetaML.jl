@@ -1,4 +1,5 @@
 using Test
+using BetaML
 
 #using Pkg # seems Julia bug: can't find pkg `Pkg` !!
 #Pkg.activate(@__DIR__)

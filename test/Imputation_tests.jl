@@ -225,6 +225,21 @@ Xfull2 = BetaML.fit!(mod2,X)
 # predict(mod2,X)
 
 
+rng2 = deepcopy(TESTRNG)
+X = (vcat([[s*2-rand(rng2)/10 s*0.5*(1+rand(rng2)/10) exp(s)] for s in rand(rng2,600)]...))
+X = convert(Matrix{Union{Float64,Missing}},X)
+orig = [X[1,1], X[2,3], X[3,2]]
+X[1,1] = missing # 
+X[2,3] = missing # 
+X[3,2] = missing #
+rng2 = deepcopy(TESTRNG)
+m = GeneralImputer(estimator=NeuralNetworkEstimator(rng=rng2, batch_size=256, epochs=300, verbosity=NONE), rng=rng2)
+x_full = fit!(m,X)
+imputed = [x_full[1,1], x_full[2,3], x_full[3,2]]
+rme = relative_mean_error(orig,imputed)
+@test rme < 0.5
+
+
 
 # ------------------------------------------------------------------------------
 

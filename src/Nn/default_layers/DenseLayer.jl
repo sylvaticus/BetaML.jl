@@ -58,7 +58,7 @@ function _zComp(layer::DenseLayer{TF,DTF,WET},x) where {TF, DTF, WET}
     z  = zeros(WET,size(w,1))
     @inbounds for n in axes(w,1)
         zn = zero(eltype(x))
-        @turbo for nl in axes(x,1)
+        for nl in axes(x,1) # @turbo
             zn += w[n,nl] * x[nl]
         end
         zn   += wb[n]
@@ -70,7 +70,7 @@ end
 function _zComp!(z,layer::DenseLayer{TF,DTF,WET},x) where {TF, DTF, WET}
    @inbounds for n in axes(layer.w,1)
       zn = zero(WET)
-      @turbo for nl in axes(x,1)
+      for nl in axes(x,1) # @turbo
          zn += layer.w[n,nl] * x[nl]
       end
       z[n] += zn
@@ -95,8 +95,8 @@ function backward(layer::DenseLayer{TF,DTF,WET},x,next_gradient) where {TF, DTF,
     else
       dfz = layer.f'.(z) # using AD
     end
-   dϵ_dz = @turbo dfz .* next_gradient
-   dϵ_dI = @turbo layer.w' * dϵ_dz # @avx
+   dϵ_dz = dfz .* next_gradient # @turbo
+   dϵ_dI = layer.w' * dϵ_dz  # @turbo # @avx
    return dϵ_dI
 end
 
@@ -113,8 +113,8 @@ function get_gradient(layer::DenseLayer{TF,DTF,WET},x,next_gradient) where {TF, 
    else
       dfz =  layer.f'.(z) # using AD
    end
-   dϵ_dz  = @turbo  dfz .* next_gradient
-   dϵ_dw  = @turbo dϵ_dz * x' # @avx
+   dϵ_dz  =  dfz .* next_gradient # @turbo 
+   dϵ_dw  =  dϵ_dz * x' # @turbo # @avx
    dϵ_dwb = dϵ_dz
    return Learnable((dϵ_dw,dϵ_dwb))
 end
