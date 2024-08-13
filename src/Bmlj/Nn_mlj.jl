@@ -364,7 +364,7 @@ function MMI.fit(m::NeuralNetworkClassifier, verbosity, X, y)
 function MMI.predict(m::NeuralNetworkClassifier, fitresult, Xnew) 
     nnmod, ohmod = fitresult
     yhat = BetaML.Api.predict(nnmod, MMI.matrix(Xnew))
-    classes = BetaML.Api.parameters(ohmod).categories_applied
+    classes = BetaML.Api.parameters(ohmod).categories
     predictions = MMI.UnivariateFinite(classes, yhat,pool=missing)
     #return yhat
     return predictions

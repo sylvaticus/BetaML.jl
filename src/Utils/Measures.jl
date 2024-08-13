@@ -332,7 +332,7 @@ Base.@kwdef mutable struct ConfusionMatrix_hp <: BetaMLHyperParametersSet
 end
 
 Base.@kwdef mutable struct ConfusionMatrix_lp <: BetaMLLearnableParametersSet
-    categories_applied::Vector = []
+    categories::Vector = []
     original_vector_eltype::Union{Type,Nothing} = nothing 
     scores::Union{Nothing,Matrix{Int64}} = nothing 
   end
@@ -536,13 +536,13 @@ function fit!(m::ConfusionMatrix,Y,Ŷ)
 
 
     if fitted
-        categories_applied = m.par.categories_applied
-        nCl = length(categories_applied)
+        categories = m.par.categories
+        nCl = length(categories)
         scores = m.par.scores
     else
-        categories_applied = isnothing(categories) ? collect(skipmissing(unique(Y))) : deepcopy(categories)
-        handle_unknown == "infrequent" && push!(categories_applied,other_categories_name)
-        nCl = length(categories_applied)
+        categories = isnothing(categories) ? collect(skipmissing(unique(Y))) : deepcopy(categories)
+        handle_unknown == "infrequent" && push!(categories,other_categories_name)
+        nCl = length(categories)
         scores = zeros(Int64,nCl,nCl)
     end
 
@@ -554,13 +554,13 @@ function fit!(m::ConfusionMatrix,Y,Ŷ)
                 continue
             end
         end
-        r = findfirst(x -> isequal(x,Y[n]),categories_applied)
-        c = findfirst(x -> isequal(x,Ŷ[n]),categories_applied)
+        r = findfirst(x -> isequal(x,Y[n]),categories)
+        c = findfirst(x -> isequal(x,Ŷ[n]),categories)
         if isnothing(r)
             if handle_unknown == "error"
                 error("Found a category ($(Y[n])) not present in `categories` and the `handle_unknown` is set to `error`. Perhaps you want to swith it to `infrequent`.")
             elseif handle_unknown == "infrequent"
-                r = length(categories_applied)
+                r = length(categories)
             else
                 error("I don't know how to process `handle_unknown == $(handle_unknown)`")
             end
@@ -569,7 +569,7 @@ function fit!(m::ConfusionMatrix,Y,Ŷ)
             if handle_unknown == "error"
                 error("Found a predicted category ($(Y[n])) not present in `categories` or in the true categories and the `handle_unknown` is set to `error`. Perhaps you want to swith it to `infrequent`.")
             elseif handle_unknown == "infrequent"
-                c = length(categories_applied)
+                c = length(categories)
             else
                 error("I don't know how to process `handle_unknown == $(handle_unknown)`")
             end
@@ -599,7 +599,7 @@ function fit!(m::ConfusionMatrix,Y,Ŷ)
 
     cache && (m.cres = normalise_scores ? normalised_scores : scores)
 
-    m.par = ConfusionMatrix_lp(categories_applied,vtype,scores)
+    m.par = ConfusionMatrix_lp(categories,vtype,scores)
 
     m.info["accuracy"]          = accuracy           # Overall accuracy rate
     m.info["misclassification"] = misclassification  # Overall misclassification rate
@@ -620,7 +620,7 @@ function fit!(m::ConfusionMatrix,Y,Ŷ)
     m.info["mean_specificity"]  = mean_specificity   # Mean by class, respectively unweighted and weighted by actual_count
     m.info["mean_f1score"]      = mean_f1score       # Mean by class, respectively unweighted and weighted by actual_count
 
-    m.info["categories"]        = categories_applied
+    m.info["categories"]        = categories
     m.info["fitted_records"]    = sum(scores)
     m.info["n_categories"]      = nCl
     m.fitted = true

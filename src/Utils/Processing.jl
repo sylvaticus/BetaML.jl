@@ -88,7 +88,7 @@ Base.@kwdef mutable struct OneHotE_hp <: BetaMLHyperParametersSet
 
 end
 Base.@kwdef mutable struct OneHotEncoder_lp <: BetaMLLearnableParametersSet
-  categories_applied::Vector = []
+  categories::Vector = []
   original_vector_eltype::Union{Type,Nothing} = nothing 
 end
 
@@ -272,20 +272,20 @@ function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
         if nonmissingtype(vtype) <: Integer
             minx = minimum(x) 
             maxx = maximum(x)
-            categories_applied = collect(minx:maxx)
+            categories = collect(minx:maxx)
         else
-            categories_applied = collect(skipmissing(unique(x)))
+            categories = collect(skipmissing(unique(x)))
         end
     else
-        categories_applied = deepcopy(categories)
+        categories = deepcopy(categories)
     end
 
-    handle_unknown == "infrequent" && push!(categories_applied,other_categories_name)
-    m.par = OneHotEncoder_lp(categories_applied,vtype)
+    handle_unknown == "infrequent" && push!(categories,other_categories_name)
+    m.par = OneHotEncoder_lp(categories,vtype)
 
     if cache
         if enctype == :onehot
-            K    = length(categories_applied)
+            K    = length(categories)
             outx = fill(false,N,K)
         else 
             K    = 1
@@ -297,7 +297,7 @@ function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
                 outx[n,:] = fill(missing,K)
                 continue
             end
-            kidx = findfirst(y -> isequal(y,x[n]),categories_applied)
+            kidx = findfirst(y -> isequal(y,x[n]),categories)
             if isnothing(kidx)
                 if handle_unknown == "error"
                     error("Found a category ($(x[n])) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to swith it to either `missing` or `infrequent`.")
@@ -306,7 +306,7 @@ function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
                     outx[n,:] = fill(missing,K);
                     continue
                 elseif handle_unknown == "infrequent"
-                    outx[n,K] = (enctype == :onehot) ? true : length(categories_applied)
+                    outx[n,K] = (enctype == :onehot) ? true : length(categories)
                     continue
                 else
                     error("I don't know how to process `handle_unknown == $(handle_unknown)`")
@@ -318,7 +318,7 @@ function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
     end
 
     m.info["fitted_records"] = get(m.info,"fitted_records",0) + size(x,1)
-    m.info["n_categories"]   = length(categories_applied)
+    m.info["n_categories"]   = length(categories)
     m.fitted = true
     return cache ? m.cres : nothing
 end
@@ -332,10 +332,10 @@ function _predict(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
 
     # Parameter aliases
     handle_unknown         = m.hpar.handle_unknown
-    categories_applied     = m.par.categories_applied
+    categories     = m.par.categories
 
     if enctype == :onehot
-        K    = length(categories_applied)
+        K    = length(categories)
         outx = fill(false,N,K)
     else 
         K    = 1
@@ -347,7 +347,7 @@ function _predict(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
             outx[n,:] = fill(missing,K)
             continue
         end
-        kidx = findfirst(y -> isequal(y,x[n]),categories_applied)
+        kidx = findfirst(y -> isequal(y,x[n]),categories)
         if isnothing(kidx)
             if handle_unknown == "error"
                 error("Found a category ($(x[n])) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to swith it to either `missing` or `infrequent`.")
@@ -357,7 +357,7 @@ function _predict(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
                 outx[n,:] = fill(missing,K);
                 continue
             elseif handle_unknown == "infrequent"
-                outx[n,K] = (enctype == :onehot) ? true : length(categories_applied)
+                outx[n,K] = (enctype == :onehot) ? true : length(categories)
                 continue
             else
                 error("I don't know how to process `handle_unknown == $(handle_unknown)`")
@@ -375,17 +375,17 @@ function _predict(m::Union{OneHotEncoder,OrdinalEncoder},x::Vector{<:Dict},encty
     N     = size(x,1)
     # Parameter aliases
     handle_unknown         = m.hpar.handle_unknown
-    categories_applied     = m.par.categories_applied
+    categories     = m.par.categories
 
     if enctype == :onehot
-        K    = length(categories_applied)
+        K    = length(categories)
         outx = fill(0.0,N,K)
     else 
         error("Predictions of a Ordinal Encoded with a vector of dictionary is not supported")
     end
     for n in 1:N
         for (k,v) in x[n]
-            kidx = findfirst(y -> isequal(y,k),categories_applied)
+            kidx = findfirst(y -> isequal(y,k),categories)
             if isnothing(kidx)
                 if handle_unknown == "error"
                     error("Found a category ($(k)) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to swith it to either `missing` or `infrequent`.")
@@ -415,7 +415,7 @@ predict(m::OrdinalEncoder,x) = _predict(m,x,:ordinal)
 function _inverse_predict(m,x,enctype::Symbol)
     # Parameter aliases
     handle_unknown         = m.hpar.handle_unknown
-    categories_applied     = m.par.categories_applied
+    categories     = m.par.categories
     original_vector_eltype = m.par.original_vector_eltype
     other_categories_name  = m.hpar.other_categories_name
     if isnothing(other_categories_name)
@@ -438,16 +438,16 @@ function _inverse_predict(m,x,enctype::Symbol)
                 outx[n] = other_categories_name
                 continue
             end
-            outx[n] = categories_applied[findfirst(c->c==true,x[n,:])]
+            outx[n] = categories[findfirst(c->c==true,x[n,:])]
         else
             if ismissing(x[n])
                 outx[n] = missing
                 continue
-            elseif handle_unknown == "infrequent" && x[n] == length(categories_applied)
+            elseif handle_unknown == "infrequent" && x[n] == length(categories)
                 outx[n] = other_categories_name
                 continue
             end
-            outx[n] = categories_applied[x[n]]
+            outx[n] = categories[x[n]]
         end
     end
     return outx
