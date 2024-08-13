@@ -306,7 +306,7 @@ o1     = forward(l1,X[1,:])
 o1bis  = forward(l1bis,X[1,:])
 @test o1 == [13,13,13,12,12,12,6,7]
 @test o1bis == [1,2,17,17,17,18,18,18]
-o1_1   = forward(l1_1,X[1,1:3])
+o1_1   = forward(l1_1,X[1,1:2])
 @test typeof(o1) == typeof(o1_1)
 
 dϵ_dI    = backward(l1,X[1,:], o1 ./ 10)
@@ -314,12 +314,12 @@ dϵ_dIbis = backward(l1bis,X[1,:], o1bis ./ 10)
 @test dϵ_dI    ≈ [3.9, 3.9,3.6, 3.6, 3.6,0.6, 0.7]
 @test dϵ_dIbis ≈ [0.1,0.2,5.1,5.1,5.4,5.4,5.4]
 
-dϵ_dI_1_1 =  backward(l1_1,X[1,1:3], o1_1 ./ 10)
+dϵ_dI_1_1 =  backward(l1_1,X[1,1:2], o1_1 ./ 10)
 @test typeof(dϵ_dI) == typeof(dϵ_dI_1_1)
 
 g1    = get_gradient(l1,X[1,:], o1 ./ 10)
 g1bis = get_gradient(l1bis,X[1,:], o1bis ./ 10)
-g1_1  = get_gradient(l1_1,X[1,1:3], o1_1 ./ 10)
+g1_1  = get_gradient(l1_1,X[1,1:2], o1_1 ./ 10)
 @test all(g1.data .≈ ([1.3 2.6; 1.3 2.6; 1.3 2.6], [1.3, 1.3, 1.3], [3.6 4.8 6.0; 3.6 4.8 6.0; 3.6 4.8 6.0]))
 @test all(g1bis.data .≈ ([5.1 6.8; 5.1 6.8; 5.1 6.8], [1.7, 1.7, 1.7], [9.0 10.8 12.6; 9.0 10.8 12.6; 9.0 10.8 12.6]))
 @test typeof(g1.data[1:2]) == typeof(g1_1.data)
