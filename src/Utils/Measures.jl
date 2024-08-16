@@ -428,7 +428,7 @@ Normalised scores actual (rows) vs predicted (columns):
   3 clementine     0.800    0.800        0.800    0.800            5               5
 
 - Simple   avg.    0.822    0.822        0.886    0.822
-- Weigthed avg.    0.800    0.800        0.857    0.800
+- Weighted avg.    0.800    0.800        0.857    0.800
 
 -----------------------------------------------------------------
 Output of `info(cm)`:
@@ -667,7 +667,7 @@ function show(io::IO, m::ConfusionMatrix)
         end
         println(io,"")
         print_formatted(io, "- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Simple   avg.",  res["mean_precision"][1], res["mean_recall"][1], res["mean_specificity"][1], res["mean_f1score"][1])
-        print_formatted(io, "- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Weigthed avg.",  res["mean_precision"][2], res["mean_recall"][2], res["mean_specificity"][2], res["mean_f1score"][2])
+        print_formatted(io, "- %-$(labelWidth+2)s %8.3f %8.3f %12.3f %8.3f\n", "Weighted avg.",  res["mean_precision"][2], res["mean_recall"][2], res["mean_specificity"][2], res["mean_f1score"][2])
         println("\n-----------------------------------------------------------------")
         println("Output of `info(cm)`:")
         for (k,v) in info(m)
@@ -722,7 +722,7 @@ There are many ways to compute a relative mean error. In particular, if normrec 
 With both `normdim` and `normrec` set to `false` (default) the function returns the relative mean error; with both set to `true` it returns the mean relative error (i.e. with p=1 the "[mean absolute percentage error (MAPE)](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)")
 The parameter `p` [def: `1`] controls the p-norm used to define the error.
 
-The _mean relative error_ enfatises the relativeness of the error, i.e. all observations and dimensions weigth the same, wether large or small. Conversly, in the _relative mean error_ the same relative error on larger observations (or dimensions) weights more.
+The _mean relative error_ enfatises the relativeness of the error, i.e. all observations and dimensions weight the same, wether large or small. Conversly, in the _relative mean error_ the same relative error on larger observations (or dimensions) weights more.
 
 For example, given `y = [1,44,3]` and `ŷ = [2,45,2]`, the _mean relative error_ `mean_relative_error(y,ŷ,normrec=true)` is `0.452`, while the _relative mean error_ `relative_mean_error(y,ŷ, normrec=false)` is "only" `0.0625`.
 
@@ -735,10 +735,10 @@ function relative_mean_error(y,ŷ;normdim=false,normrec=false,p=1)
     if (!normdim && !normrec) # relative mean error
         avgϵRel = (sum(abs.(ŷ-y).^p)^(1/p) / (n*d)) / (sum( abs.(y) .^p)^(1/p) / (n*d)) # (avg error) / (avg y)
         # avgϵRel = (norm((ŷ-y),p)/(n*d)) / (norm(y,p) / (n*d))
-    elseif (!normdim && normrec) # normalised by record (i.e. all records play the same weigth)
+    elseif (!normdim && normrec) # normalised by record (i.e. all records play the same weight)
         avgϵRel_byRec = (sum(abs.(ŷ-y) .^ (1/p),dims=2).^(1/p) ./ d) ./   (sum(abs.(y) .^ (1/p) ,dims=2) ./d)
         avgϵRel = mean(avgϵRel_byRec)
-    elseif (normdim && !normrec) # normalised by dimensions (i.e.  all dimensions play the same weigth)
+    elseif (normdim && !normrec) # normalised by dimensions (i.e.  all dimensions play the same weight)
         avgϵRel_byDim = (sum(abs.(ŷ-y) .^ (1/p),dims=1).^(1/p) ./ n) ./   (sum(abs.(y) .^ (1/p) ,dims=1) ./n)
         avgϵRel = mean(avgϵRel_byDim)
     else # mean relative error
