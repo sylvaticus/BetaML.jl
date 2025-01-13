@@ -375,7 +375,7 @@ end
         MMI.Table(Union{MMI.Continuous,MMI.Count}),
         AbstractMatrix{<:Union{MMI.Continuous,MMI.Count}},
     },
-    target_scitype = AbstractVector{<: Union{MMI.Multiclass,MMI.Finite,MMI.Count}},
+    target_scitype = AbstractVector{<: Union{MMI.Multiclass,MMI.Finite}},
     supports_weights = false,
     load_path        = "BetaML.Bmlj.NeuralNetworkClassifier"
 )
