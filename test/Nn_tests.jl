@@ -5,7 +5,7 @@ using DelimitedFiles, LinearAlgebra, Statistics #, MLDatasets
 #rng = StableRNG(123)
 using BetaML
 
-import BetaML.Nn: buildNetwork, forward, loss, backward, train!, get_nparams, _get_n_layers_weights
+import BetaML.Nn: buildNetwork, forward, loss, backward, train!, get_nparams, _get_n_layers_weights, random_init
 import BetaML.Nn: ConvLayer, ReshaperLayer # todo: to export it and remove this when completed
 
 TESTRNG = FIXEDRNG # This could change...
@@ -30,6 +30,14 @@ foo = (((((sum(L1a,L1b,L1c) - (L1a + L1b + L1c)) + 10) - 4) * 2 ) / 3) *
 @test (L1a -1).data[1] ≈ (-1 * (1 - L1a)).data[1]
 @test (2 / (L1a / 2)).data[2] ≈ (4/L1a).data[2]
 @test sqrt(L1a).data[1][2,2] == 2.0
+
+l1_1   = DenseLayer(2,3, rng=copy(TESTRNG),f=identity,w=ones(3,2),wb=[10,10,10])
+l1_2   = ConvLayer((14,8),(6,3),3,2,stride=(6,3))
+l1_3   = ReplicatorLayer(2)
+l1     = GroupedLayer([l1_1,l1_2,l1_3])
+p12    = deepcopy(get_params(l1_2))
+BetaML.Nn.random_init!(l1;rng=deepcopy(TESTRNG))
+@test !(p12.data[1] ≈ get_params(l1_2).data[1])
 
 
 # ==================================
@@ -144,7 +152,7 @@ l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0,0,0], f=tanh, df=dtanh,rng=copy(TES
 l2 = DenseNoBiasLayer(3,2, w=[1 1 1; 1 1 1], f=relu, df=drelu,rng=copy(TESTRNG))
 l3 = DenseLayer(2,1, w=[1 1], wb=[0], f=identity,df=didentity,rng=copy(TESTRNG))
 mynn = buildNetwork(deepcopy([l1,l2,l3]),squared_cost,name="Feed-forward Neural Network Model 1",dcf=dsquared_cost)
-train!(mynn,xtrain,ytrain, opt_alg=SGD(η=t -> 1/(1+t),λ=1), batch_size=1,sequential=true,epochs=100,verbosity=NONE,rng=copy(TESTRNG)) # 
+train!(mynn,xtrain,ytrain, opt_alg=SGD(η=t -> 1/(1+t),λ=1), batch_size=1,sequential=true,epochs=100,verbosity=NONE,rng=copy(TESTRNG),onfail="continue") # 
 #@benchmark train!(mynn,xtrain,ytrain,batch_size=1,sequential=true,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1))
 avgLoss = loss(mynn,xtest,ytest)
 @test  avgLoss ≈ 1.599729991966362
@@ -153,7 +161,7 @@ ŷtrain = dropdims(predict(mynn,xtrain),dims=2)
 ŷtest = dropdims(predict(mynn,xtest),dims=2)
 @test any(isapprox(expectedŷtest,ŷtest))
 
-m = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=squared_cost,dloss=dsquared_cost,batch_size=1,shuffle=false,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test")
+m = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=squared_cost,dloss=dsquared_cost,batch_size=1,shuffle=false,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test",onfail="continue")
 fit!(m,xtrain,ytrain)
 ŷtrain2 =  predict(m)
 ŷtrain3 =  predict(m,xtrain)
@@ -572,6 +580,27 @@ train!(mynn,x,y,epochs=40,verbosity=NONE,rng=copy(TESTRNG))
 ŷ        = BetaML.predict(mynn,x)
 rmeTrain = relative_mean_error(y,ŷ,normrec=false)
 @test rmeTrain  < 0.1
+
+# ==================================
+# NEW TEST
+println("Testing onfail strategies....")
+
+xtrain = [0.1 0.2; 0.3 0.5; 0.4 0.1; 0.5 0.4; 0.7 0.9; 0.2 0.1]
+ytrain = [0.3; 0.8; 0.5; 0.9; 1.6; 0.3]
+l1 = DenseLayer(2,3,w=[1 1; 1 1; 1 1], wb=[0,0,0], f=tanh, df=dtanh,rng=copy(TESTRNG))
+l2 = DenseNoBiasLayer(3,2, w=[1 1 1; 1 1 1], f=relu, df=drelu,rng=copy(TESTRNG))
+l3 = DenseLayer(2,1, w=[1 1], wb=[0], f=identity,df=didentity,rng=copy(TESTRNG))
+
+
+m1 = NeuralNetworkEstimator(layers=deepcopy([l1,l2,l3]),loss=squared_cost,dloss=dsquared_cost,batch_size=1,shuffle=false,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test",onfail="error")
+m2 = NeuralNetworkEstimator(layers=deepcopy([l1,l2,l3]),loss=squared_cost,dloss=dsquared_cost,batch_size=1,shuffle=false,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test",onfail="continue")
+m3 = NeuralNetworkEstimator(layers=deepcopy([l1,l2,l3]),loss=squared_cost,dloss=dsquared_cost,batch_size=1,shuffle=false,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test",onfail="stop")
+m4 = NeuralNetworkEstimator(layers=deepcopy([l1,l2,l3]),loss=squared_cost,dloss=dsquared_cost,batch_size=1,shuffle=false,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test",onfail="tryagain")
+
+@test_throws ErrorException("Fitting the model on the data failed. Loss is not decreasing.") fit!(m1,xtrain,ytrain)
+@test relative_mean_error(ytrain,fit!(m2,xtrain,ytrain)) >= 0.4
+@test relative_mean_error(ytrain,fit!(m3,xtrain,ytrain)) >= 0.4
+@test relative_mean_error(ytrain,fit!(m4,xtrain,ytrain)) <= 0.1
 
 a = 1
 #l1       = ReshaperLayer((D,1),(6,6,2))

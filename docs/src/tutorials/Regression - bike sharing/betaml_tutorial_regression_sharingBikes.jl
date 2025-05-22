@@ -334,7 +334,7 @@ D               = size(xtrain,2)
 candidate_structures = [
         [DenseLayer(D,k,f=relu,df=drelu,rng=copy(AFIXEDRNG)),     # Activation function is ReLU, it's derivative is drelu
          DenseLayer(k,k,f=identity,df=identity,rng=copy(AFIXEDRNG)), # This is the hidden layer we vant to test various sizes
-         DenseLayer(k,1,f=relu,df=didentity,rng=copy(AFIXEDRNG))] for k in 5:2:10]
+         DenseLayer(k,1,f=relu,df=drelu,rng=copy(AFIXEDRNG))] for k in 5:2:10]
 
 # Note that specify the derivatives of the activation functions (and of the loss function that we'll see in a moment) it totally optional, as without them BetaML will use [`Zygote.jl`](https://github.com/FluxML/Zygote.jl for automatic differentiation.
 

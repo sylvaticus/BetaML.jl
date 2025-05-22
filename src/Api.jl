@@ -100,6 +100,24 @@ Base.@kwdef mutable struct BML_options <: BetaMLOptionsSet
    autotune::Bool = false
    "The verbosity level to be used in training or prediction: `NONE`, `LOW`, `STD` [default], `HIGH` or `FULL`"
    verbosity::Verbosity = STD
+   """
+   The strategy to apply in case of failure during the fitting (loss not decreasing) [def: "tryagain"].
+   The default is to try again with a new random initialization of the weigths and the batch ("tryagain"). Other valid values are "continue", "stop" and "error". The first ignore the issue, the second one stop the training (but without generateting an error) and the last one stop the fitting and generate an error.
+   Note that this is currently supported only by the NeuralNetworkEstimator. 
+   """
+   onfail::String = "tryagain"
+   """
+   The epoch at which try the onfail strategy [def: `5`]
+   """
+   fail_epoch::Int64 = 5
+   """
+   The (relative) threshold to use for the onfail strategy [def: `0.01`] If the loss doesn't decrease of at least this value, the onfail strategy is applied. Note that this is computed in relation to the loss on the _second_ epoch, so it is not an absolute value. 
+   """
+   fail_threshold::Float64 = 0.01
+   """
+   The maximum number of attempts to use for the tryagain strategy [def: `10`]
+   """
+   fail_attempts::Int64 = 10
    "Random Number Generator (see [`?FIXEDSEED`](@ref FIXEDSEED)) [deafult: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG = Random.GLOBAL_RNG
 end

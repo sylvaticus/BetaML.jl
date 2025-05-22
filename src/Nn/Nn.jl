@@ -273,7 +273,8 @@ function size(layer::AbstractLayer)
     error("Not implemented for this kind of layer. Please implement `size(layer)`.")
 end
 
-"""get_nparams(layer)
+"""
+    get_nparams(layer)
 
 Return the number of parameters of a layer.
 
@@ -287,6 +288,42 @@ function get_nparams(layer::AbstractLayer)
     end
     return nP
 end
+
+"""
+    random_init!(layer;rng)
+
+"Reset" the layer parameters (weights) to random values
+
+It doesn't need to be implemented by each layer type 
+"""
+function random_init!(layer::AbstractLayer;rng=Random.GLOBAL_RNG)
+    pars = get_params(layer)
+    for p in pars.data
+        sizes = size(p)
+        nP = *(sizes...)
+        T = eltype(p)
+        p .= xavier_init(nP,nP,sizes;rng=rng,eltype=T)
+    end
+end
+
+#=
+"""
+$(TYPEDSIGNATURES)
+
+PErform a Xavier initialisation of the weigths
+
+# Parameters:
+- `previous_npar`: number of parameters of the previous layer
+- `this_npar`: number of parameters of this layer
+- `outsize`: tuple with the size of the weigths [def: `(this_npar,previous_npar)`]
+- `rng` : random number generator [def: `Random.GLOBAL_RNG`]
+- `eltype`: eltype of the weigth array [def: `Float64`]
+
+"""
+function xavier_init(previous_npar,this_npar,outsize=(this_npar,previous_npar);rng=Random.GLOBAL_RNG,eltype=Float64)
+=#
+
+
 
 """
 $(TYPEDSIGNATURES)
@@ -362,7 +399,7 @@ function predict(nn::NN,x)
     n = size(x)[1]
     lastlayer_size = size(nn.layers[end])[2]
     length(lastlayer_size) == 1 || error("The last NN layer should always be a single dimension vector. Eventually use `ReshaperLayer` to reshape its output as a vector.")
-    d = lastlayer_size[1]
+    d   = lastlayer_size[1]
     out = zeros(eltype(x),n,d)
     for i in 1:size(x)[1]
         values = selectdim(x,1,i) # x[i,:]
@@ -377,7 +414,7 @@ end
 """
    loss(fnn,x,y)
 
-Low level funciton that compute the avg. network loss on a test set (or a single (1 × d) data point)
+Low level function that compute the avg. network loss on a test set (or a single (1 × d) data point)
 
 # Parameters:
 * `fnn`: Worker network
@@ -625,7 +662,7 @@ Low leval function that trains a neural network with the given x,y data.
 - The verbosity can be set to any of `NONE`,`LOW`,`STD`,`HIGH`,`FULL`.
 - The update is done computing the average gradient for each batch and then calling `single_update!` to let the optimisation algorithm perform the parameters update
 """
-function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential=false, nepochs_ran=0,verbosity::Verbosity=STD, cb=fitting_info, opt_alg::OptimisationAlgorithm=ADAM(),rng = Random.GLOBAL_RNG)#,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0opt_alg::SD=SD())
+function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential=false, nepochs_ran=0,verbosity::Verbosity=STD, cb=fitting_info, onfail="tryagain", fail_epoch=5, fail_threshold=0.01,opt_alg::OptimisationAlgorithm=ADAM(),rng = Random.GLOBAL_RNG)#,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0opt_alg::SD=SD())
     if verbosity > STD
         @codelocation
     end
@@ -645,6 +682,10 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
     θ_epoch   = get_params(nn)
     ϵ_epochs  = Float64[]
     θ_epochs  = []
+
+    ϵ_epoch2      = 0.0
+    ϵ_epoch_fail  = 0.0
+
 
     init_optalg!(opt_alg::OptimisationAlgorithm;θ=get_params(nn),batch_size=batch_size,x=x,y=y)
     if verbosity == NONE
@@ -687,28 +728,52 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
            cbOut = cb(nn,xbatch,ybatch,x,y,n=d,n_batches=n_batches,epochs=epochs,epochs_ran=nepochs_ran,verbosity=verbosity,n_epoch=t,n_batch=i)
            if(res.stop==true || cbOut==true)
                nn.trained = true
-               return (epochs=t,ϵ_epochs=ϵ_epochs,θ_epochs=θ_epochs)
+               return (epochs=t,ϵ_epochs=ϵ_epochs,θ_epochs=θ_epochs,success=true)
            end
+       end # batch end
+       t == 2 && (ϵ_epoch2 = loss(nn,x,y))
+       if t == fail_epoch
+           ϵ_epoch_fail = loss(nn,x,y)
+           if  (ϵ_epoch2 - ϵ_epoch_fail) / ϵ_epoch2 < fail_threshold
+              if onfail == "error"
+                error("Fitting the model on the data failed. Loss is not decreasing.")
+              elseif onfail == "stop"
+                verbosity >= STD && @info "Fitting the model on the data failed. Loss is not decreasing."
+                nn.trained = false
+                return (epochs=t,ϵ_epochs=ϵ_epochs,θ_epochs=θ_epochs,success=false)
+              elseif onfail == "tryagain"
+                verbosity >= STD && @info "Fitting the model on the data failed. Loss is not decreasing. Trying again."
+                nn.trained = false
+                return (epochs=t,ϵ_epochs=ϵ_epochs,θ_epochs=θ_epochs,success=false)
+              end
+            end
        end
+
        if (verbosity >= STD)
            ϵ_epoch_l = ϵ_epoch
            ϵ_epoch = loss(nn,x,y)
-           push!(ϵ_epochs,ϵ_epoch);
+           push!(ϵ_epochs,ϵ_epoch)
+           if isnan(ϵ_epoch)
+                println("Loss is NaN. Stopping training.")
+                nn.trained = false
+                return (epochs=t,ϵ_epochs=ϵ_epochs,θ_epochs=θ_epochs,success=false)
+           end
        end
        if (verbosity > STD)
            θ_epoch_l = θ_epoch
            θ_epoch = get_params(nn)
-           push!(θ_epochs,θ_epoch); end
-    end
+           push!(θ_epochs,θ_epoch);
+        end
+    end # end of epoch
 
     if (verbosity > NONE)
         if verbosity > LOW
             ϵ_epoch = loss(nn,x,y)
         end
         println("Training of $epochs epoch completed. Final epoch error: $(ϵ_epoch).");
-     end
+    end
     nn.trained = true
-    return (epochs=epochs,ϵ_epochs=ϵ_epochs,θ_epochs=θ_epochs)
+    return (epochs=epochs,ϵ_epochs=ϵ_epochs,θ_epochs=θ_epochs,success=true)
 end
 
 """
@@ -856,15 +921,30 @@ Base.@kwdef mutable struct NeuralNetworkE_options
    cache::Bool = true
    "An optional title and/or description for this model"
    descr::String = "" 
-   "The verbosity level to be used in training or prediction (see [`Verbosity`](@ref)) [deafult: `STD`]
-   "
+   "The verbosity level to be used in training or prediction (see [`Verbosity`](@ref)) [deafult: `STD`]"
    verbosity::Verbosity = STD
    "A call back function to provide information during training [def: `fitting_info`"
    cb::Function=fitting_info
    "0ption for hyper-parameters autotuning [def: `false`, i.e. not autotuning performed]. If activated, autotuning is performed on the first `fit!()` call. Controll auto-tuning trough the option `tunemethod` (see the model hyper-parameters)"
    autotune::Bool = false
-   "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
-   "
+   """
+   The strategy to apply in case of failure during the fitting (loss not decreasing) [def: "tryagain"].
+   The default is to try again with a new random initialization of the weigths and the batch ("tryagain"). Other valid values are "continue", "stop" and "error". The first ignore the issue, the second one stop the training (but without generateting an error) and the last one stop the fitting and generate an error.
+   """
+   onfail::String = "tryagain"
+   """
+   The epoch at which try the onfail strategy [def: `5`]
+   """
+   fail_epoch::Int64 = 5
+   """
+   The (relative) threshold to use for the onfail strategy [def: `0.01`] If the loss doesn't decrease of at least this value, the onfail strategy is applied. Note that this is computed in relation to the loss on the _second_ epoch, so it is not an absolute value. 
+   """
+   fail_threshold::Float64 = 0.01
+   """
+   The maximum number of attempts to use for the tryagain strategy [def: `10`]
+   """
+   fail_attempts::Int64 = 10
+   "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG = Random.GLOBAL_RNG
 end
 
@@ -1020,6 +1100,10 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
     verbosity   = m.opt.verbosity
     cb          = m.opt.cb
     rng         = m.opt.rng
+    onfail      = m.opt.onfail
+    fail_epoch  = m.opt.fail_epoch
+    fail_threshold = m.opt.fail_threshold
+    fail_attempts  = m.opt.fail_attempts
     fitted      = m.fitted
 
     nR,nD       = size(X)
@@ -1085,9 +1169,20 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
 
 
     nnstruct = m.par.nnstruct
+    out = ()
+    for a in 1:fail_attempts
+        out = train!(nnstruct,X,Y; epochs=epochs, batch_size=batch_size, sequential=!shuffle, verbosity=verbosity, cb=cb, opt_alg=opt_alg,nepochs_ran=m.info["nepochs_ran"],onfail=onfail,fail_epoch=fail_epoch,fail_threshold=fail_threshold,rng = rng)
 
-
-    out = train!(nnstruct,X,Y; epochs=epochs, batch_size=batch_size, sequential=!shuffle, verbosity=verbosity, cb=cb, opt_alg=opt_alg,nepochs_ran=m.info["nepochs_ran"],rng = rng)
+        out.success && break
+        (onfail == "continue") && break # break as one complete training done, whatever the result
+        (onfail == "stop") && break # break as one training done, whatever the result
+        if a == fail_attempts
+            error("Fitting the model on the data failed. Loss is not decreasing even after $(fail_attempts) attempts.")
+        else
+            layers = m.par.nnstruct.layers
+            random_init!.(layers;rng=rng)
+        end    
+    end
 
     m.info["nepochs_ran"]     += out.epochs
     append!(m.info["loss_per_epoch"],out.ϵ_epochs) 
