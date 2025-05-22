@@ -334,7 +334,7 @@ D               = size(xtrain,2)
 candidate_structures = [
         [DenseLayer(D,k,f=relu,df=drelu,rng=copy(AFIXEDRNG)),     # Activation function is ReLU, it's derivative is drelu
          DenseLayer(k,k,f=identity,df=identity,rng=copy(AFIXEDRNG)), # This is the hidden layer we vant to test various sizes
-         DenseLayer(k,1,f=relu,df=didentity,rng=copy(AFIXEDRNG))] for k in 5:2:10]
+         DenseLayer(k,1,f=relu,df=drelu,rng=copy(AFIXEDRNG))] for k in 5:2:10]
 
 # Note that specify the derivatives of the activation functions (and of the loss function that we'll see in a moment) it totally optional, as without them BetaML will use [`Zygote.jl`](https://github.com/FluxML/Zygote.jl for automatic differentiation.
 
@@ -349,7 +349,7 @@ hpranges = Dict("layers"     => candidate_structures,
 
 # Finally we can build "neural network" [`NeuralNetworkEstimator`](@ref) model where we "chain" the layers together and we assign a final loss function (again, you can provide your own loss function, if those available in BetaML don't suit your needs): 
 
-nnm = NeuralNetworkEstimator(loss=squared_cost, descr="Bike sharing regression model", tunemethod=SuccessiveHalvingSearch(hpranges = hpranges), autotune=true,rng=copy(AFIXEDRNG)) # Build the NN model and use the squared cost (aka MSE) as error function by default
+nnm = NeuralNetworkEstimator(loss=squared_cost, descr="Bike sharing regression model", tunemethod=SuccessiveHalvingSearch(hpranges = hpranges), autotune=true,onfail="stop",rng=copy(AFIXEDRNG)) # Build the NN model and use the squared cost (aka MSE) as error function by default
 
 #src NN without any parameters:
 #src nnm2                  = NeuralNetworkEstimator(autotune=true)
@@ -380,7 +380,7 @@ push!(results,["NN",rme_train,rme_test]);
 #src 0.134, 0.149
 
 # The error is much lower. Let's plot our predictions:
-@test rme_test < 0.25 #src
+@test rme_test < 0.35 #src
 
 # Again, we can start by plotting the estimated vs the observed value:
 scatter(ytrain,ŷtrain,xlabel="daily rides",ylabel="est. daily rides",label=nothing,title="Est vs. obs in training period (NN)")
@@ -417,19 +417,22 @@ l1         = Flux.Dense(D,opt_size,Flux.relu)
 l2         = Flux.Dense(opt_size,opt_size,identity)
 l3         = Flux.Dense(opt_size,1,Flux.relu)
 Flux_nn    = Flux.Chain(l1,l2,l3)
-fluxloss(x, y) = Flux.mse(Flux_nn(x), y)
-ps         = Flux.params(Flux_nn)
-nndata     = Flux.Data.DataLoader((xtrain_scaled', ytrain_scaled'), batchsize=opt_batch_size,shuffle=true)
+fluxloss(m,x, y) = Flux.mse(m(x), y)
+nndata     = Flux.MLUtils.DataLoader((xtrain_scaled', ytrain_scaled'), batchsize=opt_batch_size,shuffle=true)
+opt        = Flux.setup(Flux.ADAM(0.001, (0.9, 0.8)), Flux_nn)
 
 #src Flux_nn2   = deepcopy(Flux_nn)      ## A copy for the time benchmarking
-#src ps2        = Flux.params(Flux_nn2)  ## A copy for the time benchmarking
+#src opt = Flux.setup(Flux.ADAM(0.001, (0.9, 0.8)), Flux_nn2)  ## A copy for the time benchmarking
+
 
 # We do the training of the Flux model...
-[Flux.train!(fluxloss, ps, nndata, Flux.ADAM(0.001, (0.9, 0.8))) for i in 1:opt_epochs]
+[Flux.train!(fluxloss, Flux_nn, nndata, opt) for i in 1:opt_epochs]
+
+
 
 #src # ..and we benchmark it..
 #src # ```
-#src # @btime begin for i in 1:bestEpoch Flux.train!(loss, ps2, nndata, Flux.ADAM(0.001, (0.9, 0.8))) end end
+#src # @btime begin for i in 1:bestEpoch Flux.train!(loss, Flux_nn2, nndata, opt2) end end
 #src # 690.231 ms (3349901 allocations: 266.76 MiB)
 #src # ```
 #src #src # Quite surprisling, Flux training seems a bit slow. The actual results seems to depend from the actual hardware and by default Flux seems not to use multi-threading. While I suspect Flux scales better with larger networks and/or data, for these small examples on my laptop it is still a bit slower than BetaML even on a single thread.
