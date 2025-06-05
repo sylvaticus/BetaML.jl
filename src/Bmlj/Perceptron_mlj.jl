@@ -216,7 +216,7 @@ PegasosClassifier(;
 
 function MMI.fit(model::PerceptronClassifier, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
- allClasses = levels(y)
+ allClasses = unwrap.(levels(y))
  typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
  verbosity = mljverbosity_to_betaml_verbosity(verbosity)
  #initial_coefficients  = length(model.initial_coefficients) == 0 ? zeros(size(x,2)) : model.initial_coefficients
@@ -228,7 +228,7 @@ end
 
 function MMI.fit(model::KernelPerceptronClassifier, verbosity, X, y)
  x          = MMI.matrix(X)                     # convert table to matrix
- allClasses = levels(y)
+ allClasses = unwrap.(levels(y))
  typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
  verbosity = mljverbosity_to_betaml_verbosity(verbosity)
  #initial_errors   = length(model.initial_errors) == 0 ? zeros(Int64,length(y)) : model.initial_errors
@@ -240,7 +240,7 @@ end
 
 function MMI.fit(model::PegasosClassifier, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
- allClasses = levels(y)
+ allClasses = unwrap.(levels(y))
  typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
  verbosity = mljverbosity_to_betaml_verbosity(verbosity)
  #initial_coefficients  = length(model.initial_coefficients) == 0 ? zeros(size(x,2)) : model.initial_coefficients
@@ -255,11 +255,11 @@ end
 function MMI.predict(model::Union{PerceptronClassifier,PegasosClassifier}, fitresult, Xnew)
     fittedModel      = fitresult[1]
     #classes          = CategoricalVector(fittedModel.classes)
-    classes          = fittedModel.classes
+    #classes          = fittedModel.classes
     allClasses       = fitresult[2] # as classes do not includes classes unsees at training time
     nLevels          = length(allClasses)
     nRecords         = MMI.nrows(Xnew)
-    modelPredictions = BetaML.Perceptron.predict(MMI.matrix(Xnew), fittedModel.θ, fittedModel.θ₀, fittedModel.classes)
+    modelPredictions = BetaML.Perceptron.predict(MMI.matrix(Xnew), fittedModel.θ, fittedModel.θ₀, allClasses)
     predMatrix       = zeros(Float64,(nRecords,nLevels))
     # Transform the predictions from a vector of dictionaries to a matrix
     # where the rows are the PMF of each record
@@ -277,12 +277,12 @@ end
 function MMI.predict(model::KernelPerceptronClassifier, fitresult, Xnew)
     fittedModel      = fitresult[1]
     #classes          = CategoricalVector(fittedModel.classes)
-    classes          = fittedModel.classes
+    #classes          = fittedModel.classes
     allClasses       = fitresult[2] # as classes do not includes classes unsees at training time
     nLevels          = length(allClasses)
     nRecords         = MMI.nrows(Xnew)
     #ŷtrain = Perceptron.predict([10 10; 2.2 2.5],model.x,model.y,model.α, model.classes,K=model.K)
-    modelPredictions = BetaML.Perceptron.predict(MMI.matrix(Xnew), fittedModel.x, fittedModel.y, fittedModel.α, fittedModel.classes, K=fittedModel.K)
+    modelPredictions = BetaML.Perceptron.predict(MMI.matrix(Xnew), fittedModel.x, fittedModel.y, fittedModel.α, allClasses, K=fittedModel.K)
     predMatrix       = zeros(Float64,(nRecords,nLevels))
     # Transform the predictions from a vector of dictionaries to a matrix
     # where the rows are the PMF of each record
