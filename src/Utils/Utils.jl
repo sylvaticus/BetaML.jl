@@ -52,7 +52,7 @@ export @codelocation, generate_parallel_rngs,
        dtanh, sigmoid, dsigmoid, softmax, dsoftmax, dmaximum, dmean, pool1d, softplus, dsoftplus, mish, dmish, # exp/trig based functions
        bic, aic,
        autojacobian, match_known_derivatives,
-       squared_cost, dsquared_cost, mse, crossentropy, dcrossentropy, class_counts, kl_divergence, class_counts_with_labels, mean_dicts, mode, gini, entropy, variance, sobol_index,
+       squared_cost, dsquared_cost, mse, mase, crossentropy, dcrossentropy, class_counts, kl_divergence, class_counts_with_labels, mean_dicts, mode, gini, entropy, variance, sobol_index,
        error, accuracy, relative_mean_error,
        ConfusionMatrix, ConfusionMatrix_hp, silhouette,
        cross_validation,

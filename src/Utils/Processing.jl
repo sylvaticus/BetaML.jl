@@ -646,7 +646,7 @@ function _fit(m::MinMaxScaler,skip,X,cache)
           imin,imax =   (m.inputRange[1](skipmissing(c)),  m.inputRange[2](skipmissing(c)) )
           if cache
             omin, omax = m.outputRange[1], m.outputRange[2]
-            X_scaled[:,ic] = (c .- imin) .* ((omax-omin)/(imax-imin)) .+ omin
+            X_scaled[:,ic] .= (c .- imin) .* ((omax-omin)/(imax-imin)) .+ omin
           end
           push!(actualRanges,(imin,imax))
         else
@@ -675,7 +675,7 @@ function _fit(m::StandardScaler,skip,X::AbstractArray,cache)
             sfμ[ic] = - μ
             sfσ[ic] = 1 ./ sqrt.(σ²)
             if cache
-                X_scaled[:,ic] = (c .+ sfμ[ic]) .* sfσ[ic] 
+                X_scaled[:,ic] .= (c .+ sfμ[ic]) .* sfσ[ic] 
             end
         end
     end
@@ -715,7 +715,7 @@ function _predict(m::StandardScaler,pars::StandardScaler_lp,skip,X;inverse=false
         xnew .= X
         for (ic,c) in enumerate(eachcol(X))
             if !(ic in skip)
-                xnew[:,ic] = (c .+ pars.sfμ[ic]) .* pars.sfσ[ic] 
+                xnew[:,ic] .= (c .+ pars.sfμ[ic]) .* pars.sfσ[ic] 
             end
         end
         return xnew
@@ -723,7 +723,7 @@ function _predict(m::StandardScaler,pars::StandardScaler_lp,skip,X;inverse=false
         xorig = deepcopy(X)
         for (ic,c) in enumerate(eachcol(X))
             if !(ic in skip)
-                xorig[:,ic] = (c ./ pars.sfσ[ic] .- pars.sfμ[ic])  
+                xorig[:,ic] .= (c ./ pars.sfσ[ic] .- pars.sfμ[ic])  
             end
         end
         return xorig

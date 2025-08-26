@@ -749,6 +749,50 @@ function relative_mean_error(y,ŷ;normdim=false,normrec=false,p=1)
 end
 
 
+"""
+  mase(y, ŷ;seq=false)
+
+Mean absolute scaled error between y and ŷ.
+
+A relative measure of error that is scale invariant.
+
+If `seq` is `true`, the scaling is done using the in-sample one-step naive forecast method, and the function returns the Mean Absolute Error (MAE) divided by the mean absolute deviation of the difference between consecutive observations of y.
+
+When `seq` is `false` (default), the scaling is done using the in-sample mean and the function returns the Mean Absolute Error (MAE) divided by the mean absolute deviation of y. This is also equal to the relative mean error of the zero-mean, unit variance scaled data.
+
+See [Wikipedia article](https://en.wikipedia.org/wiki/Mean_absolute_scaled_error).
+
+# Notes
+- this function works only for vector data (i.e. single output regression)
+- use `seq=true` for sequential data (e.g. time series)
+
+# Example
+```julia
+julia> using BetaML
+julia> y = [-2, 5, 6, 0, 3, 5, -10, 15, -5];
+julia> ŷ = [0, 4, 5, 1, 2, 4, -8, 18, -6];
+julia> mean_absolute_scaled_error = BetaML.mase(y,ŷ)
+0.2647058823529412
+julia> ms = BetaML.Scaler()
+A Scaler BetaMLModel (unfitted)
+julia> y_s = BetaML.fit!(ms, y);
+julia> ŷ_s = BetaML.predict(ms, ŷ);
+julia> mean_absolute_scaled_error_s = BetaML.relative_mean_error((y_s,ŷ_s)
+0.2647058823529412
+```
+"""
+function mase(y::AbstractVector,ŷ::AbstractVector;seq=false)
+    if seq
+        n = length(y)
+        d = sum(abs.(y[2:end] .- y[1:end-1]))/(n-1)
+    return sum(abs.(y .- ŷ))/ (n*d)
+    else
+        ȳ = mean(y)
+        d = sum(abs.(y .- ȳ))
+        return sum(abs.(y .- ŷ)) / d
+    end
+end
+
 # ------------------------------------------------------------------------------
 # FeatureRanker
 

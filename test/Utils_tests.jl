@@ -290,6 +290,62 @@ avgϵRel = (sum(abs.(ŷ-y).^p)^(1/p) / (n*d)) / (sum( abs.(y) .^p)^(1/p) / (n*d
 @test relative_mean_error(y,ŷ,normdim=false,normrec=false,p=p) == avgϵRel
 
 
+@testset "mase (Mean Absolute Scaled Error) test" begin
+    obs = [-2, 5, 6, 0, 3, 5, -10, 15, -5]
+    est = [0, 4, 5, 1, 2, 4, -8, 18, -6]
+    obs2 = 100 .+ obs / 10
+    est2 = 100 .+ est / 10
+    obsb = vcat(obs,obs,obs,obs)
+    estb = vcat(est,est,est,est)
+    obs2b = vcat(obs2,obs2,obs2,obs2)
+    est2b = vcat(est2,est2,est2,est2)
+
+    rme = BetaML.relative_mean_error(obs,est)
+    rme2 = BetaML.relative_mean_error(obs2,est2)
+    rmeb = BetaML.relative_mean_error(obsb,estb)
+    rme2b = BetaML.relative_mean_error(obs2b,est2b)
+
+    ms = BetaML.Scaler()
+    obss = BetaML.fit!(ms, obs)
+    ests = BetaML.predict(ms, est)
+    rmes =BetaML.relative_mean_error(obss, ests)
+
+    ms2 = BetaML.Scaler()
+    obs2s = BetaML.fit!(ms2, obs2)
+    est2s = BetaML.predict(ms2, est2)
+    rme2s = BetaML.relative_mean_error(obs2s, est2s)
+
+    msb = BetaML.Scaler()
+    obsbs = BetaML.fit!(msb, obsb)
+    estbs = BetaML.predict(msb, estb)
+    rmebs =BetaML.relative_mean_error(obsbs, estbs)
+
+    ms2 = BetaML.Scaler()
+    obs2s = BetaML.fit!(ms2, obs2)
+    est2s = BetaML.predict(ms2, est2)
+    rme2s = BetaML.relative_mean_error(obs2s, est2s)
+
+    ms2b = BetaML.Scaler()
+    obs2bs = BetaML.fit!(ms2b, obs2b)
+    est2bs = BetaML.predict(ms2b, est2b)
+    rme2bs = BetaML.relative_mean_error(obs2bs, est2bs)
+
+    masev_seq = BetaML.mase(obs,est;seq=true)
+    masev2_seq = BetaML.mase(obs2,est2;seq=true)
+    masevb_seq = BetaML.mase(obsb,estb;seq=true)
+    masev2b_seq = BetaML.mase(obs2b,est2b;seq=true)
+
+    @test masevb_seq > masev_seq
+
+    masev = BetaML.mase(obs,est;seq=false)
+    masev2 = BetaML.mase(obs2,est2;seq=false)
+    masevb = BetaML.mase(obsb,estb;seq=false)
+    masev2b = BetaML.mase(obs2b,est2b;seq=false)
+
+    @test masev ≈ masev2b ≈ rme2bs
+
+end
+
 # ==================================
 # New test
 println("** Testing pca()...")

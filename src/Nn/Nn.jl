@@ -1178,9 +1178,9 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
         (onfail == "stop") && break # break as one training done, whatever the result
         if a == fail_attempts
             error("Fitting the model on the data failed. Loss is not decreasing even after $(fail_attempts) attempts.")
-        else
+        elseif ! m.fitted # random reset only if the model has not beeing fitted before
             layers = m.par.nnstruct.layers
-            random_init!.(layers;rng=rng)
+            random_init!.(layers;rng=rng) 
         end    
     end
 
