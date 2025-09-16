@@ -414,7 +414,7 @@ x = [0.12 0.31 0.29 3.21 0.21;
      0.22 0.61 0.58 6.43 0.42;
      0.12 0.31 0.29 3.21 0.21;
      0.44 1.21 1.18 13.54 0.85];
-m    = AutoEncoder(encoded_size=2,layers_size=15,epochs=400,autotune=false) 
+m    = AutoEncoder(encoded_size=2,layers_size=20,epochs=400,autotune=false) 
 x_reduced = fit!(m,x)
 x̂ = inverse_predict(m,x_reduced)
 rme = info(m)["rme"]
