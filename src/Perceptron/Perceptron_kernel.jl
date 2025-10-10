@@ -265,7 +265,9 @@ function predict(x,xtrain,ytrain,α;K=radial_kernel)
         return fill(Dict(classes[1] => 100.0),n)
      end
      nModels = Int((nCl  * (nCl - 1)) / 2)
-     if !(nModels == length(xtrain) == length(ytrain) == length(α)) error("xtrain, ytrain or α have a length not compatible with the number of classes in this model."); end
+     if !(nModels == length(xtrain) == length(ytrain) == length(α)) 
+        error("xtrain, ytrain or α have a length not compatible with the number of classes in this model.");
+     end
      x = makematrix(x)
      d2 = size(xtrain[1],2)
      if (d2 != d) error("xtrain and x must have the same dimensions."); end
