@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Imputation · BetaML.jl Documentation</title><meta name="title" content="Imputation · BetaML.jl Documentation"/><meta property="og:title" content="Imputation · BetaML.jl Documentation"/><meta property="twitter:title" content="Imputation · BetaML.jl Documentation"/><meta name="description" content="Documentation for BetaML.jl Documentation."/><meta property="og:description" content="Documentation for BetaML.jl Documentation."/><meta property="twitter:description" content="Documentation for BetaML.jl Documentation."/><script async src="https://www.googletagmanager.com/gtag/js?id=G-JYKX8QY5JW"></script><script>  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-JYKX8QY5JW', {'page_path': location.pathname + location.search + location.hash});
+</script><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="search_index.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="index.html"><img src="assets/logo.png" alt="BetaML.jl Documentation logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="index.html">BetaML.jl Documentation</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="index.html">Index</a></li><li><span class="tocitem">Tutorial</span><ul><li><a class="tocitem" href="tutorials/Betaml_tutorial_getting_started.html">Getting started</a></li><li><input class="collapse-toggle" id="menuitem-2-2" type="checkbox"/><label class="tocitem" for="menuitem-2-2"><span class="docs-label">Classification - cars</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Classification - cars/betaml_tutorial_classification_cars.html">A classification task when labels are known - determining the country of origin of cars given the cars characteristics</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-3" type="checkbox"/><label class="tocitem" for="menuitem-2-3"><span class="docs-label">Regression - bike sharing</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Regression - bike sharing/betaml_tutorial_regression_sharingBikes.html">A regression task: the prediction of  bike  sharing demand</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-4" type="checkbox"/><label class="tocitem" for="menuitem-2-4"><span class="docs-label">Clustering - Iris</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Clustering - Iris/betaml_tutorial_cluster_iris.html">A clustering task: the prediction of  plant species from floreal measures (the iris dataset)</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-5" type="checkbox"/><label class="tocitem" for="menuitem-2-5"><span class="docs-label">Multi-branch neural network</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Multi-branch neural network/betaml_tutorial_multibranch_nn.html">A deep neural network with multi-branch architecture</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-6" type="checkbox"/><label class="tocitem" for="menuitem-2-6"><span class="docs-label">Feature importance</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Feature importance/Feature_importance.html">Understanding variable importance in black-box machine learning models</a></li></ul></li></ul></li><li><span class="tocitem">API (Reference manual)</span><ul><li><input class="collapse-toggle" id="menuitem-3-1" type="checkbox"/><label class="tocitem" for="menuitem-3-1"><span class="docs-label">API V2 (current)</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="Api_v2_user.html">Introduction for user</a></li><li><input class="collapse-toggle" id="menuitem-3-1-2" type="checkbox"/><label class="tocitem" for="menuitem-3-1-2"><span class="docs-label">For developers</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="Api_v2_developer.html">API implementation</a></li><li><a class="tocitem" href="StyleGuide_templates.html">Style guide</a></li></ul></li><li><a class="tocitem" href="Api.html">The Api module</a></li></ul></li><li><a class="tocitem" href="Perceptron.html">Perceptron</a></li><li><a class="tocitem" href="Trees.html">Trees</a></li><li><a class="tocitem" href="Nn.html">Nn</a></li><li><a class="tocitem" href="Clustering.html">Clustering</a></li><li><a class="tocitem" href="GMM.html">GMM</a></li><li class="is-active"><a class="tocitem" href="Imputation.html">Imputation</a><ul class="internal"><li><a class="tocitem" href="#Module-Index"><span>Module Index</span></a></li><li><a class="tocitem" href="#Detailed-API"><span>Detailed API</span></a></li></ul></li><li><a class="tocitem" href="Utils.html">Utils</a></li></ul></li><li><a class="tocitem" href="MLJ_interface.html">MLJ interface</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">API (Reference manual)</a></li><li class="is-active"><a href="Imputation.html">Imputation</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="Imputation.html">Imputation</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/sylvaticus/BetaML.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/sylvaticus/BetaML.jl/blob/master/docs/src/Imputation.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="imputation_module"><a class="docs-heading-anchor" href="#imputation_module">The BetaML.Imputation Module</a><a id="imputation_module-1"></a><a class="docs-heading-anchor-permalink" href="#imputation_module" title="Permalink"></a></h1><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="BetaML.Imputation" href="#BetaML.Imputation"><code>BetaML.Imputation</code></a> — <span class="docstring-category">Module</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">Imputation module</code></pre><p>Provide various imputation methods for missing data. Note that the interpretation of &quot;missing&quot; can be very wide. For example, reccomendation systems / collaborative filtering (e.g. suggestion of the film to watch) can well be representated as a missing data to impute problem, often with better results than traditional algorithms as k-nearest neighbors (KNN)</p><p>Provided imputers:</p><ul><li><a href="Imputation.html#BetaML.Imputation.SimpleImputer"><code>SimpleImputer</code></a>: Impute data using the feature (column) mean, optionally normalised by l-norms of the records (rows) (fastest)</li><li><a href="Imputation.html#BetaML.Imputation.GaussianMixtureImputer"><code>GaussianMixtureImputer</code></a>: Impute data using a Generative (Gaussian) Mixture Model (good trade off)</li><li><a href="Imputation.html#BetaML.Imputation.RandomForestImputer"><code>RandomForestImputer</code></a>: Impute missing data using Random Forests, with optional replicable multiple imputations (most accurate).</li><li><a href="Imputation.html#BetaML.Imputation.GeneralImputer"><code>GeneralImputer</code></a>: Impute missing data using a vector (one per column) of arbitrary learning models (classifiers/regressors) that implement <code>m = Model([options])</code>, <code>fit!(m,X,Y)</code> and <code>predict(m,X)</code> (not necessarily from <code>BetaML</code>).</li></ul><p>Imputations for all these models can be optained by running <code>mod = ImputatorModel([options])</code>, <code>fit!(mod,X)</code>. The data with the missing values imputed can then be obtained with <code>predict(mod)</code>. Use<code>info(m::Imputer)</code> to retrieve further information concerning the imputation. Trained models can be also used to impute missing values in new data with <code>predict(mox,xNew)</code>. Note that if multiple imputations are run (for the supporting imputators) <code>predict()</code> will return a vector of predictions rather than a single one`.</p><p><strong>Example</strong></p><pre><code class="language-julia hljs">julia&gt; using Statistics, BetaML
+
+julia&gt; X            = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
+6×3 Matrix{Union{Missing, Int64}}:
+    2      missing     10
+ 2000  4000          1000
+ 2000  4000         10000
+    3     5            12
+    4     8            20
+    1     2             5
+
+julia&gt; mod          = RandomForestImputer(multiple_imputations=10,  rng=copy(FIXEDRNG));
+
+julia&gt; fit!(mod,X);
+
+julia&gt; vals         = predict(mod)
+10-element Vector{Matrix{Union{Missing, Int64}}}:
+ [2 3 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
+ [2 4 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
+ [2 4 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
+ [2 136 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
+ [2 137 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
+ [2 4 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
+ [2 4 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
+ [2 4 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
+ [2 137 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
+ [2 137 10; 2000 4000 1000; … ; 4 8 20; 1 2 5]
+
+julia&gt; nR,nC        = size(vals[1])
+(6, 3)
+
+julia&gt; medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
+6×3 Matrix{Float64}:
+    2.0     4.0     10.0
+ 2000.0  4000.0   1000.0
+ 2000.0  4000.0  10000.0
+    3.0     5.0     12.0
+    4.0     8.0     20.0
+    1.0     2.0      5.0
+
+julia&gt; infos        = info(mod);
+
+julia&gt; infos[&quot;n_imputed_values&quot;]
+1</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/sylvaticus/BetaML.jl/blob/5eb287d34fdd0ea9abf169054b21dff047cbc3fa/src/Imputation/Imputation.jl#L14-L80">source</a></section></article><h2 id="Module-Index"><a class="docs-heading-anchor" href="#Module-Index">Module Index</a><a id="Module-Index-1"></a><a class="docs-heading-anchor-permalink" href="#Module-Index" title="Permalink"></a></h2><ul><li><a href="Imputation.html#BetaML.Imputation.GaussianMixtureImputer"><code>BetaML.Imputation.GaussianMixtureImputer</code></a></li><li><a href="Imputation.html#BetaML.Imputation.GeneralI_hp"><code>BetaML.Imputation.GeneralI_hp</code></a></li><li><a href="Imputation.html#BetaML.Imputation.GeneralImputer"><code>BetaML.Imputation.GeneralImputer</code></a></li><li><a href="Imputation.html#BetaML.Imputation.RandomForestI_hp"><code>BetaML.Imputation.RandomForestI_hp</code></a></li><li><a href="Imputation.html#BetaML.Imputation.RandomForestImputer"><code>BetaML.Imputation.RandomForestImputer</code></a></li><li><a href="Imputation.html#BetaML.Imputation.SimpleI_hp"><code>BetaML.Imputation.SimpleI_hp</code></a></li><li><a href="Imputation.html#BetaML.Imputation.SimpleImputer"><code>BetaML.Imputation.SimpleImputer</code></a></li></ul><h2 id="Detailed-API"><a class="docs-heading-anchor" href="#Detailed-API">Detailed API</a><a id="Detailed-API-1"></a><a class="docs-heading-anchor-permalink" href="#Detailed-API" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="BetaML.Imputation.GaussianMixtureImputer" href="#BetaML.Imputation.GaussianMixtureImputer"><code>BetaML.Imputation.GaussianMixtureImputer</code></a> — <span class="docstring-category">Type</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">mutable struct GaussianMixtureImputer &lt;: Imputer</code></pre><p>Missing data imputer that uses a Generative (Gaussian) Mixture Model.</p><p>For the parameters (<code>n_classes</code>,<code>mixtures</code>,..) see  <a href="GMM.html#BetaML.GMM.GaussianMixture_hp"><code>GaussianMixture_hp</code></a>.</p><p><strong>Limitations:</strong></p><ul><li>data must be numerical</li><li>the resulted matrix is a Matrix{Float64}</li><li>currently the Mixtures available do not support random initialisation for missing imputation, and the rest of the algorithm (Expectation-Maximisation) is deterministic, so there is no random component involved (i.e. no multiple imputations)</li></ul><p><strong>Example:</strong></p><pre><code class="language-julia hljs">julia&gt; using BetaML
+
+julia&gt; X = [1 2.5; missing 20.5; 0.8 18; 12 22.8; 0.4 missing; 1.6 3.7];
+
+julia&gt; mod = GaussianMixtureImputer(mixtures=[SphericalGaussian() for i in 1:2])
+GaussianMixtureImputer - A Gaussian Mixture Model based imputer (unfitted)
+
+julia&gt; X_full = fit!(mod,X)
+Iter. 1:        Var. of the post  2.373498171519511       Log-likelihood -29.111866299189792
+6×2 Matrix{Float64}:
+  1.0       2.5
+  6.14905  20.5
+  0.8      18.0
+ 12.0      22.8
+  0.4       4.61314
+  1.6       3.7
+
+julia&gt; info(mod)
+Dict{String, Any} with 7 entries:
+  &quot;xndims&quot;           =&gt; 2
+  &quot;error&quot;            =&gt; [2.3735, 0.17527, 0.0283747, 0.0053147, 0.000981885]
+  &quot;AIC&quot;              =&gt; 57.798
+  &quot;fitted_records&quot;   =&gt; 6
+  &quot;lL&quot;               =&gt; -21.899
+  &quot;n_imputed_values&quot; =&gt; 2
+  &quot;BIC&quot;              =&gt; 56.3403
+
+julia&gt; parameters(mod)
+BetaML.Imputation.GaussianMixtureImputer_lp (a BetaMLLearnableParametersSet struct)
+- mixtures: AbstractMixture[SphericalGaussian{Float64}([1.0179819950570768, 3.0999990977255845], 0.2865287884295908), SphericalGaussian{Float64}([6.149053737674149, 20.43331198167713], 15.18664378248651)]
+- initial_probmixtures: [0.48544987084082347, 0.5145501291591764]
+- probRecords: [0.9999996039918224 3.9600817749531375e-7; 2.3866922376272767e-229 1.0; … ; 0.9127030246369684 0.08729697536303167; 0.9999965964161501 3.403583849794472e-6]</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/sylvaticus/BetaML.jl/blob/5eb287d34fdd0ea9abf169054b21dff047cbc3fa/src/Imputation/Imputation.jl#L273">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="BetaML.Imputation.GeneralI_hp" href="#BetaML.Imputation.GeneralI_hp"><code>BetaML.Imputation.GeneralI_hp</code></a> — <span class="docstring-category">Type</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">mutable struct GeneralI_hp &lt;: BetaMLHyperParametersSet</code></pre><p>Hyperparameters for <a href="Imputation.html#BetaML.Imputation.GeneralImputer"><code>GeneralImputer</code></a></p><p><strong>Parameters:</strong></p><ul><li><p><code>cols_to_impute</code>: Columns in the matrix for which to create an imputation model, i.e. to impute. It can be a vector of columns IDs (positions), or the keywords &quot;auto&quot; (default) or &quot;all&quot;. With &quot;auto&quot; the model automatically detects the columns with missing data and impute only them. You may manually specify the columns or use &quot;all&quot; if you want to create a imputation model for that columns during training even if all training data are non-missing to apply then the training model to further data with possibly missing values.</p></li><li><p><code>estimator</code>: An entimator model (regressor or classifier), with eventually its options (hyper-parameters), to be used to impute the various columns of the matrix. It can also be a <code>cols_to_impute</code>-length vector of different estimators to consider a different estimator for each column (dimension) to impute, for example when some columns are categorical (and will hence require a classifier) and some others are numerical (hence requiring a regressor). [default: <code>nothing</code>, i.e. use BetaML random forests, handling classification and regression jobs automatically].</p></li><li><p><code>missing_supported</code>: Wheter the estimator(s) used to predict the missing data support itself missing data in the training features (X). If not, when the model for a certain dimension is fitted, dimensions with missing data in the same rows of those where imputation is needed are dropped and then only non-missing rows in the other remaining dimensions are considered. It can be a vector of boolean values to specify this property for each individual estimator or a single booleann value to apply to all the estimators [default: <code>false</code>]</p></li><li><p><code>fit_function</code>: The function used by the estimator(s) to fit the model. It should take as fist argument the model itself, as second argument a matrix representing the features, and as third argument a vector representing the labels. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: <code>BetaML.fit!</code>]</p></li><li><p><code>predict_function</code>: The function used by the estimator(s) to predict the labels. It should take as fist argument the model itself and as second argument a matrix representing the features. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: <code>BetaML.predict</code>]</p></li><li><p><code>recursive_passages</code>: Define the number of times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: <code>1</code>].</p></li><li><p><code>multiple_imputations</code>: Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG).</p></li></ul></div><a class="docs-sourcelink" target="_blank" href="https://github.com/sylvaticus/BetaML.jl/blob/5eb287d34fdd0ea9abf169054b21dff047cbc3fa/src/Imputation/Imputation.jl#L799">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="BetaML.Imputation.GeneralImputer" href="#BetaML.Imputation.GeneralImputer"><code>BetaML.Imputation.GeneralImputer</code></a> — <span class="docstring-category">Type</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">mutable struct GeneralImputer &lt;: Imputer</code></pre><p>Impute missing values using arbitrary learning models.</p><p>Impute missing values using any arbitrary learning model (classifier or regressor, not necessarily from BetaML) that implement an interface <code>m = Model([options])</code>, <code>train!(m,X,Y)</code> and <code>predict(m,X)</code>. For non-BetaML supervised models the actual training and predict functions must be specified in the <code>fit_function</code> and <code>predict_function</code> parameters respectively. If needed (for example when some columns with missing data are categorical and some numerical) different models can be specified for each column. Multiple imputations and multiple &quot;passages&quot; trought the various colums for a single imputation are supported. </p><p>See <a href="Imputation.html#BetaML.Imputation.GeneralI_hp"><code>GeneralI_hp</code></a> for all the hyper-parameters.</p><p><strong>Examples:</strong></p><ul><li><em>Using BetaML models</em>:</li></ul><pre><code class="language-julia hljs">julia&gt; using BetaML
+julia&gt; X = [1.4 2.5 &quot;a&quot;; missing 20.5 &quot;b&quot;; 0.6 18 missing; 0.7 22.8 &quot;b&quot;; 0.4 missing &quot;b&quot;; 1.6 3.7 &quot;a&quot;]
+6×3 Matrix{Any}:
+ 1.4        2.5       &quot;a&quot;
+  missing  20.5       &quot;b&quot;
+ 0.6       18         missing
+ 0.7       22.8       &quot;b&quot;
+ 0.4         missing  &quot;b&quot;
+ 1.6        3.7       &quot;a&quot;
+
+ julia&gt; mod = GeneralImputer(recursive_passages=2,multiple_imputations=2)
+ GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted)
+
+ julia&gt; mX_full = fit!(mod,X);
+ ** Processing imputation 1
+ ** Processing imputation 2
+
+ julia&gt; mX_full[1]
+ 6×3 Matrix{Any}:
+  1.4        2.5     &quot;a&quot;
+  0.546722  20.5     &quot;b&quot;
+  0.6       18       &quot;b&quot;
+  0.7       22.8     &quot;b&quot;
+  0.4       19.8061  &quot;b&quot;
+  1.6        3.7     &quot;a&quot;
+
+ julia&gt; mX_full[2]
+ 6×3 Matrix{Any}:
+  1.4        2.5     &quot;a&quot;
+  0.554167  20.5     &quot;b&quot;
+  0.6       18       &quot;b&quot;
+  0.7       22.8     &quot;b&quot;
+  0.4       20.7551  &quot;b&quot;
+  1.6        3.7     &quot;a&quot;
+  
+ julia&gt; info(mod)
+ Dict{String, Any} with 1 entry:
+   &quot;n_imputed_values&quot; =&gt; 3
+ </code></pre><ul><li><em>Using third party packages</em> (in this example <code>DecisionTree</code>):</li></ul><pre><code class="language-julia hljs">julia&gt; using BetaML
+julia&gt; import DecisionTree
+julia&gt; X = [1.4 2.5 &quot;a&quot;; missing 20.5 &quot;b&quot;; 0.6 18 missing; 0.7 22.8 &quot;b&quot;; 0.4 missing &quot;b&quot;; 1.6 3.7 &quot;a&quot;]
+6×3 Matrix{Any}:
+ 1.4        2.5       &quot;a&quot;
+  missing  20.5       &quot;b&quot;
+ 0.6       18         missing
+ 0.7       22.8       &quot;b&quot;
+ 0.4         missing  &quot;b&quot;
+ 1.6        3.7       &quot;a&quot;
+julia&gt; mod = GeneralImputer(estimator=[DecisionTree.DecisionTreeRegressor(),DecisionTree.DecisionTreeRegressor(),DecisionTree.DecisionTreeClassifier()], fit_function = DecisionTree.fit!, predict_function=DecisionTree.predict, recursive_passages=2)
+GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted)
+julia&gt; X_full = fit!(mod,X)
+** Processing imputation 1
+6×3 Matrix{Any}:
+ 1.4    2.5  &quot;a&quot;
+ 0.94  20.5  &quot;b&quot;
+ 0.6   18    &quot;b&quot;
+ 0.7   22.8  &quot;b&quot;
+ 0.4   13.5  &quot;b&quot;
+ 1.6    3.7  &quot;a&quot;</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/sylvaticus/BetaML.jl/blob/5eb287d34fdd0ea9abf169054b21dff047cbc3fa/src/Imputation/Imputation.jl#L831">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="BetaML.Imputation.RandomForestI_hp" href="#BetaML.Imputation.RandomForestI_hp"><code>BetaML.Imputation.RandomForestI_hp</code></a> — <span class="docstring-category">Type</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">mutable struct RandomForestI_hp &lt;: BetaMLHyperParametersSet</code></pre><p>Hyperparameters for <a href="Imputation.html#BetaML.Imputation.RandomForestImputer"><code>RandomForestImputer</code></a></p><p><strong>Parameters:</strong></p><ul><li><p><code>rfhpar::Any</code>: For the underlying random forest algorithm parameters (<code>n_trees</code>,<code>max_depth</code>,<code>min_gain</code>,<code>min_records</code>,<code>max_features:</code>,<code>splitting_criterion</code>,<code>β</code>,<code>initialisation_strategy</code>, <code>oob</code> and <code>rng</code>) see <a href="Trees.html#BetaML.Trees.RandomForestE_hp"><code>RandomForestE_hp</code></a> for the specific RF algorithm parameters</p></li><li><p><code>forced_categorical_cols::Vector{Int64}</code>: Specify the positions of the integer columns to treat as categorical instead of cardinal. [Default: empty vector (all numerical cols are treated as cardinal by default and the others as categorical)]</p></li><li><p><code>recursive_passages::Int64</code>: Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: <code>1</code>].</p></li><li><p><code>multiple_imputations::Int64</code>: Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG).</p></li><li><p><code>cols_to_impute::Union{String, Vector{Int64}}</code>: Columns in the matrix for which to create an imputation model, i.e. to impute. It can be a vector of columns IDs (positions), or the keywords &quot;auto&quot; (default) or &quot;all&quot;. With &quot;auto&quot; the model automatically detects the columns with missing data and impute only them. You may manually specify the columns or use &quot;auto&quot; if you want to create a imputation model for that columns during training even if all training data are non-missing to apply then the training model to further data with possibly missing values.</p></li></ul><p><strong>Example:</strong></p><pre><code class="nohighlight hljs">julia&gt;mod = RandomForestImputer(n_trees=20,max_depth=10,recursive_passages=3)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/sylvaticus/BetaML.jl/blob/5eb287d34fdd0ea9abf169054b21dff047cbc3fa/src/Imputation/Imputation.jl#L466">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="BetaML.Imputation.RandomForestImputer" href="#BetaML.Imputation.RandomForestImputer"><code>BetaML.Imputation.RandomForestImputer</code></a> — <span class="docstring-category">Type</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">mutable struct RandomForestImputer &lt;: Imputer</code></pre><p>Impute missing data using Random Forests, with optional replicable multiple imputations. </p><p>See <a href="Imputation.html#BetaML.Imputation.RandomForestI_hp"><code>RandomForestI_hp</code></a>, <a href="Trees.html#BetaML.Trees.RandomForestE_hp"><code>RandomForestE_hp</code></a> and <a href="Api.html#BetaML.Api.BML_options"><code>BML_options</code></a> for the parameters.</p><p><strong>Notes:</strong></p><ul><li>Given a certain RNG and its status (e.g. <code>RandomForestImputer(...,rng=StableRNG(FIXEDSEED))</code>), the algorithm is completely deterministic, i.e. replicable. </li><li>The algorithm accepts virtually any kind of data, sortable or not</li></ul><p><strong>Example:</strong></p><pre><code class="language-julia hljs">julia&gt; using BetaML
+
+julia&gt; X = [1.4 2.5 &quot;a&quot;; missing 20.5 &quot;b&quot;; 0.6 18 missing; 0.7 22.8 &quot;b&quot;; 0.4 missing &quot;b&quot;; 1.6 3.7 &quot;a&quot;]
+6×3 Matrix{Any}:
+ 1.4        2.5       &quot;a&quot;
+  missing  20.5       &quot;b&quot;
+ 0.6       18         missing
+ 0.7       22.8       &quot;b&quot;
+ 0.4         missing  &quot;b&quot;
+ 1.6        3.7       &quot;a&quot;
+
+julia&gt; mod = RandomForestImputer(n_trees=20,max_depth=10,recursive_passages=2)
+RandomForestImputer - A Random-Forests based imputer (unfitted)
+
+julia&gt; X_full = fit!(mod,X)
+** Processing imputation 1
+6×3 Matrix{Any}:
+ 1.4        2.5     &quot;a&quot;
+ 0.504167  20.5     &quot;b&quot;
+ 0.6       18       &quot;b&quot;
+ 0.7       22.8     &quot;b&quot;
+ 0.4       20.0837  &quot;b&quot;
+ 1.6        3.7     &quot;a&quot;</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/sylvaticus/BetaML.jl/blob/5eb287d34fdd0ea9abf169054b21dff047cbc3fa/src/Imputation/Imputation.jl#L500">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="BetaML.Imputation.SimpleI_hp" href="#BetaML.Imputation.SimpleI_hp"><code>BetaML.Imputation.SimpleI_hp</code></a> — <span class="docstring-category">Type</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">mutable struct SimpleI_hp &lt;: BetaMLHyperParametersSet</code></pre><p>Hyperparameters for the <a href="Imputation.html#BetaML.Imputation.SimpleImputer"><code>SimpleImputer</code></a> model</p><p><strong>Parameters:</strong></p><ul><li><p><code>statistic::Function</code>: The descriptive statistic of the column (feature) to use as imputed value [def: <code>mean</code>]</p></li><li><p><code>norm::Union{Nothing, Int64}</code>: Normalise the feature mean by l-<code>norm</code> norm of the records [default: <code>nothing</code>]. Use it (e.g. <code>norm=1</code> to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries).</p></li></ul></div><a class="docs-sourcelink" target="_blank" href="https://github.com/sylvaticus/BetaML.jl/blob/5eb287d34fdd0ea9abf169054b21dff047cbc3fa/src/Imputation/Imputation.jl#L105">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="BetaML.Imputation.SimpleImputer" href="#BetaML.Imputation.SimpleImputer"><code>BetaML.Imputation.SimpleImputer</code></a> — <span class="docstring-category">Type</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">mutable struct SimpleImputer &lt;: Imputer</code></pre><p>Simple imputer using the missing data&#39;s feature (column) statistic (def: <code>mean</code>), optionally normalised by l-norms of the records (rows)</p><p><strong>Parameters:</strong></p><ul><li><code>statistics</code>: The descriptive statistic of the column (feature) to use as imputed value [def: <code>mean</code>]</li><li><code>norm</code>: Normalise the feature mean by l-<code>norm</code> norm of the records [default: <code>nothing</code>]. Use it (e.g. <code>norm=1</code> to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries).  </li></ul><p><strong>Limitations:</strong></p><ul><li>data must be numerical</li></ul><p><strong>Example:</strong></p><pre><code class="language-julia hljs">julia&gt; using BetaML
+
+julia&gt; X = [2.0 missing 10; 20 40 100]
+2×3 Matrix{Union{Missing, Float64}}:
+  2.0    missing   10.0
+ 20.0  40.0       100.0
+
+julia&gt; mod = SimpleImputer(norm=1)
+SimpleImputer - A simple feature-stat based imputer (unfitted)
+
+julia&gt; X_full = fit!(mod,X)
+2×3 Matrix{Float64}:
+  2.0   4.04494   10.0
+ 20.0  40.0      100.0
+
+julia&gt; info(mod)
+Dict{String, Any} with 1 entry:
+  &quot;n_imputed_values&quot; =&gt; 1
+
+julia&gt; parameters(mod)
+BetaML.Imputation.SimpleImputer_lp (a BetaMLLearnableParametersSet struct)
+- cStats: [11.0, 40.0, 55.0]
+- norms: [6.0, 53.333333333333336]</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/sylvaticus/BetaML.jl/blob/5eb287d34fdd0ea9abf169054b21dff047cbc3fa/src/Imputation/Imputation.jl#L126">source</a></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="GMM.html">« GMM</a><a class="docs-footer-nextpage" href="Utils.html">Utils »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Friday 10 October 2025 12:24">Friday 10 October 2025</span>. Using Julia version 1.6.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

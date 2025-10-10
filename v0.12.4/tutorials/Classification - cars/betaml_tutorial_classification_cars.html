@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>A classification task when labels are known - determining the country of origin of cars given the cars characteristics · BetaML.jl Documentation</title><meta name="title" content="A classification task when labels are known - determining the country of origin of cars given the cars characteristics · BetaML.jl Documentation"/><meta property="og:title" content="A classification task when labels are known - determining the country of origin of cars given the cars characteristics · BetaML.jl Documentation"/><meta property="twitter:title" content="A classification task when labels are known - determining the country of origin of cars given the cars characteristics · BetaML.jl Documentation"/><meta name="description" content="Documentation for BetaML.jl Documentation."/><meta property="og:description" content="Documentation for BetaML.jl Documentation."/><meta property="twitter:description" content="Documentation for BetaML.jl Documentation."/><script async src="https://www.googletagmanager.com/gtag/js?id=G-JYKX8QY5JW"></script><script>  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-JYKX8QY5JW', {'page_path': location.pathname + location.search + location.hash});
+</script><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../index.html"><img src="../../assets/logo.png" alt="BetaML.jl Documentation logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../index.html">BetaML.jl Documentation</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../index.html">Index</a></li><li><span class="tocitem">Tutorial</span><ul><li><a class="tocitem" href="../Betaml_tutorial_getting_started.html">Getting started</a></li><li><input class="collapse-toggle" id="menuitem-2-2" type="checkbox" checked/><label class="tocitem" for="menuitem-2-2"><span class="docs-label">Classification - cars</span><i class="docs-chevron"></i></label><ul class="collapsed"><li class="is-active"><a class="tocitem" href="betaml_tutorial_classification_cars.html">A classification task when labels are known - determining the country of origin of cars given the cars characteristics</a><ul class="internal"><li><a class="tocitem" href="#Library-loading-and-initialisation"><span>Library loading and initialisation</span></a></li><li><a class="tocitem" href="#Data-loading-and-preparation"><span>Data loading and preparation</span></a></li><li><a class="tocitem" href="#Random-Forests"><span>Random Forests</span></a></li><li><a class="tocitem" href="#Perceptron-like-classifiers."><span>Perceptron-like classifiers.</span></a></li><li><a class="tocitem" href="#Summary"><span>Summary</span></a></li></ul></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-3" type="checkbox"/><label class="tocitem" for="menuitem-2-3"><span class="docs-label">Regression - bike sharing</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../Regression - bike sharing/betaml_tutorial_regression_sharingBikes.html">A regression task: the prediction of  bike  sharing demand</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-4" type="checkbox"/><label class="tocitem" for="menuitem-2-4"><span class="docs-label">Clustering - Iris</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../Clustering - Iris/betaml_tutorial_cluster_iris.html">A clustering task: the prediction of  plant species from floreal measures (the iris dataset)</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-5" type="checkbox"/><label class="tocitem" for="menuitem-2-5"><span class="docs-label">Multi-branch neural network</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../Multi-branch neural network/betaml_tutorial_multibranch_nn.html">A deep neural network with multi-branch architecture</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-6" type="checkbox"/><label class="tocitem" for="menuitem-2-6"><span class="docs-label">Feature importance</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../Feature importance/Feature_importance.html">Understanding variable importance in black-box machine learning models</a></li></ul></li></ul></li><li><span class="tocitem">API (Reference manual)</span><ul><li><input class="collapse-toggle" id="menuitem-3-1" type="checkbox"/><label class="tocitem" for="menuitem-3-1"><span class="docs-label">API V2 (current)</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../Api_v2_user.html">Introduction for user</a></li><li><input class="collapse-toggle" id="menuitem-3-1-2" type="checkbox"/><label class="tocitem" for="menuitem-3-1-2"><span class="docs-label">For developers</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../Api_v2_developer.html">API implementation</a></li><li><a class="tocitem" href="../../StyleGuide_templates.html">Style guide</a></li></ul></li><li><a class="tocitem" href="../../Api.html">The Api module</a></li></ul></li><li><a class="tocitem" href="../../Perceptron.html">Perceptron</a></li><li><a class="tocitem" href="../../Trees.html">Trees</a></li><li><a class="tocitem" href="../../Nn.html">Nn</a></li><li><a class="tocitem" href="../../Clustering.html">Clustering</a></li><li><a class="tocitem" href="../../GMM.html">GMM</a></li><li><a class="tocitem" href="../../Imputation.html">Imputation</a></li><li><a class="tocitem" href="../../Utils.html">Utils</a></li></ul></li><li><a class="tocitem" href="../../MLJ_interface.html">MLJ interface</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorial</a></li><li><a class="is-disabled">Classification - cars</a></li><li class="is-active"><a href="betaml_tutorial_classification_cars.html">A classification task when labels are known - determining the country of origin of cars given the cars characteristics</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="betaml_tutorial_classification_cars.html">A classification task when labels are known - determining the country of origin of cars given the cars characteristics</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/sylvaticus/BetaML.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/sylvaticus/BetaML.jl/blob/master/docs/src/tutorials/Classification - cars/betaml_tutorial_classification_cars.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="classification_tutorial"><a class="docs-heading-anchor" href="#classification_tutorial">A classification task when labels are known - determining the country of origin of cars given the cars characteristics</a><a id="classification_tutorial-1"></a><a class="docs-heading-anchor-permalink" href="#classification_tutorial" title="Permalink"></a></h1><p>In this exercise we are provided with several technical characteristics (mpg, horsepower,weight, model year...) for several car&#39;s models, together with the country of origin of such models, and we would like to create a machine learning model such that the country of origin can be accurately predicted given the technical characteristics. As the information to predict is a multi-class one, this is a <em>[classification](https://en.wikipedia.org/wiki/Statistical</em>classification) task. It is a challenging exercise due to the simultaneous presence of three factors: (1) presence of missing data; (2) unbalanced data - 254 out of 406 cars are US made; (3) small dataset.</p><p>Data origin:</p><ul><li>dataset description: <a href="https://archive.ics.uci.edu/ml/datasets/auto+mpg">https://archive.ics.uci.edu/ml/datasets/auto+mpg</a></li><li>data source we use here: <a href="https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data-original">https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data</a></li></ul><p>Field description:</p><ol><li>mpg:           <em>continuous</em></li><li>cylinders:     <em>multi-valued discrete</em></li><li>displacement:  <em>continuous</em></li><li>horsepower:    <em>continuous</em></li><li>weight:        <em>continuous</em></li><li>acceleration:  <em>continuous</em></li><li>model year:    <em>multi-valued discrete</em></li><li>origin:        <em>multi-valued discrete</em></li><li>car name:      <em>string (unique for each instance)</em></li></ol><p>The car name is not used in this tutorial, so that the country is inferred only from technical data. As this field includes also the car maker, and there are several car&#39;s models from the same car maker, a more sophisticated machine learnign model could exploit this information e.g. using a bag of word encoding.</p><h2 id="Library-loading-and-initialisation"><a class="docs-heading-anchor" href="#Library-loading-and-initialisation">Library loading and initialisation</a><a id="Library-loading-and-initialisation-1"></a><a class="docs-heading-anchor-permalink" href="#Library-loading-and-initialisation" title="Permalink"></a></h2><p>Activating the local environment specific to BetaML documentation</p><pre><code class="language-julia hljs">using Pkg
+Pkg.activate(joinpath(@__DIR__,&quot;..&quot;,&quot;..&quot;,&quot;..&quot;))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">  Activating environment at `~/work/BetaML.jl/BetaML.jl/docs/Project.toml`</code></pre><p>We load a buch of packages that we&#39;ll use during this tutorial..</p><pre><code class="language-julia hljs">using Random, HTTP, Plots, CSV, DataFrames, BenchmarkTools, StableRNGs, BetaML
+import DecisionTree, Flux
+import Pipe: @pipe</code></pre><p>Machine Learning workflows include stochastic components in several steps: in the data sampling, in the model initialisation and often in the models&#39;s own algorithms (and sometimes also in the prediciton step). BetaML provides a random nuber generator  (RNG) in order to simplify reproducibility ( <a href="../../Api.html#BetaML.Api.FIXEDRNG"><code>FIXEDRNG</code></a>. This is nothing else than an istance of <code>StableRNG(123)</code> defined in the <a href="../../Utils.html#utils_module"><code>BetaML.Utils</code></a> sub-module, but you can choose of course your own &quot;fixed&quot; RNG). See the <a href="../Betaml_tutorial_getting_started.html#stochasticity_reproducibility">Dealing with stochasticity</a> section in the <a href="../Betaml_tutorial_getting_started.html#getting_started">Getting started</a> tutorial for details.</p><p>Here we are explicit and we use our own fixed RNG:</p><pre><code class="language-julia hljs">seed = 123 # The table at the end of this tutorial has been obtained with seeds 123, 1000 and 10000
+AFIXEDRNG = StableRNG(seed)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StableRNGs.LehmerRNG(state=0x000000000000000000000000000000f7)</code></pre><h2 id="Data-loading-and-preparation"><a class="docs-heading-anchor" href="#Data-loading-and-preparation">Data loading and preparation</a><a id="Data-loading-and-preparation-1"></a><a class="docs-heading-anchor-permalink" href="#Data-loading-and-preparation" title="Permalink"></a></h2><p>To load the data from the internet our workflow is (1) Retrieve the data –&gt; (2) Clean it –&gt; (3) Load it –&gt; (4) Output it as a DataFrame.</p><p>For step (1) we use <code>HTTP.get()</code>, for step (2) we use <code>replace!</code>, for steps (3) and (4) we uses the <code>CSV</code> package, and we use the &quot;pip&quot; <code>|&gt;</code> operator to chain these operations, so that no file is ever saved on disk:</p><pre><code class="language-julia hljs">urlDataOriginal = &quot;https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data-original&quot;
+data = @pipe HTTP.get(urlDataOriginal).body                                                |&gt;
+             replace!(_, UInt8(&#39;\t&#39;) =&gt; UInt8(&#39; &#39;))                                        |&gt; # the original dataset has mixed field delimiters !
+             CSV.File(_, delim=&#39; &#39;, missingstring=&quot;NA&quot;, ignorerepeated=true, header=false) |&gt;
+             DataFrame;</code></pre><p>This results in a table where the rows are the observations (the various cars&#39; models) and the column the fields. All BetaML models expect this layout.</p><p>As the dataset is ordered, we randomly shuffle the data.</p><pre><code class="language-julia hljs">idx = randperm(copy(AFIXEDRNG),size(data,1))
+data[idx, :]
+describe(data)</code></pre><div><div style = "float: left;"><span>9×7 DataFrame</span></div><div style = "clear: both;"></div></div><div class = "data-frame" style = "overflow-x: scroll;"><table class = "data-frame" style = "margin-bottom: 6px;"><thead><tr class = "header"><th class = "rowNumber" style = "font-weight: bold; text-align: right;">Row</th><th style = "text-align: left;">variable</th><th style = "text-align: left;">mean</th><th style = "text-align: left;">min</th><th style = "text-align: left;">median</th><th style = "text-align: left;">max</th><th style = "text-align: left;">nmissing</th><th style = "text-align: left;">eltype</th></tr><tr class = "subheader headerLastRow"><th class = "rowNumber" style = "font-weight: bold; text-align: right;"></th><th title = "Symbol" style = "text-align: left;">Symbol</th><th title = "Union{Nothing, Float64}" style = "text-align: left;">Union…</th><th title = "Any" style = "text-align: left;">Any</th><th title = "Union{Nothing, Float64}" style = "text-align: left;">Union…</th><th title = "Any" style = "text-align: left;">Any</th><th title = "Int64" style = "text-align: left;">Int64</th><th title = "Type" style = "text-align: left;">Type</th></tr></thead><tbody><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">1</td><td style = "text-align: left;">Column1</td><td style = "text-align: left;">23.5146</td><td style = "text-align: left;">9.0</td><td style = "text-align: left;">23.0</td><td style = "text-align: left;">46.6</td><td style = "text-align: right;">8</td><td style = "text-align: left;">Union{Missing, Float64}</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">2</td><td style = "text-align: left;">Column2</td><td style = "text-align: left;">5.47537</td><td style = "text-align: left;">3.0</td><td style = "text-align: left;">4.0</td><td style = "text-align: left;">8.0</td><td style = "text-align: right;">0</td><td style = "text-align: left;">Float64</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">3</td><td style = "text-align: left;">Column3</td><td style = "text-align: left;">194.78</td><td style = "text-align: left;">68.0</td><td style = "text-align: left;">151.0</td><td style = "text-align: left;">455.0</td><td style = "text-align: right;">0</td><td style = "text-align: left;">Float64</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">4</td><td style = "text-align: left;">Column4</td><td style = "text-align: left;">105.082</td><td style = "text-align: left;">46.0</td><td style = "text-align: left;">95.0</td><td style = "text-align: left;">230.0</td><td style = "text-align: right;">6</td><td style = "text-align: left;">Union{Missing, Float64}</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">5</td><td style = "text-align: left;">Column5</td><td style = "text-align: left;">2979.41</td><td style = "text-align: left;">1613.0</td><td style = "text-align: left;">2822.5</td><td style = "text-align: left;">5140.0</td><td style = "text-align: right;">0</td><td style = "text-align: left;">Float64</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">6</td><td style = "text-align: left;">Column6</td><td style = "text-align: left;">15.5197</td><td style = "text-align: left;">8.0</td><td style = "text-align: left;">15.5</td><td style = "text-align: left;">24.8</td><td style = "text-align: right;">0</td><td style = "text-align: left;">Float64</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">7</td><td style = "text-align: left;">Column7</td><td style = "text-align: left;">75.9212</td><td style = "text-align: left;">70.0</td><td style = "text-align: left;">76.0</td><td style = "text-align: left;">82.0</td><td style = "text-align: right;">0</td><td style = "text-align: left;">Float64</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">8</td><td style = "text-align: left;">Column8</td><td style = "text-align: left;">1.56897</td><td style = "text-align: left;">1.0</td><td style = "text-align: left;">1.0</td><td style = "text-align: left;">3.0</td><td style = "text-align: right;">0</td><td style = "text-align: left;">Float64</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">9</td><td style = "text-align: left;">Column9</td><td style = "font-style: italic; text-align: left;"></td><td style = "text-align: left;">amc ambassador brougham</td><td style = "font-style: italic; text-align: left;"></td><td style = "text-align: left;">vw rabbit custom</td><td style = "text-align: right;">0</td><td style = "text-align: left;">String</td></tr></tbody></table></div><p>Columns 1 to 7 contain  characteristics of the car, while column 8 encodes the country or origin (&quot;1&quot; -&gt; US, &quot;2&quot; -&gt; EU, &quot;3&quot; -&gt; Japan). That&#39;s the variable we want to be able to predict.</p><p>Columns 9 contains the car name, but we are not going to use this information in this tutorial. Note also that some fields have missing data.</p><p>Our first step is hence to divide the dataset in features (the x) and the labels (the y) we want to predict. The <code>x</code> is then a Julia standard <code>Matrix</code> of 406 rows by 7 columns and the <code>y</code> is a vector of the 406 observations:</p><pre><code class="language-julia hljs">x     = Matrix{Union{Missing,Float64}}(data[:,1:7]);
+y     = Vector{Int64}(data[:,8]);
+x     = fit!(Scaler(),x)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">406×7 Matrix{Union{Missing, Float64}}:
+ -0.706439   1.47635    1.07088    0.643526   0.620107   -1.25708   -1.58146
+ -1.09075    1.47635    1.48121    1.54744    0.843522   -1.43566   -1.58146
+ -0.706439   1.47635    1.17584    1.16005    0.539725   -1.61424   -1.58146
+ -0.962647   1.47635    1.04225    1.16005    0.536179   -1.25708   -1.58146
+ -0.834543   1.47635    1.02316    0.901788   0.555092   -1.79281   -1.58146
+ -1.09075    1.47635    2.23507    2.39971    1.60951    -1.97139   -1.58146
+ -1.21885    1.47635    2.47364    2.96789    1.62488    -2.32855   -1.58146
+ -1.21885    1.47635    2.34004    2.83876    1.57523    -2.50712   -1.58146
+ -1.21885    1.47635    2.48318    3.09702    1.70881    -1.97139   -1.58146
+ -1.09075    1.47635    1.86291    2.1931     1.02911    -2.50712   -1.58146
+  ⋮                                                       ⋮         
+ -0.194023   0.306793   0.35518    0.178653  -0.17071    -0.292762   1.62356
+  1.08702   -0.862764  -0.484569  -0.234567  -0.371665   -0.578486   1.62356
+  1.59943   -0.862764  -0.570453  -0.544482  -0.720381   -0.899925   1.62356
+  0.446497  -0.862764  -0.417771  -0.389524  -0.0347697   0.635842   1.62356
+  0.446497  -0.862764  -0.52274   -0.492829  -0.223904    0.028678   1.62356
+  2.62426   -0.862764  -0.933072  -1.37092   -1.00408     3.24307    1.62356
+  1.08702   -0.862764  -0.570453  -0.544482  -0.809037   -1.39994    1.62356
+  0.574601  -0.862764  -0.713592  -0.673613  -0.418948    1.10014    1.62356
+  0.958913  -0.862764  -0.723135  -0.596135  -0.30665     1.38587    1.62356</code></pre><p>Some algorithms that we will use today don&#39;t accept missing data, so we need to <em>impute</em> them. BetaML provides several imputation models in the <a href="../../Imputation.html#BetaML.Imputation"><code>Imputation</code></a> module. Note that many of these imputation models can be used for Collaborative Filtering / Recomendation Systems. Models as <a href="../../Imputation.html#BetaML.Imputation.GaussianMixtureImputer"><code>GaussianMixtureImputer</code></a> have the advantage over traditional algorithms as k-nearest neighbors (KNN) that GMM can &quot;detect&quot; the hidden structure of the observed data, where some observation can be similar to a certain pool of other observvations for a certain characteristic, but similar to an other pool of observations for other characteristics. Here we use <a href="../../Imputation.html#BetaML.Imputation.RandomForestImputer"><code>RandomForestImputer</code></a>. While the model allows for reproducible multiple imputations (with the parameter <code>multiple_imputation=an_integer</code>) and multiple passages trough the various columns (fields) containing missing data (with the option <code>recursive_passages=an_integer</code>), we use here just a single imputation and a single passage. As all <code>BetaML</code> models, <code>RandomForestImputer</code> follows the patters <code>m=ModelConstruction(pars); fit!(m,x,[y]); est = predict(m,x)</code> where <code>est</code> can be an estimation of some labels or be some characteristics of x itself (the imputed version, as in this case, a reprojected version as in <a href="../../Utils.html#BetaML.Utils.PCAEncoder"><code>PCAEncoder</code></a>), depending if the model is supervised or not. See the <a href="../../Api_v2_user.html#api_usage"><code>API user documentation</code></a><code>for more details. For imputers, the output of</code>predict<code>is the matrix with the imputed values replacing the missing ones, and we write here the model in a single line using a convenience feature that when the default</code>cache<code>parameter is used in the model constructor the</code>fit!` function returns itself the prediciton over the trained data:</p><pre><code class="language-julia hljs">x = fit!(RandomForestImputer(rng=copy(AFIXEDRNG)),x) # Same as `m = RandomForestImputer(rng=copy(AFIXEDRNG)); fit!(m,x); x= predict(m,x)`</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">406×7 Matrix{Float64}:
+ -0.706439   1.47635    1.07088    0.643526   0.620107   -1.25708   -1.58146
+ -1.09075    1.47635    1.48121    1.54744    0.843522   -1.43566   -1.58146
+ -0.706439   1.47635    1.17584    1.16005    0.539725   -1.61424   -1.58146
+ -0.962647   1.47635    1.04225    1.16005    0.536179   -1.25708   -1.58146
+ -0.834543   1.47635    1.02316    0.901788   0.555092   -1.79281   -1.58146
+ -1.09075    1.47635    2.23507    2.39971    1.60951    -1.97139   -1.58146
+ -1.21885    1.47635    2.47364    2.96789    1.62488    -2.32855   -1.58146
+ -1.21885    1.47635    2.34004    2.83876    1.57523    -2.50712   -1.58146
+ -1.21885    1.47635    2.48318    3.09702    1.70881    -1.97139   -1.58146
+ -1.09075    1.47635    1.86291    2.1931     1.02911    -2.50712   -1.58146
+  ⋮                                                       ⋮         
+ -0.194023   0.306793   0.35518    0.178653  -0.17071    -0.292762   1.62356
+  1.08702   -0.862764  -0.484569  -0.234567  -0.371665   -0.578486   1.62356
+  1.59943   -0.862764  -0.570453  -0.544482  -0.720381   -0.899925   1.62356
+  0.446497  -0.862764  -0.417771  -0.389524  -0.0347697   0.635842   1.62356
+  0.446497  -0.862764  -0.52274   -0.492829  -0.223904    0.028678   1.62356
+  2.62426   -0.862764  -0.933072  -1.37092   -1.00408     3.24307    1.62356
+  1.08702   -0.862764  -0.570453  -0.544482  -0.809037   -1.39994    1.62356
+  0.574601  -0.862764  -0.713592  -0.673613  -0.418948    1.10014    1.62356
+  0.958913  -0.862764  -0.723135  -0.596135  -0.30665     1.38587    1.62356</code></pre><p>Further, some models don&#39;t work with categorical data as well, so we need to represent our <code>y</code> as a matrix with a separate column for each possible categorical value (the so called &quot;one-hot&quot; representation). For example, within a three classes field, the individual value <code>2</code> (or <code>&quot;Europe&quot;</code> for what it matters) would be represented as the vector <code>[0 1 0]</code>, while <code>3</code> (or <code>&quot;Japan&quot;</code>) would become the vector <code>[0 0 1]</code>. To encode as one-hot we use the <a href="../../Utils.html#BetaML.Utils.OneHotEncoder"><code>OneHotEncoder</code></a> in <a href="../../Utils.html#utils_module"><code>BetaML.Utils</code></a>, using the same shortcut as for the imputer we used earlier:</p><pre><code class="language-julia hljs">y_oh  = fit!(OneHotEncoder(),y)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">406×3 Matrix{Bool}:
+ 1  0  0
+ 1  0  0
+ 1  0  0
+ 1  0  0
+ 1  0  0
+ 1  0  0
+ 1  0  0
+ 1  0  0
+ 1  0  0
+ 1  0  0
+ ⋮     
+ 1  0  0
+ 0  0  1
+ 1  0  0
+ 1  0  0
+ 1  0  0
+ 0  1  0
+ 1  0  0
+ 1  0  0
+ 1  0  0</code></pre><p>In supervised machine learning it is good practice to partition the available data in a <em>training</em>, <em>validation</em>, and <em>test</em> subsets, where the first one is used to train the ML algorithm, the second one to train any eventual &quot;hyper-parameters&quot; of the algorithm and the <em>test</em> subset is finally used to evaluate the quality of the algorithm. Here, for brevity, we use only the <em>train</em> and the <em>test</em> subsets, implicitly assuming we already know the best hyper-parameters. Please refer to the <a href="../Regression - bike sharing/betaml_tutorial_regression_sharingBikes.html#regression_tutorial">regression tutorial</a> for examples of the auto-tune feature of BetaML models to &quot;automatically&quot; train the hyper-parameters (hint: in most cases just add the parameter <code>autotune=true</code> in the model constructor), or the <a href="../Clustering - Iris/betaml_tutorial_cluster_iris.html#clustering_tutorial">clustering tutorial</a> for an example of using the <a href="../../Utils.html#BetaML.Utils.cross_validation"><code>cross_validation</code></a> function to do it manually.</p><p>We use then the <a href="../../Utils.html#BetaML.Utils.partition-Union{Tuple{T}, Tuple{AbstractVector{T}, AbstractVector{Float64}}} where T&lt;:AbstractArray"><code>partition</code></a> function in <a href="../../Utils.html#utils_module">BetaML.Utils</a>, where we can specify the different data to partition (each matrix or vector to partition must have the same number of observations) and the shares of observation that we want in each subset. Here we keep 80% of observations for training (<code>xtrain</code>, and <code>ytrain</code>) and we use 20% of them for testing (<code>xtest</code>, and <code>ytest</code>):</p><pre><code class="language-julia hljs">((xtrain,xtest),(ytrain,ytest),(ytrain_oh,ytest_oh)) = partition([x,y,y_oh],[0.8,1-0.8],rng=copy(AFIXEDRNG));</code></pre><p>We finally set up a dataframe to store the accuracies of the various models we&#39;ll use.</p><pre><code class="language-julia hljs">results = DataFrame(model=String[],train_acc=Float64[],test_acc=Float64[])</code></pre><div><div style = "float: left;"><span>0×3 DataFrame</span></div><div style = "clear: both;"></div></div><div class = "data-frame" style = "overflow-x: scroll;"><table class = "data-frame" style = "margin-bottom: 6px;"><thead><tr class = "header"><th class = "rowNumber" style = "font-weight: bold; text-align: right;">Row</th><th style = "text-align: left;">model</th><th style = "text-align: left;">train_acc</th><th style = "text-align: left;">test_acc</th></tr><tr class = "subheader headerLastRow"><th class = "rowNumber" style = "font-weight: bold; text-align: right;"></th><th title = "String" style = "text-align: left;">String</th><th title = "Float64" style = "text-align: left;">Float64</th><th title = "Float64" style = "text-align: left;">Float64</th></tr></thead><tbody></tbody></table></div><h2 id="Random-Forests"><a class="docs-heading-anchor" href="#Random-Forests">Random Forests</a><a id="Random-Forests-1"></a><a class="docs-heading-anchor-permalink" href="#Random-Forests" title="Permalink"></a></h2><p>We are now ready to use our first model, the <a href="../../Trees.html#BetaML.Trees.RandomForestEstimator"><code>RandomForestEstimator</code></a>. Random Forests build a &quot;forest&quot; of decision trees models and then average their predictions in order to make an overall prediction, wheter a regression or a classification.</p><p>While here the missing data has been imputed and the dataset is comprised of only numerical values, one attractive feature of BetaML <code>RandomForestEstimator</code> is that they can work directly with missing and categorical data without any prior processing required.</p><p>However as the labels are encoded using integers, we need also to specify the parameter <code>force_classification=true</code>, otherwise the model would undergo a <em>regression</em> job instead.</p><pre><code class="language-julia hljs">rfm      = RandomForestEstimator(force_classification=true, rng=copy(AFIXEDRNG))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">RandomForestEstimator - A 30 trees Random Forest model (unfitted)</code></pre><p>Opposite to the <code>RandomForestImputer</code> and <code>OneHotEncoder</code> models used earielr, to train a <code>RandomForestEstimator</code> model we need to provide it with both the training feature matrix and the associated &quot;true&quot; training labels. We use the same shortcut to get the training predictions directly from the <code>fit!</code> function. In this case the predictions correspond to the labels:</p><pre><code class="language-julia hljs">ŷtrain   = fit!(rfm,xtrain,ytrain)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">325-element Vector{Dict{Int64, Float64}}:
+ Dict(2 =&gt; 0.06666666666666667, 3 =&gt; 0.8666666666666666, 1 =&gt; 0.06666666666666667)
+ Dict(1 =&gt; 0.9999999999999999)
+ Dict(2 =&gt; 0.9999999999999999)
+ Dict(2 =&gt; 0.05, 3 =&gt; 0.16666666666666666, 1 =&gt; 0.7833333333333332)
+ Dict(2 =&gt; 0.8666666666666666, 3 =&gt; 0.1, 1 =&gt; 0.03333333333333333)
+ Dict(1 =&gt; 0.9999999999999999)
+ Dict(2 =&gt; 0.2333333333333333, 3 =&gt; 0.6666666666666666, 1 =&gt; 0.1)
+ Dict(1 =&gt; 0.9999999999999999)
+ Dict(1 =&gt; 0.9999999999999999)
+ Dict(2 =&gt; 0.3, 3 =&gt; 0.03333333333333333, 1 =&gt; 0.6666666666666666)
+ ⋮
+ Dict(1 =&gt; 0.9999999999999999)
+ Dict(2 =&gt; 0.08333333333333334, 3 =&gt; 0.9166666666666665)
+ Dict(3 =&gt; 0.05, 1 =&gt; 0.9499999999999998)
+ Dict(1 =&gt; 0.9999999999999999)
+ Dict(1 =&gt; 0.9999999999999999)
+ Dict(2 =&gt; 0.8999999999999999, 3 =&gt; 0.08333333333333334, 1 =&gt; 0.016666666666666666)
+ Dict(1 =&gt; 0.9999999999999999)
+ Dict(3 =&gt; 0.9999999999999999)
+ Dict(2 =&gt; 0.05, 3 =&gt; 0.9499999999999998)</code></pre><p>You can notice that for each record the result is reported in terms of a dictionary with the possible categories and their associated probabilities.</p><div class="admonition is-warning" id="Warning-68aeb5221aeec34"><header class="admonition-header">Warning<a class="admonition-anchor" href="#Warning-68aeb5221aeec34" title="Permalink"></a></header><div class="admonition-body"><p>Only categories with non-zero probabilities are reported for each record, and being a dictionary, the order of the categories is not undefined</p></div></div><p>For example <code>ŷtrain[1]</code> is a <code>Dict(2 =&gt; 0.0333333, 3 =&gt; 0.933333, 1 =&gt; 0.0333333)</code>, indicating an overhelming probability that that car model originates from Japan. To retrieve the predictions with the highest probabilities use <code>mode(ŷ)</code>:</p><pre><code class="language-julia hljs">ŷtrain_top = mode(ŷtrain,rng=copy(AFIXEDRNG))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">325-element Vector{Int64}:
+ 3
+ 1
+ 2
+ 1
+ 2
+ 1
+ 3
+ 1
+ 1
+ 1
+ ⋮
+ 1
+ 3
+ 1
+ 1
+ 1
+ 2
+ 1
+ 3
+ 3</code></pre><p>Why <code>mode</code> takes (optionally) a RNG ? I let the answer for you :-)</p><p>To obtain the predicted labels for the test set we simply run the <code>predict</code> function over the features of the test set:</p><pre><code class="language-julia hljs">ŷtest   = predict(rfm,xtest)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">81-element Vector{Dict{Int64, Float64}}:
+ Dict(2 =&gt; 0.6, 3 =&gt; 0.13333333333333333, 1 =&gt; 0.26666666666666666)
+ Dict(2 =&gt; 0.6, 3 =&gt; 0.03333333333333333, 1 =&gt; 0.36666666666666664)
+ Dict(2 =&gt; 0.6833333333333332, 3 =&gt; 0.1, 1 =&gt; 0.21666666666666665)
+ Dict(1 =&gt; 0.9999999999999999)
+ Dict(2 =&gt; 0.1, 3 =&gt; 0.3333333333333333, 1 =&gt; 0.5666666666666667)
+ Dict(3 =&gt; 0.03333333333333333, 1 =&gt; 0.9666666666666666)
+ Dict(2 =&gt; 0.24999999999999997, 3 =&gt; 0.7499999999999999)
+ Dict(2 =&gt; 0.47222222222222215, 3 =&gt; 0.13333333333333333, 1 =&gt; 0.3944444444444444)
+ Dict(2 =&gt; 0.03333333333333333, 3 =&gt; 0.03333333333333333, 1 =&gt; 0.9333333333333332)
+ Dict(1 =&gt; 0.9999999999999999)
+ ⋮
+ Dict(2 =&gt; 0.06666666666666667, 1 =&gt; 0.9333333333333332)
+ Dict(1 =&gt; 0.9999999999999999)
+ Dict(2 =&gt; 0.21666666666666665, 3 =&gt; 0.7166666666666666, 1 =&gt; 0.06666666666666667)
+ Dict(1 =&gt; 0.9999999999999999)
+ Dict(1 =&gt; 0.9999999999999999)
+ Dict(2 =&gt; 0.18333333333333332, 3 =&gt; 0.49999999999999994, 1 =&gt; 0.31666666666666665)
+ Dict(2 =&gt; 0.08333333333333334, 3 =&gt; 0.8999999999999999, 1 =&gt; 0.016666666666666666)
+ Dict(2 =&gt; 0.18333333333333332, 3 =&gt; 0.5666666666666667, 1 =&gt; 0.24999999999999997)
+ Dict(1 =&gt; 0.9999999999999999)</code></pre><p>Finally we can measure the <em>accuracy</em> of our predictions with the <a href="../../Utils.html#BetaML.Utils.accuracy-Union{Tuple{T}, Tuple{AbstractVector{Int64}, AbstractMatrix{T}}} where T&lt;:Number"><code>accuracy</code></a> function. We don&#39;t need to explicitly use <code>mode</code>, as <code>accuracy</code> does it itself when it is passed with predictions expressed as a dictionary:</p><pre><code class="language-julia hljs">trainAccuracy,testAccuracy  = accuracy.([ytrain,ytest],[ŷtrain,ŷtest],rng=copy(AFIXEDRNG))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
+ 1.0
+ 0.7283950617283951</code></pre><p>We are now ready to store our first model accuracies in the <code>results</code> dataframe:</p><pre><code class="language-julia hljs">push!(results,[&quot;RF&quot;,trainAccuracy,testAccuracy]);</code></pre><p>The predictions are quite good, for the training set the algoritm predicted almost all cars&#39; origins correctly, while for the testing set (i.e. those records that has <strong>not</strong> been used to train the algorithm), the correct prediction level is still quite high, at around 80% (depends on the random seed)</p><p>While accuracy can sometimes suffice, we may often want to better understand which categories our model has trouble to predict correctly. We can investigate the output of a multi-class classifier more in-deep with a <a href="../../Utils.html#BetaML.Utils.ConfusionMatrix"><code>ConfusionMatrix</code></a> where the true values (<code>y</code>) are given in rows and the predicted ones (<code>ŷ</code>) in columns, together to some per-class metrics like the <em>precision</em> (true class <em>i</em> over predicted in class <em>i</em>), the <em>recall</em> (predicted class <em>i</em> over the true class <em>i</em>) and others.</p><p>We fist build the <a href="../../Utils.html#BetaML.Utils.ConfusionMatrix"><code>ConfusionMatrix</code></a> model, we train it with <code>ŷ</code> and <code>y</code> and then we print it (we do it here for the test subset):</p><pre><code class="language-julia hljs">cfm = ConfusionMatrix(categories_names=Dict(1=&gt;&quot;US&quot;,2=&gt;&quot;EU&quot;,3=&gt;&quot;Japan&quot;),rng=copy(AFIXEDRNG))
+fit!(cfm,ytest,ŷtest) # the output is by default the confusion matrix in relative terms
+print(cfm)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">A ConfusionMatrix BetaMLModel (fitted)
+
+-----------------------------------------------------------------
+
+*** CONFUSION MATRIX ***
+
+Scores actual (rows) vs predicted (columns):
+
+4×4 Matrix{Any}:
+ &quot;Labels&quot;   &quot;EU&quot;    &quot;US&quot;   &quot;Japan&quot;
+ &quot;EU&quot;      8       5      3
+ &quot;US&quot;      2      44      3
+ &quot;Japan&quot;   2       7      7
+Normalised scores actual (rows) vs predicted (columns):
+
+4×4 Matrix{Any}:
+ &quot;Labels&quot;   &quot;EU&quot;       &quot;US&quot;      &quot;Japan&quot;
+ &quot;EU&quot;      0.5        0.3125    0.1875
+ &quot;US&quot;      0.0408163  0.897959  0.0612245
+ &quot;Japan&quot;   0.125      0.4375    0.4375
+
+ *** CONFUSION REPORT ***
+
+- Accuracy:               0.7283950617283951
+- Misclassification rate: 0.2716049382716049
+- Number of classes:      3
+
+  N Class   precision   recall  specificity  f1score  actual_count  predicted_count
+                          TPR       TNR                 support
+
+  1 EU          0.667    0.500        0.938    0.571           16              12
+  2 US          0.786    0.898        0.625    0.838           49              56
+  3 Japan       0.538    0.438        0.908    0.483           16              13
+
+- Simple   avg.    0.664    0.612        0.824    0.631
+- Weighted avg.    0.713    0.728        0.743    0.715
+
+-----------------------------------------------------------------
+Output of `info(cm)`:
+- mean_precision:	(0.6636141636141636, 0.7133586578031021)
+- fitted_records:	81
+- specificity:	[0.9384615384615385, 0.625, 0.9076923076923077]
+- precision:	[0.6666666666666666, 0.7857142857142857, 0.5384615384615384]
+- misclassification:	0.2716049382716049
+- mean_recall:	(0.6118197278911565, 0.7283950617283951)
+- n_categories:	3
+- normalised_scores:	[0.5 0.3125 0.1875; 0.04081632653061224 0.8979591836734694 0.061224489795918366; 0.125 0.4375 0.4375]
+- tn:	[61, 20, 59]
+- mean_f1score:	(0.6307608100711549, 0.7152303918587445)
+- actual_count:	[16, 49, 16]
+- accuracy:	0.7283950617283951
+- recall:	[0.5, 0.8979591836734694, 0.4375]
+- f1score:	[0.5714285714285714, 0.8380952380952381, 0.4827586206896552]
+- mean_specificity:	(0.8237179487179488, 0.7427587844254511)
+- predicted_count:	[12, 56, 13]
+- scores:	[8 5 3; 2 44 3; 2 7 7]
+- tp:	[8, 44, 7]
+- fn:	[8, 5, 9]
+- categories:	[&quot;EU&quot;, &quot;US&quot;, &quot;Japan&quot;]
+- fp:	[4, 12, 6]</code></pre><p>From the report we can see that Japanese cars have more trouble in being correctly classified, and in particular many Japanease cars are classified as US ones. This is likely a result of the class imbalance of the data set, and could be solved by balancing the dataset with various sampling tecniques before training the model.</p><p>If you prefer a more graphical approach, we can also plot the confusion matrix. In order to do so, we pick up information from the <code>info(cfm)</code> function. Indeed most BetaML models can be queried with <code>info(model)</code> to retrieve additional information, in terms of a dictionary, that is not necessary to the prediciton, but could still be relevant. Other functions that you can use with BetaML models are <code>parameters(m)</code> and <code>hyperparamaeters(m)</code>.</p><pre><code class="language-julia hljs">res = info(cfm)
+heatmap(string.(res[&quot;categories&quot;]),string.(res[&quot;categories&quot;]),res[&quot;normalised_scores&quot;],seriescolor=cgrad([:white,:blue]),xlabel=&quot;Predicted&quot;,ylabel=&quot;Actual&quot;, title=&quot;Confusion Matrix (normalised scores)&quot;)</code></pre><img src="betaml_tutorial_classification_cars-79725087.svg" alt="Example block output"/><h3 id="Comparision-with-DecisionTree.jl"><a class="docs-heading-anchor" href="#Comparision-with-DecisionTree.jl">Comparision with DecisionTree.jl</a><a id="Comparision-with-DecisionTree.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Comparision-with-DecisionTree.jl" title="Permalink"></a></h3><p>We now compare BetaML [<code>RandomForestEstimator</code>] with the random forest estimator of the package <a href="https://github.com/JuliaAI/DecisionTree.jl"><code>DecisionTrees.jl</code></a>` random forests are similar in usage: we first &quot;build&quot; (train) the forest and we then make predictions out of the trained model.</p><pre><code class="language-julia hljs"># We train the model...
+model = DecisionTree.build_forest(ytrain, xtrain,rng=seed)
+# ..and we generate predictions and measure their error
+(ŷtrain,ŷtest) = DecisionTree.apply_forest.([model],[xtrain,xtest]);
+(trainAccuracy,testAccuracy) = accuracy.([ytrain,ytest],[ŷtrain,ŷtest])
+push!(results,[&quot;RF (DecisionTrees.jl)&quot;,trainAccuracy,testAccuracy]);</code></pre><p>While the accuracy on the training set is exactly the same as for <code>BetaML</code> random forets, <code>DecisionTree.jl</code> random forests are slighly less accurate in the testing sample. Where however <code>DecisionTrees.jl</code> excell is in the efficiency: they are extremelly fast and memory thrifty, even if we should consider also the resources needed to impute the missing values, as they don&#39;t work with missing data.</p><p>Also, one of the reasons DecisionTrees are such efficient is that internally the data is sorted to avoid repeated comparision, but in this way they work only with features that are sortable, while BetaML random forests accept virtually any kind of input without the needs to process it.</p><h3 id="Neural-network"><a class="docs-heading-anchor" href="#Neural-network">Neural network</a><a id="Neural-network-1"></a><a class="docs-heading-anchor-permalink" href="#Neural-network" title="Permalink"></a></h3><p>Neural networks (NN) can be very powerfull, but have two &quot;inconvenients&quot; compared with random forests: first, are a bit &quot;picky&quot;. We need to do a bit of work to provide data in specific format. Note that this is <em>not</em> feature engineering. One of the advantages on neural network is that for the most this is not needed for neural networks. However we still need to &quot;clean&quot; the data. One issue is that NN don&#39;t like missing data. So we need to provide them with the feature matrix &quot;clean&quot; of missing data. Secondly, they work only with numerical data. So we need to use the one-hot encoding we saw earlier. Further, they work best if the features are scaled such that each feature has mean zero and standard deviation 1. This is why we scaled the data back at the beginning of this tutorial.</p><p>We firt measure the dimensions of our data in input (i.e. the column of the feature matrix) and the dimensions of our output, i.e. the number of categories or columns in out one-hot encoded y.</p><pre><code class="language-julia hljs">D               = size(xtrain,2)
+classes         = unique(y)
+nCl             = length(classes)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">3</code></pre><p>The second &quot;inconvenient&quot; of NN is that, while not requiring feature engineering, they still need a bit of practice on the way the structure of the network is built . It&#39;s not as simple as <code>fit!(Model(),x,y)</code> (altougth BetaML provides a &quot;default&quot; neural network structure that can be used, it isn&#39;t often adapted to the specific task). We need instead to specify how we want our layers, <em>chain</em> the layers together and then decide a <em>loss</em> overall function. Only when we done these steps, we have the model ready for training. Here we define 2 <a href="../../Nn.html#BetaML.Nn.DenseLayer"><code>DenseLayer</code></a> where, for each of them, we specify the number of neurons in input (the first layer being equal to the dimensions of the data), the output layer (for a classification task, the last layer output size beying equal to the number of classes) and an <em>activation function</em> for each layer (default the <code>identity</code> function).</p><pre><code class="language-julia hljs">ls   = 50 # number of neurons in the inned layer
+l1   = DenseLayer(D,ls,f=relu,rng=copy(AFIXEDRNG))
+l2   = DenseLayer(ls,nCl,f=relu,rng=copy(AFIXEDRNG))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">DenseLayer{typeof(relu), typeof(drelu), Float64}([-0.2146463925907584 -0.3077087587320811 … -0.28256208289474877 0.21510681158042189; -0.08916953797649538 -0.041727530915651345 … -0.30444064706465346 -0.22349634154766507; 0.11376391271810127 -0.011244515923068743 … 0.12916068649773038 -0.2518581440082599], [0.2918467648814228, -0.004167534280141383, 0.29060333096888613], BetaML.Utils.relu, BetaML.Utils.drelu)</code></pre><p>For a classification task, the last layer is a <a href="../../Nn.html#BetaML.Nn.VectorFunctionLayer"><code>VectorFunctionLayer</code></a> that has no learnable parameters but whose activation function is applied to the ensemble of the neurons, rather than individually on each neuron. In particular, for classification we pass the <a href="../../Utils.html#BetaML.Utils.softmax-Tuple{Any}"><code>softmax</code></a> function whose output has the same size as the input (i.e. the number of classes to predict), but we can use the <code>VectorFunctionLayer</code> with any function, including the <a href="../../Utils.html#BetaML.Utils.pool1d"><code>pool1d</code></a> function to create a &quot;pooling&quot; layer (using maximum, mean or whatever other sub-function we pass to <code>pool1d</code>)</p><pre><code class="language-julia hljs">l3   = VectorFunctionLayer(nCl,f=softmax) ## Add a (parameterless) layer whose activation function (softmax in this case) is defined to all its nodes at once</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">VectorFunctionLayer{0, typeof(softmax), typeof(dsoftmax), Nothing, Float64}(fill(NaN), 3, 3, BetaML.Utils.softmax, BetaML.Utils.dsoftmax, nothing)</code></pre><p>Finally we <em>chain</em> the layers and assign a loss function and the number of epochs we want to train the model to the constructor of <a href="../../Nn.html#BetaML.Nn.NeuralNetworkEstimator"><code>NeuralNetworkEstimator</code></a>:</p><pre><code class="language-julia hljs">nn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=crossentropy,rng=copy(AFIXEDRNG),epochs=500)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">NeuralNetworkEstimator - A Feed-forward neural network (unfitted)</code></pre><p>Aside the layer structure and size and the number of epochs, other hyper-parameters you may want to try are the <code>batch_size</code> and the optimisation algoritm to employ (<code>opt_alg</code>).</p><p>Now we can train our network:</p><pre><code class="language-julia hljs">ŷtrain = fit!(nn, xtrain, ytrain_oh)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">325×3 Matrix{Float64}:
+ 0.0405745  0.0392448    0.920181
+ 0.999942   2.87644e-5   2.87644e-5
+ 0.0107026  0.970008     0.0192891
+ 0.631465   0.268689     0.0998457
+ 0.0022812  0.947058     0.0506612
+ 1.0        1.47862e-9   1.47862e-9
+ 0.223431   0.162307     0.614262
+ 1.0        2.33936e-13  2.33936e-13
+ 0.999999   2.91209e-7   2.91209e-7
+ 0.519705   0.421513     0.0587829
+ ⋮                       
+ 1.0        2.77161e-11  2.77161e-11
+ 0.0969489  0.359861     0.54319
+ 1.0        1.83722e-7   1.83722e-7
+ 0.998329   0.000555534  0.00111565
+ 1.0        1.09483e-10  1.09483e-10
+ 0.69673    0.289012     0.0142584
+ 1.0        4.9083e-14   4.9083e-14
+ 0.0409779  0.158884     0.800138
+ 0.0347578  0.0128461    0.952396</code></pre><p>Predictions are in form of a <em>n</em>records_ by <em>n</em>classes_ matrix of the probabilities of each record being in that class. To retrieve the classes with the highest probabilities we can use again the <code>mode</code> function:</p><pre><code class="language-julia hljs">ŷtrain_top = mode(ŷtrain)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">325-element Vector{Int64}:
+ 3
+ 1
+ 2
+ 1
+ 2
+ 1
+ 3
+ 1
+ 1
+ 1
+ ⋮
+ 1
+ 3
+ 1
+ 1
+ 1
+ 1
+ 1
+ 3
+ 3</code></pre><p>Once trained, we can predict the test labels. As the trained was based on the scaled feature matrix, so must be for the predictions</p><pre><code class="language-julia hljs">ŷtest  = predict(nn,xtest)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">81×3 Matrix{Float64}:
+ 0.1073       0.882895     0.00980417
+ 4.4529e-5    0.999951     4.21883e-6
+ 0.0671191    0.0866024    0.846279
+ 1.0          7.19417e-11  7.19417e-11
+ 0.163052     0.0179888    0.818959
+ 1.0          1.18774e-8   1.18774e-8
+ 0.0716439    0.0727605    0.855596
+ 0.135011     0.568851     0.296137
+ 0.902347     0.0410031    0.0566501
+ 1.0          1.45955e-10  1.45955e-10
+ ⋮                         
+ 0.966316     0.0214983    0.0121853
+ 1.0          3.28963e-12  3.28963e-12
+ 0.0424253    0.0869417    0.870633
+ 1.0          2.16082e-10  2.16082e-10
+ 1.0          7.30083e-10  7.30083e-10
+ 0.443724     0.0394151    0.516861
+ 0.019245     0.0684049    0.91235
+ 0.000209648  0.998533     0.00125736
+ 1.0          1.29266e-7   1.29266e-7</code></pre><p>And finally we can measure the accuracies and store the accuracies in the <code>result</code> dataframe:</p><pre><code class="language-julia hljs">trainAccuracy, testAccuracy   = accuracy.([ytrain,ytest],[ŷtrain,ŷtest],rng=copy(AFIXEDRNG))
+push!(results,[&quot;NN&quot;,trainAccuracy,testAccuracy]);</code></pre><pre><code class="language-julia hljs">cfm = ConfusionMatrix(categories_names=Dict(1=&gt;&quot;US&quot;,2=&gt;&quot;EU&quot;,3=&gt;&quot;Japan&quot;),rng=copy(AFIXEDRNG))
+fit!(cfm,ytest,ŷtest)
+print(cfm)
+res = info(cfm)
+heatmap(string.(res[&quot;categories&quot;]),string.(res[&quot;categories&quot;]),res[&quot;normalised_scores&quot;],seriescolor=cgrad([:white,:blue]),xlabel=&quot;Predicted&quot;,ylabel=&quot;Actual&quot;, title=&quot;Confusion Matrix (normalised scores)&quot;)</code></pre><img src="betaml_tutorial_classification_cars-de248767.svg" alt="Example block output"/><p>While accuracies are a bit lower, the distribution of misclassification is similar, with many Jamanease cars misclassified as US ones (here we have also some EU cars misclassified as Japanease ones).</p><h3 id="Comparisons-with-Flux"><a class="docs-heading-anchor" href="#Comparisons-with-Flux">Comparisons with Flux</a><a id="Comparisons-with-Flux-1"></a><a class="docs-heading-anchor-permalink" href="#Comparisons-with-Flux" title="Permalink"></a></h3><p>As we did for Random Forests, we compare BetaML neural networks with the leading package for deep learning in Julia, <a href="https://github.com/FluxML/Flux.jl"><code>Flux.jl</code></a>.</p><p>In Flux the input must be in the form (fields, observations), so we transpose our original matrices</p><pre><code class="language-julia hljs">xtrainT, ytrain_ohT = transpose.([xtrain, ytrain_oh])
+xtestT, ytest_ohT   = transpose.([xtest, ytest_oh])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{LinearAlgebra.Transpose{Float64, Matrix{Float64}}}:
+ [-0.9370258544446618 0.8308089913068687 … 1.6506744270177232 -0.5783347263211628; 0.30679255888470214 -0.8627640505724731 … -0.27798574584388547 0.30679255888470214; … ; 0.10010898192256414 2.2430393858184523 … 1.564444757918087 -0.007037538272230526; 0.5552223059557987 1.0893935292213297 … 1.0893935292213297 -1.31437697547356]
+ [0.0 0.0 … 0.0 1.0; 1.0 1.0 … 1.0 0.0; 0.0 0.0 … 0.0 0.0]</code></pre><p>We define the Flux neural network model in a similar way than BetaML and load it with data, we train it, predict and measure the accuracies on the training and the test sets:</p><p>We fix the random seed for Flux, altough you may still get different results depending on the number of threads used.. this is a problem we solve in BetaML with <a href="../../Utils.html#BetaML.Utils.generate_parallel_rngs-Tuple{Random.AbstractRNG, Integer}"><code>generate_parallel_rngs</code></a>.</p><pre><code class="language-julia hljs">Random.seed!(seed)
+
+l1         = Flux.Dense(D,ls,Flux.relu)
+l2         = Flux.Dense(ls,nCl,Flux.relu)
+Flux_nn    = Flux.Chain(l1,l2)
+fluxloss(x, y) = Flux.logitcrossentropy(Flux_nn(x), y)
+ps         = Flux.params(Flux_nn)
+nndata     = Flux.Data.DataLoader((xtrainT, ytrain_ohT),shuffle=true)
+begin for i in 1:500  Flux.train!(fluxloss, ps, nndata, Flux.ADAM()) end end
+ŷtrain     = Flux.onecold(Flux_nn(xtrainT),1:3)
+ŷtest      = Flux.onecold(Flux_nn(xtestT),1:3)
+trainAccuracy, testAccuracy   = accuracy.([ytrain,ytest],[ŷtrain,ŷtest])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
+ 0.9784615384615385
+ 0.7654320987654321</code></pre><pre><code class="language-julia hljs">push!(results,[&quot;NN (Flux.jl)&quot;,trainAccuracy,testAccuracy]);</code></pre><p>While the train accuracy is little bit higher that BetaML, the test accuracy remains comparable</p><h2 id="Perceptron-like-classifiers."><a class="docs-heading-anchor" href="#Perceptron-like-classifiers.">Perceptron-like classifiers.</a><a id="Perceptron-like-classifiers.-1"></a><a class="docs-heading-anchor-permalink" href="#Perceptron-like-classifiers." title="Permalink"></a></h2><p>We finaly test 3 &quot;perceptron-like&quot; classifiers, the &quot;classical&quot; Perceptron (<a href="../../Perceptron.html#BetaML.Perceptron.PerceptronClassifier"><code>PerceptronClassifier</code></a>), one of the first ML algorithms (a linear classifier), a &quot;kernellised&quot; version of it (<a href="../../Perceptron.html#BetaML.Perceptron.KernelPerceptronClassifier"><code>KernelPerceptronClassifier</code></a>, default to using the radial kernel) and &quot;PegasosClassifier&quot; (<a href="../../Perceptron.html#BetaML.Perceptron.PegasosClassifier"><code>PegasosClassifier</code></a>) another linear algorithm that starts considering a gradient-based optimisation, altought without the regularisation term as in the Support Vector Machines (SVM).</p><p>As for the previous classifiers we construct the model object, we train and predict and we compute the train and test accuracies:</p><pre><code class="language-julia hljs">pm = PerceptronClassifier(rng=copy(AFIXEDRNG))
+ŷtrain = fit!(pm, xtrain, ytrain)
+ŷtest  = predict(pm, xtest)
+(trainAccuracy,testAccuracy) = accuracy.([ytrain,ytest],[ŷtrain,ŷtest])
+push!(results,[&quot;Perceptron&quot;,trainAccuracy,testAccuracy]);
+
+kpm = KernelPerceptronClassifier(rng=copy(AFIXEDRNG))
+ŷtrain = fit!(kpm, xtrain, ytrain)
+ŷtest  = predict(kpm, xtest)
+(trainAccuracy,testAccuracy) = accuracy.([ytrain,ytest],[ŷtrain,ŷtest])
+push!(results,[&quot;KernelPerceptronClassifier&quot;,trainAccuracy,testAccuracy]);
+
+
+pegm = PegasosClassifier(rng=copy(AFIXEDRNG))
+ŷtrain = fit!(pegm, xtrain, ytrain)
+ŷtest  = predict(pm, xtest)
+(trainAccuracy,testAccuracy) = accuracy.([ytrain,ytest],[ŷtrain,ŷtest])
+push!(results,[&quot;Pegasaus&quot;,trainAccuracy,testAccuracy]);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Running function BetaML.Perceptron.#perceptronBinary#8 at /home/runner/work/BetaML.jl/BetaML.jl/src/Perceptron/Perceptron_classic.jl:150
+Type `]dev BetaML` to modify the source code (this would change its location on disk)
+***
+*** Training perceptron for maximum 1000 iterations. Random shuffle: true
+Avg. error after iteration 1 : 0.24307692307692308
+Avg. error after iteration 100 : 0.2123076923076923
+Avg. error after iteration 200 : 0.18461538461538463
+Avg. error after iteration 300 : 0.19076923076923077
+Avg. error after iteration 400 : 0.19692307692307692
+Avg. error after iteration 500 : 0.18769230769230769
+Avg. error after iteration 600 : 0.19692307692307692
+Avg. error after iteration 700 : 0.17846153846153845
+Avg. error after iteration 800 : 0.18153846153846154
+Avg. error after iteration 900 : 0.2123076923076923
+Avg. error after iteration 1000 : 0.2246153846153846
+Running function BetaML.Perceptron.#perceptronBinary#8 at /home/runner/work/BetaML.jl/BetaML.jl/src/Perceptron/Perceptron_classic.jl:150
+Type `]dev BetaML` to modify the source code (this would change its location on disk)
+***
+*** Training perceptron for maximum 1000 iterations. Random shuffle: true
+Avg. error after iteration 1 : 0.27076923076923076
+Avg. error after iteration 100 : 0.11076923076923077
+Avg. error after iteration 200 : 0.16307692307692306
+Avg. error after iteration 300 : 0.15384615384615385
+Avg. error after iteration 400 : 0.16
+Avg. error after iteration 500 : 0.13230769230769232
+Avg. error after iteration 600 : 0.14461538461538462
+Avg. error after iteration 700 : 0.13846153846153847
+Avg. error after iteration 800 : 0.13846153846153847
+Avg. error after iteration 900 : 0.13538461538461538
+Avg. error after iteration 1000 : 0.1753846153846154
+Running function BetaML.Perceptron.#perceptronBinary#8 at /home/runner/work/BetaML.jl/BetaML.jl/src/Perceptron/Perceptron_classic.jl:150
+Type `]dev BetaML` to modify the source code (this would change its location on disk)
+***
+*** Training perceptron for maximum 1000 iterations. Random shuffle: true
+Avg. error after iteration 1 : 0.21846153846153846
+Avg. error after iteration 100 : 0.19076923076923077
+Avg. error after iteration 200 : 0.1723076923076923
+Avg. error after iteration 300 : 0.17846153846153845
+Avg. error after iteration 400 : 0.1723076923076923
+Avg. error after iteration 500 : 0.19384615384615383
+Avg. error after iteration 600 : 0.15076923076923077
+Avg. error after iteration 700 : 0.14461538461538462
+Avg. error after iteration 800 : 0.1753846153846154
+Avg. error after iteration 900 : 0.1723076923076923
+Avg. error after iteration 1000 : 0.18461538461538463
+Running function BetaML.Perceptron.#kernel_perceptron_classifier_binary#17 at /home/runner/work/BetaML.jl/BetaML.jl/src/Perceptron/Perceptron_kernel.jl:133
+Type `]dev BetaML` to modify the source code (this would change its location on disk)
+***
+*** Training kernel perceptron for maximum 100 iterations. Random shuffle: true
+Avg. error after iteration 1 : 0.15671641791044777
+Training Kernel Perceptron...   6%|█▍                    |  ETA: 0:00:09Avg. error after iteration 10 : 0.055970149253731345
+Training Kernel Perceptron...  12%|██▋                   |  ETA: 0:00:08Training Kernel Perceptron...  18%|████                  |  ETA: 0:00:08Avg. error after iteration 20 : 0.05970149253731343
+Training Kernel Perceptron...  24%|█████▎                |  ETA: 0:00:07Avg. error after iteration 30 : 0.03731343283582089
+Training Kernel Perceptron...  30%|██████▋               |  ETA: 0:00:07Training Kernel Perceptron...  36%|███████▉              |  ETA: 0:00:06Avg. error after iteration 40 : 0.05970149253731343
+Training Kernel Perceptron...  42%|█████████▎            |  ETA: 0:00:05Training Kernel Perceptron...  48%|██████████▌           |  ETA: 0:00:05Avg. error after iteration 50 : 0.041044776119402986
+Training Kernel Perceptron...  54%|███████████▉          |  ETA: 0:00:04Avg. error after iteration 60 : 0.022388059701492536
+Training Kernel Perceptron...  60%|█████████████▎        |  ETA: 0:00:04Training Kernel Perceptron...  66%|██████████████▌       |  ETA: 0:00:03Avg. error after iteration 70 : 0.033582089552238806
+Training Kernel Perceptron...  72%|███████████████▉      |  ETA: 0:00:03Training Kernel Perceptron...  78%|█████████████████▏    |  ETA: 0:00:02Avg. error after iteration 80 : 0.026119402985074626
+Training Kernel Perceptron...  84%|██████████████████▌   |  ETA: 0:00:01Avg. error after iteration 90 : 0.033582089552238806
+Training Kernel Perceptron...  90%|███████████████████▊  |  ETA: 0:00:01Training Kernel Perceptron...  96%|█████████████████████▏|  ETA: 0:00:00Avg. error after iteration 100 : 0.026119402985074626
+Training Kernel Perceptron... 100%|██████████████████████| Time: 0:00:09
+Running function BetaML.Perceptron.#kernel_perceptron_classifier_binary#17 at /home/runner/work/BetaML.jl/BetaML.jl/src/Perceptron/Perceptron_kernel.jl:133
+Type `]dev BetaML` to modify the source code (this would change its location on disk)
+***
+*** Training kernel perceptron for maximum 100 iterations. Random shuffle: true
+Avg. error after iteration 1 : 0.4166666666666667
+Avg. error after iteration 10 : 0.13333333333333333
+Avg. error after iteration 20 : 0.1
+Training Kernel Perceptron...  28%|██████▏               |  ETA: 0:00:01Avg. error after iteration 30 : 0.09166666666666666
+Avg. error after iteration 40 : 0.08333333333333333
+*** Avg. error after epoch 49 : 0.0 (all elements of the set has been correctly classified)
+Training Kernel Perceptron... 100%|██████████████████████| Time: 0:00:00
+Running function BetaML.Perceptron.#kernel_perceptron_classifier_binary#17 at /home/runner/work/BetaML.jl/BetaML.jl/src/Perceptron/Perceptron_kernel.jl:133
+Type `]dev BetaML` to modify the source code (this would change its location on disk)
+***
+*** Training kernel perceptron for maximum 100 iterations. Random shuffle: true
+Avg. error after iteration 1 : 0.16793893129770993
+Training Kernel Perceptron...   6%|█▍                    |  ETA: 0:00:08Avg. error after iteration 10 : 0.06870229007633588
+Training Kernel Perceptron...  12%|██▋                   |  ETA: 0:00:08Training Kernel Perceptron...  18%|████                  |  ETA: 0:00:07Avg. error after iteration 20 : 0.04198473282442748
+Training Kernel Perceptron...  24%|█████▎                |  ETA: 0:00:07Avg. error after iteration 30 : 0.03816793893129771
+Training Kernel Perceptron...  30%|██████▋               |  ETA: 0:00:06Training Kernel Perceptron...  37%|████████▏             |  ETA: 0:00:06*** Avg. error after epoch 40 : 0.0 (all elements of the set has been correctly classified)
+Training Kernel Perceptron... 100%|██████████████████████| Time: 0:00:03
+***
+*** Training pegasos for maximum 1000 iterations. Random shuffle: true
+Avg. error after iteration 1 : 0.27076923076923076
+Avg. error after iteration 100 : 0.2246153846153846
+Avg. error after iteration 200 : 0.23692307692307693
+Avg. error after iteration 300 : 0.23076923076923078
+Avg. error after iteration 400 : 0.27384615384615385
+Avg. error after iteration 500 : 0.23076923076923078
+Avg. error after iteration 600 : 0.21846153846153846
+Avg. error after iteration 700 : 0.21846153846153846
+Avg. error after iteration 800 : 0.21846153846153846
+Avg. error after iteration 900 : 0.24615384615384617
+Avg. error after iteration 1000 : 0.24615384615384617
+***
+*** Training pegasos for maximum 1000 iterations. Random shuffle: true
+Avg. error after iteration 1 : 0.3292307692307692
+Avg. error after iteration 100 : 0.24615384615384617
+Avg. error after iteration 200 : 0.27692307692307694
+Avg. error after iteration 300 : 0.26461538461538464
+Avg. error after iteration 400 : 0.23692307692307693
+Avg. error after iteration 500 : 0.2676923076923077
+Avg. error after iteration 600 : 0.24615384615384617
+Avg. error after iteration 700 : 0.2523076923076923
+Avg. error after iteration 800 : 0.25846153846153846
+Avg. error after iteration 900 : 0.2523076923076923
+Avg. error after iteration 1000 : 0.24923076923076923
+***
+*** Training pegasos for maximum 1000 iterations. Random shuffle: true
+Avg. error after iteration 1 : 0.27076923076923076
+Avg. error after iteration 100 : 0.23076923076923078
+Avg. error after iteration 200 : 0.24615384615384617
+Avg. error after iteration 300 : 0.2553846153846154
+Avg. error after iteration 400 : 0.21846153846153846
+Avg. error after iteration 500 : 0.26153846153846155
+Avg. error after iteration 600 : 0.2523076923076923
+Avg. error after iteration 700 : 0.2276923076923077
+Avg. error after iteration 800 : 0.24307692307692308
+Avg. error after iteration 900 : 0.2553846153846154
+Avg. error after iteration 1000 : 0.24923076923076923</code></pre><h2 id="Summary"><a class="docs-heading-anchor" href="#Summary">Summary</a><a id="Summary-1"></a><a class="docs-heading-anchor-permalink" href="#Summary" title="Permalink"></a></h2><p>This is the summary of the results we had trying to predict the country of origin of the cars, based on their technical characteristics:</p><pre><code class="language-julia hljs">println(results)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">7×3 DataFrame
+ Row │ model                       train_acc  test_acc
+     │ String                      Float64    Float64
+─────┼─────────────────────────────────────────────────
+   1 │ RF                           1.0       0.728395
+   2 │ RF (DecisionTrees.jl)        0.981538  0.716049
+   3 │ NN                           0.935385  0.728395
+   4 │ NN (Flux.jl)                 0.978462  0.765432
+   5 │ Perceptron                   0.735385  0.691358
+   6 │ KernelPerceptronClassifier   0.978462  0.703704
+   7 │ Pegasaus                     0.670769  0.691358</code></pre><p>If you clone BetaML repository</p><p>Model accuracies on my machine with seedd 123, 1000 and 10000 respectivelly</p><table><tr><th style="text-align: right">model</th><th style="text-align: right">train 1</th><th style="text-align: right">test 1</th><th style="text-align: right">train 2</th><th style="text-align: right">test 2</th><th style="text-align: right">train 3</th><th style="text-align: right">test 3</th></tr><tr><td style="text-align: right">RF</td><td style="text-align: right">0.996923</td><td style="text-align: right">0.765432</td><td style="text-align: right">1.000000</td><td style="text-align: right">0.802469</td><td style="text-align: right">1.000000</td><td style="text-align: right">0.888889</td></tr><tr><td style="text-align: right">RF (DecisionTrees.jl)</td><td style="text-align: right">0.975385</td><td style="text-align: right">0.765432</td><td style="text-align: right">0.984615</td><td style="text-align: right">0.777778</td><td style="text-align: right">0.975385</td><td style="text-align: right">0.864198</td></tr><tr><td style="text-align: right">NN</td><td style="text-align: right">0.886154</td><td style="text-align: right">0.728395</td><td style="text-align: right">0.916923</td><td style="text-align: right">0.827160</td><td style="text-align: right">0.895385</td><td style="text-align: right">0.876543</td></tr><tr><td style="text-align: right">│ NN (Flux.jl)</td><td style="text-align: right">0.793846</td><td style="text-align: right">0.654321</td><td style="text-align: right">0.938462</td><td style="text-align: right">0.790123</td><td style="text-align: right">0.935385</td><td style="text-align: right">0.851852</td></tr><tr><td style="text-align: right">│ Perceptron</td><td style="text-align: right">0.778462</td><td style="text-align: right">0.703704</td><td style="text-align: right">0.720000</td><td style="text-align: right">0.753086</td><td style="text-align: right">0.670769</td><td style="text-align: right">0.654321</td></tr><tr><td style="text-align: right">│ KernelPerceptronClassifier</td><td style="text-align: right">0.987692</td><td style="text-align: right">0.703704</td><td style="text-align: right">0.978462</td><td style="text-align: right">0.777778</td><td style="text-align: right">0.944615</td><td style="text-align: right">0.827160</td></tr><tr><td style="text-align: right">│ Pegasaus</td><td style="text-align: right">0.732308</td><td style="text-align: right">0.703704</td><td style="text-align: right">0.633846</td><td style="text-align: right">0.753086</td><td style="text-align: right">0.575385</td><td style="text-align: right">0.654321</td></tr></table><p>We warn that this table just provides a rought idea of the various algorithms performances. Indeed there is a large amount of stochasticity both in the sampling of the data used for training/testing and in the initial settings of the parameters of the algorithm. For a statistically significant comparision we would have to repeat the analysis with multiple sampling (e.g. by cross-validation, see the <a href="../Clustering - Iris/betaml_tutorial_cluster_iris.html#clustering_tutorial">clustering tutorial</a> for an example) and initial random parameters.</p><p>Neverthless the table above shows that, when we compare BetaML with the algorithm-specific leading packages, we found similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less verstatile). Also, for this dataset, Random Forests seems to remain marginally more accurate than Neural Network, altought of course this depends on the hyper-parameters and, with a single run of the models, we don&#39;t know if this difference is significant.</p><p><a href="betaml_tutorial_classification_cars.jl">View this file on Github</a>.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Betaml_tutorial_getting_started.html">« Getting started</a><a class="docs-footer-nextpage" href="../Regression - bike sharing/betaml_tutorial_regression_sharingBikes.html">A regression task: the prediction of  bike  sharing demand »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Friday 10 October 2025 12:24">Friday 10 October 2025</span>. Using Julia version 1.6.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
