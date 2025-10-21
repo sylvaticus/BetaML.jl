@@ -8,7 +8,11 @@
 
 The **Beta Machine Learning Toolkit** is a package including many algorithms and utilities to implement machine learning workflows in Julia, [Python](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#Use-BetaML-in-Python), [R](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#Use-BetaML-in-R) and any other language with a Julia binding.
 
-==>> Link to the JuliaCon Local Paris presentation (2 October 2025): [https://nc.beta-lorraine.fr/s/DaBRAr3csimdJKX](https://nc.beta-lorraine.fr/s/DaBRAr3csimdJKX) <<==
+**Presentation at the JuliaCon Local 2025 (Paris)**
+
+- [Slides](https://nc.beta-lorraine.fr/s/DaBRAr3csimdJKX)
+- <a href="https://www.youtube.com/watch?v=g4LBdRe3pSI&list=PLP8iPy9hna6TJMLEiZZiWAXlyGtOyJSL7&index=12">Video on YouTube:<br/> 
+<img src="assets/JuliaConParis2025_PresentationScreenshot.png" width="600"/> </a>
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://sylvaticus.github.io/BetaML.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sylvaticus.github.io/BetaML.jl/dev)
