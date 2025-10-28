@@ -58,7 +58,7 @@ if "all" in ARGS || "Imputation" in ARGS || nArgs == 0
     include("Imputation_tests.jl")
 end
 
-if "all" in ARGS || "MLJ" in ARGS || nArgs == 0
+if "all" in ARGS || "MLJ" in ARGS # not run by default
     include("MLJ_tests_additional.jl")
 end
 
