@@ -223,8 +223,8 @@ function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1
         end
     end
 
-    masterSeed = rand(rng,100:9999999999999) ## Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generate_parallel_rngs
-    rngs = generate_parallel_rngs(rng,Threads.nthreads())
+    masterSeed = rand(rng,100:Int(floor(typemax(Int64)/10000))) # Some RNG have problems with very small seed. Also, the master seed has to be computed _before_ generate_parallel_rngs
+    rngs = generate_parallel_rngs(rng,Threads.nthreads()+1)
 
     #for i in 1:n_trees # for easier debugging/profiling...
     Threads.@threads for i in 1:n_trees

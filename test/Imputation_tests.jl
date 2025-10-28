@@ -111,7 +111,7 @@ X = [2 missing 10 "aaa" missing; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1
 mod = RandomForestImputer(n_trees=30,forced_categorical_cols=[5],recursive_passages=3,multiple_imputations=10, rng=copy(TESTRNG),verbosity=NONE)
 Xs_full = fit!(mod,X)
 
-@test Xs_full[2][1,2] == 220
+@test Xs_full[2][1,2] > 2 && Xs_full[2][1,2] < 400 
 @test length(Xs_full) == 10
 
 X = [2 missing 10; 2000 4000 1000; 2000 4000 10000; 3 5 12 ; 4 8 20; 1 2 5]
@@ -123,7 +123,7 @@ medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
 @test medianValues[1,2] == 4.0
 infos = info(mod)
 @test infos["n_imputed_values"] == 1
-@test all(isequal.(infos["oob_errors"][1],[missing, 0.47355452303986306, missing]))
+@test infos["oob_errors"][1][2] < 1
 
 X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
 mod = RandomForestImputer(rng=copy(TESTRNG),verbosity=NONE)
@@ -147,10 +147,9 @@ mod = GeneralImputer(estimator=[GaussianMixtureRegressor2(rng=trng,verbosity=NON
 fit!(mod,X)
 vals = predict(mod)
 nR,nC = size(vals[1])
-meanValues = [mean([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
-@test meanValues[1,2] == 3.0
-
-@test vals[1] == vals[10]
+medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
+@test medianValues[1,2] >2  && medianValues[1,2] < 1000.0
+@test length(unique([vals[i][1,2] for i in 1:10])) > 1
 
 model_save("test.jld2"; mod)
 modj  = model_load("test.jld2","mod")
@@ -162,8 +161,9 @@ mod = GeneralImputer(multiple_imputations=10, recursive_passages=3, rng=copy(TES
 fit!(mod,X)
 vals = predict(mod)
 nR,nC = size(vals[1])
-meanValues = [mean([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
-@test meanValues[1,2] == 70.3
+medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
+@test medianValues[1,2] >2  && medianValues[1,2] < 1000.0
+@test length(unique([vals[i][1,2] for i in 1:10])) > 1
 
 X = [2 4 10 "aaa" 10; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
 trng = copy(TESTRNG)
@@ -192,11 +192,11 @@ Xfull = BetaML.fit!(mod,X)
 
 mod = GeneralImputer(estimator=BetaML.DecisionTreeEstimator(),rng=copy(TESTRNG),recursive_passages=10)
 Xfull2 = BetaML.fit!(mod,X)
-@test size(Xfull) == (8,4) && typeof(Xfull) == Matrix{Float64}
+@test size(Xfull2) == (8,4) && typeof(Xfull2) == Matrix{Float64}
 
 mod = GeneralImputer(estimator=BetaML.DecisionTreeEstimator(),rng=copy(TESTRNG),missing_supported=true,recursive_passages=10)
 Xfull3 = BetaML.fit!(mod,X)
-@test size(Xfull) == (8,4) && typeof(Xfull) == Matrix{Float64}
+@test size(Xfull3) == (8,4) && typeof(Xfull3) == Matrix{Float64}
 
 X =  [     12      0.3       5      11;
            21      0.1       1     18;

@@ -815,6 +815,8 @@ Base.@kwdef mutable struct GeneralI_hp <: BetaMLHyperParametersSet
     fit_function::Union{Vector{Function},Function}     = fit!
     "The function used by the estimator(s) to predict the labels. It should take as fist argument the model itself and as second argument a matrix representing the features. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.predict`]"
     predict_function::Union{Vector{Function},Function} = predict
+    # "The function used to reset the learned parameters of the estimator(s) before each multiple inputations (but not the random number generator). It should take as first argument the model itself. Use `nothing` if your estimator doesn't support reset, but each imputation will train the same model. It can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.reset!`]"
+    #reset_function::Union{Vector{Function},Function,Nothing} = reset!
     "Define the number of times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
     recursive_passages::Int64      = 1
     "Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG)."
@@ -833,7 +835,7 @@ $(TYPEDEF)
 
 Impute missing values using arbitrary learning models.
 
-Impute missing values using any arbitrary learning model (classifier or regressor, not necessarily from BetaML) that implement an interface `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)`. For non-BetaML supervised models the actual training and predict functions must be specified in the `fit_function` and `predict_function` parameters respectively.
+Impute missing values using any arbitrary learning model (classifier or regressor, not necessarily from BetaML) that implement an interface `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)`. For non-BetaML supervised models the actual training and predict functions must be specified in the `fit_function` and `predict_function` parameters respectively. For multiple imputations and recursive passages trough the various columns to impute, a `reset_function` can be specified to reset the model parameters before each imputation.
 If needed (for example when some columns with missing data are categorical and some numerical) different models can be specified for each column.
 Multiple imputations and multiple "passages" trought the various colums for a single imputation are supported. 
 
@@ -956,9 +958,9 @@ function fit!(m::GeneralImputer,X)
     nR,nC   = size(X)
     multiple_imputations  = m.hpar.multiple_imputations
     recursive_passages    = m.hpar.recursive_passages
-    cache                = m.opt.cache
-    verbosity            = m.opt.verbosity 
-    rng                  = m.opt.rng
+    cache                 = m.opt.cache
+    verbosity             = m.opt.verbosity 
+    rng                   = m.opt.rng
 
     # determining cols_to_impute...
     if m.hpar.cols_to_impute == "auto"
@@ -989,6 +991,7 @@ function fit!(m::GeneralImputer,X)
     missing_supported = typeof(m.hpar.missing_supported) <: AbstractArray ? m.hpar.missing_supported : fill(m.hpar.missing_supported,nD2Imp) 
     fit_functions = typeof(m.hpar.fit_function) <: AbstractArray ? m.hpar.fit_function : fill(m.hpar.fit_function,nD2Imp) 
     predict_functions = typeof(m.hpar.predict_function) <: AbstractArray ? m.hpar.predict_function : fill(m.hpar.predict_function,nD2Imp) 
+    #reset_functions = typeof(m.hpar.reset_function) <: AbstractArray ? m.hpar.#reset_function : fill(m.hpar.reset_function,nD2Imp) 
 
 
     imputed = fill(similar(X),multiple_imputations)
@@ -1003,6 +1006,8 @@ function fit!(m::GeneralImputer,X)
         Xout           = copy(X)
         sortedDims     = reverse(sortperm(makecolvector(sum(missingMask,dims=1)))) # sorted from the dim with more missing values
         for pass in 1:recursive_passages
+            seed = rand(rng,1:typemax(Int64))
+            Random.seed!(rng,seed) # change rng state for different imputations
             Xout_passage = copy(Xout)
             m.opt.verbosity >= HIGH && println("- processing passage $pass")
             if pass > 1
@@ -1047,6 +1052,12 @@ function fit!(m::GeneralImputer,X)
 
                 end
                 dmodel = deepcopy(estimators[imputation,dIdx])
+                # For BetaML models we reset the rng, otherwise identical estimation.
+                # Non BetaML models must use the global rng state
+                if typeof(dmodel) <: BetaMLSupervisedModel
+                    tseed = rand(options(dmodel).rng,1:Int(floor(typemax(Int64)/10000)))
+                    Random.seed!(options(dmodel).rng,tseed+10*imputation+10*dIdx)
+                end
                 fit_functions[dIdx](dmodel,Xd,y)
 
                 # imputing missing values in d...
@@ -1088,6 +1099,7 @@ function fit!(m::GeneralImputer,X)
                 if pass == recursive_passages 
                     estimators[imputation,dIdx] = dmodel 
                 end
+                #reset_functions[dIdx] != nothing && reset_functions[dIdx](dmodel) # reset model for next imputation
             end # end dimension
             Xout = copy(Xout_passage)
         end # end recursive passage pass

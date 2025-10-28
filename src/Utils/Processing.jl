@@ -1223,7 +1223,7 @@ function tune!(m,method::GridSearch,data)
     subs = partition([data...],[res_share,1-res_share],rng=rng, copy=true)
     sampleddata = (collect([subs[i][1] for i in 1:length(subs)])...,)
     masterSeed = rand(rng,100:typemax(Int64))
-    rngs       = generate_parallel_rngs(rng,Threads.nthreads()) 
+    rngs       = generate_parallel_rngs(rng,Threads.nthreads()+1) 
     n_candidates = length(candidates)
     @threadsif multithreads for c in 1:n_candidates
         candidate = candidates[c]
@@ -1285,7 +1285,7 @@ function tune!(m,method::SuccessiveHalvingSearch,data)
         options(m).verbosity >= STD && println("(e $e / $epochs) N data / n candidates / n candidates to retain : $(n_orig * res_share) \t $ncandidates_thisepoch $ncandidates_tokeep")
         scores = Vector{Tuple{Float64,Dict}}(undef,ncandidates_thisepoch)
         masterSeed = rand(rng,100:typemax(Int64))
-        rngs       = generate_parallel_rngs(rng,Threads.nthreads()) 
+        rngs       = generate_parallel_rngs(rng,Threads.nthreads()+1) 
         n_candidates = length(candidates)
         ncandidates_thisepoch == n_candidates || error("Problem with number of candidates!")
         @threadsif multithreads for c in 1:n_candidates
