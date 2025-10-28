@@ -4,8 +4,22 @@ using BetaML
 #using Pkg # seems Julia bug: can't find pkg `Pkg` !!
 #Pkg.activate(@__DIR__)
 
-# choose what to test with `Pkg.test("BetaML", test_args=["Trees","Clustering","all"])``
-# or `$ julia runtests.jl Trees Clustering all`
+#=
+Choose what to test with `Pkg.test("BetaML", test_args=["Trees","Clustering","all"])``
+or `$ julia runtests.jl Trees Clustering all`
+
+Possible values are:
+ - Utils
+ - Trees
+ - Nn
+ - Perceptron
+ - Clustering
+ - GMM
+ - Stats
+ - Imputation
+ - MLJ
+ - all
+=#
 
 nArgs = length(ARGS)
 
@@ -44,11 +58,16 @@ if "all" in ARGS || "Imputation" in ARGS || nArgs == 0
     include("Imputation_tests.jl")
 end
 
+if "all" in ARGS || "MLJ" in ARGS || nArgs == 0
+    include("MLJ_tests_additional.jl")
+end
+
 if "all" in ARGS
     # run optional long tests
     include("Perceptron_tests_additional.jl")
     include("Trees_tests_additional.jl")
     include("Clustering_tests_additional.jl")
+    include("MLJ_tests_additional.jl")
 end
 
 rm("test.jld2", force=true)
