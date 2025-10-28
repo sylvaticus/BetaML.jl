@@ -255,11 +255,11 @@ end
 function MMI.predict(model::Union{PerceptronClassifier,PegasosClassifier}, fitresult, Xnew)
     fittedModel      = fitresult[1]
     #classes          = CategoricalVector(fittedModel.classes)
-    #classes          = fittedModel.classes
+    observedClasses  = fittedModel.classes
     allClasses       = fitresult[2] # as classes do not includes classes unsees at training time
     nLevels          = length(allClasses)
     nRecords         = MMI.nrows(Xnew)
-    modelPredictions = BetaML.Perceptron.predict(MMI.matrix(Xnew), fittedModel.θ, fittedModel.θ₀, allClasses)
+    modelPredictions = BetaML.Perceptron.predict(MMI.matrix(Xnew), fittedModel.θ, fittedModel.θ₀, observedClasses)
     predMatrix       = zeros(Float64,(nRecords,nLevels))
     # Transform the predictions from a vector of dictionaries to a matrix
     # where the rows are the PMF of each record
@@ -278,11 +278,12 @@ function MMI.predict(model::KernelPerceptronClassifier, fitresult, Xnew)
     fittedModel      = fitresult[1]
     #classes          = CategoricalVector(fittedModel.classes)
     #classes          = fittedModel.classes
+    observedClasses  = fittedModel.classes
     allClasses       = fitresult[2] # as classes do not includes classes unsees at training time
     nLevels          = length(allClasses)
     nRecords         = MMI.nrows(Xnew)
     #ŷtrain = Perceptron.predict([10 10; 2.2 2.5],model.x,model.y,model.α, model.classes,K=model.K)
-    modelPredictions = BetaML.Perceptron.predict(MMI.matrix(Xnew), fittedModel.x, fittedModel.y, fittedModel.α, fittedModel.classes, K=fittedModel.K)
+    modelPredictions = BetaML.Perceptron.predict(MMI.matrix(Xnew), fittedModel.x, fittedModel.y, fittedModel.α, observedClasses, K=fittedModel.K)
     predMatrix       = zeros(Float64,(nRecords,nLevels))
     # Transform the predictions from a vector of dictionaries to a matrix
     # where the rows are the PMF of each record
