@@ -729,10 +729,10 @@ function innerFunction(bootstrappedx; rng=Random.GLOBAL_RNG)
 end
 function outerFunction(x;rng = Random.GLOBAL_RNG)
     masterSeed = rand(rng,100:Int(floor(typemax(Int64)/10000))) # important: with some RNG it is important to do this before the generate_parallel_rngs to guarantee independance from number of threads
-    rngs       = generate_parallel_rngs(rng,Threads.nthreads()+1) # make new copy instances
+    rngs       = generate_parallel_rngs(rng,Threads.nthreads()) # make new copy instances
     results    = Array{Float64,1}(undef,30)
     Threads.@threads for i in 1:30
-        tsrng = rngs[Threads.threadid()]    # Thread safe random number generator: one RNG per thread
+        tsrng = rngs[Threads.threadid()-Threads.nthreads(:interactive)]    # Thread safe random number generator: one RNG per thread
         Random.seed!(tsrng,masterSeed+i*10) # But the seeding depends on the i of the loop not the thread: we get same results indipendently of the number of threads
         toSample = rand(tsrng, 1:100,100)
         bootstrappedx = x[toSample]
