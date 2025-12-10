@@ -320,6 +320,25 @@ function match(question::Question{Tx}, x) where {Tx}
     end
 end
 
+@inline function ensure_mask!(mask::Union{Nothing,Vector{Bool}}, n::Int)
+    if mask === nothing
+        return fill(false, n)
+    elseif length(mask) != n
+        resize!(mask, n)
+    end
+    fill!(mask, false)
+    return mask
+end
+
+@inline function ensure_buffer!(buf::Union{Nothing,Vector{T}}, n::Int, ::Type{T}) where {T}
+    if buf === nothing
+        return Vector{T}(undef, n)
+    elseif length(buf) != n
+        resize!(buf, n)
+    end
+    return buf
+end
+
 """
    partition(question,x)
 
@@ -329,53 +348,102 @@ For each row in the dataset, check if it matches the question. If so, add it to 
 Rows with missing values on the question column are assigned randomly proportionally to the assignment of the non-missing rows.
 """
 function partition(question::Question{Tx},x,mCols;sorted=false,rng = Random.GLOBAL_RNG) where {Tx}
+    trueIdx = fill(false,size(x,1))
+    partition!(trueIdx, question, x, mCols; sorted=sorted, rng=rng)
+    return trueIdx
+end
+
+function partition!(trueIdx::Vector{Bool}, question::Question{Tx}, x, mCols; sorted=false, rng = Random.GLOBAL_RNG, missingIdx::Union{Nothing,Vector{Bool}}=nothing) where {Tx}
     N = size(x,1)
 
-    # TODO: possible huge improvement: pass to partition only the individual column of x rather than the whole x on all the columns
-
-    trueIdx = fill(false,N);
+    resize!(trueIdx, N)
+    fill!(trueIdx, false)
 
     if  in(question.column,mCols) # do we have missings in this col ?
-        missingIdx = fill(false,N)
+        missingIdx = ensure_mask!(missingIdx, N)
         nFalse = 0
-        @inbounds for (rIdx,row) in enumerate(eachrow(x))
-            if(ismissing(row[question.column]))
+        nTrue  = 0
+        col = @view x[:, question.column]
+        @inbounds for rIdx in 1:N
+            v = col[rIdx]
+            if ismissing(v)
                 missingIdx[rIdx] = true
-            elseif match(question,row)
+            elseif (Tx <: Number ? v >= question.value : v == question.value)
                 trueIdx[rIdx] = true
+                nTrue += 1
             else
                 nFalse += 1
             end
         end
         # Assigning missing rows randomly proportionally to non-missing rows
-        p = sum(trueIdx)/(sum(trueIdx)+nFalse)
+        denom = nTrue + nFalse
+        p = denom == 0 ? 0.5 : nTrue / denom
         @inbounds for rIdx in 1:N
             if missingIdx[rIdx]
                 r = rand(rng)
                 if r <= p
                     trueIdx[rIdx] = true
+                    nTrue += 1
                 end
             end
         end
+        return nTrue
     else
         if sorted
-            #val = x[question.column]
-            @views idx = searchsorted(x[:,question.column], question.value)
+            col = @view x[:,question.column]
             if Tx <: Number
-                trueIdx[first(idx):end] .= true
+                firstIdx = searchsortedfirst(col, question.value)
+                nTrue = N - firstIdx + 1
+                if nTrue > 0
+                    @views trueIdx[firstIdx:end] .= true
+                else
+                    nTrue = 0
+                end
             else
+                @views idx = searchsorted(col, question.value)
                 trueIdx[idx] .= true
+                nTrue = length(idx)
             end
         else
-            @inbounds for (rIdx,row) in enumerate(eachrow(x))
-                if match(question,row)
-                    trueIdx[rIdx] = true
+            nTrue = 0
+            col = @view x[:, question.column]
+            if Tx <: Number
+                @inbounds for rIdx in 1:N
+                    if col[rIdx] >= question.value
+                        trueIdx[rIdx] = true
+                        nTrue += 1
+                    end
+                end
+            else
+                @inbounds for rIdx in 1:N
+                    if col[rIdx] == question.value
+                        trueIdx[rIdx] = true
+                        nTrue += 1
+                    end
                 end
             end
         end
-
+        return nTrue
     end
-    return trueIdx
+end
+
+@inline function gain_from_mask!(mask::Vector{Bool}, values, nTrue::Int, currentUncertainty; splitting_criterion, left_buffer, right_buffer)
+    N = length(values)
+    if nTrue == 0 || nTrue == N
+        return 0.0
+    end
+    Nr = N - nTrue
+    nl = 1; nr = 1
+    @inbounds for i in 1:N
+        if mask[i]
+            left_buffer[nl] = values[i]
+            nl += 1
+        else
+            right_buffer[nr] = values[i]
+            nr += 1
+        end
+    end
+    @views return infoGain(left_buffer[1:nTrue], right_buffer[1:Nr], currentUncertainty, splitting_criterion=splitting_criterion)
 end
 
 """
@@ -412,25 +480,30 @@ function infoGainOld(leftY, rightY, parentUncertainty; splitting_criterion=gini)
     return parentUncertainty - p * splitting_criterion(leftY) - (1 - p) * splitting_criterion(rightY)
 end
 
-function findbestgain_sortedvector(x, y, d, candidates; mCols, currentUncertainty, splitting_criterion, rng)
+function findbestgain_sortedvector(x, y, d, candidates; mCols, currentUncertainty, splitting_criterion, rng, mask=nothing, missing_mask=nothing, left_buffer=nothing, right_buffer=nothing)
     n = length(candidates)
     if n < 2
         return candidates[1]
     end
-    
+
+    mask         = ensure_mask!(mask, length(y))
+    missing_mask = ensure_mask!(missing_mask, length(y))
+    left_buffer  = ensure_buffer!(left_buffer, length(y), eltype(y))
+    right_buffer = ensure_buffer!(right_buffer, length(y), eltype(y))
+
     l = max(1, div(n, 4)) # lower bound candidate
     u = min(n, div(3 * n, 4)) # upper bound candidate
-    
-    lquestion = Question(d, candidates[l])
-    ltrueIdx = partition(lquestion, x, mCols, sorted=true, rng=rng)
-    lgain = (any(ltrueIdx) && !all(ltrueIdx)) ? infoGain(y[ltrueIdx], y[.!ltrueIdx], currentUncertainty, splitting_criterion=splitting_criterion) : 0.0
-    
-    uquestion = Question(d, candidates[u])
-    utrueIdx = partition(uquestion, x, mCols, sorted=true, rng=rng)
-    ugain = (any(utrueIdx) && !all(utrueIdx)) ? infoGain(y[utrueIdx], y[.!utrueIdx], currentUncertainty, splitting_criterion=splitting_criterion) : 0.0
 
-    return (lgain > ugain) ? findbestgain_sortedvector(x, y, d, candidates[1:u-1]; mCols=mCols, currentUncertainty=currentUncertainty, splitting_criterion=splitting_criterion, rng=rng) :
-                            findbestgain_sortedvector(x, y, d, candidates[l+1:end]; mCols=mCols, currentUncertainty=currentUncertainty, splitting_criterion=splitting_criterion, rng=rng)
+    lquestion = Question(d, candidates[l])
+    nTrue = partition!(mask, lquestion, x, mCols; sorted=true, rng=rng, missingIdx=missing_mask)
+    lgain = gain_from_mask!(mask, y, nTrue, currentUncertainty; splitting_criterion=splitting_criterion, left_buffer=left_buffer, right_buffer=right_buffer)
+
+    uquestion = Question(d, candidates[u])
+    nTrue = partition!(mask, uquestion, x, mCols; sorted=true, rng=rng, missingIdx=missing_mask)
+    ugain = gain_from_mask!(mask, y, nTrue, currentUncertainty; splitting_criterion=splitting_criterion, left_buffer=left_buffer, right_buffer=right_buffer)
+
+    return (lgain > ugain) ? findbestgain_sortedvector(x, y, d, candidates[1:u-1]; mCols=mCols, currentUncertainty=currentUncertainty, splitting_criterion=splitting_criterion, rng=rng, mask=mask, missing_mask=missing_mask, left_buffer=left_buffer, right_buffer=right_buffer) :
+                            findbestgain_sortedvector(x, y, d, candidates[l+1:end]; mCols=mCols, currentUncertainty=currentUncertainty, splitting_criterion=splitting_criterion, rng=rng, mask=mask, missing_mask=missing_mask, left_buffer=left_buffer, right_buffer=right_buffer)
 end
 function findbestgain_sortedvectorOLD(x,y,d,candidates;mCols,currentUncertainty,splitting_criterion,rng)
     #println(splitting_criterion)
@@ -490,6 +563,8 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_cr
     (N,D)              = size(x)  # number of columns (the last column is the label)
     left_buffer        = Array{Ty,1}(undef,N)
     right_buffer       = Array{Ty,1}(undef,N)
+    mask               = fill(false, N)
+    missing_mask       = fill(false, N)
 
     featuresToConsider = (max_features >= D) ? (1:D) : sample(rng, 1:D, max_features, replace=false)
 
@@ -503,13 +578,10 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_cr
 
 
             if fast_algorithm
-                bestvalue     = findbestgain_sortedvector(sortedx,sortedy,d,sortedx;mCols=mCols,currentUncertainty=currentUncertainty,splitting_criterion=splitting_criterion,rng=rng)
+                bestvalue     = findbestgain_sortedvector(sortedx,sortedy,d,@view sortedx[:, d];mCols=mCols,currentUncertainty=currentUncertainty,splitting_criterion=splitting_criterion,rng=rng, mask=mask, missing_mask=missing_mask, left_buffer=left_buffer, right_buffer=right_buffer)
                 bestQuestionD = Question(d,bestvalue)
-                btrueIdx      = partition(bestQuestionD,sortedx,mCols,sorted=true,rng=rng)
-                bestGainD     = 0.0             # keep track of the best information gain
-                if !all(btrueIdx) && any(btrueIdx)
-                    bestGainD  = infoGain(sortedy[btrueIdx], sortedy[map(!,btrueIdx)], currentUncertainty, splitting_criterion=splitting_criterion)
-                end
+                nTrue         = partition!(mask, bestQuestionD, sortedx, mCols; sorted=true, rng=rng, missingIdx=missing_mask)
+                bestGainD     = gain_from_mask!(mask, sortedy, nTrue, currentUncertainty; splitting_criterion=splitting_criterion, left_buffer=left_buffer, right_buffer=right_buffer)
                 if bestGainD >= bestGain
                     bestGain, bestQuestion = bestGainD, bestQuestionD
                 end
@@ -518,54 +590,14 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_cr
                     # try splitting the dataset
                     #println(question)
                     question = Question(d, val)
-                    trueIdx = partition(question,sortedx,mCols,sorted=true,rng=rng)
+                    nTrue = partition!(mask, question, sortedx, mCols; sorted=true, rng=rng, missingIdx=missing_mask)
                     # Skip this split if it doesn't divide the
                     # dataset.
-                    if all(trueIdx) || ! any(trueIdx)
+                    if nTrue == 0 || nTrue == N
                         continue
                     end
                     # Calculate the information gain from this split
-
-                    #=
-                    @no_escape begin
-                        left  = @alloc(eltype(sortedy), length(trueIdx))
-                        right = @alloc(eltype(sortedy), length(sortedy)-sum(trueIdx))
-                        #println(length(left))
-                        #println(length(right))
-                        nl = 1; nr = 1
-                        for i in 1:length(sortedy)
-                            if trueIdx[i] 
-                                left[nl] = sortedy[i]
-                                nl += 1
-                            else
-                                right[nr] = sortedy[i]  
-                                nr += 1
-                            end
-                        end
-                        @views gain = infoGain(left, right , currentUncertainty, splitting_criterion=splitting_criterion)
-                    end
-                    =#
-
-                    nl = 1; nr = 1
-                    Nl = sum(trueIdx)
-                    Nr = N - Nl
-                    for i in 1:N
-                        if trueIdx[i] 
-                            left_buffer[nl] = sortedy[i]
-                            nl += 1
-                        else
-                            right_buffer[nr] = sortedy[i]  
-                            nr += 1
-                        end
-                    end
-                    @views gain = infoGain(left_buffer[1:Nl], right_buffer[1:Nr] , currentUncertainty, splitting_criterion=splitting_criterion)
-
-
-                    #=
-                    left  = @view sortedy[trueIdx]
-                    right = @view sortedy[map(!,trueIdx)]
-                    gain = infoGain(left, right , currentUncertainty, splitting_criterion=splitting_criterion)
-                    =#
+                    gain = gain_from_mask!(mask, sortedy, nTrue, currentUncertainty; splitting_criterion=splitting_criterion, left_buffer=left_buffer, right_buffer=right_buffer)
 
                     # You actually can use '>' instead of '>=' here
                     # but I wanted the tree to look a certain way for our
@@ -580,7 +612,6 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_cr
             end
 
         else
-            sortIdx = 1:N
             sortedx = x
             sortedy = y
 
@@ -588,27 +619,15 @@ function findBestSplit(x,y::AbstractArray{Ty,1}, mCols;max_features,splitting_cr
                 # try splitting the dataset
                 #println(question)
                 question = Question(d, val)
-                trueIdx = partition(question,sortedx,mCols,sorted=false,rng=rng)
+                nTrue = partition!(mask, question, sortedx, mCols; sorted=false, rng=rng, missingIdx=missing_mask)
                 # Skip this split if it doesn't divide the
                 # dataset.
-                if all(trueIdx) || ! any(trueIdx)
+                if nTrue == 0 || nTrue == N
                     continue
                 end
 
-                nl = 1; nr = 1
-                Nl = sum(trueIdx)
-                Nr = N - Nl
-                for i in 1:N
-                    if trueIdx[i] 
-                        left_buffer[nl] = sortedy[i]
-                        nl += 1
-                    else
-                        right_buffer[nr] = sortedy[i]  
-                        nr += 1
-                    end
-                end
                 # Calculate the information gain from this split
-                @views gain = infoGain(left_buffer[1:Nl], right_buffer[1:Nr] , currentUncertainty, splitting_criterion=splitting_criterion)
+                gain = gain_from_mask!(mask, sortedy, nTrue, currentUncertainty; splitting_criterion=splitting_criterion, left_buffer=left_buffer, right_buffer=right_buffer)
 
                 if gain >= bestGain
                     bestGain, bestQuestion = gain, question
@@ -770,11 +789,14 @@ function buildTree(x, y::AbstractArray{Ty,1}; max_depth = size(x,1), min_gain=0.
     # we'll return a leaf.
     if gain <= min_gain  return Leaf(y, depth)  end
 
-    trueIdx  = partition(question,x,mCols,rng=rng)
-    rootNode = DecisionNode(question,nothing,nothing,1,sum(trueIdx)/length(trueIdx))
+    mask_root    = fill(false, size(x,1))
+    missing_root = fill(false, size(x,1))
+    nTrue        = partition!(mask_root, question, x, mCols; rng=rng, missingIdx=missing_root)
+    rootNode = DecisionNode(question,nothing,nothing,1,nTrue/length(mask_root))
 
-    push!(nodes,TempNode(true,rootNode,depth+1,x[trueIdx,:],y[trueIdx]))
-    push!(nodes,TempNode(false,rootNode,depth+1,x[map(!,trueIdx),:],y[map(!,trueIdx)]))
+    falseIdx = .!mask_root
+    push!(nodes,TempNode(true,rootNode,depth+1,x[mask_root,:],y[mask_root]))
+    push!(nodes,TempNode(false,rootNode,depth+1,x[falseIdx,:],y[falseIdx]))
 
     while length(nodes) > 0
         thisNode = pop!(nodes)
@@ -795,10 +817,13 @@ function buildTree(x, y::AbstractArray{Ty,1}; max_depth = size(x,1), min_gain=0.
         if isLeaf
             newNode = Leaf(thisNode.y, thisNode.depth)
         else
-            trueIdx = partition(question,thisNode.x,mCols,rng=rng)
-            newNode = DecisionNode(question,nothing,nothing,thisNode.depth,sum(trueIdx)/length(trueIdx))
-            push!(nodes,TempNode(true,newNode,thisNode.depth+1,thisNode.x[trueIdx,:],thisNode.y[trueIdx]))
-            push!(nodes,TempNode(false,newNode,thisNode.depth+1,thisNode.x[map(!,trueIdx),:],thisNode.y[map(!,trueIdx)]))
+            mask_local    = fill(false, size(thisNode.x,1))
+            missing_local = fill(false, size(thisNode.x,1))
+            nTrue_local   = partition!(mask_local, question, thisNode.x, mCols; rng=rng, missingIdx=missing_local)
+            newNode = DecisionNode(question,nothing,nothing,thisNode.depth,nTrue_local/length(mask_local))
+            falseIdx_local = .!mask_local
+            push!(nodes,TempNode(true,newNode,thisNode.depth+1,thisNode.x[mask_local,:],thisNode.y[mask_local]))
+            push!(nodes,TempNode(false,newNode,thisNode.depth+1,thisNode.x[falseIdx_local,:],thisNode.y[falseIdx_local]))
         end
         thisNode.trueBranch ? (thisNode.parentNode.trueBranch = newNode) : (thisNode.parentNode.falseBranch = newNode)
     end

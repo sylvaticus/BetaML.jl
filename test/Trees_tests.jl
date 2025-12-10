@@ -1,5 +1,6 @@
 using Test
 using DelimitedFiles, LinearAlgebra
+import Random
 import MLJBase
 const Mlj = MLJBase
 import StatisticalMeasures
@@ -96,7 +97,7 @@ xtrain2 = deepcopy(xtrain)
 m = DecisionTreeEstimator(rng=copy(TESTRNG))
 fit!(m,xtrain2,ytrain)
 y1 = predict(m, xtrain2, ignore_dims=[1])
-xtrain3 = hcat(shuffle(xtrain2[:,1]),xtrain2[:,2:end])
+xtrain3 = hcat(Random.shuffle(xtrain2[:,1]),xtrain2[:,2:end])
 y1bis = predict(m, xtrain3, ignore_dims=[1])
 @test y1 ≈ y1bis # This must be exactly the same
 m2 = DecisionTreeEstimator(rng=copy(TESTRNG))
