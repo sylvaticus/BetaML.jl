@@ -1,5 +1,8 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
+# Heavily refactored inner functions for gains on 20251210  - all tests passed and massive memory improvments (speed cut by half)
+
+
 # ------------------------------------------------------------------------------
 # TYPE HIERARCHY AND DEFINITIONS
 
