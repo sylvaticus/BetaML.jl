@@ -11,6 +11,8 @@
 """
     generate_parallel_rngs(rng::AbstractRNG, n::Integer;reSeed=false)
 
+DEPRECATED: There seems to be issues when julia si run with -t1,1
+For nthread-independent replicable paralelle computation, rather sample a masterseed before the paralell computation and then inside the parallel loop deepcopy the RNG and reseed it using a masterseed and ith specific seed. 
 For multi-threaded models, return n independent random number generators (one per thread) to be used in threaded computations.
 
 Note that each ring is a _copy_ of the original random ring. This means that code that _use_ these RNGs will not change the original RNG state.

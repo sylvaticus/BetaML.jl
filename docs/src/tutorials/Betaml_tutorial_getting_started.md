@@ -331,7 +331,7 @@ In particular, use `rng=StableRNG(FIXEDSEED)` or `rng=copy(FIXEDRNG)` with [`FIX
 
 Most of the stochasticity appears in _training_ a model. However in few cases (e.g. decision trees with missing values) some stochasticity appears also in _predicting_ new data using a trained model. In such cases the model doesn't restrict the random seed, so that you can choose at _predict_ time to use a fixed or a variable random seed.
 
-Finally, if you plan to use multiple threads and want to provide the same stochastic output independent to the number of threads used, have a look at [`generate_parallel_rngs`](@ref).
+Finally, if you plan to use multiple threads and want to provide the same stochastic output independent to the number of threads used, create a masterseed and then reseed with it each parallel computation.
 
 "Reproducible stochasticity" is only one of the elements needed for a reproductible output. The other two are (a) the inputs the workflow uses and (b) the code that is evaluated.
 Concerning the second point Julia has a very modern package system that guarantee reproducible code evaluation (with a few exception linked to using external libraries, but BetaML models are all implemented in Julia itself). Without going in detail, you can use a pattern like this at the beginning of your machine learning workflows:
