@@ -253,7 +253,7 @@ Predict a multiclass label given the feature vector, the linear coefficients and
 julia> model  = perceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 julia> ŷtrain = predict([10 10; 2.5 2.5],model.θ,model.θ₀, model.classes)
 """
-function predict(x,θ::AbstractVector{T},θ₀::AbstractVector{Float64},classes::Vector{Tcl}) where {T<: AbstractVector{Float64},Tcl}
+function predict(x,θ::AbstractVector{T},θ₀::AbstractVector{Float64},classes::AbstractVector{Tcl}) where {T<: AbstractVector{Float64},Tcl}
     (n,d) = size(x)
     nCl   = length(classes)
     y     = Array{Dict{Tcl,Float64},1}(undef,n)

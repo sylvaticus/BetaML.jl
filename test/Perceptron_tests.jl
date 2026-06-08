@@ -6,7 +6,7 @@ const Mlj = MLJBase
 import StatisticalMeasures
 using StableRNGs
 using BetaML
-import BetaML.Perceptron: perceptron, perceptronBinary, kernel_perceptron_classifier, kernel_perceptron_classifier_binary, pegasos, pegasosBinary
+import BetaML.Perceptron: perceptron, perceptronBinary, kernel_perceptron_classifier, kernel_perceptron_classifier_binary, pegasos, pegasosBinary #, predict_kernel_binary
 
 #TESTRNG = FIXEDRNG # This could change...
 TESTRNG = StableRNG(123)
@@ -115,14 +115,17 @@ ytt2    = [(0.5*x[1]+0.2*x[2]^2+0.3*x[3]+1) for (i,x) in enumerate(eachrow(xtest
 ytest = [i > median(ytt2) ? 1 : -1 for i in ytt2]
 #out   = KernelPerceptronClassifier(xtrain, ytrain, K=polynomial_kernel,rShuffle=true,nMsgs=100)
 #ŷtest = predict(xtest,out[1][1],out[1][2],out[1][3], K=polynomial_kernel)
+#=
+Removed kernel binary predict as the multiclass is not based on it on kernel perceptron
 out   = kernel_perceptron_classifier_binary(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0,α=ones(Int64,length(ytrain)))
 # the same: out   = KernelPerceptronClassifierBinary(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0)
-ŷtest = predict(xtest,out.x,out.y,out.α, K=out.K)
+ŷtest = predict_kernel_binary(xtest,out.x,out.y,out.α, K=out.K)
 ϵ = error(ytest, ŷtest)
 ŷtestExpected = [1,-1,-1,-1,-1]
 @test ϵ ≈ 0.2
 #@test any(isapprox(ŷtestExpected,ŷtest))
 @test any(ŷtestExpected == ŷtest )
+=#
 
 # Multiclass..
 outMultiClass   = kernel_perceptron_classifier(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0)

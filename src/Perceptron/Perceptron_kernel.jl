@@ -184,8 +184,11 @@ function kernel_perceptron_classifier_binary(x, y; K=radial_kernel, T=1000, α=z
     return  (x=x,y=y,α=α,errors=lastϵ,besterrors=bestϵ,iterations=T,separated=false)
 end
 
+#=
+Removed kernel binary predict as the multiclass is not based on it on kernel perceptron
+
 """
-    predict(x,xtrain,ytrain,α;K)
+    predict_kernel_binary(x,xtrain,ytrain,α;K)
 
 Predict a binary label {-1,1} given the feature vector and the training data together with their errors (as trained by a kernel perceptron algorithm)
 
@@ -205,14 +208,17 @@ Predict a binary label {-1,1} given the feature vector and the training data tog
 
 # Example:
 ```julia
-julia> predict([1.1 2.1; 5.3 4.2; 1.8 1.7], [3.2,1.2])
+julia> predict_kernel_binary([1.1 2.1; 5.3 4.2; 1.8 1.7], [3.2,1.2])
 ```
 """
-function predict(x,xtrain,ytrain,α;K=radial_kernel)
+function predict_kernel_binary(x,xtrain,ytrain,α;K=radial_kernel)
     x = makematrix(x)
     xtrain = makematrix(xtrain)
     (n,d) = size(x)
     (ntrain,d2) = size(xtrain)
+    println(xtrain)
+    println(x)
+    print("$(size(x)) - $(size(xtrain))")
     if (d2 != d) error("xtrain and x must have the same dimensions."); end
     # corner case all one category
     if length(unique(ytrain)) == 1
@@ -225,7 +231,7 @@ function predict(x,xtrain,ytrain,α;K=radial_kernel)
     end
     return y
  end
-
+=#
 
  """
      predict(x,xtrain,ytrain,α,classes;K)
