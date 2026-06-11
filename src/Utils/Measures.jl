@@ -80,7 +80,7 @@ Compute the Kullback–Leibler divergence between two PMFs
 # kl_divergence(d1,d2) = - sum(d1 .* log2.(d2 .+ 1e-15 )) - ( - sum(d1 .* log2.(d1 .+ 1e-15)) )
 kl_divergence(d1,d2,base2=true) = base2 ?  sum(d1 .* log2.((d1 .+ 1e-15) ./ (d2 .+ 1e-15))  ) : sum(d1 .* log.((d1 .+ 1e-15) ./ (d2 .+ 1e-15))  )
 
-""" accuracy(ŷ,y;ignorelabels=false) - Categorical accuracy between two vectors (T vs T). """
+""" accuracy(y,ŷ;ignorelabels=false) - Categorical accuracy between two vectors (T vs T). """
 function accuracy(y::AbstractArray{T,1},ŷ::AbstractArray{T,1}; ignorelabels=false)  where {T}
     # See here for better performances: https://discourse.julialang.org/t/permutations-of-a-vector-that-retain-the-vector-structure/56790/7
     if(!ignorelabels)
