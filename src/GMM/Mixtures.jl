@@ -1,7 +1,7 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 using Statistics, LinearAlgebra, PDMats
-import Distributions: IsoNormal, DiagNormal, FullNormal, logpdf
+import Distributions: IsoNormal, MvNormal, FullNormal, logpdf
 import PDMats: ScalMat, PDiagMat, PDMat
 import BetaML.Clustering: kmeans
 export SphericalGaussian, DiagonalGaussian, FullGaussian,
@@ -216,7 +216,7 @@ function lpdf(m::DiagonalGaussian,x,mask)
     x  = convert(Vector{nonmissingtype(eltype(x))},x)
     μ  = m.μ[mask]
     σ² = m.σ²[mask]
-    d  = DiagNormal(μ,PDiagMat(σ²))
+    d  = MvNormal(μ,PDiagMat(σ²))
     return logpdf(d,x)
 end
 
