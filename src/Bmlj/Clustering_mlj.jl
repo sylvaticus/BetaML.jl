@@ -56,7 +56,7 @@ julia> hcat(y,classes_est)
 mutable struct KMeansClusterer <: MMI.Unsupervised
     "Number of classes to discriminate the data [def: 3]"
     n_classes::Int64
-    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that, contrary to `KMedoidsClusterer`, the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
+    "Function to employ as distance. Defaults to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`, `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Note that, contrary to `KMedoidsClusterer`, the `KMeansClusterer` algorithm is not guaranteed to converge with distances other than the Euclidean one."
     dist::Function
     """
     The computation method of the vector of the initial representatives.
@@ -64,12 +64,12 @@ mutable struct KMeansClusterer <: MMI.Unsupervised
     - "random": randomly in the X space
     - "grid": using a grid approach
     - "shuffle": selecting randomly within the available points [default]
-    - "given": using a provided set of initial representatives provided in the `initial_representatives` parameter
+    - "given": using a set of initial representatives provided in the `initial_representatives` parameter
     """
     initialisation_strategy::String
     "Provided (K x D) matrix of initial representatives (useful only with `initialisation_strategy=\"given\"`) [default: `nothing`]"
     initial_representatives::Union{Nothing,Matrix{Float64}}
-    "Random Number Generator [deafult: `Random.GLOBAL_RNG`]"
+    "Random Number Generator [default: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
 KMeansClusterer(;
@@ -88,7 +88,7 @@ $(TYPEDFIELDS)
 
 The K-medoids clustering algorithm with customisable distance function, from the Beta Machine Learning Toolkit (BetaML).
 
-Similar to K-Means, but the "representatives" (the cetroids) are guaranteed to be one of the training points. The algorithm work with any arbitrary distance measure.
+Similar to K-Means, but the "representatives" (the centroids) are guaranteed to be one of the training points. The algorithm works with any arbitrary distance measure.
 
 # Notes:
 - data must be numerical
@@ -132,7 +132,7 @@ julia> hcat(y,classes_est)
  mutable struct KMedoidsClusterer <: MMI.Unsupervised
     "Number of classes to discriminate the data [def: 3]"
     n_classes::Int64
-    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`),  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics."
+    "Function to employ as distance. Defaults to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`, `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics."
     dist::Function
     """
     The computation method of the vector of the initial representatives.
@@ -140,12 +140,12 @@ julia> hcat(y,classes_est)
     - "random": randomly in the X space
     - "grid": using a grid approach
     - "shuffle": selecting randomly within the available points [default]
-    - "given": using a provided set of initial representatives provided in the `initial_representatives` parameter
+    - "given": using a set of initial representatives provided in the `initial_representatives` parameter
     """
     initialisation_strategy::String
     "Provided (K x D) matrix of initial representatives (useful only with `initialisation_strategy=\"given\"`) [default: `nothing`]"
     initial_representatives::Union{Nothing,Matrix{Float64}}
-    "Random Number Generator [deafult: `Random.GLOBAL_RNG`]"
+    "Random Number Generator [default: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
  end
  KMedoidsClusterer(;
@@ -161,7 +161,7 @@ julia> hcat(y,classes_est)
 function MMI.fit(m::Union{KMeansClusterer,KMedoidsClusterer}, verbosity, X)
     x  = MMI.matrix(X)                        # convert table to matrix
     # Using low level API here. We could switch to APIV2...
-    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     if typeof(m) == KMeansClusterer
         (assignedClasses,representatives) = BetaML.Clustering.kmeans(x,m.n_classes,dist=m.dist,initialisation_strategy=m.initialisation_strategy,initial_representatives=m.initial_representatives,rng=m.rng,verbosity=verbosity)
@@ -177,7 +177,7 @@ MMI.fitted_params(model::Union{KMeansClusterer,KMedoidsClusterer}, fitresults) =
 # ------------------------------------------------------------------------------
 # Transform functions...
 
-""" fit(m::KMeansClusterer, fitResults, X) - Given a fitted clustering model and some observations, return the distances to each centroids """
+""" transform(m::KMeansClusterer, fitResults, X) - Given a fitted clustering model and some observations, return the distances to each centroid """
 function MMI.transform(m::Union{KMeansClusterer,KMedoidsClusterer}, fitResults, X)
     x     = MMI.matrix(X) # convert table to matrix
     (N,D) = size(x)

@@ -6,15 +6,15 @@ $(TYPEDEF)
 
 Representation of a VectorFunction layer in the network. Vector
 function layer expects a vector activation function, i.e. a function taking the
-whole output of the previous layer an input rather than working on a single node
+whole output of the previous layer as input rather than working on a single node
 as "normal" activation functions would do.
 Useful for example with the SoftMax function in classification or with the
-`pool1D` function to implement a "pool" layer in 1 dimensions.
+`pool1D` function to implement a "pool" layer in 1 dimension.
 By default it is weightless, i.e. it doesn't apply any transformation to the
 output coming from the previous layer except the activation function. However,
-by passing the parameter `wsize` (a touple or array - tested only 1D) you can
+by passing the parameter `wsize` (a tuple or array - tested only 1D) you can
 pass the learnable parameter to the activation function too. It is your
-responsability to be sure the activation function accept only X or also this 
+responsibility to be sure the activation function accepts only X or also this 
 learnable array (as second argument).   
 The number of nodes in input must be set to the same as in the previous layer
 (and if you are using this for classification, to the number of classes, i.e.
@@ -22,7 +22,7 @@ the _previous_ layer must be set equal to the number of classes in the
 predictions).
 
 # Fields:
-* `w`:   Weigths (parameter) array passes as second argument to the activation
+* `w`:   Weights (parameter) array passed as second argument to the activation
          function (if not empty)
 * `nₗ`:  Number of nodes in input (i.e. length of previous layer)
 * `n`:   Number of nodes in output (automatically inferred in the constructor)
@@ -30,11 +30,11 @@ predictions).
 * `dfx`: Derivative of the (vector) activation function with respect to the
          layer inputs (x)
 * `dfw`: Derivative of the (vector) activation function with respect to the
-         optional learnable weigths (w)         
+         optional learnable weights (w)         
 
 # Notes:
 * The output `size` of this layer is given by the size of the output function,
-that not necessarily is the same as the previous layers.
+which is not necessarily the same as that of the previous layer.
 """
 struct VectorFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, TDFW <: Union{Nothing,Function}, WET <: Number} <: AbstractLayer
      w::Array{WET,N}
@@ -49,12 +49,12 @@ struct VectorFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, T
      Instantiate a new VectorFunctionLayer
 
      # Positional arguments:
-     * `nₗ`: Number of nodes (must be same as in the previous layer)
+     * `nₗ`: Number of nodes (must be the same as in the previous layer)
      # Keyword arguments:
      * `wsize`: A tuple or array specifying the size (number of elements) of the
        learnable parameter [def: empty array]
-     * `w_eltype`: Eltype of the weigths [def: `Float64`]
-     * `w`:   Initial weigths with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
+     * `w_eltype`: Eltype of the weights [def: `Float64`]
+     * `w`:   Initial weights with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
      * `f`:  Activation function [def: `softmax`]
      * `dfx`: Derivative of the activation function with respect to the data
      [default: try to match with well-known derivatives, resort to AD if `f` is unknown]
@@ -62,7 +62,7 @@ struct VectorFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, T
               learnable parameter [default: `nothing` (i.e. use AD)]
      * `dummyDataToTestOutputSize`: Dummy data to test the output size [def:
      `ones(nₗ)`]
-     * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+     * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
      # Notes:
      - If the derivative is provided, it should return the gradient as a (n,n) matrix (i.e. the Jacobian)
      - To avoid recomputing the activation function just to determine its output size,

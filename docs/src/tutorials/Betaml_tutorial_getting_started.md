@@ -3,9 +3,9 @@
 ## Introduction
 
 This "tutorial" part of the documentation presents a step-by-step guide to the main algorithms and utility functions provided by BetaML and comparisons with the leading packages in each field.
-Aside this page, the tutorial is divided in the following sections:
+Aside from this page, the tutorial is divided into the following sections:
 
--  [Classification tutorial](@ref classification_tutorial) - Topics: _Decision trees and random forests, neural networks (softmax), dealing with stochasticity, loading data from internet_
+-  [Classification tutorial](@ref classification_tutorial) - Topics: _Decision trees and random forests, neural networks (softmax), dealing with stochasticity, loading data from the internet_
 -  [Regression tutorial](@ref regression_tutorial) - Topics: _Decision trees, Random forests, neural networks, hyper-parameters autotuning, one-hot encoding, continuous error measures_
 -  [Clustering tutorial](@ref clustering_tutorial) - Topics: _k-means, kmedoids, generative (gaussian) mixture models (gmm), cross-validation, ordinal encoding_
 -  [Multi-branch neural network](@ref multibranch_nn_tutorial) - Topics: _neural networks regression, multi-branch neural network_
@@ -14,23 +14,23 @@ Aside this page, the tutorial is divided in the following sections:
 
 Detailed usage instructions on each algorithm can be found on each model struct (listed [here](@ref models_list)), while theoretical notes describing most of them can be found at the companion repository [https://github.com/sylvaticus/MITx_6.86x](https://github.com/sylvaticus/MITx_6.86x).
 
-The overall "philosophy" of BetaML is to support simple machine learning tasks easily and make complex tasks possible. An the most basic level, the majority of  algorithms have default parameters suitable for a basic analysis. A great level of flexibility can be already achieved by just employing the full set of model parameters, for example changing the distance function in `KMedoidsClusterer` to `l1_distance` (aka "Manhattan distance").
-Finally, the greatest flexibility can be obtained by customising BetaML and writing, for example, its own neural network layer type (by subclassing `AbstractLayer`), its own sampler (by subclassing `AbstractDataSampler`) or its own mixture component (by subclassing `AbstractMixture`),
-In such a cases, while not required by any means, please consider to give it back to the community and open a pull request to integrate your work in BetaML.
+The overall "philosophy" of BetaML is to support simple machine learning tasks easily and make complex tasks possible. At the most basic level, the majority of  algorithms have default parameters suitable for a basic analysis. A great level of flexibility can be already achieved by just employing the full set of model parameters, for example changing the distance function in `KMedoidsClusterer` to `l1_distance` (aka "Manhattan distance").
+Finally, the greatest flexibility can be obtained by customising BetaML and writing, for example, your own neural network layer type (by subclassing `AbstractLayer`), your own sampler (by subclassing `AbstractDataSampler`) or your own mixture component (by subclassing `AbstractMixture`).
+In such cases, while not required by any means, please consider giving it back to the community and open a pull request to integrate your work in BetaML.
 
 If you are looking for an introductory book on Julia, you could consider "[Julia Quick Syntax Reference](https://www.julia-book.com/)" (Apress,2019) or the online course "[Introduction to Scientific Programming and Machine Learning with Julia](https://sylvaticus.github.io/SPMLJ/stable/)".
 
 A few conventions applied across the library:
-- Type names use the so-called "CamelCase" convention, where the words are separated by a capital letter rather than `_` ,while function names use lower letters only, with words eventually separated (but only when really neeed for readibility) by an `_`;
-- While some functions provide a `dims` parameter, most BetaML algorithms expect the input data layout with observations organised by rows and fields/features by columns. Almost everywhere in the code and documentation we refer with `N` the number of observations/records, `D` the number of dimensions and `K` the number of classes/categories;
-- While some algorithms accept as input DataFrames, the usage of standard arrays is encourages (if the data is passed to the function as dataframe, it may be converted to standard arrays somewhere inside inner loops, leading to great inefficiencies)
-- The accuracy/error/loss measures expect the ground true `y` and then the estimated `ŷ` (in this order)
+- Type names use the so-called "CamelCase" convention, where the words are separated by a capital letter rather than `_`, while function names use lowercase letters only, with words optionally separated (but only when really needed for readability) by an `_`;
+- While some functions provide a `dims` parameter, most BetaML algorithms expect the input data layout with observations organised by rows and fields/features by columns. Almost everywhere in the code and documentation we refer with `N` to the number of observations/records, `D` to the number of dimensions and `K` to the number of classes/categories;
+- While some algorithms accept as input DataFrames, the usage of standard arrays is encouraged (if the data is passed to the function as a dataframe, it may be converted to standard arrays somewhere inside inner loops, leading to great inefficiencies)
+- The accuracy/error/loss measures expect the ground truth `y` and then the estimated `ŷ` (in this order)
 
 
 ## [Using BetaML from other programming languages](@id using_betaml_from_other_languages)
 
 In this section we provide two examples of using `BetaML` directly in Python or R (with automatic object conversion). Click `Details` for a more extended explanation of these examples.
-While I have no experience with, the same approach can be used to access `BetaML` from any language with a binding to Julia, like Matlab or Javascript. 
+While I have no experience with them, the same approach can be used to access `BetaML` from any language with a binding to Julia, like Matlab or Javascript. 
 
 
 ### Use BetaML in Python
@@ -51,7 +51,7 @@ $ python3 -m pip install --user juliacall
 >>> (Xs,ys) = bml.consistent_shuffle([X,y])
 >>> m       = bml.KMeansClusterer(n_classes=3)
 >>> yhat    = bml.fit_ex(m,Xs) # Python doesn't allow exclamation marks in function names, so we use `fit_ex(⋅)` instead of `fit!(⋅)` (the original function name)
->>> m._jl_display() # force a "Julian" way of displaying of Julia objects
+>>> m._jl_display() # force a "Julian" way of displaying Julia objects
 >>> acc     = bml.accuracy(ys,yhat,ignorelabels=True)
 >>> acc
  0.8933333333333333
@@ -66,7 +66,7 @@ We show for Python two separate "Julia from Python" interfaces, [PyJulia](https:
 
 #### With the classical `pyjulia` package
 
-[PyJulia](https://github.com/JuliaPy/pyjulia) is a relativelly old method to use Julia code and libraries in Python. It works great but it requires that you already have a Julia working installation on your PC, so we need first to download and install the Julia binaries for our operating system from [JuliaLang.org](https://julialang.org/). Be sure that Julia is working by opening the Julia terminal and e.g. typing `println("hello world")`
+[PyJulia](https://github.com/JuliaPy/pyjulia) is a relatively old method to use Julia code and libraries in Python. It works great but it requires that you already have a working Julia installation on your PC, so we first need to download and install the Julia binaries for our operating system from [JuliaLang.org](https://julialang.org/). Be sure that Julia is working by opening the Julia terminal and e.g. typing `println("hello world")`
 
 Install `PyJulia` with: 
 
@@ -82,13 +82,13 @@ We can now open a Python terminal and, to obtain an interface to Julia, just run
 
 ```python
 >>> import julia
->>> julia.install() # Only once to set-up in julia the julia packages required by PyJulia
+>>> julia.install() # Only once to set up in julia the julia packages required by PyJulia
 >>> jl = julia.Julia(compiled_modules=False)
 ```
-If we have multiple Julia versions, we can specify the one to use in Python passing `julia="/path/to/julia/binary/executable"` (e.g. `julia = "/home/myUser/lib/julia-1.8.0/bin/julia"`) to the `install()` function.
+If we have multiple Julia versions, we can specify the one to use in Python by passing `julia="/path/to/julia/binary/executable"` (e.g. `julia = "/home/myUser/lib/julia-1.8.0/bin/julia"`) to the `install()` function.
 
-The `compiled_module=False` in the Julia constructor is a workaround to the common situation when the Python interpreter is statically linked to `libpython`, but it will slow down the interactive experience, as it will disable Julia packages pre-compilation, and every time we will use a module for the first time, this will need to be compiled first.
-Other, more efficient but also more complicate, workarounds are given in the package documentation, under the https://pyjulia.readthedocs.io/en/stable/troubleshooting.html[Troubleshooting section].
+The `compiled_module=False` in the Julia constructor is a workaround for the common situation when the Python interpreter is statically linked to `libpython`, but it will slow down the interactive experience, as it will disable Julia packages pre-compilation, and every time we will use a module for the first time, this will need to be compiled first.
+Other, more efficient but also more complicated, workarounds are given in the package documentation, under the [Troubleshooting section](https://pyjulia.readthedocs.io/en/stable/troubleshooting.html).
 
 Let's now add to Julia the BetaML package. We can surely do it from within Julia, but we can also do it while remaining in Python:
 
@@ -126,7 +126,7 @@ We can now call BetaML functions as we would do for any other Python library fun
  0.8933333333333333
 ```
 
-Note: If we are using the `jl.eval()` interface, the objects we use must be already known to julia. To pass objects from Python to Julia, import the julia `Main` module (the root module in julia) and assign the needed variables, e.g.
+Note: If we are using the `jl.eval()` interface, the objects we use must already be known to julia. To pass objects from Python to Julia, import the julia `Main` module (the root module in julia) and assign the needed variables, e.g.
 
 ```python
 >>> X_python = [1,2,3,2,4]
@@ -147,7 +147,7 @@ Another alternative is to "eval" only the function name and pass the (python) ob
 
 [JuliaCall](https://github.com/cjdoris/PythonCall.jl) is a newer way to use Julia in Python that doesn't require separate installation of Julia.
 
-Istall it in Python using `pip` as well:
+Install it in Python using `pip` as well:
 
 ```
 $ python3 -m pip install --user juliacall
@@ -160,7 +160,7 @@ We can now open a Python terminal and, to obtain an interface to Julia, just run
 ```
 If you have `julia` on PATH, it will use that version, otherwise it will automatically download and install a private version for `JuliaCall`
 
-If we have multiple Julia versions, we can specify the one to use in Python passing `julia="/path/to/julia/binary/executable"` (e.g. `julia = "/home/myUser/lib/julia-1.8.0/bin/julia"`) to the `install()` function.
+If we have multiple Julia versions, we can specify the one to use in Python by setting the environment variable `PYTHON_JULIAPKG_EXE` to the path of the Julia binary executable (e.g. `PYTHON_JULIAPKG_EXE="/home/myUser/lib/julia-1.8.0/bin/julia"`) before importing `juliacall`.
 
 To add `BetaML` to the JuliaCall private version we evaluate the julia package manager `add` function:
 
@@ -168,7 +168,7 @@ To add `BetaML` to the JuliaCall private version we evaluate the julia package m
 >>> jl.seval('using Pkg; Pkg.add("BetaML")')# Only once to install BetaML
 ```
 
-As with `PyJulia` we can evaluate arbitrary Julia code either using `jl.seval('some Julia code')` and by direct call, but let's first import `BetaML`:
+As with `PyJulia` we can evaluate arbitrary Julia code either using `jl.seval('some Julia code')` or by direct call, but let's first import `BetaML`:
 
 ```python
 >>> jl.seval("using BetaML")
@@ -184,13 +184,13 @@ We can now call BetaML functions as we would do for any other Python library fun
 >>> (Xs,ys) = bml.consistent_shuffle([X,y])
 >>> m       = bml.KMeansClusterer(n_classes=3)
 >>> yhat    = bml.fit_ex(m,Xs)
->>> m._jl_display() # force a "Julian" way of displaying of Julia objects
+>>> m._jl_display() # force a "Julian" way of displaying Julia objects
 >>> acc     = bml.accuracy(ys,yhat,ignorelabels=True)
 >>> acc
  0.8933333333333333
 ```
 
-Note: If we are using the `jl.eval()` interface, the objects we use must be already known to julia. To pass objects from Python to Julia, we can write a small Julia _macro_:
+Note: If we are using the `jl.seval()` interface, the objects we use must already be known to julia. To pass objects from Python to Julia, we can write a small Julia _macro_:
 
 ```python
 >>> X_python = [1,2,3,2,4]
@@ -210,7 +210,7 @@ Another alternative is to "eval" only the function name and pass the (python) ob
 
 #### Conclusions about using BetaML in Python
 
-Using either the direct call or the `eval` function, wheter in `Pyjulia` or `JuliaCall`, we should be able to use all the BetaML functionalities directly from Python. If you run into problems using BetaML from Python, [open an issue](https://github.com/sylvaticus/BetaML.jl/issues/new) specifying your set-up.
+Using either the direct call or the `eval` function, whether in `Pyjulia` or `JuliaCall`, we should be able to use all the BetaML functionalities directly from Python. If you run into problems using BetaML from Python, [open an issue](https://github.com/sylvaticus/BetaML.jl/issues/new) specifying your set-up.
 
 ```@raw html
 </details>
@@ -242,7 +242,7 @@ Using either the direct call or the `eval` function, wheter in `Pyjulia` or `Jul
 <details><summary>Details</summary>
 ```
 
-For R, we show how to access `BetaML` functionalities using the [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) R package (no relations with the homonymous Python package).
+For R, we show how to access `BetaML` functionalities using the [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) R package (no relation to the homonymous Python package).
 
 Let's start by installing [`JuliaCall`](https://cran.r-project.org/web/packages/JuliaCall/index.html) in R:
 
@@ -253,10 +253,10 @@ Let's start by installing [`JuliaCall`](https://cran.r-project.org/web/packages/
 > julia_setup(installJulia = TRUE) # use installJulia = TRUE to let R download and install a private copy of julia, FALSE to use an existing Julia local installation
 ```
 
-Note that, differently than `PyJulia`, the "setup" function needs to be called every time we start a new R section, not just when we install the `JuliaCall` package.
+Note that, unlike `PyJulia`, the "setup" function needs to be called every time we start a new R session, not just when we install the `JuliaCall` package.
 If we don't have `julia` in the path of our system, or if we have multiple versions and we want to specify the one to work with, we can pass the `JULIA_HOME = "/path/to/julia/binary/executable/directory"` (e.g. `JULIA_HOME = "/home/myUser/lib/julia-1.1.0/bin"`) parameter to the `julia_setup` call. Or just let `JuliaCall` automatically download and install a private copy of julia.
 
-`JuliaCall` depends for some things (like object conversion between Julia and R) from the Julia `RCall` package. If we don't already have it installed in Julia, it will try to install it automatically.
+`JuliaCall` depends for some things (like object conversion between Julia and R) on the Julia `RCall` package. If we don't already have it installed in Julia, it will try to install it automatically.
 
 As in Python, let's start from the data loaded from R and do some work with them in Julia:
 
@@ -273,7 +273,7 @@ Let's install BetaML. As we did in Python, we can install a Julia package from J
 > julia_eval('using Pkg; Pkg.add("BetaML")')
 ```
 
-We can now "import" the BetaML julia package (in julia a "Package" is basically a module plus some metadata that facilitate its discovery and integration with other packages, like the reuired set) and call its functions with the `julia_call("juliaFunction",args)` R function:
+We can now "import" the BetaML julia package (in julia a "Package" is basically a module plus some metadata that facilitate its discovery and integration with other packages, like the required set) and call its functions with the `julia_call("juliaFunction",args)` R function:
 
 ```{r}
 > julia_eval("using BetaML")
@@ -287,7 +287,7 @@ We can now "import" the BetaML julia package (in julia a "Package" is basically 
 [1] 0.8933333
 ```
 
-As alternative, we can embed Julia code directly in R using the `julia_eval()` function:
+As an alternative, we can embed Julia code directly in R using the `julia_eval()` function:
 
 ```{r}
 kMeansR  <- julia_eval('
@@ -305,7 +305,7 @@ We can then call the above function in R in one of the following three ways:
 2. `julia_assign("Xs_julia", Xs); julia_assign("ys_julia", ys); julia_eval("accFromKmeans(Xs_julia,3,ys_julia)")`
 3. `julia_call("accFromKmeans",Xs,3,ys)`
 
-While other "convenience" functions are provided by the package, using  `julia_call`, or `julia_assign` followed by `julia_eval`, should suffix to use `BetaML` from R. If you run into problems using BetaML from R, [open an issue](https://github.com/sylvaticus/BetaML.jl/issues/new) specifying your set-up.
+While other "convenience" functions are provided by the package, using  `julia_call`, or `julia_assign` followed by `julia_eval`, should suffice to use `BetaML` from R. If you run into problems using BetaML from R, [open an issue](https://github.com/sylvaticus/BetaML.jl/issues/new) specifying your set-up.
 
 ```@raw html
 </details>
@@ -313,28 +313,28 @@ While other "convenience" functions are provided by the package, using  `julia_c
 
 ## [Dealing with stochasticity and reproducibility](@id stochasticity_reproducibility)
 
-Machine Learning workflows include stochastic components in several steps: in the data sampling, in the model initialisation and often in the models's own algorithms (and sometimes also in the prediction step).
-All BetaML models with a stochastic components support a `rng` parameter, standing for _Random Number Generator_. A RNG is a "machine" that streams a flow of random numbers. The flow itself however is deterministically determined for each "seed" (an integer number) that the RNG has been told to use.
-Normally this seed changes at each running of the script/model, so that stochastic models are indeed stochastic and their output differs at each run.
+Machine Learning workflows include stochastic components in several steps: in the data sampling, in the model initialisation and often in the models' own algorithms (and sometimes also in the prediction step).
+All BetaML models with stochastic components support a `rng` parameter, standing for _Random Number Generator_. An RNG is a "machine" that streams a flow of random numbers. The flow itself however is deterministically determined for each "seed" (an integer number) that the RNG has been told to use.
+Normally this seed changes at each run of the script/model, so that stochastic models are indeed stochastic and their output differs at each run.
 
-If we want to obtain reproductible results we can fix the seed at the very beginning of our model with `Random.seed!([AnInteger])`. Now our model or script will pick up a specific flow of random numbers, but this flow will always be the same, so that its results will always be the same.
+If we want to obtain reproducible results we can fix the seed at the very beginning of our model with `Random.seed!([AnInteger])`. Now our model or script will pick up a specific flow of random numbers, but this flow will always be the same, so that its results will always be the same.
 
-However the default Julia RNG guarantee to provide the same flow of random numbers, conditional to the seed, only within minor versions of Julia. If we want to "guarantee" reproducibility of the results with different versions of Julia, or "fix" only some parts of our script, we can call the individual functions passing [`FIXEDRNG`](@ref), an instance of `StableRNG(FIXEDSEED)` provided by `BetaML`, to the `rng` parameter. Use it with:
+However the default Julia RNG guarantees to provide the same flow of random numbers, conditional to the seed, only within minor versions of Julia. If we want to "guarantee" reproducibility of the results with different versions of Julia, or "fix" only some parts of our script, we can call the individual functions passing [`FIXEDRNG`](@ref), an instance of `StableRNG(FIXEDSEED)` provided by `BetaML`, to the `rng` parameter. Use it with:
 
 
 - `MyModel(;rng=FIXEDRNG)`               : always produce the same sequence of results on each run of the script ("pulling" from the same rng object on different calls)
 - `MyModel(;rng=StableRNG(SOMEINTEGER))` : always produce the same result (new identical rng object on each call)
 
-This is very convenient expecially during model development, as a model that use `(...,rng=StableRNG(an_integer))` will provides stochastic results that are isolated (i.e. they don't depend from the consumption of the random stream from other parts of the model).
+This is very convenient especially during model development, as a model that uses `(...,rng=StableRNG(an_integer))` will provide stochastic results that are isolated (i.e. they don't depend on the consumption of the random stream from other parts of the model).
 
 In particular, use `rng=StableRNG(FIXEDSEED)` or `rng=copy(FIXEDRNG)` with [`FIXEDSEED`](@ref)  to retrieve the exact output as in the documentation or in the unit tests.
 
-Most of the stochasticity appears in _training_ a model. However in few cases (e.g. decision trees with missing values) some stochasticity appears also in _predicting_ new data using a trained model. In such cases the model doesn't restrict the random seed, so that you can choose at _predict_ time to use a fixed or a variable random seed.
+Most of the stochasticity appears in _training_ a model. However in a few cases (e.g. decision trees with missing values) some stochasticity appears also in _predicting_ new data using a trained model. In such cases the model doesn't restrict the random seed, so that you can choose at _predict_ time to use a fixed or a variable random seed.
 
-Finally, if you plan to use multiple threads and want to provide the same stochastic output independent to the number of threads used, create a masterseed and then reseed with it each parallel computation.
+Finally, if you plan to use multiple threads and want to provide the same stochastic output independent of the number of threads used, create a masterseed and then reseed with it each parallel computation.
 
-"Reproducible stochasticity" is only one of the elements needed for a reproductible output. The other two are (a) the inputs the workflow uses and (b) the code that is evaluated.
-Concerning the second point Julia has a very modern package system that guarantee reproducible code evaluation (with a few exception linked to using external libraries, but BetaML models are all implemented in Julia itself). Without going in detail, you can use a pattern like this at the beginning of your machine learning workflows:
+"Reproducible stochasticity" is only one of the elements needed for a reproducible output. The other two are (a) the inputs the workflow uses and (b) the code that is evaluated.
+Concerning the second point Julia has a very modern package system that guarantees reproducible code evaluation (with a few exceptions linked to using external libraries, but BetaML models are all implemented in Julia itself). Without going into detail, you can use a pattern like this at the beginning of your machine learning workflows:
 
 ```        
 using Pkg  
@@ -344,7 +344,7 @@ Pkg.instantiate()  # Download and install the required packages if not already a
 ```
 
 This will tell Julia to load the exact version of dependent packages, and recursively of their dependencies, from a `Manifest.toml` file that is automatically created in the script's folder, and automatically updated, when you add or update a package in your workflow.
-Note that these locals "environments" are very "cheap" (packages are not actually copied to each environment on your system, only referenced) and the environment doen't need to be in the same script folder as in this example, can be any folder you want to "activate".
+Note that these local "environments" are very "cheap" (packages are not actually copied to each environment on your system, only referenced) and the environment doesn't need to be in the same script folder as in this example, it can be any folder you want to "activate".
 
 ## Saving and loading trained models
 

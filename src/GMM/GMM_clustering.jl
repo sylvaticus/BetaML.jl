@@ -3,7 +3,7 @@
 """
 estep(X,pₖ,mixtures)
 
-E-step: assign the posterior prob p(j|xi) and computing the log-Likelihood of the parameters given the set of data (this last one for informative purposes and terminating the algorithm only)
+E-step: assign the posterior prob p(j|xi) and compute the log-Likelihood of the parameters given the set of data (this last one for informative purposes and terminating the algorithm only)
 """
 function estep(X,pₖ,mixtures)
  (N,D)  = size(X)
@@ -36,7 +36,7 @@ end
 """
 gmm(X,K;initial_probmixtures,mixtures,tol,verbosity,minimum_variance,minimum_covariance,initialisation_strategy)
 
-Compute Expectation-Maximisation algorithm to identify K clusters of X data, i.e. employ a Generative Mixture Model as the underlying probabilistic model.
+Compute the Expectation-Maximisation algorithm to identify K clusters of X data, i.e. employ a Generative Mixture Model as the underlying probabilistic model.
 
 !!! warning
     This function is no longer exported. Use one of the various models that use GMM as backend instead.
@@ -45,20 +45,20 @@ X can contain missing values in some or all of its dimensions. In such case the 
 Implemented in the log-domain for better numerical accuracy with many dimensions.
 
 # Parameters:
-* `X`  :           A (n x d) data to clusterise
-* `K`  :           Number of cluster wanted
+* `X`  :           The (n x d) data to clusterise
+* `K`  :           Number of clusters wanted
 * `initial_probmixtures` :           Initial probabilities of the categorical distribution (K x 1) [default: `[]`]
-* `mixtures`:      An array (of length K) of the mixture to employ (see notes) [def: `[DiagonalGaussian() for i in 1:K]`]
+* `mixtures`:      An array (of length K) of the mixtures to employ (see notes) [def: `[DiagonalGaussian() for i in 1:K]`]
 * `tol`:           Tolerance to stop the algorithm [default: 10^(-6)]
 * `verbosity`:     A verbosity parameter regulating the information messages frequency [def: `STD`]
 * `minimum_variance`:   Minimum variance for the mixtures [default: 0.05]
 * `minimum_covariance`: Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minimum_variance (see notes).
 * `initialisation_strategy`:  Mixture initialisation algorithm [def: `kmeans`]
 * `maximum_iterations`:       Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]
-* `rng`:           Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+* `rng`:           Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
 # Returns:
-* A named touple of:
+* A named tuple of:
 * `pₙₖ`:      Matrix of size (N x K) of the probabilities of each point i to belong to cluster j
 * `pₖ`:       Probabilities of the categorical distribution (K x 1)
 * `mixtures`: Vector (K x 1) of the estimated underlying distributions
@@ -69,8 +69,8 @@ Implemented in the log-domain for better numerical accuracy with many dimensions
 
 # Notes:
 - The mixtures currently implemented are `SphericalGaussian(μ,σ²)`,`DiagonalGaussian(μ,σ²)` and `FullGaussian(μ,σ²)`
-- Reasonable choices for the minimum_variance/Covariance depends on the mixture. For example 0.25 seems a reasonable value for the SphericalGaussian, 0.05 seems better for the DiagonalGaussian, and FullGaussian seems to prefer either very low values of variance/covariance (e.g. `(0.05,0.05)` ) or very big but similar ones (e.g. `(100,100)` ).
-- For `initialisation_strategy`, look at the documentation of `init_mixtures!` for the mixture you want. The provided gaussian mixtures support `grid`, `kmeans` or `given`. `grid` is faster (expecially if X contains missing values), but `kmeans` often provides better results.
+- Reasonable choices for the minimum_variance/Covariance depend on the mixture. For example 0.25 seems a reasonable value for the SphericalGaussian, 0.05 seems better for the DiagonalGaussian, and FullGaussian seems to prefer either very low values of variance/covariance (e.g. `(0.05,0.05)` ) or very big but similar ones (e.g. `(100,100)` ).
+- For `initialisation_strategy`, look at the documentation of `init_mixtures!` for the mixture you want. The provided gaussian mixtures support `grid`, `kmeans` or `given`. `grid` is faster (especially if X contains missing values), but `kmeans` often provides better results.
 
 # Resources:
 - [Paper describing gmm with missing values](https://doi.org/10.1016/j.csda.2006.10.002)
@@ -107,12 +107,12 @@ function gmm(X,K;initial_probmixtures=Float64[],mixtures=[DiagonalGaussian() for
 
 
  # Initialisation of the parameters of the mixtures
- mixtures = identity.(deepcopy(mixtures)) # to set the container to the minimum common denominator of element types the deepcopy is not to change the function argument
+ mixtures = identity.(deepcopy(mixtures)) # to set the container to the minimum common denominator of element types; the deepcopy is not to change the function argument
  #mixtures = identity.(mixtures) 
 
  init_mixtures!(mixtures,X,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy=initialisation_strategy,rng=rng)
 
- pₙₖ = zeros(Float64,N,K) # The posteriors, i.e. the prob that item n belong to cluster k
+ pₙₖ = zeros(Float64,N,K) # The posteriors, i.e. the prob that item n belongs to cluster k
  ϵ = Float64[]
 
  # Checking dimensions only once (but adding then inbounds doesn't change anything. Still good
@@ -140,12 +140,12 @@ function gmm(X,K;initial_probmixtures=Float64[],mixtures=[DiagonalGaussian() for
      pₖ = nₖ ./ n
      update_parameters!(mixtures, X, pₙₖ; minimum_variance=minimum_variance,minimum_covariance=minimum_covariance)
 
-     # Information. Note the likelihood is whitout accounting for the new mu, sigma
+     # Information. Note the likelihood is without accounting for the new mu, sigma
      if msgStep != 0 && (length(ϵ) % msgStep == 0 || length(ϵ) == 1)
          println("Iter. $(length(ϵ)):\tVar. of the post  $(ϵ[end]) \t  Log-likelihood $(lL)")
      end
 
-     # Closing conditions. Note that the logLikelihood is those without considering the new mu,sigma
+     # Closing conditions. Note that the logLikelihood is that without considering the new mu,sigma
      if ((lL - oldlL) <= (tol * abs(lL))) || (iter >= maximum_iterations)
          npars = npar(mixtures) + (K-1)
          #BIC  = lL - (1/2) * npars * log(N)
@@ -179,8 +179,8 @@ mutable struct GaussianMixture_hp <: BetaMLHyperParametersSet
     "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
     initial_probmixtures::Vector{Float64}
     """An array (of length `n_classes`) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
-    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\".
-    This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes` mixtures of the specified type.
+    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"given\".
+    This parameter can also be given simply in terms of a _type_. In this case it is automatically extended to a vector of `n_classes` mixtures of the specified type.
     Note that mixing of different mixture types is not currently supported and that currently implemented mixtures are `SphericalGaussian`, `DiagonalGaussian` and `FullGaussian`.
     [def: `DiagonalGaussian`]"""
     mixtures::Union{Type,Vector{<: AbstractMixture}}
@@ -195,7 +195,7 @@ mutable struct GaussianMixture_hp <: BetaMLHyperParametersSet
     One of the following:
     - "grid": using a grid approach
     - "given": using the mixture provided in the fully qualified `mixtures` parameter
-    - "kmeans": use first kmeans (itself initialised with a "grid" strategy) to set the initial mixture centers [default]
+    - "kmeans": first use kmeans (itself initialised with a "grid" strategy) to set the initial mixture centers [default]
     Note that currently "random" and "shuffle" initialisations are not supported in gmm-based algorithms.
     """
     initialisation_strategy::String
@@ -204,7 +204,7 @@ mutable struct GaussianMixture_hp <: BetaMLHyperParametersSet
     """
     The method - and its parameters - to employ for hyperparameters autotuning.
     See [`SuccessiveHalvingSearch`](@ref) for the default method (suitable for the GMM-based regressors)
-    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
+    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and optionally change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
     tunemethod::AutoTuneMethod
 
@@ -236,7 +236,6 @@ mutable struct GaussianMixture_hp <: BetaMLHyperParametersSet
         elseif typeof(mixtures) <: UnionAll && !isnothing(n_classes)
             mixtures = [mixtures() for i in 1:n_classes]
         elseif typeof(mixtures) <: AbstractVector && isnothing(n_classes)
-            println("sfsdfsdf")
             n_classes = length(mixtures)
         elseif typeof(mixtures) <: AbstractVector && !isnothing(n_classes)
             n_classes == length(mixtures) || error("The length of the mixtures vector must be equal to the number of classes")
@@ -247,7 +246,7 @@ end
 
 
 Base.@kwdef mutable struct GMMCluster_lp <: BetaMLLearnableParametersSet
-    mixtures::Union{Type,Vector{<: AbstractMixture}}    = AbstractMixture[] # attention that this is set up at model construction, as it has the same name as the hyperparameter
+    mixtures::Union{Type,Vector{<: AbstractMixture}}    = AbstractMixture[] # note that this is set up at model construction, as it has the same name as the hyperparameter
     initial_probmixtures::Vector{Float64}               = []
     #probRecords::Union{Nothing,Matrix{Float64}} = nothing
 end
@@ -262,8 +261,8 @@ For the parameters see [`?GaussianMixture_hp`](@ref GaussianMixture_hp) and [`?B
 # Notes:
 - Data must be numerical
 - Mixtures can be user defined: see the [`?GMM`](@ref GMM) module documentation for a discussion on provided vs custom mixtures.
-- Online fitting (re-fitting with new data) is supported by setting the old learned mixtrures as the starting values
-- The model is fitted using an Expectation-Minimisation (EM) algorithm that supports Missing data and is implemented in the log-domain for better numerical accuracy with many dimensions
+- Online fitting (re-fitting with new data) is supported by setting the old learned mixtures as the starting values
+- The model is fitted using an Expectation-Maximisation (EM) algorithm that supports Missing data and is implemented in the log-domain for better numerical accuracy with many dimensions
 
 # Example: 
 ```julia
@@ -397,7 +396,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the classes probabilities associated to new data assuming the mixtures computed in fitting a [`GaussianMixtureClusterer`](@ref) model.
+Predict the class probabilities associated with new data assuming the mixtures computed in fitting a [`GaussianMixtureClusterer`](@ref) model.
 
 """
 function predict(m::GaussianMixtureClusterer,X)

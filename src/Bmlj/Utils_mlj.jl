@@ -19,14 +19,14 @@ export AutoEncoder
 """
 $(TYPEDEF)
 
-A ready-to use AutoEncoder, from the Beta Machine Learning Toolkit (BetaML) for ecoding and decoding of data using neural networks
+A ready-to-use AutoEncoder, from the Beta Machine Learning Toolkit (BetaML) for encoding and decoding of data using neural networks
 
 # Parameters:
 $(FIELDS)
 
 # Notes:
 - data must be numerical
-- use `transform` to obtain the encoded data, and `inverse_trasnform` to decode to the original data
+- use `transform` to obtain the encoded data, and `inverse_transform` to decode to the original data
 
 # Example:
 ```julia
@@ -60,7 +60,7 @@ Training.. 	 avg loss on epoch 160 (160): 	 0.05877560142428245
 Training.. 	 avg loss on epoch 180 (180): 	 0.05476302769966953
 Training.. 	 avg loss on epoch 200 (200): 	 0.049240864053557445
 Training the Neural Network... 100%|█████████████████████████████████████████████████████████████████████████| Time: 0:00:01
-Training of 200 epoch completed. Final epoch error: 0.049240864053557445.
+Training of 200 epochs completed. Final epoch error: 0.049240864053557445.
 trained Machine; caches model-specific representations of data
   model: AutoEncoder(e_layers = nothing, …)
   args: 
@@ -94,13 +94,13 @@ julia> BetaML.relative_mean_error(MLJ.matrix(X),X_recovered)
 ```
 """
 Base.@kwdef mutable struct AutoEncoder <: MMI.Unsupervised
-    "The number of neurons (i.e. dimensions) of the encoded data. If the value is a float it is consiered a percentual (to be rounded) of the dimensionality of the data [def: `0.33`]"
+    "The number of neurons (i.e. dimensions) of the encoded data. If the value is a float it is considered a proportion (to be rounded) of the dimensionality of the data [def: `0.333`]"
     encoded_size::Union{Float64,Int64}  = 0.333
-    "Inner layer dimension (i.e. number of neurons). If the value is a float it is considered a percentual (to be rounded) of the dimensionality of the data [def: `nothing` that applies a specific heuristic]. Consider that the underlying neural network is trying to predict multiple values at the same times. Normally this requires many more neurons than a scalar prediction. If `e_layers` or `d_layers` are specified, this parameter is ignored for the respective part."
+    "Inner layer dimension (i.e. number of neurons). If the value is a float it is considered a proportion (to be rounded) of the dimensionality of the data [def: `nothing` that applies a specific heuristic]. Consider that the underlying neural network is trying to predict multiple values at the same time. Normally this requires many more neurons than a scalar prediction. If `e_layers` or `d_layers` are specified, this parameter is ignored for the respective part."
     layers_size::Union{Int64,Float64,Nothing} = nothing
-    "The layers (vector of `AbstractLayer`s) responsable of the encoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `layers_size`]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
+    "The layers (vector of `AbstractLayer`s) responsible for the encoding of the data [def: `nothing`, i.e. three dense layers with the inner ones of `layers_size`]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     e_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
-    "The layers (vector of `AbstractLayer`s) responsable of the decoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `layers_size`]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
+    "The layers (vector of `AbstractLayer`s) responsible for the decoding of the data [def: `nothing`, i.e. three dense layers with the inner ones of `layers_size`]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     d_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
     """Loss (cost) function [def: `BetaML.squared_cost`]. Should always assume y and ŷ as (n x d) matrices.
     !!! warning
@@ -109,23 +109,23 @@ Base.@kwdef mutable struct AutoEncoder <: MMI.Unsupervised
     loss::Union{Nothing,Function} = BetaML.Utils.squared_cost
     "Derivative of the loss function [def: `BetaML.dsquared_cost` if `loss==squared_cost`, `nothing` otherwise, i.e. use the derivative of the squared cost or autodiff]"
     dloss::Union{Function,Nothing}  = nothing
-    "Number of epochs, i.e. passages trough the whole training sample [def: `200`]"
+    "Number of epochs, i.e. passes through the whole training sample [def: `200`]"
     epochs::Int64 = 200
     "Size of each individual batch [def: `8`]"
     batch_size::Int64 = 8
-    "The optimisation algorithm to update the gradient at each batch [def: `BetaML.ADAM()`] See `subtypes(BetaML.OptimisationAlgorithm)` for supported optimizers"
+    "The optimisation algorithm to update the gradient at each batch [def: `BetaML.ADAM()`]. See `subtypes(BetaML.OptimisationAlgorithm)` for supported optimizers"
     opt_alg::OptimisationAlgorithm = BetaML.Nn.ADAM()
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool = true  
     """
     The method - and its parameters - to employ for hyperparameters autotuning.
     See [`SuccessiveHalvingSearch`](@ref) for the default method.
-    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
+    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and optionally change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
    tunemethod::AutoTuneMethod                  = BetaML.Utils.SuccessiveHalvingSearch(hpranges = Dict("epochs"=>[100,150,200],"batch_size"=>[8,16,32],"encoded_size"=>[0.2,0.3,0.5],"layers_size"=>[1.3,2.0,5.0]),multithreads=false)
     "An optional title and/or description for this model"
     descr::String = "" 
-    "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+    "Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
     "
     rng::AbstractRNG = Random.GLOBAL_RNG
 end
@@ -133,12 +133,12 @@ end
 """
 $(TYPEDSIGNATURES)
 
-For the `verbosity` parameter see [`Verbosity`](@ref))
+For the `verbosity` parameter see [`Verbosity`](@ref)
 
 """
 function MMI.fit(m::AutoEncoder, verbosity, X)
     x = MMI.matrix(X)                     # convert table to matrix   
-    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
    
     mi = BetaML.Utils.AutoEncoder(;encoded_size=m.encoded_size,layers_size=m.layers_size,e_layers=m.e_layers,d_layers=m.d_layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, tunemethod=m.tunemethod, cache=false, descr=m.descr, rng=m.rng, verbosity=verbosity)

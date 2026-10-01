@@ -1,7 +1,7 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 # Part of submodule Utils of BetaML _ the Beta Machine Learning Toolkit
-# Miscelaneaous funcitons / types
+# Miscellaneous functions / types
 
 using Base.Threads
 using Base.Threads: threadid, threading_run
@@ -24,10 +24,10 @@ function optimize(objectives; use_threads=true)
     # ...
     end
 end
+```
 
 # Notes:
 - Borrowed from https://github.com/JuliaQuantumControl/QuantumControlBase.jl/blob/master/src/conditionalthreads.jl
-```
 """
 macro threadsif(cond, loop)
     if !(isa(loop, Expr) && loop.head === :for)

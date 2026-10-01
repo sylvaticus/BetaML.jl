@@ -90,7 +90,7 @@ ŷtest2 = predict(m, xtest)
 @test info(m) == Dict{String,Any}("job_is_regression" => 0,"fitted_records" => 5,"xndims" => 2,"avg_depth" => 2.6666666666666665, "max_reached_depth" => 3)
 
 
-# Testing that ignore dims doesn't really depend from the dimension we want to ignore
+# Testing that ignore dims doesn't really depend on the dimension we want to ignore
 xtrain = rand(100,3)
 ytrain = [r[1] * 2 - r[2]*r[1]*1.5-r[2]*5+10 for r in eachrow(xtrain)] 
 xtrain2 = deepcopy(xtrain)

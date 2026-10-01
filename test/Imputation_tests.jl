@@ -105,7 +105,7 @@ X̂2 =  predict(mod)
 
 # ------------------------------------------------------------------------------
 
-println("Testing RFFImputer...")
+println("Testing RFImputer...")
 
 X = [2 missing 10 "aaa" missing; 20 40 100 "gggg" missing; 200 400 1000 "zzzz" 1000]
 mod = RandomForestImputer(n_trees=30,forced_categorical_cols=[5],recursive_passages=3,multiple_imputations=10, rng=copy(TESTRNG),verbosity=NONE)
@@ -221,7 +221,7 @@ Xfull2 = BetaML.fit!(mod2,X)
 @test Xfull2[5,3] < Xfull2[7,3]
 @test Xfull2[6,4] > 10
 
-# this would error, as multiple passsages
+# this would error, as multiple passages
 # predict(mod2,X)
 
 
@@ -259,11 +259,11 @@ XM                          =  Mlj.transform(model,fitResults,Xt)
 x̂                           =  Mlj.matrix(XM)
 @test x̂[2,2] > -3 && x̂[2,2] < 40
 
-# Use the previously learned structure to imput missings..
+# Use the previously learned structure to impute missings..
 Xnew_withMissing            = Mlj.table([1.5 missing; missing missing; missing -2.3; 5.1 -2.3; 1 2; 1 2; 1 2; 1 2; 1 2])
 XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
 XDMNew                      = Mlj.matrix(XDNew)
-@test isapprox(XDMNew[2,2],x̂[2,2]) # position only matters
+@test isapprox(XDMNew[2,2],x̂[2,2]) # only the position matters
 
 println("Testing MLJ Interface for GaussianMixtureImputer...")
 
@@ -276,7 +276,7 @@ XM                          =  Mlj.transform(model,fitResults,Xt)
 x̂                           =  Mlj.matrix(XM)
 @test x̂[2,2] > -2.4 && x̂[2,2] < 40
 
-# Use the previously learned structure to imput missings..
+# Use the previously learned structure to impute missings..
 Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
 XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
 XDMNew                      = Mlj.matrix(XDNew)
@@ -297,7 +297,7 @@ XM                          =  Mlj.transform(model,fitResults,Xt)
 x̂                           =  Mlj.matrix(XM)
 @test  x̂[2,2] > -2.4 && x̂[2,2] < 40
 
-# Use the previously learned structure to imput missings..
+# Use the previously learned structure to impute missings..
 Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
 XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
 XDMNew                      = Mlj.matrix(XDNew)
@@ -313,9 +313,9 @@ modelMachine                =  Mlj.machine(model,Xt)
 (fitResults, cache, report) =  Mlj.fit(model, 0, Xt)
 XM                          =  Mlj.transform(model,fitResults,Xt)
 x̂                           =  Mlj.matrix(XM)
-@test x̂[2,2] > -2.4 && x̂[2,2] < 40 # not the same as RF because the oth columns are imputed too
+@test x̂[2,2] > -2.4 && x̂[2,2] < 40 # not the same as RF because the other columns are imputed too
 
-# Use the previously learned structure to imput missings..
+# Use the previously learned structure to impute missings..
 Xnew_withMissing            = Mlj.table([1.5 missing; missing 38; missing -2.3; 5.1 -2.3])
 XDNew                       = Mlj.transform(model,fitResults,Xnew_withMissing)
 XDMNew                      = Mlj.matrix(XDNew)

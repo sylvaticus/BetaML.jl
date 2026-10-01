@@ -23,7 +23,7 @@ struct ConvLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Functio
    output_size::SVector{NDPLUS1,Int64}
    "Weight tensor (aka \"filter\" or \"kernel\") with respect to the input from previous layer or data (kernel_size array augmented by the nchannels_in and nchannels_out dimensions)"
    weight::Array{WET,NDPLUS2}
-   "Wether to use (and learn) a bias weigth [def: true]"
+   "Whether to use (and learn) a bias weight [def: true]"
    usebias::Bool
    "Bias (nchannels_out array)"
    bias::Array{WET,1}
@@ -40,15 +40,15 @@ struct ConvLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Functio
    "Derivative of the activation function"
    df::TDF
 
-   "x ids of the convolution (computed in `preprocessing`` - itself at the beginning of `train`"
+   "x ids of the convolution (computed in `preprocess!` - itself at the beginning of `fit!`)"
    x_ids::Vector{SVector{NDPLUS1,Int64}}
-   "y ids of the convolution (computed in `preprocessing`` - itself at the beginning of `train`"
+   "y ids of the convolution (computed in `preprocess!` - itself at the beginning of `fit!`)"
    y_ids::Vector{SVector{NDPLUS1,Int64}}
-   "w ids of the convolution (computed in `preprocessing`` - itself at the beginning of `train`"
+   "w ids of the convolution (computed in `preprocess!` - itself at the beginning of `fit!`)"
    w_ids::Vector{SVector{NDPLUS2,Int64}}
-   "A y-dims array of vectors of ids of x(s) contributing to the giving y"
+   "A y-dims array of vectors of ids of x(s) contributing to the given y"
    y_to_x_ids::Array{Vector{NTuple{NDPLUS1,Int64}},NDPLUS1}
-   "A y-dims array of vectors of corresponding w(s) contributing to the giving y"
+   "A y-dims array of vectors of corresponding w(s) contributing to the given y"
    y_to_w_ids::Array{Vector{NTuple{NDPLUS2,Int64}},NDPLUS1}  
 
    @doc """
@@ -56,27 +56,27 @@ struct ConvLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Functio
 
    Instantiate a new nD-dimensional, possibly multichannel ConvolutionalLayer
 
-   The input data is either a column vector (in which case is reshaped) or an array of `input_size` augmented by the `n_channels` dimension, the output size depends on the `input_size`, `kernel_size`, `padding` and `striding` but has always `nchannels_out` as its last dimention.  
+   The input data is either a column vector (in which case it is reshaped) or an array of `input_size` augmented by the `n_channels` dimension, the output size depends on the `input_size`, `kernel_size`, `padding` and `striding` but always has `nchannels_out` as its last dimension.  
 
    # Positional arguments:
    * `input_size`:    Shape of the input layer (integer for 1D convolution, tuple otherwise). Do not consider the channels number here.
-   * `kernel_size`:   Size of the kernel (aka filter or learnable weights) (integer for 1D or hypercube kernels or nD-sized tuple for assymmetric kernels). Do not consider the channels number here.
+   * `kernel_size`:   Size of the kernel (aka filter or learnable weights) (integer for 1D or hypercube kernels or nD-sized tuple for asymmetric kernels). Do not consider the channels number here.
    * `nchannels_in`:  Number of channels in input
    * `nchannels_out`: Number of channels in output
    # Keyword arguments:
    * `stride`: "Steps" to move the convolution with across the various tensor dimensions [def: `ones`]
-   * `padding`: Integer or 2-elements tuple of tuples of the starting end ending padding across the various dimensions [def: `nothing`, i.e. set the padding required to keep the same dimensions in output (with stride==1)]
-   * `f`:   Activation function [def: `relu`]
-   * `df`:  Derivative of the activation function [default: try to match a known funcion, AD otherwise. Use `nothing` to force AD]
+   * `padding`: Integer or 2-element tuple of tuples of the starting and ending padding across the various dimensions [def: `nothing`, i.e. set the padding required to keep the same dimensions in output (with stride==1)]
+   * `f`:   Activation function [def: `identity`]
+   * `df`:  Derivative of the activation function [default: try to match a known function, AD otherwise. Use `nothing` to force AD]
    * `kernel_eltype`: Kernel eltype [def: `Float64`]
-   * `kernel_init`:   Initial weigths with respect to the input [default: Xavier initialisation]. If explicitly provided, it should be a multidimensional array of `kernel_size` augmented by `nchannels_in` and `nchannels_out` dimensions
-   * `bias_init`:     Initial weigths with respect to the bias [default: Xavier initialisation]. If given it should be a `nchannels_out` vector of scalars.
-   * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+   * `kernel_init`:   Initial weights with respect to the input [default: Xavier initialisation]. If explicitly provided, it should be a multidimensional array of `kernel_size` augmented by `nchannels_in` and `nchannels_out` dimensions
+   * `bias_init`:     Initial weights with respect to the bias [default: Xavier initialisation]. If given it should be a `nchannels_out` vector of scalars.
+   * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
    # Notes:
    - Xavier initialization is sampled from a `Uniform` distribution between `⨦ sqrt(6/(prod(input_size)*nchannels_in))`
    - to retrieve the output size of the layer, use `size(ConvLayer[2])`. The output size on each dimension _d_ (except the last one that is given by `nchannels_out`) is given by the following formula (ceiled): `output_size[d] = 1 + (input_size[d]+2*padding[d]-kernel_size[d])/stride[d]`
-   - with strides higher than 1, the automatic padding is set to keep out_size = in_side/stride
+   - with strides higher than 1, the automatic padding is set to keep out_size = in_size/stride
    """
    function ConvLayer(input_size,kernel_size,nchannels_in,nchannels_out;
             stride  = (ones(Int64,length(input_size))...,),
@@ -99,7 +99,7 @@ struct ConvLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Functio
             f       = identity,
             df      = match_known_derivatives(f))
       
-      # be sure all are tuples of right dimension...
+      # make sure all are tuples of the right dimension...
       if typeof(input_size) <: Integer
          input_size = (input_size,)
       end
@@ -107,7 +107,7 @@ struct ConvLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Functio
       if typeof(kernel_size) <: Integer
          kernel_size = ([kernel_size for d in 1:nD]...,)
       end
-      length(input_size) == length(kernel_size) || error("Number of dimensions of the kernel must equate number of dimensions of input data")
+      length(input_size) == length(kernel_size) || error("Number of dimensions of the kernel must equal the number of dimensions of the input data")
       if typeof(stride) <: Integer
          stride = ([stride for d in 1:nD]...,)
       end
@@ -152,7 +152,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Alternative constructor for a `ConvLayer` where the number of channels in input is specified as a further dimension in the input size instead of as a separate parameter, so to use `size(previous_layer)[2]` if one wish.
+Alternative constructor for a `ConvLayer` where the number of channels in input is specified as a further dimension in the input size instead of as a separate parameter, so as to use `size(previous_layer)[2]` if one wishes.
 
 For arguments and default values see the documentation of the main constructor.
 """
@@ -182,7 +182,7 @@ end
 function preprocess!(layer::ConvLayer{ND,NDPLUS1,NDPLUS2}) where {ND,NDPLUS1,NDPLUS2}
 
    if length(layer.x_ids) > 0
-      return # layer already prepocessed
+      return # layer already preprocessed
    end
 
    input_size, output_size = size(layer)
@@ -421,7 +421,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Get the dimensions of the layers in terms of (dimensions in input, dimensions in output) including channels as last dimension
+Get the dimensions of the layer in terms of (dimensions in input, dimensions in output) including channels as last dimension
 """
 function size(layer::ConvLayer)
    #nchannels_in  = layer.input_size[end]

@@ -135,7 +135,7 @@ end
 
 
 
-println("Starting literating tutorials (.jl --> .md)...")
+println("Starting processing tutorials with Literate (.jl --> .md)...")
 literate_directory.(joinpath.(_TUTORIAL_DIR, _TUTORIAL_SUBDIR))
 
 println("Starting making the documentation...")

@@ -9,7 +9,7 @@ Representation of a pooling layer in the network (weightless)
 
 **EXPERIMENTAL**: Still too slow for practical applications
 
-In the middle between `VectorFunctionLayer` and `ScalarFunctionLayer`, it applyes a function to the set of nodes defined in a sliding kernel.
+In the middle between `VectorFunctionLayer` and `ScalarFunctionLayer`, it applies a function to the set of nodes defined in a sliding kernel.
 
 # Fields:
 $(TYPEDFIELDS)
@@ -34,16 +34,16 @@ struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Func
    "Derivative of the activation function"
    df::TDF #Union{Function,Nothing}
 
-   "x ids of the convolution (computed in `preprocessing`` - itself at the beginning of `train`"
+   "x ids of the convolution (computed in `preprocess!` - itself at the beginning of `fit!`)"
    #x_ids::Array{NTuple{NDPLUS1,Int32},1}
-   "y ids of the convolution (computed in `preprocessing`` - itself at the beginning of `train`"
+   "y ids of the convolution (computed in `preprocess!` - itself at the beginning of `fit!`)"
    #y_ids::Array{NTuple{NDPLUS1,Int32},1}
-   "w ids of the convolution (computed in `preprocessing`` - itself at the beginning of `train`"
+   "w ids of the convolution (computed in `preprocess!` - itself at the beginning of `fit!`)"
    #w_ids::Array{NTuple{NDPLUS2,Int32},1}
 
    "A x-dims array of vectors of ids of y reached by the given x"
    #x_to_y_ids::Array{Vector{NTuple{NDPLUS1,Int32}},NDPLUS1} # not needed
-   "A y-dims array of vectors of ids of x(s) contributing to the giving y"
+   "A y-dims array of vectors of ids of x(s) contributing to the given y"
    y_to_x_ids::Array{Vector{NTuple{NDPLUS1,Int64}},NDPLUS1}
    
 
@@ -53,25 +53,24 @@ struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Func
 
    Instantiate a new nD-dimensional, possibly multichannel PoolingLayer
 
-   The input data is either a column vector (in which case is reshaped) or an array of `input_size` augmented by the `n_channels` dimension, the output size depends on the `input_size`, `kernel_size`, `padding` and `striding` but has always `nchannels_out` as its last dimention.  
+   The input data is either a column vector (in which case it is reshaped) or an array of `input_size` augmented by the `n_channels` dimension, the output size depends on the `input_size`, `kernel_size`, `padding` and `striding` but always has `nchannels_out` as its last dimension.  
 
    # Positional arguments:
    * `input_size`:    Shape of the input layer (integer for 1D convolution, tuple otherwise). Do not consider the channels number here.
-   * `kernel_eltype`: Kernel eltype [def: `Float64`]
-   * `kernel_size`:   Size of the kernel (aka filter) (integer for 1D or hypercube kernels or nD-sized tuple for assymmetric kernels). Do not consider the channels number here.
+   * `kernel_size`:   Size of the kernel (aka filter) (integer for 1D or hypercube kernels or nD-sized tuple for asymmetric kernels). Do not consider the channels number here.
    * `nchannels_in`:  Number of channels in input
-   * `nchannels_out`: Number of channels in output
    
    # Keyword arguments:
+   * `kernel_eltype`: Kernel eltype [def: `Float64`]
    * `stride`: "Steps" to move the convolution with across the various tensor dimensions [def: `kernel_size`, i.e. each X contributes to a single y]
-   * `padding`: Integer or 2-elements tuple of tuples of the starting end ending padding across the various dimensions [def: `nothing`, i.e. set the padding required to keep out_side = in_side / stride ]
-   * `f`:   Activation function. It should have a vector as input and produce a scalar as output[def: `maximum`]
+   * `padding`: Integer or 2-element tuple of tuples of the starting and ending padding across the various dimensions [def: `nothing`, i.e. set the padding required to keep out_size = in_size / stride ]
+   * `f`:   Activation function. It should have a vector as input and produce a scalar as output [def: `maximum`]
    * `df`:  Derivative (gradient) of the activation function for the various inputs. [default: `nothing` (i.e. use AD)]
 
 
    # Notes:
    - to retrieve the output size of the layer, use `size(PoolLayer[2])`. The output size on each dimension _d_ (except the last one that is given by `nchannels_out`) is given by the following formula (ceiled): `output_size[d] = 1 + (input_size[d]+2*padding[d]-kernel_size[d])/stride[d]`
-   - differently from a ConvLayer, the pooling applies always on a single channel level, so that the output has always the same number of channels of the input. If you want to reduce the channels number either use a `ConvLayer` with the desired number of channels in output or use a `ReghaperLayer` to add a 1-element further dimension that will be treated as "channel" and choose the desided stride for the last pooling dimension (the one that was originally the channel dimension) 
+   - differently from a ConvLayer, the pooling always applies on a single channel level, so that the output always has the same number of channels as the input. If you want to reduce the channels number either use a `ConvLayer` with the desired number of channels in output or use a `ReshaperLayer` to add a 1-element further dimension that will be treated as "channel" and choose the desired stride for the last pooling dimension (the one that was originally the channel dimension) 
    """
    function PoolingLayer(input_size,kernel_size,nchannels_in;
             stride  = kernel_size,
@@ -81,7 +80,7 @@ struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Func
             df      = match_known_derivatives(f))
       
       nchannels_out = nchannels_in
-      # be sure all are tuples of right dimension...
+      # make sure all are tuples of the right dimension...
       if typeof(input_size) <: Integer
          input_size = (input_size,)
       end
@@ -89,7 +88,7 @@ struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Func
       if typeof(kernel_size) <: Integer
          kernel_size = ([kernel_size for d in 1:nD]...,)
       end
-      length(input_size) == length(kernel_size) || error("Number of dimensions of the kernel must equate number of dimensions of input data")
+      length(input_size) == length(kernel_size) || error("Number of dimensions of the kernel must equal the number of dimensions of the input data")
       if typeof(stride) <: Integer
          stride = ([stride for d in 1:nD]...,)
       end
@@ -128,7 +127,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Alternative constructor for a `PoolingLayer` where the number of channels in input is specified as a further dimension in the input size instead of as a separate parameter, so to use `size(previous_layer)[2]` if one wish.
+Alternative constructor for a `PoolingLayer` where the number of channels in input is specified as a further dimension in the input size instead of as a separate parameter, so as to use `size(previous_layer)[2]` if one wishes.
 
 For arguments and default values see the documentation of the main constructor.
 """
@@ -145,7 +144,7 @@ end
 
 function preprocess!(layer::PoolingLayer{ND,NDPLUS1,NDPLUS2}) where {ND,NDPLUS1,NDPLUS2}
    if layer.y_to_x_ids !=  [Vector{NTuple{NDPLUS1,Int32}}() for i in CartesianIndices((layer.output_size...,))]
-      return # layer already prepocessed
+      return # layer already preprocessed
    end
 
    input_size, output_size = size(layer)
@@ -215,7 +214,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Compute forward pass of a ConvLayer
+Compute forward pass of a PoolingLayer
 
 """
 function forward(layer::PoolingLayer{ND,NDPLUS1,NDPLUS2,TF, TDF, WET},x) where {ND,NDPLUS1,NDPLUS2,TF, TDF, WET}
@@ -267,7 +266,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Get the dimensions of the layers in terms of (dimensions in input, dimensions in output) including channels as last dimension
+Get the dimensions of the layer in terms of (dimensions in input, dimensions in output) including channels as last dimension
 """
 function size(layer::PoolingLayer{ND,NDPLUS1,NDPLUS2}) where {ND,NDPLUS1,NDPLUS2}
    return ((layer.input_size...,),(layer.output_size...,))

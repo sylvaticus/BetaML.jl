@@ -5,7 +5,7 @@
 $(TYPEDEF)
 
 
-Representation of a "reshaper" (weigthless) layer in the network
+Representation of a "reshaper" (weightless) layer in the network
 
 Reshape the output of a layer (or the input data) to the shape needed for the next one.
 
@@ -25,7 +25,7 @@ struct ReshaperLayer{NDIN,NDOUT} <: AbstractLayer
 
     # Positional arguments:
     * `input_size`:    Shape of the input layer (tuple).
-    * `output_size`:   Shape of the input layer (tuple) [def: `prod([input_size...]))`, i.e. reshape to a vector of appropriate lenght].
+    * `output_size`:   Shape of the output layer (tuple) [def: `prod([input_size...])`, i.e. reshape to a vector of appropriate length].
     """
     function ReshaperLayer(input_size, output_size=prod([input_size...]))
         NDIN = length(input_size)

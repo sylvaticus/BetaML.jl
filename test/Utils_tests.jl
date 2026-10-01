@@ -104,14 +104,14 @@ println("** Going through Test3 (autojacobian)...")
 
 b = softmax([2,3,4],β=1/2)
 c = softmax([2,3.0000001,4],β=1/2)
-# Skipping this test as gives problems in CI for Julia < 1.6
+# Skipping this test as it gives problems in CI for Julia < 1.6
 #autoGrad = autojacobian(x->softmax(x,β=1/2),[2,3,4])
 realG2 = [(c[1]-b[1])*10000000,(c[2]-b[2])*10000000,(c[3]-b[3])*10000000]
 #@test isapprox(autoGrad[:,2],realG2,atol=0.000001)
 manualGrad = dsoftmax([2,3,4],β=1/2)
 @test isapprox(manualGrad[:,2],realG2,atol=0.000001)
 
-# Manual way is hundred of times faster
+# Manual way is hundreds of times faster
 #@benchmark autojacobian(softmax2,[2,3,4])
 #@benchmark dSoftMax([2,3,4],β=1/2)
 
@@ -276,7 +276,7 @@ p=2
 avgϵRel = sum(abs.((ŷ-y)./ y).^p)^(1/p)/(n*d)
 #avgϵRel = (norm((ŷ-y)./ y,p)/(n*d))
 relative_mean_error(y,ŷ,normdim=true,normrec=true,p=p) == avgϵRel
-# case 2 - normalised by dimensions (i.e.  all dimensions play the same)
+# case 2 - normalised by dimensions (i.e.  all dimensions play the same role)
 avgϵRel_byDim = (sum(abs.(ŷ-y) .^ (1/p),dims=1).^(1/p) ./ n) ./   (sum(abs.(y) .^ (1/p) ,dims=1) ./n)
 avgϵRel = mean(avgϵRel_byDim)
 @test relative_mean_error(y,ŷ,normdim=true,normrec=false,p=p) == avgϵRel
@@ -453,7 +453,9 @@ ŷ3 = Dict("Lemon" => 0.2, "Apple" => 0.5, "Grape" => 0.3)
 ŷ4 = Dict("Apple" => 0.2, "Grape" => 0.8)
 ŷ5 = Dict("Lemon" => 0.4, "Grape" => 0.4, "Apple" => 0.2)
 ŷ = [ŷ1,ŷ2,ŷ3,ŷ4,ŷ5]
-@test mode(ŷ,rng=copy(TESTRNG)) == ["Lemon","Grape","Apple","Grape","Lemon"]
+ŷmode = mode(ŷ,rng=copy(TESTRNG))
+@test ŷmode[1:4] == ["Lemon","Grape","Apple","Grape"]
+@test ŷmode[5] in ["Lemon","Grape"] # tie: the outcome depends on the iteration order of the dictionary
 
 y1 = [1,4,2,5]
 y2 = [2,6,6,4]
@@ -481,7 +483,7 @@ res = info(cm)
 @test res["tp"] == [2,1,1] && res["tn"] == [2,4,3] && res["fp"] == [0,0,1] && res["fn"] == [1, 0, 0]
 parameters(cm)
 
-# Checking multiple training equal to just training on full data
+# Checking that multiple trainings are equal to just training on the full data
 scores2 = fit!(cm,y,ŷ)
 res2 = info(cm)
 
@@ -603,7 +605,7 @@ m1 = [1:2 11:12 31:32 41:42 51:52 61:62]
 out = partition(m1,[0.7,0.3],dims=2,rng=copy(TESTRNG))
 @test out == [[31 1 51 61; 32 2 52 62],[11 41; 12 42]]
 
-# Testing not numeric matrices
+# Testing non-numeric matrices
 ms = [[11:16 string.([21:26;])],[31:36;]]
 out = partition(ms,[0.7,0.3],dims=1,rng=copy(TESTRNG))
 @test out[1][2] == [12 "22"; 14 "24"] && out[2][2]== [32,34]
@@ -656,7 +658,7 @@ sampler = KFold(nsplits=3,nrepeats=1,shuffle=true,rng=copy(TESTRNG))
     end
 @test μ <= 0.5 && σ <= 0.1
 
-# test on stats on multiple outputs...
+# test of stats on multiple outputs...
 sampler = KFold(nsplits=3,nrepeats=1,shuffle=true,rng=copy(TESTRNG))
 ((μ1,μ2),(σ1,σ2)) = cross_validation([X,Y],sampler,verbosity=FULL) do trainData,valData,rng
         (xtrain,ytrain) = trainData; (xval,yval) = valData
@@ -721,20 +723,20 @@ out = consistent_shuffle([a,b],rng=copy(FIXEDRNG),dims=2)
 
 # ==================================
 # New test
-println("** Testing paralell repeteable usage...")
+println("** Testing parallel repeatable usage...")
 x = rand(copy(TESTRNG),100)
 
 function innerFunction(bootstrappedx; rng=Random.GLOBAL_RNG)
      sum(bootstrappedx .* rand(rng) ./ 0.5)
 end
 function outerFunction(x;rng = Random.GLOBAL_RNG)
-    masterSeed = rand(rng,100:Int(floor(typemax(Int64)/10000))) # important: with some RNG it is important to do this before the generate_parallel_rngs to guarantee independance from number of threads
+    masterSeed = rand(rng,100:Int(floor(typemax(Int64)/10000))) # important: with some RNGs it is important to do this before the generate_parallel_rngs to guarantee independence from the number of threads
     #rngs       = generate_parallel_rngs(rng,Threads.nthreads()) # make new copy instances
     results    = Array{Float64,1}(undef,30)
     Threads.@threads for i in 1:30
         #tsrng = rngs[Threads.threadid()-Threads.nthreads(:interactive)]    # Thread safe random number generator: one RNG per thread
         tsrng = deepcopy(rng)
-        Random.seed!(tsrng,masterSeed+i*10) # But the seeding depends on the i of the loop not the thread: we get same results indipendently of the number of threads
+        Random.seed!(tsrng,masterSeed+i*10) # But the seeding depends on the i of the loop, not on the thread: we get the same results independently of the number of threads
         toSample = rand(tsrng, 1:100,100)
         bootstrappedx = x[toSample]
         innerResult = innerFunction(bootstrappedx, rng=tsrng)
@@ -856,7 +858,7 @@ y1 = [0.5,0.3,0.2]
 @test kl_divergence(y,y1) ≈ 0.0467175122614015
 @test kl_divergence(y,y) ≈ 0.0
 
-# Testig l2loss_by_cv
+# Testing l2loss_by_cv
 x = vcat(rand(copy(TESTRNG),0:0.001:0.6,60,5), rand(copy(TESTRNG),0.4:0.001:1,60,5))
 y = [2 * r[1] ^2 - 3 * (r[3] + rand(copy(TESTRNG),0:0.001:0.3)) + 12 + 2 * r[5]  - 0.3 * r[1] * r[2] for r in eachrow(x) ]
 ycat = [(i < 10) ?  "c" :  ( (i < 13) ? "a" : "b")  for i in y]
@@ -1002,7 +1004,7 @@ rDiff(MersenneTwister,1,1,100000)       # 0.00129
 rDiff(MersenneTwister,1,10,100000)      # 0.00129
 rDiff(MersenneTwister,1,1000,100000)    # 0.00129
 
-# Seed base 0: Unexpected results for for StableRNG..
+# Seed base 0: Unexpected results for StableRNG..
 rDiff(StableRNG,0,1,100000)             # 0.00105 <----------
 rDiff(StableRNG,0,2,100000)             # 0.00116 <-----
 rDiff(StableRNG,0,5,100000)             # 0.00123 <---

@@ -59,7 +59,7 @@ layers = [l1,l2,l3,l4,l5,l6,l7,l8,l9]
 m      = NeuralNetworkEstimator(layers=layers,loss=squared_cost,verbosity=HIGH,batch_size=128,epochs=4)
 
 # We train the model only on a subset of the training data, otherwise it is too long for the automated building of this page.
-# Training the whole MINST set takes approximatly 16 minutes on a mid-level laptop (on CPU), leading to a test accuracy of 0.969
+# Training the whole MNIST set takes approximately 16 minutes on a mid-level laptop (on CPU), leading to a test accuracy of 0.969
 (x_debug,x_other),(y_debug_oh,y_other_oh)  = partition([x_train,y_train_oh],[0.01,0.99],rng=copy(TESTRNG))
 
 #preprocess!.(layers)
@@ -73,7 +73,7 @@ ŷ = fit!(m,x_debug,y_debug_oh)
 #     15.766 s (1039111 allocations: 1.37 GiB)
 #     14.669 s (3129139 allocations: 1.64 GiB) (w threads)
 #     18.119 s (1039121 allocations: 1.37 GiB)
-#     14.966 s (1039123 allocations: 1.37 GiB) (whout threads)
+#     14.966 s (1039123 allocations: 1.37 GiB) (without threads)
 #      19.357 s (1039123 allocations: 1.37 GiB)
 
 #println(now(), " ", "*** prefit..." )  #src
@@ -103,7 +103,7 @@ heatmap(string.(res["categories"]),string.(res["categories"]),res["normalised_sc
 # -----------------------------------------------------------
 # ## Flux implementation
 # This is the equivalent workflow in Flux.
-# Fitting on the whole training dataset lead to a test accuracy of 0.9658, so likely not statistically different than BetaML, but with still a much faster comutation time, as it takes only 2 minutes instead of 16...
+# Fitting on the whole training dataset leads to a test accuracy of 0.9658, so likely not statistically different from BetaML, but with still a much faster computation time, as it takes only 2 minutes instead of 16...
 
 
 x_train, y_train = MLDatasets.MNIST(split=:train)[:]

@@ -7,7 +7,7 @@ $(TYPEDEF)
 Representation of a layer in the network
 
 # Fields:
-* `w`:  Weigths matrix with respect to the input from previous layer or data (n x n pr. layer)
+* `w`:  Weights matrix with respect to the input from previous layer or data (n x n pr. layer)
 * `wb`: Biases (n)
 * `f`:  Activation function
 * `df`: Derivative of the activation function
@@ -26,12 +26,12 @@ struct DenseLayer{TF <: Function, TDF <: Union{Nothing,Function}, WET <: Number}
      * `nₗ`: Number of nodes of the previous layer
      * `n`:  Number of nodes
      # Keyword arguments:
-     * `w_eltype`: Eltype of the weigths [def: `Float64`]
-     * `w`:   Initial weigths with respect to input [default: Xavier initialisation, dims = (n,nₗ)]
-     * `wb`:  Initial weigths with respect to bias [default: Xavier initialisation, dims = (n)]
+     * `w_eltype`: Eltype of the weights [def: `Float64`]
+     * `w`:   Initial weights with respect to input [default: Xavier initialisation, dims = (n,nₗ)]
+     * `wb`:  Initial weights with respect to bias [default: Xavier initialisation, dims = (n)]
      * `f`:   Activation function [def: `identity`]
      * `df`:  Derivative of the activation function [default: try to match with well-known derivatives, resort to AD if `f` is unknown]
-     * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+     * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
      # Notes:
      - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n))`
@@ -82,7 +82,7 @@ end
 
 function forward(layer::DenseLayer{TF,DTF,WET},x) where {TF, DTF, WET}
   z = zeros(WET,size(layer)[2][1])
-  _zComp!(z,layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) #layer.w * x + layer.wb # _zComp(layer,x) #   layer.w * x + layer.wb # testd @avx
+  _zComp!(z,layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) #layer.w * x + layer.wb # _zComp(layer,x) #   layer.w * x + layer.wb # tested @avx
   return layer.f.(z)
 end
 

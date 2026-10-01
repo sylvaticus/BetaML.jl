@@ -15,15 +15,15 @@ end
 """
 $(TYPEDEF)
 
-A multi-dimensional, missing data friendly non-linear regressor based on Generative (Gaussian) Mixture Model (strategy "1").
+A multi-dimensional, missing data friendly non-linear regressor based on a Generative (Gaussian) Mixture Model (strategy "1").
 
-The training data is used to fit a probabilistic model with latent mixtures (Gaussian distributions with different covariances are already implemented) and then predictions of new data is obtained by fitting the new data to the mixtures.
+The training data is used to fit a probabilistic model with latent mixtures (Gaussian distributions with different covariances are already implemented) and then predictions of new data are obtained by fitting the new data to the mixtures.
 
 For hyperparameters see [`GaussianMixture_hp`](@ref) and [`BML_options`](@ref).
 
 This strategy (`GaussianMixtureRegressor2`) works by fitting the EM algorithm on the feature matrix X.
-Once the data has been probabilistically assigned to the various classes, a mean value of fitting values Y is computed for each cluster (using the probabilities as weigths).
-At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm to obtain the probabilistic assignment of each record to the various mixtures. Then these probabilities are multiplied to the mixture averages for the Y dimensions learned at training time to obtain the predicted value(s) for each record. 
+Once the data has been probabilistically assigned to the various classes, a mean value of fitting values Y is computed for each cluster (using the probabilities as weights).
+At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm to obtain the probabilistic assignment of each record to the various mixtures. Then these probabilities are multiplied by the mixture averages for the Y dimensions learned at training time to obtain the predicted value(s) for each record. 
 
 # Notes:
 - Predicted values are always a matrix, even when a single variable is predicted (use `dropdims(ŷ,dims=2)` to get a single vector).
@@ -173,7 +173,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the classes probabilities associated to new data assuming the mixtures and average values per class computed in fitting a [`GaussianMixtureRegressor2`](@ref) model.
+Predict the Y values associated with new data assuming the mixtures and average values per class computed in fitting a [`GaussianMixtureRegressor2`](@ref) model.
 
 """
 function predict(m::GaussianMixtureRegressor2,X)
@@ -213,14 +213,14 @@ end
 """
 $(TYPEDEF)
 
-A multi-dimensional, missing data friendly non-linear regressor based on Generative (Gaussian) Mixture Model.
+A multi-dimensional, missing data friendly non-linear regressor based on a Generative (Gaussian) Mixture Model.
 
-The training data is used to fit a probabilistic model with latent mixtures (Gaussian distributions with different covariances are already implemented) and then predictions of new data is obtained by fitting the new data to the mixtures.
+The training data is used to fit a probabilistic model with latent mixtures (Gaussian distributions with different covariances are already implemented) and then predictions of new data are obtained by fitting the new data to the mixtures.
 
 For hyperparameters see [`GaussianMixture_hp`](@ref) and [`BML_options`](@ref).
 
-Thsi strategy (`GaussianMixtureRegressor`) works by training the EM algorithm on a combined (hcat) matrix of X and Y.
-At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm (and using missing values for the dimensions belonging to Y) to obtain the probabilistic assignment of each record to the various mixtures. Then these probabilities are multiplied to the mixture averages for the Y dimensions to obtain the predicted value(s) for each record. 
+This strategy (`GaussianMixtureRegressor`) works by training the EM algorithm on a combined (hcat) matrix of X and Y.
+At predict time, the new data is first fitted to the learned mixtures using the e-step part of the EM algorithm (and using missing values for the dimensions belonging to Y) to obtain the probabilistic assignment of each record to the various mixtures. Then these probabilities are multiplied by the mixture averages for the Y dimensions to obtain the predicted value(s) for each record. 
 
 # Example:
 ```julia
@@ -367,7 +367,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the classes probabilities associated to new data assuming the mixtures computed fitting a [`GaussianMixtureRegressor`](@ref) model on a merged X and Y matrix
+Predict the Y values associated with new data assuming the mixtures computed by fitting a [`GaussianMixtureRegressor`](@ref) model on a merged X and Y matrix
 """
 function predict(m::GaussianMixtureRegressor,X)
     X    = makematrix(X)

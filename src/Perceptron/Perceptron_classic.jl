@@ -15,19 +15,19 @@ The perceptron is a _linear_ classifier. Multiclass is supported using a one-vs-
 * `x`:           Feature matrix of the training data (n × d)
 * `y`:           Associated labels of the training data, can be in any format (string, integers..)
 * `θ`:           Initial value of the weights (parameter) [def: `zeros(d)`]
-* `θ₀`:          Initial value of the weight (parameter) associated to the constant
+* `θ₀`:          Initial value of the weight (parameter) associated with the constant
              term [def: `0`]
 * `T`:           Maximum number of iterations across the whole set (if the set
              is not fully classified earlier) [def: 1000]
-* `nMsg`:        Maximum number of messages to show if all iterations are done [def: `0`]
+* `nMsgs`:       Maximum number of messages to show if all iterations are done [def: `0`]
 * `shuffle`:     Whether to randomly shuffle the data at each iteration [def: `false`]
 * `force_origin`: Whether to force `θ₀` to remain zero [def: `false`]
 * `return_mean_hyperplane`: Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]
-* `rng`:         Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+* `rng`:         Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
 * `θ`:          The weights of the classifier
-* `θ₀`:         The weight of the classifier associated to the constant term
+* `θ₀`:         The weight of the classifier associated with the constant term
 * `classes`:    The classes (unique values) of y
 
 # Notes:
@@ -86,7 +86,7 @@ for (i,c) in enumerate(yclasses)
     if i == 1 && nCl == 2
         outθ[2] = - outθ[1]
         outθ₀[2] = .- outθ₀[1]
-        break    # if there are only two classes we do compute only one passage, as A vs B would be the same as B vs A
+        break    # if there are only two classes we compute only one pass, as A vs B would be the same as B vs A
     end
 end
 return (θ=outθ,θ₀=outθ₀,classes=yclasses)
@@ -105,24 +105,24 @@ Train the binary classifier "perceptron" algorithm based on x and y (labels)
 * `x`:           Feature matrix of the training data (n × d)
 * `y`:           Associated labels of the training data, in the format of ⨦ 1
 * `θ`:           Initial value of the weights (parameter) [def: `zeros(d)`]
-* `θ₀`:          Initial value of the weight (parameter) associated to the constant
+* `θ₀`:          Initial value of the weight (parameter) associated with the constant
              term [def: `0`]
 * `T`:           Maximum number of iterations across the whole set (if the set
              is not fully classified earlier) [def: 1000]
-* `nMsg`:        Maximum number of messages to show if all iterations are done
+* `nMsgs`:       Maximum number of messages to show if all iterations are done
 * `shuffle`:     Whether to randomly shuffle the data at each iteration [def: `false`]
 * `force_origin`: Whether to force `θ₀` to remain zero [def: `false`]
-* `rng`:         Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+* `rng`:         Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
 * `θ`:          The final weights of the classifier
-* `θ₀`:         The final weight of the classifier associated to the constant term
+* `θ₀`:         The final weight of the classifier associated with the constant term
 * `avgθ`:       The average weights of the classifier
-* `avgθ₀`:      The average weight of the classifier associated to the constant term
+* `avgθ₀`:      The average weight of the classifier associated with the constant term
 * `errors`:     The number of errors in the last iteration
 * `besterrors`: The minimum number of errors in classifying the data ever reached
 * `iterations`: The actual number of iterations performed
-* `separated`:  Weather the data has been successfully separated
+* `separated`:  Whether the data has been successfully separated
 
 # Notes:
 * The trained parameters can then be used to make predictions using the function `predict()`.
@@ -176,7 +176,7 @@ sumθ = θ; sumθ₀ = θ₀
    end
    if (ϵ == 0)
        if nMsgs > 0
-           println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified)")
+           println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set have been correctly classified)")
        end
        return (θ=θ,θ₀=θ₀,avgθ=sumθ/(n*T),avgθ₀=sumθ₀/(n*T),errors=0,besterrors=0,iterations=t,separated=true)
    elseif ϵ < bestϵ
@@ -203,7 +203,7 @@ Predict a binary label {-1,1} given the feature vector and the linear coefficien
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
 * `θ`:        The trained parameters
-* `θ₀`:       The trained bias barameter [def: `0`]
+* `θ₀`:       The trained bias parameter [def: `0`]
 
 # Return :
 * `y`: Vector of the predicted labels
@@ -239,8 +239,8 @@ Predict a multiclass label given the feature vector, the linear coefficients and
 # Parameters:
 * `x`:       Feature matrix of the training data (n × d)
 * `θ`:       Vector of the trained parameters for each one-vs-all model (i.e. `model.θ`)
-* `θ₀`:      Vector of the trained bias barameter for each one-vs-all model (i.e. `model.θ₀`)
-* `classes`: The overal classes encountered in training (i.e. `model.classes`)
+* `θ₀`:      Vector of the trained bias parameter for each one-vs-all model (i.e. `model.θ₀`)
+* `classes`: The overall classes encountered in training (i.e. `model.classes`)
 
 # Return :
 * `ŷ`: Vector of dictionaries `label=>probability`
@@ -252,6 +252,7 @@ Predict a multiclass label given the feature vector, the linear coefficients and
 ```julia
 julia> model  = perceptron([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 julia> ŷtrain = predict([10 10; 2.5 2.5],model.θ,model.θ₀, model.classes)
+```
 """
 function predict(x,θ::AbstractVector{T},θ₀::AbstractVector{Float64},classes::AbstractVector{Tcl}) where {T<: AbstractVector{Float64},Tcl}
     (n,d) = size(x)
@@ -287,7 +288,7 @@ $(TYPEDFIELDS)
 Base.@kwdef mutable struct PerceptronC_hp <: BetaMLHyperParametersSet
     "Initial parameters. If given, should be a matrix of n-classes by feature dimension + 1 (to include the constant term as the first element) [def: `nothing`, i.e. zeros]"
     initial_parameters::Union{Nothing,Matrix{Float64}} = nothing
-    "Maximum number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
+    "Maximum number of epochs, i.e. passes through the whole training sample [def: `1000`]"
     epochs::Int64 = 1000
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool = true 
@@ -298,13 +299,13 @@ Base.@kwdef mutable struct PerceptronC_hp <: BetaMLHyperParametersSet
     """
     The method - and its parameters - to employ for hyperparameters autotuning.
     See [`SuccessiveHalvingSearch`](@ref) for the default method.
-    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
+    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and optionally change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
     tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("epochs" =>[50,100,1000,10000], "shuffle"=>[true,false], "force_origin"=>[true,false],"return_mean_hyperplane"=>[true,false]),multithreads=true)
 end
 
 Base.@kwdef mutable struct PerceptronClassifier_lp <: BetaMLLearnableParametersSet
-    weigths::Union{Nothing,Matrix{Float64}} = nothing
+    weights::Union{Nothing,Matrix{Float64}} = nothing
     classes::Vector  = []
 end
 
@@ -336,7 +337,7 @@ Type `]dev BetaML` to modify the source code (this would change its location on 
 ***
 *** Training perceptron for maximum 100 iterations. Random shuffle: true
 Avg. error after iteration 1 : 0.5
-*** Avg. error after epoch 5 : 0.0 (all elements of the set has been correctly classified)
+*** Avg. error after epoch 5 : 0.0 (all elements of the set have been correctly classified)
 6-element Vector{String}:
  "a"
  "b"
@@ -430,12 +431,12 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the labels associated to some feature data using the linear coefficients learned by fitting a [`PerceptronClassifier`](@ref) model
+Predict the labels associated with some feature data using the linear coefficients learned by fitting a [`PerceptronClassifier`](@ref) model
 
 """
 function predict(m::PerceptronClassifier,X)
-    θ₀ = [i for i in m.par.weigths[:,1]]
-    θ  = [r for r in eachrow(m.par.weigths[:,2:end])]
+    θ₀ = [i for i in m.par.weights[:,1]]
+    θ  = [r for r in eachrow(m.par.weights[:,2:end])]
     return predict(X,θ,θ₀,m.par.classes)
 end
 
@@ -454,6 +455,6 @@ function show(io::IO, m::PerceptronClassifier)
     else
         println(io,"PerceptronClassifier - A $(m.info["xndims"])-dimensions $(m.info["n_classes"])-classes linear perceptron classifier (fitted on $(m.info["fitted_records"]) records)")
         println(io,"Weights:")
-        println(io,m.par.weigths)
+        println(io,m.par.weights)
     end
 end

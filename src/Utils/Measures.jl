@@ -28,10 +28,10 @@ Compute pairwise distance matrix between elements of an array identified across 
 - dims: the dimension of the observations [def: `1`, i.e. records on rows]
 
 # Returns:
-- a n_records by n_records simmetric matrix of the pairwise distances
+- an n_records by n_records symmetric matrix of the pairwise distances
 
 # Notes:
-- if performances matters, you can use something like `Distances.pairwise(Distances.euclidean,x,dims=1)` from the [`Distances`](https://github.com/JuliaStats/Distances.jl) package.
+- if performance matters, you can use something like `Distances.pairwise(Distances.euclidean,x,dims=1)` from the [`Distances`](https://github.com/JuliaStats/Distances.jl) package.
 """
 function pairwise(x::AbstractArray;distance=l2_distance,dims=1)
     N   = size(x,dims)
@@ -82,7 +82,7 @@ kl_divergence(d1,d2,base2=true) = base2 ?  sum(d1 .* log2.((d1 .+ 1e-15) ./ (d2 
 
 """ accuracy(y,ŷ;ignorelabels=false) - Categorical accuracy between two vectors (T vs T). """
 function accuracy(y::AbstractArray{T,1},ŷ::AbstractArray{T,1}; ignorelabels=false)  where {T}
-    # See here for better performances: https://discourse.julialang.org/t/permutations-of-a-vector-that-retain-the-vector-structure/56790/7
+    # See here for better performance: https://discourse.julialang.org/t/permutations-of-a-vector-that-retain-the-vector-structure/56790/7
     if(!ignorelabels)
         return sum(ŷ .== y)/length(ŷ)
     else
@@ -112,7 +112,7 @@ error(y::AbstractArray{T,1},ŷ::AbstractArray{T,1}; ignorelabels=false) where {
     accuracy(y,ŷ;tol)
 Categorical accuracy with probabilistic prediction of a single datapoint (PMF vs Int).
 
-Use the parameter tol [def: `1`] to determine the tollerance of the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values.
+Use the parameter tol [def: `1`] to determine the tolerance of the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values.
 """
 function accuracy(y_pos::Int64,ŷ::AbstractArray{T,1};tol=1,rng=Random.GLOBAL_RNG) where {T <: Number}
     #if  length(Set(ŷ) == 1                         # all classes the same prob
@@ -134,7 +134,7 @@ Categorical accuracy with probabilistic prediction of a single datapoint given i
 
 # Parameters:
 - `ŷ`: The returned probability mass function in terms of a Dictionary(Item1 => Prob1, Item2 => Prob2, ...)
-- `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
+- `tol`: The tolerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
 """
 function accuracy(y::T,ŷ::AbstractDict{T,Float64};tol=1,rng=Random.GLOBAL_RNG) where {T}
     if !(y in keys(ŷ)) return 0 end
@@ -151,9 +151,9 @@ Categorical accuracy with probabilistic predictions of a dataset (PMF vs Int).
 
 # Parameters:
 - `y`: The N array with the correct category for each point $n$.
-- `ŷ`: An (N,K) matrix of probabilities that each ``\hat y_n`` record with ``n \in 1,....,N``  being of category ``k`` with $k \in 1,...,K$.
-- `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
-- `ignorelabels`: Whether to ignore the specific label order in y. Useful for unsupervised learning algorithms where the specific label order don't make sense [def: false]
+- `ŷ`: An (N,K) matrix of probabilities that each ``\hat y_n`` record with ``n \in 1,....,N``  is of category ``k`` with $k \in 1,...,K$.
+- `tol`: The tolerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
+- `ignorelabels`: Whether to ignore the specific label order in y. Useful for unsupervised learning algorithms where the specific label order doesn't make sense [def: false]
 
 """
 function accuracy(y::AbstractArray{Int64,1},ŷ::AbstractArray{T,2};tol=1,ignorelabels=false,rng=Random.GLOBAL_RNG) where {T <: Number}
@@ -178,7 +178,7 @@ Categorical accuracy with probabilistic predictions of a dataset given in terms 
 # Parameters:
 - `ŷ`: An array where each item is the estimated probability mass function in terms of a Dictionary(Item1 => Prob1, Item2 => Prob2, ...)
 - `y`: The N array with the correct category for each point $n$.
-- `tol`: The tollerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
+- `tol`: The tolerance to the prediction, i.e. if considering "correct" only a prediction where the value with highest probability is the true value (`tol` = 1), or consider instead the set of `tol` maximum values [def: `1`].
 
 """
 function accuracy(y::AbstractArray{T,1},ŷ::AbstractArray{Dict{T,Float64},1};tol=1,rng=Random.GLOBAL_RNG) where {T}
@@ -227,7 +227,7 @@ function l2loss_by_cv(m,data;nsplits=5,nrepeats=1,rng=Random.GLOBAL_RNG)
         end
         return μ
     else
-        @error "Function `l2loss_by_cv` accepts only 1-lenght or 2-length data for respectivelly unsupervised and supervised models"
+        @error "Function `l2loss_by_cv` accepts only 1-length or 2-length data for unsupervised and supervised models respectively"
     end
 end 
 
@@ -235,7 +235,7 @@ end
 error(y::Int64,ŷ::Array{T,1};tol=1) where {T <: Number} = 1 - accuracy(y,ŷ;tol=tol)
 """ error(y,ŷ) - Categorical error with probabilistic predictions of a dataset (Int vs PMF). """
 error(y::Array{Int64,1},ŷ::Array{T,2};tol=1) where {T <: Number} = 1 - accuracy(y,ŷ;tol=tol)
-""" error(y,ŷ) - Categorical error with with probabilistic predictions of a dataset given in terms of a dictionary of probabilities (T vs Dict{T,Float64}). """
+""" error(y,ŷ) - Categorical error with probabilistic predictions of a dataset given in terms of a dictionary of probabilities (T vs Dict{T,Float64}). """
 error(y::Array{T,1},ŷ::Array{Dict{T,Float64},1};tol=1) where {T} = 1 - accuracy(y,ŷ;tol=tol)
 
 """
@@ -249,7 +249,7 @@ Provide Silhouette scoring for cluster outputs
 
 # Notes:
 - the matrix of pairwise distances can be obtained with the function [`pairwise`](@ref)
-- this function doesn't sample. Eventually sample before
+- this function doesn't sample. If needed, sample beforehand
 - to get the score for the cluster simply compute the `mean`
 - see also the [Wikipedia article](https://en.wikipedia.org/wiki/Silhouette_(clustering))
 
@@ -317,17 +317,17 @@ $(FIELDS)
 
 """
 Base.@kwdef mutable struct ConfusionMatrix_hp <: BetaMLHyperParametersSet
-  "The categories (aka \"levels\") to represent. [def: `nothing`, i.e. unique ground true values]."  
+  "The categories (aka \"levels\") to represent. [def: `nothing`, i.e. unique ground truth values]."  
   categories::Union{Vector,Nothing} = nothing
-  "How to handle categories not seen in the ground true values or not present in the provided `categories` array? \"error\" (default) rises an error, \"infrequent\" adds a specific category for these values."
+  "How to handle categories not seen in the ground truth values or not present in the provided `categories` array? \"error\" (default) raises an error, \"infrequent\" adds a specific category for these values."
   handle_unknown::String = "error"
-  "How to handle missing values in either ground true or predicted values ? \"error\" [default] will rise an error, \"drop\" will drop the record"
+  "How to handle missing values in either ground truth or predicted values? \"error\" [default] will raise an error, \"drop\" will drop the record"
   handle_missing::String = "error"
-  "Which value to assign to the \"other\" category (i.e. categories not seen in the gound truth or not present in the provided `categories` array? [def: ` nothing`, i.e. typemax(Int64) for integer vectors and \"other\" for other types]. This setting is active only if `handle_unknown=\"infrequent\"` and in that case it MUST be specified if the vector to one-hot encode is neither integer or strings"
+  "Which value to assign to the \"other\" category (i.e. categories not seen in the ground truth or not present in the provided `categories` array)? [def: ` nothing`, i.e. typemax(Int64) for integer vectors and \"other\" for other types]. This setting is active only if `handle_unknown=\"infrequent\"` and in that case it MUST be specified if the vector to one-hot encode is neither integers nor strings"
   other_categories_name = nothing
   "A dictionary to map categories to some custom names. Useful for example if categories are integers, or you want to use shorter names [def: `Dict()`, i.e. not used]. This option isn't currently compatible with missing values or when some record has a value not in this provided dictionary."
   categories_names = Dict()
-  "Wether `predict` should return the normalised scores. Note that both unnormalised and normalised scores remain available using `info`. [def: `true`]"
+  "Whether `predict` should return the normalised scores. Note that both unnormalised and normalised scores remain available using `info`. [def: `true`]"
   normalise_scores = true
 end
 
@@ -347,12 +347,12 @@ For the parameters see [`ConfusionMatrix_hp`](@ref) and [`BML_options`](@ref).
 The "predicted" values are either the scores or the normalised scores (depending on the parameter `normalise_scores` [def: `true`]).
 
 # Notes: 
-- The Confusion matrix report can be printed (i.e. `print(cm_model)`. If you plan to print the Confusion Matrix report, be sure that the type of the data in `y` and `ŷ` can be converted to `String`.
+- The Confusion matrix report can be printed (i.e. `print(cm_model)`). If you plan to print the Confusion Matrix report, be sure that the type of the data in `y` and `ŷ` can be converted to `String`.
 
-- Information in a structured way is available trought the `info(cm)` function that returns the following dictionary:
-  - `accuracy`:           Oveall accuracy rate
+- Information in a structured way is available through the `info(cm)` function that returns the following dictionary:
+  - `accuracy`:           Overall accuracy rate
   - `misclassification`:  Overall misclassification rate
-  - `actual_count`:       Array of counts per lebel in the actual data
+  - `actual_count`:       Array of counts per label in the actual data
   - `predicted_count`:    Array of counts per label in the predicted data
   - `scores`:             Matrix actual (rows) vs predicted (columns)
   - `normalised_scores`:  Normalised scores
@@ -495,12 +495,12 @@ Fit a [`ConfusionMatrix`](@ref) model to data.
 !!! warning
     Data is expected in the order "ground truth, predictions" (i.e. `fit!(cm_model,y,ŷ)`)
 
-This model supports multiple training (but the categories, if not provided, are extracteed from the first training y only), while prediction with new data (i.e. `predict(cm_model,ŷnew)`) is not supported.
+This model supports multiple trainings (but the categories, if not provided, are extracted from the first training y only), while prediction with new data (i.e. `predict(cm_model,ŷnew)`) is not supported.
 
 """
 function fit!(m::ConfusionMatrix,Y,Ŷ)
     nR = size(Y,1)
-    size(Ŷ,1) == nR || error("Y and Ŷ have different number of elements!")
+    size(Ŷ,1) == nR || error("Y and Ŷ have a different number of elements!")
 
     rng                    = m.opt.rng
     if eltype(Ŷ) <: Dict || ndims(Ŷ) > 1# allow probabilistic outputs
@@ -558,7 +558,7 @@ function fit!(m::ConfusionMatrix,Y,Ŷ)
         c = findfirst(x -> isequal(x,Ŷ[n]),categories)
         if isnothing(r)
             if handle_unknown == "error"
-                error("Found a category ($(Y[n])) not present in `categories` and the `handle_unknown` is set to `error`. Perhaps you want to swith it to `infrequent`.")
+                error("Found a category ($(Y[n])) not present in `categories` and the `handle_unknown` is set to `error`. Perhaps you want to switch it to `infrequent`.")
             elseif handle_unknown == "infrequent"
                 r = length(categories)
             else
@@ -567,7 +567,7 @@ function fit!(m::ConfusionMatrix,Y,Ŷ)
         end
         if isnothing(c)
             if handle_unknown == "error"
-                error("Found a predicted category ($(Y[n])) not present in `categories` or in the true categories and the `handle_unknown` is set to `error`. Perhaps you want to swith it to `infrequent`.")
+                error("Found a predicted category ($(Ŷ[n])) not present in `categories` or in the true categories and the `handle_unknown` is set to `error`. Perhaps you want to switch it to `infrequent`.")
             elseif handle_unknown == "infrequent"
                 c = length(categories)
             else
@@ -603,7 +603,7 @@ function fit!(m::ConfusionMatrix,Y,Ŷ)
 
     m.info["accuracy"]          = accuracy           # Overall accuracy rate
     m.info["misclassification"] = misclassification  # Overall misclassification rate
-    m.info["actual_count"]      = actual_count       # Array of counts per lebel in the actual data
+    m.info["actual_count"]      = actual_count       # Array of counts per label in the actual data
     m.info["predicted_count"]   = predicted_count    # Array of counts per label in the predicted data
     m.info["scores"]            = scores             # Matrix actual (rows) vs predicted (columns)
     m.info["normalised_scores"] = normalised_scores  # Normalised scores
@@ -698,9 +698,9 @@ end
 """
    squared_cost(y,ŷ)
 
-Compute the squared costs between a vector of observations and one of prediction as (1/2)*norm(y - ŷ)^2.
+Compute the squared costs between a vector of observations and one of predictions as (1/2)*norm(y - ŷ)^2.
 
-Aside the 1/2 term, it correspond to the squared l-2 norm distance and when it is averaged on multiple datapoints corresponds to the Mean Squared Error ([MSE](https://en.wikipedia.org/wiki/Mean_squared_error)).
+Aside from the 1/2 term, it corresponds to the squared l-2 norm distance and when it is averaged on multiple datapoints corresponds to the Mean Squared Error ([MSE](https://en.wikipedia.org/wiki/Mean_squared_error)).
 It is mostly used for regression problems.
 """
 squared_cost(y,ŷ)   = (1/2)*norm(y - ŷ)^2
@@ -709,7 +709,7 @@ dsquared_cost(y,ŷ)  = ( ŷ - y)
     mse(y,ŷ)
 
 Compute the mean squared error (MSE) (aka mean squared deviation - MSD) between two vectors y and ŷ.
-Note that while the deviation is averaged by the length of `y` is is not scaled to give it a relative meaning.
+Note that while the deviation is averaged by the length of `y` it is not scaled to give it a relative meaning.
 """
 mse(y,ŷ) = (sum((y-ŷ).^(2))/length(y))
 
@@ -722,9 +722,9 @@ There are many ways to compute a relative mean error. In particular, if normrec 
 With both `normdim` and `normrec` set to `false` (default) the function returns the relative mean error; with both set to `true` it returns the mean relative error (i.e. with p=1 the "[mean absolute percentage error (MAPE)](https://en.wikipedia.org/wiki/Mean_absolute_percentage_error)")
 The parameter `p` [def: `1`] controls the p-norm used to define the error.
 
-The _mean relative error_ enfatises the relativeness of the error, i.e. all observations and dimensions weight the same, wether large or small. Conversly, in the _relative mean error_ the same relative error on larger observations (or dimensions) weights more.
+The _mean relative error_ emphasises the relativeness of the error, i.e. all observations and dimensions weigh the same, whether large or small. Conversely, in the _relative mean error_ the same relative error on larger observations (or dimensions) weighs more.
 
-For example, given `y = [1,44,3]` and `ŷ = [2,45,2]`, the _mean relative error_ `mean_relative_error(y,ŷ,normrec=true)` is `0.452`, while the _relative mean error_ `relative_mean_error(y,ŷ, normrec=false)` is "only" `0.0625`.
+For example, given `y = [1,44,3]` and `ŷ = [2,45,2]`, the _mean relative error_ `relative_mean_error(y,ŷ,normrec=true)` is `0.452`, while the _relative mean error_ `relative_mean_error(y,ŷ, normrec=false)` is "only" `0.0625`.
 
 """
 function relative_mean_error(y,ŷ;normdim=false,normrec=false,p=1)
@@ -735,10 +735,10 @@ function relative_mean_error(y,ŷ;normdim=false,normrec=false,p=1)
     if (!normdim && !normrec) # relative mean error
         avgϵRel = (sum(abs.(ŷ-y).^p)^(1/p) / (n*d)) / (sum( abs.(y) .^p)^(1/p) / (n*d)) # (avg error) / (avg y)
         # avgϵRel = (norm((ŷ-y),p)/(n*d)) / (norm(y,p) / (n*d))
-    elseif (!normdim && normrec) # normalised by record (i.e. all records play the same weight)
+    elseif (!normdim && normrec) # normalised by record (i.e. all records have the same weight)
         avgϵRel_byRec = (sum(abs.(ŷ-y) .^ (1/p),dims=2).^(1/p) ./ d) ./   (sum(abs.(y) .^ (1/p) ,dims=2) ./d)
         avgϵRel = mean(avgϵRel_byRec)
-    elseif (normdim && !normrec) # normalised by dimensions (i.e.  all dimensions play the same weight)
+    elseif (normdim && !normrec) # normalised by dimensions (i.e.  all dimensions have the same weight)
         avgϵRel_byDim = (sum(abs.(ŷ-y) .^ (1/p),dims=1).^(1/p) ./ n) ./   (sum(abs.(y) .^ (1/p) ,dims=1) ./n)
         avgϵRel = mean(avgϵRel_byDim)
     else # mean relative error
@@ -777,7 +777,7 @@ julia> ms = BetaML.Scaler()
 A Scaler BetaMLModel (unfitted)
 julia> y_s = BetaML.fit!(ms, y);
 julia> ŷ_s = BetaML.predict(ms, ŷ);
-julia> mean_absolute_scaled_error_s = BetaML.relative_mean_error((y_s,ŷ_s)
+julia> mean_absolute_scaled_error_s = BetaML.relative_mean_error(y_s,ŷ_s)
 0.2647058823529412
 ```
 """
@@ -809,27 +809,27 @@ $(FIELDS)
 Base.@kwdef mutable struct FeatureR_hp <: BetaMLHyperParametersSet
     "The estimator model to test."
     model = nothing
-    """Metric used to calculate the default column ranking. Two metrics are currently provided: "sobol" uses the variance decomposition based Sobol (total) index comparing ŷ vs. ŷ₋ⱼ; "mda" uses the mean decrease in accuracy comparing y vs. ŷ. Note that regardless of this setting, both measures are available by querying the model with `info()`, this setting only determines which one to use for the default ranking of the prediction output and which columns to remove if `recursive` is true [def: `"sobol"`]."""
+    """Metric used to calculate the default column ranking. Two metrics are currently provided: "sobol" uses the variance decomposition based Sobol (total) index comparing ŷ vs. ŷ₋ⱼ; "mda" uses the mean decrease in accuracy comparing y vs. ŷ. Note that regardless of this setting, both measures are available by querying the model with `info()`; this setting only determines which one to use for the default ranking of the prediction output and which columns to remove if `recursive` is true [def: `"sobol"`]."""
     metric::String = "sobol"
-    """Wheter to refit the estimator model for each omitted dimension. If false, the respective column is randomly shuffled but no "new" fit is performed. This option is ignored for models that support prediction with omitted dimensions [def: `false`]."""
+    """Whether to refit the estimator model for each omitted dimension. If false, the respective column is randomly shuffled but no "new" fit is performed. This option is ignored for models that support prediction with omitted dimensions [def: `false`]."""
     refit = false
-    "The `sobol` and `mda` metrics treat integer y's as regression tasks. Use `force_classification = true` to force that integers to be treated as classes. Note that this has no effect on model training, where it has to be set eventually in the model's own hyperparameters [def: `false`]."
+    "The `sobol` and `mda` metrics treat integer y's as regression tasks. Use `force_classification = true` to force integers to be treated as classes. Note that this has no effect on model training, where it has to be set, if needed, in the model's own hyperparameters [def: `false`]."
     force_classification = false
-    "If `false` the variance importance is computed in a single stage over all the variables, otherwise the less important variable is removed (according to `metric`) and then the algorithm is run again with the remaining variables, recursively [def: `false`]."
+    "If `false` the variance importance is computed in a single stage over all the variables, otherwise the least important variable is removed (according to `metric`) and then the algorithm is run again with the remaining variables, recursively [def: `false`]."
     recursive::Bool = false
     "Number of splits in the cross-validation function used to judge the importance of each dimension [def: `5`]."
     nsplits::Int64 = 5
     "Number of different sample rounds in cross validation. Increase this if your dataset is very small [def: `1`]."
     nrepeats::Int64 = 1
-    """Minimum number of records (or share of it, if a float) to consider in the first loop used to retrieve the less important variable. The sample is then linearly increased up to `sample_max` to retrieve the most important variable.
+    """Minimum number of records (or share of them, if a float) to consider in the first loop used to retrieve the least important variable. The sample is then linearly increased up to `sample_max` to retrieve the most important variable.
     This parameter is ignored if `recursive=false`.
     Note that there is a fixed limit of `nsplits*5` that prevails if lower  [def: `25`]."""
     sample_min::Union{Float64,Int64} = 25
-    """Maximum number of records (or share of it, if a float) to consider in the last loop used to retrieve the most important variable, or if `recursive=false` [def: `1.0`]."""
+    """Maximum number of records (or share of them, if a float) to consider in the last loop used to retrieve the most important variable, or if `recursive=false` [def: `1.0`]."""
     sample_max::Union{Float64,Int64} = 1.0
-    "The function used by the estimator(s) to fit the model. It should take as fist argument the model itself, as second argument a matrix representing the features, and as third argument a vector representing the labels. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.fit!`]"
+    "The function used by the estimator(s) to fit the model. It should take as first argument the model itself, as second argument a matrix representing the features, and as third argument a vector representing the labels. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.fit!`]"
     fit_function::Function     = fit!
-    "The function used by the estimator(s) to predict the labels. It should take as fist argument the model itself and as second argument a matrix representing the features. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.predict`]"
+    "The function used by the estimator(s) to predict the labels. It should take as first argument the model itself and as second argument a matrix representing the features. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.predict`]"
     predict_function::Function = predict
     """The keyword to ignore specific dimensions in prediction. If the model supports this keyword in the prediction function, when we loop over the various dimensions we use only prediction with this keyword instead of re-training [def: `"ignore_dims"`]."""
     # See https://towardsdatascience.com/variable-importance-in-random-forests-20c6690e44e0
@@ -845,9 +845,9 @@ $(TYPEDEF)
 
 A flexible feature ranking estimator using multiple feature importance metrics
 
-FeatureRanker helps to determine the importance of features in predictions of any black-box machine learning model (not necessarily from the BetaML suit), internally using cross-validation.
+FeatureRanker helps to determine the importance of features in predictions of any black-box machine learning model (not necessarily from the BetaML suite), internally using cross-validation.
 
-By default, it ranks variables (columns) in a single pass, without retraining on each one. However, it is possible to specify the model to use multiple passages (where in each passage the less important variable is permuted) or to retrain the model on each variable that is temporarily permuted to test the model without it ("permute and relearn").
+By default, it ranks variables (columns) in a single pass, without retraining on each one. However, it is possible to specify the model to use multiple passes (where in each pass the least important variable is permuted) or to retrain the model on each variable that is temporarily permuted to test the model without it ("permute and relearn").
 Furthermore, if the ML model under evaluation supports ignoring variables during prediction (as BetaML tree models do), it is possible to specify the keyword argument for such an option in the prediction function of the target model.
 
 See [`FeatureR_hp`](@ref) for all hyperparameters.
@@ -860,10 +860,11 @@ The `predict(m::FeatureRanker)` function returns the ranking of the features, fr
 julia> using BetaML, Distributions, Plots
 julia> N     = 1000;
 julia> xa    = rand(N,3);
-julia> xb    = xa[:,1] .* rand.(Normal(1,0.5)); # a correlated but uninfluent variable
+julia> xb    = xa[:,1] .* rand.(Normal(1,0.5)); # a correlated but non-influential variable
 julia> x     = hcat(xa,xb);
-julia> y     = [10*r[1]^2-5 for r in eachrow(x)]; # only the first variable influence y
-julia> rank = fit!(fr,x,y) # from the less influent to the most one
+julia> y     = [10*r[1]^2-5 for r in eachrow(x)]; # only the first variable influences y
+julia> fr    = FeatureRanker(model=RandomForestEstimator(),nsplits=5,nrepeats=1,recursive=false,metric="mda",ignore_dims_keyword="ignore_dims");
+julia> rank = fit!(fr,x,y) # from the least influential to the most influential one
 4-element Vector{Int64}:
  3
  2
@@ -875,6 +876,7 @@ julia> sobol_by_col = info(fr)["sobol_by_col"]
  0.003127023154446514
  0.002676421850738828
  0.018814767195347915
+julia> sobol_by_col_sd = info(fr)["sobol_by_col_sd"];
 julia> ntrials_per_metric = info(fr)["ntrials_per_metric"]
 5
 julia> bar(string.(rank),sobol_by_col[rank],label="Sobol by col", yerror=quantile(Normal(1,0),0.975) .* (sobol_by_col_sd[rank]./sqrt(ntrials_per_metric)))
@@ -936,12 +938,12 @@ function fit!(m::FeatureRanker,X,y)
     sample_min = typeof(m.hpar.sample_min) <: AbstractFloat ? max(nsplits*5, Int64(round(m.hpar.sample_min * nR ))) : max(nsplits*5,m.hpar.sample_min)
     sample_max = typeof(m.hpar.sample_max) <: AbstractFloat ? max(sample_min, Int64(round(m.hpar.sample_max * nR ))) : max(sample_min,m.hpar.sample_max)
    
-    sample_max <= nR || @error "Not enought records"
-    recursive &&  (sample_max - sample_min < nC) && @error "Not enought records for a recursive anaylis"
+    sample_max <= nR || @error "Not enough records"
+    recursive &&  (sample_max - sample_min < nC) && @error "Not enough records for a recursive analysis"
 
     # This is the number of samples for each recursive lookup of important cols
     if recursive
-        nsamples = Int.(round.(collect(LinRange(sample_min,sample_min,nC-1))))   
+        nsamples = Int.(round.(collect(LinRange(sample_min,sample_max,nC-1))))   
     else
         nsamples = [sample_max]
     end
@@ -979,7 +981,7 @@ function fit!(m::FeatureRanker,X,y)
             μ_full_full = μ_full
             σ_full_full = σ_full
         end
-        # Stroring outcomes of cols on test...
+        # Storing outcomes of cols on test...
         metric_scores["mda"][colids_ontest]      .= metric_mda
         metric_scores["sobol"][colids_ontest]    .= metric_sobol
         metric_scores["mda_sd"][colids_ontest]   .= mda_sd
@@ -994,7 +996,7 @@ function fit!(m::FeatureRanker,X,y)
         end
         if recursive
             ranks[ia] = sorted_colids_ontest[1]
-            # If this is the last "match" me need to add  also the most important col
+            # If this is the last "match" we need to also add the most important col
             if ia == length(nsamples)
                 ranks[ia+1] = sorted_colids_ontest[2]
             end
@@ -1032,7 +1034,7 @@ function compute_cols_losses(m,X,y,ia,ns,cols_ids,ohm)
     partial_predict_supported = hasmethod(m.hpar.predict_function,Tuple{typeof(m.hpar.model),Array},(Symbol(m.hpar.ignore_dims_keyword),))
     refit = m.hpar.refit
 
-    # random shuffle all cols already removed
+    # randomly shuffle all cols already removed
     for idcol in cols_ids
         @views shuffle!(X[:,idcol])
     end
@@ -1065,7 +1067,7 @@ function compute_cols_losses(m,X,y,ia,ns,cols_ids,ohm)
         metric_by_cols_mda   = fill(0.0, n_cols_totest) # this will be the output
         metric_by_cols_sobol = fill(0.0, n_cols_totest) # this will be the output
         for (i,col_totest) in enumerate(cols_totest)
-            m.opt.verbosity > HIGH && @info "- testing col id $col_to_test ..."
+            m.opt.verbosity > HIGH && @info "- testing col id $col_totest ..."
             xtraind = hcat(xtrain[:,1:col_totest-1],shuffle(rng, xtrain[:,col_totest]),xtrain[:,col_totest+1:end])
             xvald = hcat(xval[:,1:col_totest-1],shuffle(rng, xval[:,col_totest]),xval[:,col_totest+1:end])
             if ! partial_predict_supported
@@ -1089,7 +1091,7 @@ function compute_cols_losses(m,X,y,ia,ns,cols_ids,ohm)
         end
         reset!(m.hpar.model)
         batch += 1
-        # cross validation stats works for salars and vector results but not vector of vector, I need to concatenate them
+        # cross validation stats work for scalars and vector results but not vector of vector, I need to concatenate them
         return vcat(ϵ, metric_by_cols_mda, metric_by_cols_sobol) 
     end
     fullloss_μ = metrics_μ[1]
@@ -1141,7 +1143,7 @@ $(TYPEDSIGNATURES)
 
 Compute the variance-analysis based (total) Sobol index.
 
-Provided the first input is the model output with all the variables (dimensions) considered and the second input it the model output with the variable _j_ removed, the Sobol index returns the reduction in output explained variance if the jth output variable is removed, i.e. higher values highliths a more important variable
+Provided the first input is the model output with all the variables (dimensions) considered and the second input is the model output with the variable _j_ removed, the Sobol index returns the reduction in output explained variance if the jth input variable is removed, i.e. higher values highlight a more important variable
 
 # Example
 ```julia

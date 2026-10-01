@@ -4,7 +4,7 @@
 """
 $(TYPEDEF)
 
-Representation of a "group" of layers, each of which operates on different inputs (features) and acting as a single layer in the network.
+Representation of a "group" of layers, each of which operates on different inputs (features), acting as a single layer in the network.
 
 # Fields:
 - `layers`: The individual layers that compose this grouped layer
@@ -15,7 +15,7 @@ struct GroupedLayer <: AbstractLayer
      @doc """
      $(TYPEDSIGNATURES)
 
-     Instantiate a new GroupedLayer, a layer made up of several other layers stacked together in order to cover all the data dimensions but without connect all the inputs to all the outputs like a single `DenseLayer` would do.
+     Instantiate a new GroupedLayer, a layer made up of several other layers stacked together in order to cover all the data dimensions but without connecting all the inputs to all the outputs like a single `DenseLayer` would do.
 
      # Positional arguments:
      - `layers`: The individual layers that compose this grouped layer
@@ -46,7 +46,7 @@ function backward(layer::GroupedLayer,x,next_gradient)
    isizes_swapped = vcat(0,isizes)
    osizes = [size(l)[2][1] for l in layer.layers]
    osizes_swapped = vcat(0,osizes)
-   return  vcat([backward(layer.layers[i], # todo: attention here if first layer has zero paraemters !
+   return  vcat([backward(layer.layers[i], # todo: attention here if first layer has zero parameters !
         selectdim(x,1,sum(isizes_swapped[1:i])+1 : sum(isizes_swapped[1:i+1])),
         selectdim(next_gradient,1,sum(osizes_swapped[1:i])+1: sum(osizes_swapped[1:i+1]))
       ) for i in 1:nL]...) # dϵ_dI   

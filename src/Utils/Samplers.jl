@@ -17,13 +17,13 @@ end
 
 # To implement a new sampler:
 # - create a new structure child of AbstractDataSampler
-# - override iterate(iter::SamplerWithData{yoursampler} and iterate(iter::SamplerWithData{yoursampler},state) considering that
+# - override iterate(iter::SamplerWithData{yoursampler}) and iterate(iter::SamplerWithData{yoursampler},state) considering that
 #=
 for i in iter   # or  "for i = iter"
     # body
 end
 
-# --> is rewritten to :
+# --> is rewritten to:
 
 next = iterate(iter)
 while next !== nothing
@@ -64,13 +64,13 @@ function iterate(iter::SamplerWithData{KFold})
 end
 
 function iterate(iter::SamplerWithData{KFold},state)
-     # Further iteration, I need to create the subsamples only if it is a new interaction
+     # Further iteration, I need to create the subsamples only if it is a new iteration
      K    = iter.sampler.nsplits
      D    = iter.dims
      nRep = iter.sampler.nrepeats
      subs    = state[1]
      counter = state[2]
-     counter <= (K * nRep) || return nothing  # If we are done all the splits by the repetitions we are done
+     counter <= (K * nRep) || return nothing  # If we have done all the splits times the repetitions, we are done
      kpart = counter % K
      if kpart == 1 # new round, we repartition in k parts
          if eltype(iter.data) <: AbstractArray # data has multiple arrays, like X,Y
@@ -82,7 +82,7 @@ function iterate(iter::SamplerWithData{KFold},state)
          next = (subs,counter+1)
          return (i,next)
      else
-        if kpart == 0 # the modulo returns the last element as zero instead as K
+        if kpart == 0 # the modulo returns the last element as zero instead of K
             i   = (cat.(subs[1:K-1]...,dims=D),subs[end])
         else
             i   = (cat.(subs[1:kpart-1]...,subs[kpart+1:end]...,dims=D),subs[kpart])
@@ -98,7 +98,7 @@ end
 """
   batch(n,bsize;sequential=false,rng)
 
-Return a vector of `bsize` vectors of indeces from `1` to `n`.
+Return a vector of `floor(n/bsize)` vectors, each of `bsize` indices, from `1` to `n` (or a single vector of all the `n` indices if `bsize > n`).
 Randomly unless the optional parameter `sequential` is used.
 
 # Example:
@@ -127,14 +127,14 @@ end
 """
 $(TYPEDSIGNATURES)
 
-PErform a Xavier initialisation of the weigths
+Perform a Xavier initialisation of the weights
 
 # Parameters:
 - `previous_npar`: number of parameters of the previous layer
 - `this_npar`: number of parameters of this layer
-- `outsize`: tuple with the size of the weigths [def: `(this_npar,previous_npar)`]
+- `outsize`: tuple with the size of the weights [def: `(this_npar,previous_npar)`]
 - `rng` : random number generator [def: `Random.GLOBAL_RNG`]
-- `eltype`: eltype of the weigth array [def: `Float64`]
+- `eltype`: eltype of the weight array [def: `Float64`]
 
 """
 function xavier_init(previous_npar,this_npar,outsize=(this_npar,previous_npar);rng=Random.GLOBAL_RNG,eltype=Float64)

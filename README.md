@@ -25,8 +25,7 @@ Currently the following models are available:
 | BetaML name | MLJ Interface | Category |
 | ----------- | ------------- | -------- |
 | [`PerceptronClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.PerceptronClassifier) | [`PerceptronClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/MLJ_interface.html#BetaML.Bmlj.PerceptronClassifier) | _Supervised classifier_ | 
-| [`KernelPerceptronClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.KernelPerceptronClassifier)  | 
-[`KernelPerceptronClassifier`](https://sylvaticus.github.io/BetaML.jl/MLJ_interface.html#BetaML.Bmlj.KernelPerceptronClassifier) | _Supervised classifier_ | 
+| [`KernelPerceptronClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.KernelPerceptronClassifier) | [`KernelPerceptronClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/MLJ_interface.html#BetaML.Bmlj.KernelPerceptronClassifier) | _Supervised classifier_ | 
 | [`PegasosClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/Perceptron.html#BetaML.Perceptron.PegasosClassifier) | [`PegasosClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/MLJ_interface.html#BetaML.Bmlj.PegasosClassifier) | _Supervised classifier_ |
 | [`DecisionTreeEstimator`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.DecisionTreeEstimator) | [`DecisionTreeClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/MLJ_interface.html#BetaML.Bmlj.DecisionTreeClassifier), [`DecisionTreeRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/MLJ_interface.html#BetaML.Bmlj.DecisionTreeRegressor) | _Supervised regressor and classifier_ |
 | [`RandomForestEstimator`](https://sylvaticus.github.io/BetaML.jl/stable/Trees.html#BetaML.Trees.RandomForestEstimator) |  [`RandomForestClassifier`](https://sylvaticus.github.io/BetaML.jl/stable/MLJ_interface.html#BetaML.Bmlj.RandomForestClassifier), [`RandomForestRegressor`](https://sylvaticus.github.io/BetaML.jl/stable/MLJ_interface.html#BetaML.Bmlj.RandomForestRegressor) | _Supervised regressor and classifier_ |
@@ -52,14 +51,14 @@ Currently the following models are available:
 
 Theoretical notes describing many of these algorithms are at the companion repository https://github.com/sylvaticus/MITx_6.86x.
 
-All models are implemented entirely in Julia and are hosted in the repository itself (i.e. they are not wrapper to third-party models).
-If your favorite option or model is missing, you can try implement it yourself and [open a pull request](https://github.com/sylvaticus/BetaML.jl/pulls) to share it (see the section [Contribute](#contribute) below) or request its implementation ([open an issue](https://github.com/sylvaticus/BetaML.jl/issues)). Thanks to its JIT compiler, Julia is indeed in the sweet spot where we can easily write models in a high-level language and still having them running efficiently. 
+All models are implemented entirely in Julia and are hosted in the repository itself (i.e. they are not wrappers of third-party models).
+If your favorite option or model is missing, you can try to implement it yourself and [open a pull request](https://github.com/sylvaticus/BetaML.jl/pulls) to share it (see the section [Contribute](#contribute) below) or request its implementation ([open an issue](https://github.com/sylvaticus/BetaML.jl/issues)). Thanks to its JIT compiler, Julia is indeed in the sweet spot where we can easily write models in a high-level language and still have them run efficiently. 
 
 ## Documentation
 
 Please refer to the [package documentation](https://sylvaticus.github.io/BetaML.jl/stable) or use the Julia inline package system (just press the question mark `?` and then, on the special help prompt `help?>`, type the module or function name). The package documentation is made of two distinct parts. The first one is an extensively commented tutorial that covers most of the library, the second one is the reference manual covering the library's API.
 
-If you are looking for an introductory material on Julia, have a look on the book "[Julia Quick Syntax Reference](https://www.julia-book.com/)"(Apress,2019) or the online course "[Scientific Programming and Machine Learning in Julia](https://sylvaticus.github.io/SPMLJ/stable/).
+If you are looking for introductory material on Julia, have a look at the book "[Julia Quick Syntax Reference](https://www.julia-book.com/)"(Apress,2019) or the online course "[Scientific Programming and Machine Learning in Julia](https://sylvaticus.github.io/SPMLJ/stable/)".
 
 While implemented in Julia, this package can be easily used in R or Python employing R's [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) or Python's [juliacall](https://pypi.org/project/juliacall/) respectively, see [the relevant section](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#using_betaml_from_other_languages) in the documentation.
 
@@ -67,7 +66,7 @@ While implemented in Julia, this package can be easily used in R or Python emplo
 
 - **Using an Artificial Neural Network for multinomial categorisation**
 
-In this example we see how to train a neural networks model to predict the specie's name (5th column) given floral sepals and petals measures (first 4 columns) in the famous [iris flower dataset](https://en.wikipedia.org/wiki/Iris_flower_data_set).
+In this example we see how to train a neural network model to predict the species name (5th column) given floral sepal and petal measurements (first 4 columns) in the famous [iris flower dataset](https://en.wikipedia.org/wiki/Iris_flower_data_set).
 
 
 ```julia
@@ -80,7 +79,7 @@ Random.seed!(123);  # Fix the random seed (to obtain reproducible results).
 iris     = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
 x        = convert(Array{Float64,2}, iris[:,1:4])
 y        = convert(Array{String,1}, iris[:,5])
-# Encode the categories (levels) of y using a separate column per each category (aka "one-hot" encoding) 
+# Encode the categories (levels) of y using a separate column for each category (aka "one-hot" encoding) 
 ohmod    = OneHotEncoder()
 y_oh     = fit!(ohmod,y) 
 # Split the data in training/testing sets
@@ -90,19 +89,19 @@ y_oh     = fit!(ohmod,y)
 # Define the Artificial Neural Network model
 l1   = DenseLayer(4,10,f=relu) # The activation function is `ReLU`
 l2   = DenseLayer(10,3)        # The activation function is `identity` by default
-l3   = VectorFunctionLayer(3,f=softmax) # Add a (parameterless) layer whose activation function (`softmax` in this case) is defined to all its nodes at once
-mynn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=crossentropy,descr="Multinomial logistic regression Model Sepal", batch_size=2, epochs=200) # Build the NN and use the cross-entropy as error function. Swith to auto-tuning with `autotune=true`
+l3   = VectorFunctionLayer(3,f=softmax) # Add a (parameterless) layer whose activation function (`softmax` in this case) is applied to all its nodes at once
+mynn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=crossentropy,descr="Multinomial logistic regression Model Sepal", batch_size=2, epochs=200) # Build the NN and use the cross-entropy as error function. Switch to auto-tuning with `autotune=true`
 
 # Train the model (using the ADAM optimizer by default)
 res = fit!(mynn,fit!(Scaler(),xtrain),ytrain_oh) # Fit the model to the (scaled) data
 
-# Obtain predictions and test them against the ground true observations
+# Obtain predictions and test them against the ground truth observations
 ŷtrain         = @pipe predict(mynn,fit!(Scaler(),xtrain)) |> inverse_predict(ohmod,_)  # Note the scaling and reverse one-hot encoding functions
 ŷtest          = @pipe predict(mynn,fit!(Scaler(),xtest))  |> inverse_predict(ohmod,_) 
 train_accuracy = accuracy(ytrain,ŷtrain) # 0.975
 test_accuracy  = accuracy(ytest,ŷtest)   # 0.96
 
-# Analyse model performances
+# Analyse model performance
 cm = ConfusionMatrix()
 fit!(cm,ytest,ŷtest)
 print(cm)
@@ -143,12 +142,12 @@ Normalised scores actual (rows) vs predicted (columns):
   3 setosa         1.000    1.000        1.000    1.000            7               7
 
 - Simple   avg.    0.978    0.963        0.979    0.969
-- Weigthed avg.    0.969    0.967        0.971    0.966
+- Weighted avg.    0.969    0.967        0.971    0.966
 ```
 
 ```julia
 ϵ = info(mynn)["loss_per_epoch"]
-plot(1:length(ϵ),ϵ, ylabel="epochs",xlabel="error",legend=nothing,title="Avg. error per epoch on the Sepal dataset")
+plot(1:length(ϵ),ϵ, ylabel="error",xlabel="epochs",legend=nothing,title="Avg. error per epoch on the Sepal dataset")
 heatmap(info(cm)["categories"],info(cm)["categories"],info(cm)["normalised_scores"],c=cgrad([:white,:blue]),xlabel="Predicted",ylabel="Actual", title="Confusion Matrix")
 ```
 
@@ -163,7 +162,7 @@ Very "micro" examples of usage of the various functions can also be studied in t
 
 ## Limitations and alternative packages
 
-The focus of the library is skewed toward user-friendliness rather than computational efficiency. While the code is (relatively) easy to read, it is not heavily optimised, and currently all models operate on the CPU and only with data that fits in the pc's memory.
+The focus of the library is skewed toward user-friendliness rather than computational efficiency. While the code is (relatively) easy to read, it is not heavily optimised, and currently all models operate on the CPU and only with data that fits in the PC's memory.
 For very large data we suggest specialised packages. See the list below:
 
 Category         | Packages
@@ -194,9 +193,9 @@ Variable importance | [ShapML.jl](https://github.com/nredell/ShapML.jl)
 ## Contribute
 
 Contributions to the library are welcome. We are particularly interested in the areas covered in the "TODO" list above, but we are open to other areas as well.
-Please however consider that the focus is mostly didactic/research, so clear, easy to read (and well documented) code and simple API with reasonable defaults are more important that highly optimised algorithms. For the same reason, it is fine to use verbose names.
-Please open an issue to discuss your ideas or make directly a well-documented pull request to the repository.
-While not required by any means, if you are customising BetaML and writing for example your own neural network layer type (by subclassing `AbstractLayer`), your own sampler (by subclassing `AbstractDataSampler`) or your own mixture component (by subclassing `AbstractMixture`), please consider to give it back to the community and open a pull request to integrate them in BetaML.
+Please however consider that the focus is mostly didactic/research, so clear, easy to read (and well documented) code and simple API with reasonable defaults are more important than highly optimised algorithms. For the same reason, it is fine to use verbose names.
+Please open an issue to discuss your ideas or directly make a well-documented pull request to the repository.
+While not required by any means, if you are customising BetaML and writing for example your own neural network layer type (by subclassing `AbstractLayer`), your own sampler (by subclassing `AbstractDataSampler`) or your own mixture component (by subclassing `AbstractMixture`), please consider giving it back to the community and open a pull request to integrate them in BetaML.
 
 ## Citations
 
@@ -225,4 +224,4 @@ If you use `BetaML` please cite it as:
 
 The development of this package at the _Bureau d'Economie Théorique et Appliquée_ (BETA, Nancy) was supported by the French National Research Agency through the [Laboratory of Excellence ARBRE](http://mycor.nancy.inra.fr/ARBRE/), a part of the “Investissements d'Avenir” Program (ANR 11 – LABX-0002-01).
 
-[![BLogos](assets/logos_betaumr.png)](hhttp://www.beta-umr7522.fr/)
+[![BLogos](assets/logos_betaumr.png)](http://www.beta-umr7522.fr/)

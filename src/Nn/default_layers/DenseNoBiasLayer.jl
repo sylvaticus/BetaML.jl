@@ -7,7 +7,7 @@ $(TYPEDEF)
 Representation of a layer without bias in the network
 
 # Fields:
-* `w`:  Weigths matrix with respect to the input from previous layer or data (n x n pr. layer)
+* `w`:  Weights matrix with respect to the input from previous layer or data (n x n pr. layer)
 * `f`:  Activation function
 * `df`: Derivative of the activation function
 """
@@ -24,13 +24,13 @@ struct DenseNoBiasLayer{TF <: Function, TDF <: Union{Nothing,Function}, WET <: N
      * `nₗ`:  Number of nodes of the previous layer
      * `n`:   Number of nodes
      # Keyword arguments:
-     * `w_eltype`: Eltype of the weigths [def: `Float64`]
-     * `w`:   Initial weigths with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
+     * `w_eltype`: Eltype of the weights [def: `Float64`]
+     * `w`:   Initial weights with respect to input [default: Xavier initialisation, dims = (n,nₗ)]
      * `f`:   Activation function [def: `identity`]
      * `df`:  Derivative of the activation function [default: try to match with well-known derivatives, resort to AD if `f` is unknown]
-     * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+     * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
      # Notes:
-     - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ,n))`
+     - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n))`
      """
      function DenseNoBiasLayer(nₗ,n;rng = Random.GLOBAL_RNG,
            w_eltype = Float64,

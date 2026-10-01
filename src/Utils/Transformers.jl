@@ -1,16 +1,16 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
-# Function of a single argument (including scalars and vectors), like activation functions but also gini, entropy,...)
+# Functions of a single argument (including scalars and vectors), like activation functions but also gini, entropy,...)
 
 
 # ------------------------------------------------------------------------------
-# Various neural network activation functions as well their derivatives
+# Various neural network activation functions as well as their derivatives
 
 #identity(x)          = x already in Julia base
 didentity(x)          = one(x)
 """ relu(x) \n\n Rectified Linear Unit \n\n https://www.cs.toronto.edu/~hinton/absps/reluICML.pdf"""
 relu(x)               = max(zero(x), x)
-""" drelu(x) \n\n Rectified Linear Unit \n\n https://www.cs.toronto.edu/~hinton/absps/reluICML.pdf"""
+""" drelu(x) \n\n Rectified Linear Unit derivative \n\n https://www.cs.toronto.edu/~hinton/absps/reluICML.pdf"""
 drelu(x)              = x <= zero(x) ? zero(x) : one(x)
 """elu(x; α=1) with α > 0 \n\n https://arxiv.org/pdf/1511.07289.pdf"""
 elu(x; α=one(x))      = x > zero(x) ? x : α *(exp(x) - one(x))
@@ -28,9 +28,9 @@ dplu(x;α=0.1,c=one(x)) = ( ( x >= (α*(x+c)-c)  &&  x <= (α*(x+c)+c) ) ? one(x
 
 
 """
-    pool1d(x,poolsize=2;f=mean)
+    pool1d(x,poolsize=3;f=mean)
 
-Apply funtion `f` to a rolling poolsize contiguous (in 1d) neurons.
+Apply function `f` to rolling poolsize contiguous (in 1d) neurons.
 
 Applicable to `VectorFunctionLayer`, e.g. `layer2  = VectorFunctionLayer(nₗ,f=(x->pool1d(x,4,f=mean))`
 **Attention**: to apply this function as activation function in a neural network you will need Julia version >= 1.6, otherwise you may experience a segmentation fault (see [this bug report](https://github.com/FluxML/Zygote.jl/issues/943))
@@ -76,7 +76,7 @@ mish(x)               = x*tanh(softplus(x))
 """ dmish(x) \n\n https://arxiv.org/pdf/1908.08681v1.pdf"""
 dmish(x) = x*(1 - tanh(log(exp(x) + 1))^2)*exp(x)/(exp(x) + 1) + tanh(log(exp(x) + 1))
 
-""" dmaximum(x) \n\n Multidimensional verison of the derivative of `maximum`"""
+""" dmaximum(x) \n\n Multidimensional version of the derivative of `maximum`"""
 function dmaximum(x)
     dy_dx = zeros(size(x))
     dy_dx[argmax(x)] = 1.0
@@ -118,7 +118,7 @@ end
 
 "generalisation of autojacobian to ndimensional in/out
 
-TODO experimantal
+TODO experimental
 
 Given ndims_x input dimensions and ndims_y dimensions the output will have ndims-x + ndims_y output dimensions
 "
@@ -177,7 +177,7 @@ end
 
 Calculate the Gini Impurity for a list of items (or rows).
 
-See: https://en.wikipedia.org/wiki/Decision_tree_learning#Information_gain
+See: https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity
 """
 function gini(x)
 
@@ -206,9 +206,9 @@ end
 
 Calculate the entropy for a list of items (or rows) using logarithms in base 2.
 
-See: https://en.wikipedia.org/wiki/Decision_tree_learning#Gini_impurity
+See: https://en.wikipedia.org/wiki/Decision_tree_learning#Information_gain
 
-Note that this function input is the list of items. This list is conerted to a PMF and then the entropy is computed over the PMF.
+Note that this function input is the list of items. This list is converted to a PMF and then the entropy is computed over the PMF.
 """
 function entropy(x)
     counts = class_counts(x)

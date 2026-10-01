@@ -76,10 +76,10 @@ probsx2alone = predict(m2)
 probX2onX1model = predict(m,X2)
 @test probX2onX1model[1,1] ≈ 0.5214795038476924 
 
-fit!(m,X2) # this greately reduces mixture variance
+fit!(m,X2) # this greatly reduces mixture variance
 #μ_x1x2 = hcat([m.par.mixtures[i].μ for i in 1:3]...)
 probsx2 = predict(m)
-@test probsx2[1,1] > 0.999 # it feels more certain as it uses the info of he first training
+@test probsx2[1,1] > 0.999 # it feels more certain as it uses the info of the first training
 reset!(m)
 @test sprint(print,m) == "GaussianMixtureClusterer - A 3-classes Generative Mixture Model (unfitted)"
 
@@ -110,7 +110,7 @@ m = GaussianMixtureRegressor2(n_classes=2,rng=copy(TESTRNG), verbosity=NONE)
 fit!(m,xtrain,ytrain)
 ŷtrain  = predict(m, xtrain)
 ŷtrain2 = predict(m)
-@test isapprox(ŷtrain,ŷtrain2,atol=0.00001) # not the same as the predict(m,xtrain) goes trough a further estep
+@test isapprox(ŷtrain,ŷtrain2,atol=0.00001) # not the same as the predict(m,xtrain) goes through a further estep
 ŷtest = predict(m, xtest)
 mreTrain = relative_mean_error(ytrain,ŷtrain,normrec=true)
 @test mreTrain <= 0.08
@@ -122,7 +122,7 @@ reset!(m)
 fit!(m,xtrain,ytrain2d)
 ŷtrain2d = predict(m, xtrain)
 ŷtrain2db = predict(m)
-@test isapprox(ŷtrain2d,ŷtrain2db,atol=0.00001) # not the same as the predict(m,xtrain) goes trough a further estep
+@test isapprox(ŷtrain2d,ŷtrain2db,atol=0.00001) # not the same as the predict(m,xtrain) goes through a further estep
 mreTrain2d = relative_mean_error(ytrain2d,ŷtrain2d,normrec=true)
 @test mreTrain2d <= 0.08
 
@@ -135,7 +135,7 @@ m = GaussianMixtureRegressor(n_classes=2,rng=copy(TESTRNG), verbosity=NONE)
 fit!(m,xtrain,ytrain)
 ŷtrain = predict(m, xtrain)
 ŷtrain2 = predict(m)
-@test isapprox(ŷtrain,ŷtrain2,atol=0.01) # not the same as the predict(m,xtrain) goes trough a further estep
+@test isapprox(ŷtrain,ŷtrain2,atol=0.01) # not the same as the predict(m,xtrain) goes through a further estep
 ŷtest = predict(m, xtest)
 mreTrain = relative_mean_error(ytrain,ŷtrain,normrec=true)
 @test mreTrain <= 0.08
@@ -147,7 +147,7 @@ reset!(m)
 fit!(m,xtrain,ytrain2d)
 ŷtrain2d = predict(m, xtrain)
 ŷtrain2db = predict(m)
-@test isapprox(ŷtrain2d,ŷtrain2db,atol=0.01) # not the same as the predict(m,xtrain) goes trough a further estep
+@test isapprox(ŷtrain2d,ŷtrain2db,atol=0.01) # not the same as the predict(m,xtrain) goes through a further estep
 mreTrain2d = relative_mean_error(ytrain2d,ŷtrain2d,normrec=true)
 @test mreTrain2d <= 0.08
 fit!(m,xtrain,ytrain2d) # re-fit
@@ -155,7 +155,7 @@ ŷtrain2d = predict(m, xtrain)
 mreTrain2d = relative_mean_error(ytrain2d,ŷtrain2d,normrec=true)
 @test mreTrain2d <= 0.08
 
-# testing with different mixtures definition
+# testing with different mixture definitions
 m = GaussianMixtureRegressor(rng=copy(TESTRNG),verbosity=NONE)
 fit!(m,xtrain,ytrain)
 m = GaussianMixtureRegressor(mixtures=[DiagonalGaussian(),DiagonalGaussian(),DiagonalGaussian()],rng=copy(TESTRNG), verbosity=NONE)
@@ -163,7 +163,7 @@ fit!(m,xtrain,ytrain)
 m = GaussianMixtureRegressor(n_classes=2,mixtures=SphericalGaussian,rng=copy(TESTRNG), verbosity=NONE)
 fit!(m,xtrain,ytrain)
 #m = GaussianMixtureRegressor(autotune=true,rng=copy(TESTRNG), verbosity=NONE)
-#fit!(m,xtrain,ytrain) # don't work on githug ci
+#fit!(m,xtrain,ytrain) # doesn't work on github ci
 
 
 # ==================================

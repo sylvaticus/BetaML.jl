@@ -4,7 +4,7 @@
 """
 # MLJ interface for BetaML models
 
-In this module we define the interface of several BetaML models. They can be used using the [MLJ framework](https://github.com/alan-turing-institute/MLJ.jl).
+In this module we define the interface of several BetaML models. They can be used with the [MLJ framework](https://github.com/alan-turing-institute/MLJ.jl).
 
 Note that MLJ models (whose name could be the same as the underlying BetaML model) are not exported. You can access them with `BetaML.Bmlj.ModelXYZ`.
 
@@ -15,7 +15,7 @@ using Random, LinearAlgebra, Statistics
 using CategoricalArrays, DocStringExtensions
 
 
-import MLJModelInterface       # It seems that having done this in the top module is not enought
+import MLJModelInterface       # It seems that having done this in the top module is not enough
 const MMI = MLJModelInterface  # We need to repeat it here
 
 
@@ -58,6 +58,6 @@ include("Clustering_mlj.jl") # Clustering (hard) algorithms
 include("GMM_mlj.jl")        # GMM-based learners (clustering, fitter, regression) 
 include("Imputation_mlj.jl") # Imputation models
 include("Nn_mlj.jl")         # Neural network models
-include("Utils_mlj.jl")      # Various transformers/encorders
+include("Utils_mlj.jl")      # Various transformers/encoders
 
 end

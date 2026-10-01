@@ -9,23 +9,23 @@ Train a multiclass kernel classifier "perceptron" algorithm based on x and y.
     Direct usage of this low-level function is deprecated. It has been unexported in BetaML 0.9.
     Use the model KernelPerceptronClassifier() instead. 
 
-`KernelPerceptronClassifier` is a (potentially) non-linear perceptron-style classifier employing user-defined kernel funcions. Multiclass is supported using a one-vs-one approach.
+`KernelPerceptronClassifier` is a (potentially) non-linear perceptron-style classifier employing user-defined kernel functions. Multiclass is supported using a one-vs-one approach.
 
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
 * `y`:        Associated labels of the training data
-* `K`:        Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radial_kernel`](@ref)]
+* `K`:        Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel` for details or check `?BetaML.Utils` to verify if other kernels are defined (you can always define your own kernel) [def: [`radial_kernel`](@ref)]
 * `T`:        Maximum number of iterations (aka "epochs") across the whole set (if the set is not fully classified earlier) [def: 100]
-* `α`:        Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`
-* `nMsg`:     Maximum number of messages to show if all iterations are done [def: `0`]
+* `α`:        Initial distribution of the number of errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-length vector of nRecords integer values vectors, where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`
+* `nMsgs`:    Maximum number of messages to show if all iterations are done [def: `0`]
 * `shuffle`:  Whether to randomly shuffle the data at each iteration [def: `false`]
-* `rng`:      Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+* `rng`:      Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
-* `x`: The x data (eventually shuffled if `shuffle=true`)
+* `x`: The x data (possibly shuffled if `shuffle=true`)
 * `y`: The label
-* `α`: The errors associated to each record
-* `classes`: The labels classes encountered in the training
+* `α`: The errors associated with each record
+* `classes`: The label classes encountered in the training
 
 # Notes:
 * The trained model can then be used to make predictions using the function `predict()`.
@@ -56,7 +56,7 @@ function kernel_perceptron_classifier(x, y; K=radial_kernel, T=100, α=nothing, 
     nModels   = Int((nCl  * (nCl - 1)) / 2)
     (n,d) = size(x)
     ny = size(y,1)
-    ny == n || error("y and x have differnt number of records (rows)!")
+    ny == n || error("y and x have a different number of records (rows)!")
     outX = Array{typeof(x),1}(undef,nModels)
     outY = Array{Array{Int64,1},1}(undef,nModels)
     outα = Array{Array{Int64,1},1}(undef,nModels)
@@ -93,24 +93,24 @@ Train a binary kernel classifier "perceptron" algorithm based on x and y
 # Parameters:
 * `x`:        Feature matrix of the training data (n × d)
 * `y`:        Associated labels of the training data, in the format of ⨦ 1
-* `K`:        Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel`for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radial_kernel`](@ref)]
+* `K`:        Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel` for details or check `?BetaML.Utils` to verify if other kernels are defined (you can always define your own kernel) [def: [`radial_kernel`](@ref)]
 * `T`:        Maximum number of iterations across the whole set (if the set is not fully classified earlier) [def: 1000]
 * `α`:        Initial distribution of the errors [def: `zeros(length(y))`]
-* `nMsg`:     Maximum number of messages to show if all iterations are done
+* `nMsgs`:    Maximum number of messages to show if all iterations are done
 * `shuffle`:  Whether to randomly shuffle the data at each iteration [def: `false`]
-* `rng`:      Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+* `rng`:      Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
-* `x`: the x data (eventually shuffled if `shuffle=true`)
+* `x`: the x data (possibly shuffled if `shuffle=true`)
 * `y`: the label
-* `α`: the errors associated to each record
+* `α`: the errors associated with each record
 * `errors`: the number of errors in the last iteration
 * `besterrors`: the minimum number of errors in classifying the data ever reached
 * `iterations`: the actual number of iterations performed
-* `separated`: a flag if the data has been successfully separated
+* `separated`: a flag indicating whether the data has been successfully separated
 
 # Notes:
-* The trained data can then be used to make predictions using the function `predict()`. **If the option `shuffle` has been used, it is important to use there the returned (x,y,α) as these would have been shuffled compared with the original (x,y)**.
+* The trained data can then be used to make predictions using the function `predict()`. **If the option `shuffle` has been used, it is important to use the returned (x,y,α) there, as these would have been shuffled compared with the original (x,y)**.
 * Please see @KernelPerceptronClassifier for a multi-class version
 # Example:
 ```jldoctest
@@ -137,7 +137,7 @@ function kernel_perceptron_classifier_binary(x, y; K=radial_kernel, T=1000, α=z
     α = deepcopy(α) # let's not modify the argument !
     (n,d) = size(x)
     ny = size(y,1)
-    ny == n || error("y and x have different number of records (rows)!")
+    ny == n || error("y and x have a different number of records (rows)!")
     bestϵ = Inf
     lastϵ = Inf
     
@@ -170,7 +170,7 @@ function kernel_perceptron_classifier_binary(x, y; K=radial_kernel, T=1000, α=z
         end
         if (ϵ == 0)
             if nMsgs > 0
-                println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified)")
+                println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set have been correctly classified)")
             end
             return (x=x,y=y,α=α,errors=0,besterrors=0,iterations=t,separated=true,K=K)
         elseif ϵ < bestϵ
@@ -185,7 +185,7 @@ function kernel_perceptron_classifier_binary(x, y; K=radial_kernel, T=1000, α=z
 end
 
 #=
-Removed kernel binary predict as the multiclass is not based on it on kernel perceptron
+Removed kernel binary predict as the multiclass kernel perceptron is not based on it
 
 """
     predict_kernel_binary(x,xtrain,ytrain,α;K)
@@ -200,7 +200,7 @@ Predict a binary label {-1,1} given the feature vector and the training data tog
 * `x`:      Feature matrix of the data to predict (n × d)
 * `xtrain`: The feature vectors used for the training
 * `ytrain`: The labels of the training set
-* `α`:      The errors associated to each record
+* `α`:      The errors associated with each record
 * `K`:      The kernel function used for the training and to be used for the prediction [def: [`radial_kernel`](@ref)]
 
 # Return :
@@ -246,8 +246,8 @@ function predict_kernel_binary(x,xtrain,ytrain,α;K=radial_kernel)
  * `x`:      Feature matrix of the data to predict (n × d)
  * `xtrain`: A vector of the feature matrix used for training each of the one-vs-one class matches (i.e. `model.x`)
  * `ytrain`: A vector of the label vector used for training each of the one-vs-one class matches (i.e. `model.y`)
- * `α`:      A vector of the errors associated to each record (i.e. `model.α`)
- * `classes`: The overal classes encountered in training (i.e. `model.classes`)
+ * `α`:      A vector of the errors associated with each record (i.e. `model.α`)
+ * `classes`: The overall classes encountered in training (i.e. `model.classes`)
  * `K`:      The kernel function used for the training and to be used for the prediction [def: [`radial_kernel`](@ref)]
 
  # Return :
@@ -258,7 +258,7 @@ function predict_kernel_binary(x,xtrain,ytrain,α;K=radial_kernel)
 
  # Example:
  ```julia
- julia> model  = KernelPerceptronClassifier([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
+ julia> model  = kernel_perceptron_classifier([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
  julia> ŷtrain = Perceptron.predict([10 10; 2.2 2.5],model.x,model.y,model.α, model.classes,K=model.K)
  ```
  """
@@ -288,7 +288,7 @@ function predict_kernel_binary(x,xtrain,ytrain,α;K=radial_kernel)
                  end
                  nThisModel = size(xtrain[mCounter],1)
                  if ( length(ytrain[mCounter]) != nThisModel || length(α[mCounter]) != nThisModel) error("xtrain, ytrain and α must all have the same length."); end
-                 # note that we assign "winning" scores between pair of classes matches only based on who win, not by how much he did
+                 # note that we assign "winning" scores between pairs of classes only based on who wins, not by how much
                  # todo check
                  #if sum([ α[mCounter][j] * ((ytrain[mCounter][j] .== c) .*2 .-1) * K(x[i,:],xtrain[mCounter][j,:]) for j in 1:nThisModel]) > eps()
                  score = sum([ α[mCounter][j] * (ytrain[mCounter][j]) * K(x[i,:],xtrain[mCounter][j,:]) for j in 1:nThisModel])
@@ -322,18 +322,18 @@ Hyperparameters for the [`KernelPerceptronClassifier`](@ref) model
 $(FIELDS)
 """
 Base.@kwdef mutable struct  KernelPerceptronC_hp <: BetaMLHyperParametersSet
-    "Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel` for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radial_kernel`](@ref)]"
+    "Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel` for details or check `?BetaML.Utils` to verify if other kernels are defined (you can always define your own kernel) [def: [`radial_kernel`](@ref)]"
     kernel::Function = radial_kernel       
-    "Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`"
+    "Initial distribution of the number of errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-length vector of nRecords integer values vectors, where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`"
     initial_errors::Union{Nothing,Vector{Vector{Int64}}} = nothing
-    "Maximum number of epochs, i.e. passages trough the whole training sample [def: `100`]"
+    "Maximum number of epochs, i.e. passes through the whole training sample [def: `100`]"
     epochs::Int64 = 100
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool = true
     """
     The method - and its parameters - to employ for hyperparameters autotuning.
     See [`SuccessiveHalvingSearch`](@ref) for the default method.
-    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
+    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and optionally change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
     tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("kernel" =>[radial_kernel,polynomial_kernel, (x,y) -> polynomial_kernel(x,y,degree=3)], "epochs" =>[50,100,1000,10000], "shuffle"=>[true,false]),multithreads=true)
 end
@@ -377,13 +377,14 @@ Type `]dev BetaML` to modify the source code (this would change its location on 
 *** Training kernel perceptron for maximum 100 iterations. Random shuffle: true
 Avg. error after iteration 1 : 0.5
 Avg. error after iteration 10 : 0.16666666666666666
-*** Avg. error after epoch 13 : 0.0 (all elements of the set has been correctly classified)
+*** Avg. error after epoch 13 : 0.0 (all elements of the set have been correctly classified)
 6-element Vector{String}:
  "a"
  "b"
  "b"
  "b"
  "b"
+ "a"
 ```
 """
 mutable struct KernelPerceptronClassifier <: BetaMLSupervisedModel
@@ -436,7 +437,7 @@ function fit!(m::KernelPerceptronClassifier,X,Y)
     yclasses = unique(Y)
     nCl      = length(yclasses)
     nModels   = Int((nCl  * (nCl - 1)) / 2)
-    initial_errors =  (initial_errors == nothing) ? [zeros(nR) for i in 1:nCl] : initial_errors 
+    initial_errors =  (initial_errors == nothing) ? [zeros(Int64,nR) for i in 1:nModels] : initial_errors 
     
     if verbosity == NONE
         nMsgs = 0

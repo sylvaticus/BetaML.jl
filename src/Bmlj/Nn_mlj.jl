@@ -1,6 +1,6 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
-# MLJ interface for Neural Networks models
+# MLJ interface for Neural Network models
 
 using CategoricalArrays
 
@@ -18,7 +18,7 @@ $(FIELDS)
 
 # Notes:
 - data must be numerical
-- the label should be be a _n-records_ vector.
+- the label should be a _n-records_ vector.
 
 # Example:
 ```julia
@@ -36,8 +36,8 @@ NeuralNetworkRegressor(
   layers = BetaML.Nn.AbstractLayer[BetaML.Nn.DenseLayer([-0.23249759178069676 -0.4125090172711131 … 0.41401934928739 -0.33017881111237535; -0.27912169279319965 0.270551221249931 … 0.19258414323473344 0.1703002982374256; … ; 0.31186742456482447 0.14776438287394805 … 0.3624993442655036 0.1438885872964824; 0.24363744610286758 -0.3221033024934767 … 0.14886090419299408 0.038411663101909355], [-0.42360286004241765, -0.34355377040029594, 0.11510963232946697, 0.29078650404397893, -0.04940236502546075, 0.05142849152316714, -0.177685375947775, 0.3857630523957018, -0.25454667127064756, -0.1726731848206195, 0.29832456225553444, -0.21138505291162835, -0.15763643112604903, -0.08477044513587562, -0.38436681165349196, 0.20538016429104916, -0.25008157754468335, 0.268681800562054, 0.10600581996650865, 0.4262194464325672], BetaML.Utils.relu, BetaML.Utils.drelu), BetaML.Nn.DenseLayer([-0.08534180387478185 0.19659398307677617 … -0.3413633217504578 -0.0484925247381256; 0.0024419192794883915 -0.14614102508129 … -0.21912059923003044 0.2680725396694708; … ; 0.25151545823147886 -0.27532269951606037 … 0.20739970895058063 0.2891938885916349; -0.1699020711688904 -0.1350423717084296 … 0.16947589410758873 0.3629006047373296], [0.2158116357688406, -0.3255582642532289, -0.057314442103850394, 0.29029696770539953, 0.24994080694366455, 0.3624239027782297, -0.30674318230919984, -0.3854738338935017, 0.10809721838554087, 0.16073511121016176, -0.005923262068960489, 0.3157147976348795, -0.10938918304264739, -0.24521229198853187, -0.307167732178712, 0.0808907777008302, -0.014577497150872254, -0.0011287181458157214, 0.07522282588658086, 0.043366500526073104], BetaML.Utils.relu, BetaML.Utils.drelu), BetaML.Nn.DenseLayer([-0.021367697115938555 -0.28326652172347155 … 0.05346175368370165 -0.26037328415871647], [-0.2313659199724562], BetaML.Utils.relu, BetaML.Utils.drelu)], 
   loss = BetaML.Utils.squared_cost, 
   dloss = BetaML.Utils.dsquared_cost, 
-  epochs = 100, 
-  batch_size = 32, 
+  epochs = 200, 
+  batch_size = 16, 
   opt_alg = BetaML.Nn.ADAM(BetaML.Nn.var"#90#93"(), 1.0, 0.9, 0.999, 1.0e-8, BetaML.Nn.Learnable[], BetaML.Nn.Learnable[]), 
   shuffle = true, 
   descr = "", 
@@ -71,7 +71,7 @@ Base.@kwdef mutable struct NeuralNetworkRegressor <: MMI.Deterministic
     loss::Union{Nothing,Function} = BetaML.Utils.squared_cost
     "Derivative of the loss function [def: `BetaML.dsquared_cost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
     dloss::Union{Function,Nothing}  = BetaML.Utils.dsquared_cost
-    "Number of epochs, i.e. passages trough the whole training sample [def: `200`]"
+    "Number of epochs, i.e. passes through the whole training sample [def: `200`]"
     epochs::Int64 = 200
     "Size of each individual batch [def: `16`]"
     batch_size::Int64 = 16
@@ -83,7 +83,7 @@ Base.@kwdef mutable struct NeuralNetworkRegressor <: MMI.Deterministic
     descr::String = "" 
     "A call back function to provide information during training [def: `fitting_info`]"
     cb::Function=BetaML.Nn.fitting_info
-    "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+    "Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
     "
     rng::AbstractRNG = Random.GLOBAL_RNG
 end
@@ -91,14 +91,14 @@ end
 """
 $(TYPEDSIGNATURES)
 
-For the `verbosity` parameter see [`Verbosity`](@ref))
+For the `verbosity` parameter see [`Verbosity`](@ref)
 
 """
 function MMI.fit(m::NeuralNetworkRegressor, verbosity, X, y)
     x = MMI.matrix(X)                     # convert table to matrix   
-    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
-    ndims(y) > 1 && error("The label should have only 1 dimensions. Use `MultitargetNeuralNetworkRegressor` or `NeuralNetworkClassifier` for multi_dimensional outputs.")
+    ndims(y) > 1 && error("The label should have only 1 dimension. Use `MultitargetNeuralNetworkRegressor` or `NeuralNetworkClassifier` for multi-dimensional outputs.")
     mi = BetaML.Nn.NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=verbosity)
     fit!(mi,x,y)
     fitresults = mi
@@ -152,7 +152,7 @@ MultitargetNeuralNetworkRegressor(
   loss = BetaML.Utils.squared_cost, 
   dloss = BetaML.Utils.dsquared_cost, 
   epochs = 500, 
-  batch_size = 32, 
+  batch_size = 16, 
   opt_alg = BetaML.Nn.ADAM(BetaML.Nn.var"#90#93"(), 1.0, 0.9, 0.999, 1.0e-8, BetaML.Nn.Learnable[], BetaML.Nn.Learnable[]), 
   shuffle = true, 
   descr = "", 
@@ -188,7 +188,7 @@ Base.@kwdef mutable struct MultitargetNeuralNetworkRegressor <: MMI.Deterministi
     loss::Union{Nothing,Function} = BetaML.Utils.squared_cost
     "Derivative of the loss function [def: `BetaML.dsquared_cost`, i.e. use the derivative of the squared cost]. Use `nothing` for autodiff."
     dloss::Union{Function,Nothing}  = BetaML.Utils.dsquared_cost
-    "Number of epochs, i.e. passages trough the whole training sample [def: `300`]"
+    "Number of epochs, i.e. passes through the whole training sample [def: `300`]"
     epochs::Int64 = 300
     "Size of each individual batch [def: `16`]"
     batch_size::Int64 = 16
@@ -200,19 +200,19 @@ Base.@kwdef mutable struct MultitargetNeuralNetworkRegressor <: MMI.Deterministi
     descr::String = "" 
     "A call back function to provide information during training [def: `BetaML.fitting_info`]"
     cb::Function=BetaML.Nn.fitting_info
-    "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+    "Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
     "
     rng::AbstractRNG = Random.GLOBAL_RNG
 end
 """
 $(TYPEDSIGNATURES)
 
-For the `verbosity` parameter see [`Verbosity`](@ref))
+For the `verbosity` parameter see [`Verbosity`](@ref)
 
 """
 function MMI.fit(m::MultitargetNeuralNetworkRegressor, verbosity, X, y)
     x = MMI.matrix(X)                     # convert table to matrix   
-    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     ndims(y) > 1 || error("The label should have multiple dimensions. Use `NeuralNetworkRegressor` for single-dimensional outputs.")
     mi = BetaML.Nn.NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=verbosity)
@@ -247,7 +247,7 @@ $(FIELDS)
 
 # Notes:
 - data must be numerical
-- the label should be a _n-records_ by _n-dimensions_ matrix (e.g. a one-hot-encoded data for classification), where the output columns should be interpreted as the probabilities for each categories.
+- the label should be a _n-records_ vector of categorical values (internally one-hot encoded); the predictions are given as probability distributions over the categories.
 
 # Example:
 ```julia
@@ -258,15 +258,15 @@ julia> X, y        = @load_iris;
 julia> modelType   = @load NeuralNetworkClassifier pkg = "BetaML" verbosity=0
 BetaML.Nn.NeuralNetworkClassifier
 
-julia> layers      = [BetaML.DenseLayer(4,8,f=BetaML.relu),BetaML.DenseLayer(8,8,f=BetaML.relu),BetaML.DenseLayer(8,3,f=BetaML.relu),BetaML.VectorFunctionLayer(3,f=BetaML.softmax)];
+julia> layers      = [BetaML.DenseLayer(4,8,f=BetaML.relu),BetaML.DenseLayer(8,8,f=BetaML.relu),BetaML.DenseLayer(8,3,f=BetaML.relu)];
 
 julia> model       = modelType(layers=layers,opt_alg=BetaML.ADAM())
 NeuralNetworkClassifier(
-  layers = BetaML.Nn.AbstractLayer[BetaML.Nn.DenseLayer([-0.376173352338049 0.7029289511758696 -0.5589563304592478 -0.21043274001651874; 0.044758889527899415 0.6687689636685921 0.4584331114653877 0.6820506583840453; … ; -0.26546358457167507 -0.28469736227283804 -0.164225549922154 -0.516785639164486; -0.5146043550684141 -0.0699113265130964 0.14959906603941908 -0.053706860039406834], [0.7003943613125758, -0.23990840466587576, -0.23823126271387746, 0.4018101580410387, 0.2274483050356888, -0.564975060667734, 0.1732063297031089, 0.11880299829896945], BetaML.Utils.relu, BetaML.Utils.drelu), BetaML.Nn.DenseLayer([-0.029467850439546583 0.4074661266592745 … 0.36775675246760053 -0.595524555448422; 0.42455597698371306 -0.2458082732997091 … -0.3324220683462514 0.44439454998610595; … ; -0.2890883863364267 -0.10109249362508033 … -0.0602680568207582 0.18177278845097555; -0.03432587226449335 -0.4301192922760063 … 0.5646018168286626 0.47269177680892693], [0.13777442835428688, 0.5473306726675433, 0.3781939472904011, 0.24021813428130567, -0.0714779477402877, -0.020386373530818958, 0.5465466618404464, -0.40339790713616525], BetaML.Utils.relu, BetaML.Utils.drelu), BetaML.Nn.DenseLayer([0.6565120540082393 0.7139211611842745 … 0.07809812467915389 -0.49346311403373844; -0.4544472987041656 0.6502667641568863 … 0.43634608676548214 0.7213049952968921; 0.41212264783075303 -0.21993289366360613 … 0.25365007887755064 -0.5664469566269569], [-0.6911986792747682, -0.2149343209329364, -0.6347727539063817], BetaML.Utils.relu, BetaML.Utils.drelu), BetaML.Nn.VectorFunctionLayer{0}(fill(NaN), 3, 3, BetaML.Utils.softmax, BetaML.Utils.dsoftmax, nothing)], 
+  layers = BetaML.Nn.AbstractLayer[BetaML.Nn.DenseLayer([-0.376173352338049 0.7029289511758696 -0.5589563304592478 -0.21043274001651874; 0.044758889527899415 0.6687689636685921 0.4584331114653877 0.6820506583840453; … ; -0.26546358457167507 -0.28469736227283804 -0.164225549922154 -0.516785639164486; -0.5146043550684141 -0.0699113265130964 0.14959906603941908 -0.053706860039406834], [0.7003943613125758, -0.23990840466587576, -0.23823126271387746, 0.4018101580410387, 0.2274483050356888, -0.564975060667734, 0.1732063297031089, 0.11880299829896945], BetaML.Utils.relu, BetaML.Utils.drelu), BetaML.Nn.DenseLayer([-0.029467850439546583 0.4074661266592745 … 0.36775675246760053 -0.595524555448422; 0.42455597698371306 -0.2458082732997091 … -0.3324220683462514 0.44439454998610595; … ; -0.2890883863364267 -0.10109249362508033 … -0.0602680568207582 0.18177278845097555; -0.03432587226449335 -0.4301192922760063 … 0.5646018168286626 0.47269177680892693], [0.13777442835428688, 0.5473306726675433, 0.3781939472904011, 0.24021813428130567, -0.0714779477402877, -0.020386373530818958, 0.5465466618404464, -0.40339790713616525], BetaML.Utils.relu, BetaML.Utils.drelu), BetaML.Nn.DenseLayer([0.6565120540082393 0.7139211611842745 … 0.07809812467915389 -0.49346311403373844; -0.4544472987041656 0.6502667641568863 … 0.43634608676548214 0.7213049952968921; 0.41212264783075303 -0.21993289366360613 … 0.25365007887755064 -0.5664469566269569], [-0.6911986792747682, -0.2149343209329364, -0.6347727539063817], BetaML.Utils.relu, BetaML.Utils.drelu)], 
   loss = BetaML.Utils.crossentropy, 
   dloss = BetaML.Utils.dcrossentropy, 
-  epochs = 100, 
-  batch_size = 32, 
+  epochs = 200, 
+  batch_size = 16, 
   opt_alg = BetaML.Nn.ADAM(BetaML.Nn.var"#90#93"(), 1.0, 0.9, 0.999, 1.0e-8, BetaML.Nn.Learnable[], BetaML.Nn.Learnable[]), 
   shuffle = true, 
   descr = "", 
@@ -299,7 +299,7 @@ Base.@kwdef mutable struct NeuralNetworkClassifier <: MMI.Probabilistic
     loss::Union{Nothing,Function} = BetaML.Utils.crossentropy
     "Derivative of the loss function [def: `BetaML.dcrossentropy`, i.e. the derivative of the cross-entropy]. Use `nothing` for autodiff."
     dloss::Union{Function,Nothing}  = BetaML.Utils.dcrossentropy
-    "Number of epochs, i.e. passages trough the whole training sample [def: `200`]"
+    "Number of epochs, i.e. passes through the whole training sample [def: `200`]"
     epochs::Int64 = 200
     "Size of each individual batch [def: `16`]"
     batch_size::Int64 = 16
@@ -313,27 +313,27 @@ Base.@kwdef mutable struct NeuralNetworkClassifier <: MMI.Probabilistic
     cb::Function=BetaML.Nn.fitting_info
     "The categories to represent as columns. [def: `nothing`, i.e. unique training values]."  
     categories::Union{Vector,Nothing} = nothing
-    "How to handle categories not seens in training or not present in the provided `categories` array? \"error\" (default) rises an error, \"infrequent\" adds a specific column for these categories."
+    "How to handle categories not seen in training or not present in the provided `categories` array? \"error\" (default) raises an error, \"infrequent\" adds a specific column for these categories."
     handle_unknown::String = "error"
-    "Which value during prediction to assign to this \"other\" category (i.e. categories not seen on training or not present in the provided `categories` array? [def: ` nothing`, i.e. typemax(Int64) for integer vectors and \"other\" for other types]. This setting is active only if `handle_unknown=\"infrequent\"` and in that case it MUST be specified if Y is neither integer or strings"
+    "Which value during prediction to assign to this \"other\" category (i.e. categories not seen on training or not present in the provided `categories` array)? [def: ` nothing`, i.e. typemax(Int64) for integer vectors and \"other\" for other types]. This setting is active only if `handle_unknown=\"infrequent\"` and in that case it MUST be specified if Y is neither integers nor strings"
     other_categories_name = nothing
-    "Random Number Generator [deafult: `Random.GLOBAL_RNG`]"
+    "Random Number Generator [default: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG = Random.GLOBAL_RNG
 end
 
 """
 MMI.fit(model::NeuralNetworkClassifier, verbosity, X, y)
 
-For the `verbosity` parameter see [`Verbosity`](@ref))
+For the `verbosity` parameter see [`Verbosity`](@ref)
 
 """
 function MMI.fit(m::NeuralNetworkClassifier, verbosity, X, y)
     x = MMI.matrix(X)                     # convert table to matrix   
-    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     categories = deepcopy(m.categories)
     if categories == nothing
-        #if occursin("CategoricalVector",string(typeof(y))) # to avoid dependency to CategoricalArrays or MLJBase 
+        #if occursin("CategoricalVector",string(typeof(y))) # to avoid dependency on CategoricalArrays or MLJBase 
         if typeof(y) <: CategoricalVector
             categories = levels(y)
         end
@@ -345,7 +345,7 @@ function MMI.fit(m::NeuralNetworkClassifier, verbosity, X, y)
     nR,nD       = size(x)
     (nRy,nDy)   = size(Y_oh)         
     
-    nR == nRy || error("X and Y have different number of records (rows)")
+    nR == nRy || error("X and Y have a different number of records (rows)")
 
     if isnothing(m.layers)
         layers = nothing

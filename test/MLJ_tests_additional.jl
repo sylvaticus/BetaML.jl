@@ -1,7 +1,7 @@
 import MLJTestIntegration
 import Dates
-# Complete MLJ test integration suit for BetaML models
-# These tests may take some time to run, so they are not enable by deafult
+# Complete MLJ test integration suite for BetaML models
+# These tests may take some time to run, so they are not enabled by default
 
 st_time = Dates.now()
 st_time_str = Dates.format(st_time, "HH:MM")  

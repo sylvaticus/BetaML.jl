@@ -49,7 +49,7 @@ model_save("test.jld2"; mtemp=m)
 model_save("test.jld2", true; m, m2=m) # should overwrite the file...
 model_save("test.jld2"; m3=m)
 models   = model_load("test.jld2")
-@test collect(keys(models)) == ["m","m2","m3"]
+@test sort(collect(keys(models))) == ["m","m2","m3"]
 ŷtrain4  = predict(models["m2"]) 
 mb       = model_load("test.jld2","m") 
 (mc, md) = model_load("test.jld2","m", "m2") 
@@ -60,8 +60,8 @@ ŷtrain7 = predict(md)
 
 
 pars = parameters(m)
-pars.weigths[1,1] = 10
-pars.weigths[2,1] = -10
+pars.weights[1,1] = 10
+pars.weights[2,1] = -10
 ŷtrain8 = predict(m,xtrain) 
 @test ŷtrain8 != ŷtrain 
 
@@ -116,7 +116,7 @@ ytest = [i > median(ytt2) ? 1 : -1 for i in ytt2]
 #out   = KernelPerceptronClassifier(xtrain, ytrain, K=polynomial_kernel,rShuffle=true,nMsgs=100)
 #ŷtest = predict(xtest,out[1][1],out[1][2],out[1][3], K=polynomial_kernel)
 #=
-Removed kernel binary predict as the multiclass is not based on it on kernel perceptron
+Removed kernel binary predict, as the multiclass kernel perceptron is not based on it
 out   = kernel_perceptron_classifier_binary(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0,α=ones(Int64,length(ytrain)))
 # the same: out   = KernelPerceptronClassifierBinary(xtrain, ytrain, K=radial_kernel,shuffle=false,nMsgs=0)
 ŷtest = predict_kernel_binary(xtest,out.x,out.y,out.α, K=out.K)
@@ -216,7 +216,7 @@ ŷtest  = predict(xtest,out.θ,out.θ₀,out.classes)
 ϵtrain = error(ytrain, mode(ŷtrain))
 ϵtest  = error(ytest, mode(ŷtest))
 
-@test ϵtrain  <= 0.8 # this relation is not linear, normal error is big
+@test ϵtrain  <= 0.8 # this relation is not linear, so a big error is normal
 @test ϵtest   <= 0.8
 
 m = PegasosClassifier(shuffle=false,verbosity=NONE, rng=copy(TESTRNG))

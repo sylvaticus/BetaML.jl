@@ -1,18 +1,18 @@
 # [Api v2 - developer documentation (API implementation)](@id api_implementation)
 
-Each model is a child of either `BetaMLSuperVisedModel` or `BetaMLSuperVisedModel`, both in turn child of `BetaMLModel`:
+Each model is a child of either `BetaMLSupervisedModel` or `BetaMLUnsupervisedModel`, both in turn children of `BetaMLModel`:
 
 ```
-BetaMLSuperVisedModel   <: BetaMLModel
+BetaMLSupervisedModel   <: BetaMLModel
 BetaMLUnsupervisedModel <: BetaMLModel
-RandomForestEstimator                 <: BetaMLSuperVisedModel
+RandomForestEstimator                 <: BetaMLSupervisedModel
 ```
 
 The model struct is composed of the following elements:
 
 ```
 mutable struct DecisionTreeEstimator <: BetaMLSupervisedModel
-    hpar::DecisionTreeE_hp   # Hyper-pharameters
+    hpar::DecisionTreeE_hp   # Hyper-parameters
     opt::BML_options # Option sets, default or a specific one for the model
     par::DT_lp   # Model learnable parameters (needed for predictions)
     cres::T                      # Cached results
@@ -21,9 +21,9 @@ mutable struct DecisionTreeEstimator <: BetaMLSupervisedModel
 end
 ```
 
-Each specific model hyperparameter set and learnable parameter set are childs of `BetaMLHyperParametersSet` and `BetaMLLearnedParametersSet` and, if a specific model option set is used, this would be child of `BetaMLOptionsSet`.
+Each specific model hyperparameter set and learnable parameter set are children of `BetaMLHyperParametersSet` and `BetaMLLearnedParametersSet` and, if a specific model option set is used, this would be a child of `BetaMLOptionsSet`.
 
-While hyperparameters are elements that control the learning process, i.e. would influence the model training and prediction, the options have a more general meaning and do not directly affect the training (they can do indirectly, like the rng). The default option set is implemented as:
+While hyperparameters are elements that control the learning process, i.e. would influence the model training and prediction, the options have a more general meaning and do not directly affect the training (they can do so indirectly, like the rng). The default option set is implemented as:
 
 ```
 Base.@kwdef mutable struct BML_options
@@ -31,16 +31,16 @@ Base.@kwdef mutable struct BML_options
    cache::Bool = true
    "An optional title and/or description for this model"
    descr::String = "" 
-   "The verbosity level to be used in training or prediction (see [`Verbosity`](@ref)) [deafult: `STD`]
+   "The verbosity level to be used in training or prediction (see [`Verbosity`](@ref)) [default: `STD`]
    "
    verbosity::Verbosity = STD
-   "Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+   "Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
    "
    rng::AbstractRNG = Random.GLOBAL_RNG
 end
 ```
 
-Note that the user doesn't generally need to make a difference between an hyperparameter and an option, as both are provided as keyword arguments to the model constructor thanks to a model constructor like the following one:
+Note that the user doesn't generally need to make a difference between a hyperparameter and an option, as both are provided as keyword arguments to the model constructor thanks to a model constructor like the following one:
 
 ```
 function KMedoidsClusterer(;kwargs...)
@@ -63,6 +63,6 @@ end
 
 So, in order to implement a new model we need to:
 - implement its struct and constructor
-- implement the relative `ModelHyperParametersSet`, `ModelLearnedParametersSet` and eventually `ModelOptionsSet`.
-- define `fit!(model, X, [y])`, `predict(model,X)` and eventually `inverse_predict(model,X)`.
+- implement the corresponding `ModelHyperParametersSet`, `ModelLearnedParametersSet` and optionally `ModelOptionsSet`.
+- define `fit!(model, X, [y])`, `predict(model,X)` and optionally `inverse_predict(model,X)`.
 

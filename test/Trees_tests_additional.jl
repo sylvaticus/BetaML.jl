@@ -7,7 +7,7 @@ using StableRNGs
 #rng = StableRNG(123)
 using BetaML
 
-println("*** Additional testing for the Testing Decision trees/Random Forest algorithms...")
+println("*** Additional testing for the Decision trees/Random Forest algorithms...")
 
 println("Testing MLJ interface for Trees models....")
 X, y                           = Mlj.@load_boston
@@ -61,8 +61,8 @@ tree = Tree()
     wrapped_tree = wrapdn(model, featurenames = featurenames)
 
     println("--> plot the tree using the `TreeRecipe`")
-    plt = plot(wrapped_tree)        # this calls automatically the `TreeRecipe`
+    plt = plot(wrapped_tree)        # this automatically calls the `TreeRecipe`
     display(plt)                    # show the plot in a window (in VS Code a tab will be opened)
     # plot & display will plot the tree `wrapped_tree`. 
-    # It has to be visually checked, if that plot is correct.
+    # It has to be visually checked whether that plot is correct.
 end

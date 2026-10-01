@@ -8,7 +8,7 @@
 """
     SGD(;η=t -> 1/(1+t), λ=2)
 
-Stochastic Gradient Descent algorithm (default)
+Stochastic Gradient Descent algorithm
 
 # Fields:
 - `η`: Learning rate, as a function of the current epoch [def: t -> 1/(1+t)]
@@ -99,7 +99,7 @@ end
 
 struct DebugOptAlg <: OptimisationAlgorithm
     dString::String
-    function DebugOptAlg(;dString="Hello World, I am a Debugging Algorithm. I done nothing to your Net.")
+    function DebugOptAlg(;dString="Hello World, I am a Debugging Algorithm. I did nothing to your Net.")
         return new(dString)
     end
 end

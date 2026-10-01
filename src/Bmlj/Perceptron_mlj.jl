@@ -1,6 +1,6 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
-# MLJ interface for Decision Trees/Random Forests models
+# MLJ interface for Perceptron-like models
 
 export PerceptronClassifier, KernelPerceptronClassifier, PegasosClassifier
 
@@ -40,7 +40,7 @@ julia> mach        = machine(model, X, y);
 
 julia> fit!(mach);
 [ Info: Training machine(PerceptronClassifier(initial_coefficients = nothing, …), …).
-*** Avg. error after epoch 2 : 0.0 (all elements of the set has been correctly classified)
+*** Avg. error after epoch 2 : 0.0 (all elements of the set have been correctly classified)
 julia> est_classes = predict(mach, X)
 150-element CategoricalDistributions.UnivariateFiniteVector{Multiclass{3}, String, UInt8, Float64}:
  UnivariateFinite{Multiclass{3}}(setosa=>1.0, versicolor=>2.53e-34, virginica=>0.0)
@@ -54,9 +54,9 @@ julia> est_classes = predict(mach, X)
 mutable struct PerceptronClassifier <: MMI.Probabilistic
    "N-classes by D-dimensions matrix of initial linear coefficients [def: `nothing`, i.e. zeros]"
    initial_coefficients::Union{Matrix{Float64},Nothing} 
-   "N-classes vector of initial contant terms [def: `nothing`, i.e. zeros]"
+   "N-classes vector of initial constant terms [def: `nothing`, i.e. zeros]"
    initial_constant::Union{Vector{Float64},Nothing} 
-   "Maximum number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
+   "Maximum number of epochs, i.e. passes through the whole training sample [def: `1000`]"
    epochs::Int64
    "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
    shuffle::Bool
@@ -64,7 +64,7 @@ mutable struct PerceptronClassifier <: MMI.Probabilistic
    force_origin::Bool
    "Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]"
    return_mean_hyperplane::Bool
-   "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
+   "A Random Number Generator to be used in stochastic parts of the code [default: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG
 end
 PerceptronClassifier(;
@@ -119,15 +119,15 @@ julia> est_classes = predict(mach, X)
 
 """
 mutable struct KernelPerceptronClassifier <: MMI.Probabilistic
-    "Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel` (once loaded the BetaML package) for details or check `?BetaML.Utils` to verify if other kernels are defined (you can alsways define your own kernel) [def: [`radial_kernel`](@ref)]"
+    "Kernel function to employ. See `?radial_kernel` or `?polynomial_kernel` (once the BetaML package is loaded) for details or check `?BetaML.Utils` to verify if other kernels are defined (you can always define your own kernel) [def: [`radial_kernel`](@ref)]"
     kernel::Function
-    "Maximum number of epochs, i.e. passages trough the whole training sample [def: `100`]"
+    "Maximum number of epochs, i.e. passes through the whole training sample [def: `100`]"
     epochs::Int64
-    "Initial distribution of the number of errors errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-lenght vector of nRecords integer values vectors , where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`"
+    "Initial distribution of the number of errors [def: `nothing`, i.e. zeros]. If provided, this should be a nModels-length vector of nRecords integer value vectors, where nModels is computed as `(n_classes  * (n_classes - 1)) / 2`"
     initial_errors::Union{Nothing,Vector{Vector{Int64}}}
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool
-    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
+    "A Random Number Generator to be used in stochastic parts of the code [default: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
 KernelPerceptronClassifier(;
@@ -182,13 +182,13 @@ julia> est_classes = predict(mach, X)
 mutable struct PegasosClassifier <: MMI.Probabilistic
     "N-classes by D-dimensions matrix of initial linear coefficients [def: `nothing`, i.e. zeros]"
    initial_coefficients::Union{Matrix{Float64},Nothing} 
-   "N-classes vector of initial contant terms [def: `nothing`, i.e. zeros]"
+   "N-classes vector of initial constant terms [def: `nothing`, i.e. zeros]"
    initial_constant::Union{Vector{Float64},Nothing} 
    "Learning rate [def: (epoch -> 1/sqrt(epoch))]"
    learning_rate::Function
    "Multiplicative term of the learning rate [def: `0.5`]"       
    learning_rate_multiplicative::Float64
-   "Maximum number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
+   "Maximum number of epochs, i.e. passes through the whole training sample [def: `1000`]"
    epochs::Int64
    "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
    shuffle::Bool
@@ -196,7 +196,7 @@ mutable struct PegasosClassifier <: MMI.Probabilistic
    force_origin::Bool
    "Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]"
    return_mean_hyperplane::Bool
-   "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
+   "A Random Number Generator to be used in stochastic parts of the code [default: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG
 end
 PegasosClassifier(;
@@ -217,7 +217,7 @@ PegasosClassifier(;
 function MMI.fit(model::PerceptronClassifier, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = unwrap.(levels(y))
- typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+ typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
  verbosity = mljverbosity_to_betaml_verbosity(verbosity)
  #initial_coefficients  = length(model.initial_coefficients) == 0 ? zeros(size(x,2)) : model.initial_coefficients
  fitresult = BetaML.Perceptron.perceptron(x, y; θ=model.initial_coefficients, θ₀=model.initial_constant, T=model.epochs, nMsgs=0, shuffle=model.shuffle, force_origin=model.force_origin, return_mean_hyperplane=model.return_mean_hyperplane,rng=model.rng, verbosity=verbosity)
@@ -229,7 +229,7 @@ end
 function MMI.fit(model::KernelPerceptronClassifier, verbosity, X, y)
  x          = MMI.matrix(X)                     # convert table to matrix
  allClasses = unwrap.(levels(y))
- typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+ typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
  verbosity = mljverbosity_to_betaml_verbosity(verbosity)
  #initial_errors   = length(model.initial_errors) == 0 ? zeros(Int64,length(y)) : model.initial_errors
  fitresult  = BetaML.Perceptron.kernel_perceptron_classifier(x, y; K=model.kernel, T=model.epochs, α=model.initial_errors, nMsgs=0, shuffle=model.shuffle,rng=model.rng, verbosity=verbosity)
@@ -241,7 +241,7 @@ end
 function MMI.fit(model::PegasosClassifier, verbosity, X, y)
  x = MMI.matrix(X)                     # convert table to matrix
  allClasses = unwrap.(levels(y))
- typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+ typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
  verbosity = mljverbosity_to_betaml_verbosity(verbosity)
  #initial_coefficients  = length(model.initial_coefficients) == 0 ? zeros(size(x,2)) : model.initial_coefficients
  fitresult = BetaML.Perceptron.pegasos(x, y; θ=model.initial_coefficients,θ₀=model.initial_constant, λ=model.learning_rate_multiplicative,η=model.learning_rate, T=model.epochs, nMsgs=0, shuffle=model.shuffle, force_origin=model.force_origin, return_mean_hyperplane=model.return_mean_hyperplane,rng=model.rng, verbosity=verbosity)
@@ -256,7 +256,7 @@ function MMI.predict(model::Union{PerceptronClassifier,PegasosClassifier}, fitre
     fittedModel      = fitresult[1]
     #classes          = CategoricalVector(fittedModel.classes)
     observedClasses  = fittedModel.classes
-    allClasses       = fitresult[2] # as classes do not includes classes unsees at training time
+    allClasses       = fitresult[2] # as classes do not include classes unseen at training time
     nLevels          = length(allClasses)
     nRecords         = MMI.nrows(Xnew)
     modelPredictions = BetaML.Perceptron.predict(MMI.matrix(Xnew), fittedModel.θ, fittedModel.θ₀, observedClasses)
@@ -279,7 +279,7 @@ function MMI.predict(model::KernelPerceptronClassifier, fitresult, Xnew)
     #classes          = CategoricalVector(fittedModel.classes)
     #classes          = fittedModel.classes
     observedClasses  = fittedModel.classes
-    allClasses       = fitresult[2] # as classes do not includes classes unsees at training time
+    allClasses       = fitresult[2] # as classes do not include classes unseen at training time
     nLevels          = length(allClasses)
     nRecords         = MMI.nrows(Xnew)
     #ŷtrain = Perceptron.predict([10 10; 2.2 2.5],model.x,model.y,model.α, model.classes,K=model.K)

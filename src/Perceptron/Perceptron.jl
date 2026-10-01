@@ -12,9 +12,9 @@ Provide the following supervised models:
 - [`PegasosClassifier`](@ref): Train data using the pegasos algorithm
 
 
-All algorithms are multiclass, with `PerceptronClassifier` and `PegasosClassifier` employing a one-vs-all strategy, while `KernelPerceptronClassifier` employs a _one-vs-one_ approach, and return a "probability" for each class in term of a dictionary for each record. Use `mode(ŷ)` to return a single class prediction per record.
+All algorithms are multiclass, with `PerceptronClassifier` and `PegasosClassifier` employing a one-vs-all strategy, while `KernelPerceptronClassifier` employs a _one-vs-one_ approach, and return a "probability" for each class in terms of a dictionary for each record. Use `mode(ŷ)` to return a single class prediction per record.
 
-These models are available in the MLJ framework as `PerceptronClassifier`,`KernelPerceptronClassifier` and `PegasosClassifier` respectivly.
+These models are available in the MLJ framework as `PerceptronClassifier`,`KernelPerceptronClassifier` and `PegasosClassifier` respectively.
 """
 module Perceptron
 

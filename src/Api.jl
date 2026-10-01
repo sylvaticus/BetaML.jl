@@ -7,10 +7,10 @@
 The Api Module (currently v2)
 
 
-This module includes the shared api trough the various BetaML submodules, i.e. names used by more than one submodule.
+This module includes the shared api through the various BetaML submodules, i.e. names used by more than one submodule.
 
-Modules are free to use other functions but these are defined here to avoid name conflicts and allows instead Multiple Dispatch to handle them.
-For a user-prospective overall description of the BetaML API see the page `API V2` → [`Introduction for users`](@ref api_usage), while for the implementation of the API see the page `API V2` → [`For developers`](@ref api_implementation)
+Modules are free to use other functions but these are defined here to avoid name conflicts and instead allow Multiple Dispatch to handle them.
+For a user-perspective overall description of the BetaML API see the page `API V2` → [`Introduction for users`](@ref api_usage), while for the implementation of the API see the page `API V2` → [`For developers`](@ref api_implementation)
 
 
 """
@@ -66,7 +66,7 @@ const FIXEDSEED = 123
 """
 $(TYPEDEF)
 
-Fixed ring to allow reproducible results
+Fixed RNG to allow reproducible results
 
 Use it with:
 - `myAlgorithm(;rng=FIXEDRNG)`         # always produce the same sequence of results on each run of the script ("pulling" from the same rng object on different calls)
@@ -84,7 +84,7 @@ A struct defining the options used by default by the algorithms that do not over
 $(TYPEDFIELDS)
 
 # Notes:
-- even if a model doesn't override `BML_options`, may not use all its options, for example deterministic models would not make use of the `rng` parameter. Passing such parameters in these cases would simply have no influence.
+- even if a model doesn't override `BML_options`, it may not use all its options, for example deterministic models would not make use of the `rng` parameter. Passing such parameters in these cases would simply have no influence.
 
 # Example:
 ```
@@ -96,29 +96,29 @@ Base.@kwdef mutable struct BML_options <: BetaMLOptionsSet
    cache::Bool = true
    "An optional title and/or description for this model"
    descr::String = "" 
-   "0ption for hyper-parameters autotuning [def: `false`, i.e. not autotuning performed]. If activated, autotuning is performed on the first `fit!()` call. Controll auto-tuning trough the option `tunemethod` (see the model hyper-parameters)"
+   "Option for hyper-parameters autotuning [def: `false`, i.e. no autotuning performed]. If activated, autotuning is performed on the first `fit!()` call. Control auto-tuning through the option `tunemethod` (see the model hyper-parameters)"
    autotune::Bool = false
    "The verbosity level to be used in training or prediction: `NONE`, `LOW`, `STD` [default], `HIGH` or `FULL`"
    verbosity::Verbosity = STD
    """
    The strategy to apply in case of failure during the fitting (loss not decreasing) [def: "tryagain"].
-   The default is to try again with a new random initialization of the weigths and the batch ("tryagain"). Other valid values are "continue", "stop" and "error". The first ignore the issue, the second one stop the training (but without generateting an error) and the last one stop the fitting and generate an error.
+   The default is to try again with a new random initialization of the weights and the batch ("tryagain"). Other valid values are "continue", "stop" and "error". The first one ignores the issue, the second one stops the training (but without generating an error) and the last one stops the fitting and generates an error.
    Note that this is currently supported only by the NeuralNetworkEstimator. 
    """
    onfail::String = "tryagain"
    """
-   The epoch at which try the onfail strategy [def: `5`]
+   The epoch at which to try the onfail strategy [def: `5`]
    """
    fail_epoch::Int64 = 5
    """
-   The (relative) threshold to use for the onfail strategy [def: `0.01`] If the loss doesn't decrease of at least this value, the onfail strategy is applied. Note that this is computed in relation to the loss on the _second_ epoch, so it is not an absolute value. 
+   The (relative) threshold to use for the onfail strategy [def: `0.01`]. If the loss doesn't decrease by at least this value, the onfail strategy is applied. Note that this is computed in relation to the loss on the _second_ epoch, so it is not an absolute value. 
    """
    fail_threshold::Float64 = 0.01
    """
    The maximum number of attempts to use for the tryagain strategy [def: `10`]
    """
    fail_attempts::Int64 = 10
-   "Random Number Generator (see [`?FIXEDSEED`](@ref FIXEDSEED)) [deafult: `Random.GLOBAL_RNG`]"
+   "Random Number Generator (see [`?FIXEDSEED`](@ref FIXEDSEED)) [default: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG = Random.GLOBAL_RNG
 end
 
@@ -131,8 +131,8 @@ Fit ("train") a `BetaMLModel` (i.e. learn the algorithm's parameters) based on d
 Each specific model implements its own version of `fit!(m,X,[Y])`, but the usage is consistent across models.
 
 # Notes:
-- For online algorithms, i.e. models that support updating of the learned parameters with new data, `fit!` can be repeated as new data arrive, altought not all algorithms guarantee that training each record at the time is equivalent to train all the records at once.
-- If the model has been trained while having the `cache` option set on `true` (by default) `fit!` returns `ŷ` instead of `nothing` effectively making it behave like a _fit-and-transform_ function.
+- For online algorithms, i.e. models that support updating of the learned parameters with new data, `fit!` can be repeated as new data arrive, although not all algorithms guarantee that training each record at a time is equivalent to training all the records at once.
+- If the model has been trained while having the `cache` option set to `true` (by default) `fit!` returns `ŷ` instead of `nothing` effectively making it behave like a _fit-and-transform_ function.
 - In Python and other languages that don't allow the exclamation mark within the function name, use `fit_ex(⋅)` instead of `fit!(⋅)`
 
 """ 
@@ -145,10 +145,10 @@ fit_ex(m::BetaMLModel,args...;kargs...) = fit!(m,args...;kargs...) # version for
 """
     predict(m::BetaMLModel,[X])
 
-Predict new information (including transformation) based on a fitted `BetaMLModel`, eventually applied to new features when the algorithm generalises to new data.
+Predict new information (including transformation) based on a fitted `BetaMLModel`, optionally applied to new features when the algorithm generalises to new data.
 
 # Notes:
-- As a convenience, if the model has been trained while having the `cache` option set on `true` (by default) the predictions associated with the last training of the model is retained in the  model object and can be retrieved simply with `predict(m)`.
+- As a convenience, if the model has been trained while having the `cache` option set to `true` (by default) the predictions associated with the last training of the model are retained in the  model object and can be retrieved simply with `predict(m)`.
 """ 
 function predict(m::BetaMLModel)
    if m.fitted 
@@ -164,12 +164,12 @@ end
 """
     inverse_predict(m::BetaMLModel,X)
 
-Given a model `m` that fitted on `x` produces `xnew`, it takes `xnew` to return (possibly an approximation of ) `x`.
+Given a model `m` that fitted on `x` produces `xnew`, it takes `xnew` to return (possibly an approximation of) `x`.
 
-For example, when `OneHotEncoder` is fitted with a subset of the possible categories and the ` handle_unknown` option is set on `infrequent`, `inverse_transform` will aggregate all the _other_ categories as specified in `other_categories_name`.
+For example, when `OneHotEncoder` is fitted with a subset of the possible categories and the ` handle_unknown` option is set to `infrequent`, `inverse_transform` will aggregate all the _other_ categories as specified in `other_categories_name`.
 
 # Notes:
-- Inplemented only in a few models.
+- Implemented only in a few models.
 """ 
 inverse_predict(m::BetaMLModel,X) = nothing
 
@@ -279,7 +279,7 @@ end
 Returns the learned parameters of a BetaML model.
 
 !!! warning
-    The returned object is a reference, so if it is modified, the relative object in the model will change too.
+    The returned object is a reference, so if it is modified, the corresponding object in the model will change too.
 """ 
 parameters(m::BetaMLModel)      = m.par
 
@@ -289,7 +289,7 @@ parameters(m::BetaMLModel)      = m.par
 Returns the hyperparameters of a BetaML model. See also [`?options`](@ref options) for the parameters that do not directly affect learning.
 
 !!! warning
-    The returned object is a reference, so if it is modified, the relative object in the model will change too.
+    The returned object is a reference, so if it is modified, the corresponding object in the model will change too.
 
 """ 
 hyperparameters(m::BetaMLModel) = m.hpar
@@ -312,7 +312,7 @@ end
 Returns the non-learning related options of a BetaML model. See also [`?hyperparameters`](@ref hyperparameters) for the parameters that directly affect learning.
 
 !!! warning
-    The returned object is a reference, so if it is modified, the relative object in the model will change too.
+    The returned object is a reference, so if it is modified, the corresponding object in the model will change too.
 """ 
 options(m::BetaMLModel)         = m.opt
 
@@ -322,21 +322,21 @@ options(m::BetaMLModel)         = m.opt
 """
     model_save(filename::AbstractString,overwrite_file::Bool=false;kwargs...)
 
-Allow to save one or more BetaML models (wheter fitted or not), eventually specifying a name for each of them.
+Allows saving one or more BetaML models (whether fitted or not), optionally specifying a name for each of them.
 
 # Parameters:
 - `filename`: Name of the destination file
-- `overwrite_file`: Wheter to overrite the file if it alreaxy exist or preserve it (for the objects different than the one that are going to be saved) [def: `false`, i.e. preserve the file]
-- `kwargs`: model objects to be saved, eventually associated with a different name to save the mwith (e.g. `mod1Name=mod1,mod2`)  
+- `overwrite_file`: Whether to overwrite the file if it already exists or preserve it (for the objects different from the ones that are going to be saved) [def: `false`, i.e. preserve the file]
+- `kwargs`: model objects to be saved, optionally associated with a different name to save them with (e.g. `mod1Name=mod1,mod2`)  
 # Notes:
-- If an object with the given name already exists on the destination JLD2 file it will be ovenwritten.
-- If the file exists, but it is not a JLD2 file and the option `overwrite_file` is set to `false`, an error will be raisen.
+- If an object with the given name already exists in the destination JLD2 file it will be overwritten.
+- If the file exists, but it is not a JLD2 file and the option `overwrite_file` is set to `false`, an error will be raised.
 - Use the semicolon `;` to separate the filename from the model(s) to save
 - For further options see the documentation of the [`JLD2`](https://juliaio.github.io/JLD2.jl/stable/) package
 
 # Examples
 ```
-julia> model_save("fittedModels.jl"; mod1Name=mod1,mod2)
+julia> model_save("fittedModels.jld2"; mod1Name=mod1,mod2)
 ```
 """
 function model_save(filename,overwrite_file::Bool=false;kargs...)
@@ -356,18 +356,18 @@ end
     model_load(filename::AbstractString)
     model_load(filename::AbstractString,args::AbstractString...)
     
-Load from file one or more BetaML models (wheter fitted or not).
+Load from file one or more BetaML models (whether fitted or not).
 
 # Notes:
 - If no model names to retrieve are specified it returns a dictionary keyed with the model names
-- If multiple models are demanded, a tuple is returned
+- If multiple models are requested, a tuple is returned
 - For further options see the documentation of the function `load` of the [`JLD2`](https://juliaio.github.io/JLD2.jl/stable/) package
 
 # Examples:
 ```
-julia> models = model_load("fittedModels.jl"; mod1Name=mod1,mod2)
-julia> mod1 = model_load("fittedModels.jl",mod1)
-julia> (mod1,mod2) = model_load("fittedModels.jl","mod1", "mod2")
+julia> models = model_load("fittedModels.jld2")
+julia> mod1 = model_load("fittedModels.jld2","mod1")
+julia> (mod1,mod2) = model_load("fittedModels.jld2","mod1", "mod2")
 ```
 """
 const model_load = JLD2.load

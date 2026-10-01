@@ -65,7 +65,7 @@ lossOrig = loss(mynn,x',y')
 dϵ_do2 = dsquared_cost(y,o2)
 @test dϵ_do2 == [-0.4750208125210601,0.47502081252106]
 #@code_warntype dsquared_cost(o2,y)
-dϵ_do1 = backward(l2,o1,dϵ_do2) # here takes long as needs Zygote (because Vector Function layer has dfw that stil luse zygote)
+dϵ_do1 = backward(l2,o1,dϵ_do2) # here it takes long as it needs Zygote (because Vector Function layer has dfw that still uses zygote)
 @test dϵ_do1 ≈ [-0.23691761847142412, 0.23691761847142412]
 #@code_warntype backward(l2,o1,dϵ_do2)
 dϵ_dX = backward(l1,x,dϵ_do1)
@@ -130,7 +130,7 @@ lossTraining = loss(mynn,x',y')
 li   = DenseLayer(2,2,w=[2 1;1 1],f=identity,rng=copy(TESTRNG))
 @test get_nparams(li) == 6
 
-# Testing ScalarFunctionLayer with no weigths and identity function (aka "Replicator") layer 
+# Testing ScalarFunctionLayer with no weights and identity function (aka "Replicator") layer 
 l1    = DenseNoBiasLayer(2,2,w=[2 1;1 1],f=identity,rng=copy(TESTRNG))
 l1b   = ReplicatorLayer(2) 
 l2    = VectorFunctionLayer(2,f=softmax)
@@ -359,7 +359,7 @@ if "all" in ARGS
     # ==================================
     # NEW TEST
     # ==================================
-    println("Testing colvolution layer with MINST data...")
+    println("Testing convolution layer with MNIST data...")
     train_x, train_y = MNIST.traindata()
     test_x,  test_y  = MNIST.testdata()
 
@@ -423,7 +423,7 @@ d2conv = ConvLayer((4,4),(2,2),3,2,kernel_init=reshape(1:24,(2,2,3,2)),bias_init
 x = ones(4,4,3)
 preprocess!(d2conv)
 y = forward(d2conv,x)
-# The syntax for tensor hard coded in this way wants Julia >= 1.7
+# The syntax for tensors hard-coded in this way requires Julia >= 1.7
 if VERSION >= v"1.7"
   @test y[1,1,1] == dot([0 0; 0 1;;; 0 0; 0 1;;; 0 0; 0 1 ],selectdim(d2conv.weight,4,1)) + d2conv.bias[1] == 25
   @test y[2,3,1] == dot([1 1; 1 1;;; 1 1; 1 1;;; 1 1; 1 1 ],selectdim(d2conv.weight,4,1)) + d2conv.bias[1] == 79
@@ -444,7 +444,7 @@ y = forward(d1conv,x)
 @test y[3,1] == dot([6,7,8],[1,2,3]) + 10
 
 
-# The syntax for tensor hard coded in this way wants Julia >= 1.7
+# The syntax for tensors hard-coded in this way requires Julia >= 1.7
 if VERSION >= v"1.7"
     de_dy = [1.0; 2.0; 3.0;;]
     de_dw = get_gradient(d1conv,x,de_dy)
@@ -647,7 +647,7 @@ rmeTrain = relative_mean_error(y,ŷ,normrec=false)
 
 # ==================================
 # NEW TEST
-println("Testing MLJ interface for FeedfordwarNN....")
+println("Testing MLJ interface for FeedforwardNN...")
 import MLJBase
 const Mlj = MLJBase
 import StatisticalMeasures

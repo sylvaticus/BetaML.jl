@@ -1,11 +1,11 @@
 using Test
 using BetaML
 
-#using Pkg # seems Julia bug: can't find pkg `Pkg` !!
+#using Pkg # seems a Julia bug: can't find pkg `Pkg` !!
 #Pkg.activate(@__DIR__)
 
 #=
-Choose what to test with `Pkg.test("BetaML", test_args=["Trees","Clustering","all"])``
+Choose what to test with `Pkg.test("BetaML", test_args=["Trees","Clustering","all"])`
 or `$ julia runtests.jl Trees Clustering all`
 
 Possible values are:
@@ -29,7 +29,7 @@ else
     println("Running normal testing")
 end
 
-# just to reset the file used to save models in several mudules..
+# just to reset the file used to save models in several modules..
 rm("test.jld2", force=true)
 
 if "all" in ARGS || "Utils" in ARGS || nArgs == 0

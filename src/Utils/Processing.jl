@@ -8,19 +8,19 @@ import StatsBase: countmap
 # ------------------------------------------------------------------------------
 # Various reshaping functions
 import Base.reshape
-""" reshape(myNumber, dims..) - Reshape a number as a n dimensional Array """
+""" reshape(myNumber, dims..) - Reshape a number as an n-dimensional Array """
 reshape(x::T, dims...) where {T <: Number} =   (x = [x]; reshape(x,dims) )
 makecolvector(x::T) where {T} =  [x]
 makecolvector(x::T) where {T <: AbstractArray} =  reshape(x,length(x))
 makerowvector(x::T) where {T <: Number} = return [x]'
 makerowvector(x::T) where {T <: AbstractArray} =  reshape(x,1,length(x))
-"""Transform an Array{T,1} in an Array{T,2} and leave unchanged Array{T,2}."""
+"""Transform an Array{T,1} into an Array{T,2} and leave Array{T,2} unchanged."""
 makematrix(x::AbstractVector) = reshape(x, (size(x)...,1))
 makematrix(x::AbstractMatrix) = x
 
 
 
-"""Return wheather an array is sortable, i.e. has methos issort defined"""
+"""Return whether an array is sortable, i.e. has method isless defined"""
 issortable(::AbstractArray{T,N})  where {T,N} = hasmethod(isless, Tuple{nonmissingtype(T),nonmissingtype(T)})
 
 
@@ -81,9 +81,9 @@ $(FIELDS)
 Base.@kwdef mutable struct OneHotE_hp <: BetaMLHyperParametersSet
   "The categories to represent as columns. [def: `nothing`, i.e. unique training values or range for integers]. Do not include `missing` in this list."  
   categories::Union{Vector,Nothing} = nothing
-  "How to handle categories not seen in training or not present in the provided `categories` array? \"error\" (default) rises an error, \"missing\" labels the whole output with missing values, \"infrequent\" adds a specific column for these categories in one-hot encoding or a single new category for ordinal one."
+  "How to handle categories not seen in training or not present in the provided `categories` array? \"error\" (default) raises an error, \"missing\" labels the whole output with missing values, \"infrequent\" adds a specific column for these categories in one-hot encoding or a single new category for the ordinal one."
   handle_unknown::String = "error"
-  "Which value during inverse transformation to assign to the \"other\" category (i.e. categories not seen on training or not present in the provided `categories` array? [def: ` nothing`, i.e. typemax(Int64) for integer vectors and \"other\" for other types]. This setting is active only if `handle_unknown=\"infrequent\"` and in that case it MUST be specified if the vector to one-hot encode is neither integer or strings"
+  "Which value during inverse transformation to assign to the \"other\" category (i.e. categories not seen on training or not present in the provided `categories` array)? [def: ` nothing`, i.e. typemax(Int64) for integer vectors and \"other\" for other types]. This setting is active only if `handle_unknown=\"infrequent\"` and in that case it MUST be specified if the vector to one-hot encode is neither integers nor strings"
   other_categories_name = nothing
 
 end
@@ -161,7 +161,7 @@ $(TYPEDEF)
 
 Encode a vector of categorical values as integers.
 
-The algorithm distinguishes between _missing_ values, for which it propagate the missing, and _other_ categories not in the provided list or not seen during training that are handled according to the `handle_unknown` parameter. 
+The algorithm distinguishes between _missing_ values, for which it propagates the missing, and _other_ categories not in the provided list or not seen during training that are handled according to the `handle_unknown` parameter. 
 
 For the parameters see [`OneHotE_hp`](@ref) and [`BML_options`](@ref). This model supports `inverse_predict`.
 
@@ -191,7 +191,7 @@ julia> x2_int  = predict(mod,x2) # 5 is for the "infrequent" category
  4
  5
 
-julia> x2_back = inverse_predict(mod,x2_oh)
+julia> x2_back = inverse_predict(mod,x2_int)
 4-element Vector{String}:
  "a"
  "zz"
@@ -300,7 +300,7 @@ function _fit!(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
             kidx = findfirst(y -> isequal(y,x[n]),categories)
             if isnothing(kidx)
                 if handle_unknown == "error"
-                    error("Found a category ($(x[n])) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to swith it to either `missing` or `infrequent`.")
+                    error("Found a category ($(x[n])) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to switch it to either `missing` or `infrequent`.")
                 elseif handle_unknown == "missing"
                     outx = (enctype == :onehot) ? convert(Matrix{Union{Missing,Bool}},outx) : convert(Matrix{Union{Missing,Int64}},outx)
                     outx[n,:] = fill(missing,K);
@@ -350,7 +350,7 @@ function _predict(m::Union{OneHotEncoder,OrdinalEncoder},x,enctype::Symbol)
         kidx = findfirst(y -> isequal(y,x[n]),categories)
         if isnothing(kidx)
             if handle_unknown == "error"
-                error("Found a category ($(x[n])) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to swith it to either `missing` or `infrequent`.")
+                error("Found a category ($(x[n])) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to switch it to either `missing` or `infrequent`.")
                 continue
             elseif handle_unknown == "missing"
                 outx = (enctype == :onehot) ? convert(Matrix{Union{Missing,Bool}},outx) : convert(Matrix{Union{Missing,Int64}},outx)
@@ -381,14 +381,14 @@ function _predict(m::Union{OneHotEncoder,OrdinalEncoder},x::Vector{<:Dict},encty
         K    = length(categories)
         outx = fill(0.0,N,K)
     else 
-        error("Predictions of a Ordinal Encoded with a vector of dictionary is not supported")
+        error("Predictions of an OrdinalEncoder with a vector of dictionaries are not supported")
     end
     for n in 1:N
         for (k,v) in x[n]
             kidx = findfirst(y -> isequal(y,k),categories)
             if isnothing(kidx)
                 if handle_unknown == "error"
-                    error("Found a category ($(k)) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to swith it to either `missing` or `infrequent`.")
+                    error("Found a category ($(k)) not present in the list and the `handle_unknown` is set to `error`. Perhaps you want to switch it to either `missing` or `infrequent`.")
                     continue
                 elseif handle_unknown == "missing"
                     outx[n,:] = fill(missing,K);
@@ -468,10 +468,10 @@ Partition (by rows) one or more matrices according to the shares in `parts`.
 # Parameters
 * `data`: A matrix/vector or a vector of matrices/vectors
 * `parts`: A vector of the required shares (must sum to 1)
-* `shufle`: Whether to randomly shuffle the matrices (preserving the relative order between matrices)
-* `dims`: The dimension for which to partition [def: `1`]
-* `copy`: Wheter to _copy_ the actual data or only create a reference [def: `true`]
-* `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+* `shuffle`: Whether to randomly shuffle the matrices (preserving the relative order between matrices)
+* `dims`: The dimension along which to partition [def: `1`]
+* `copy`: Whether to _copy_ the actual data or only create a reference [def: `true`]
+* `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
 # Notes:
 * The sum of parts must be equal to 1
@@ -564,7 +564,7 @@ julia> xback   = inverse_predict(mod, xscaled)
 
 """
 Base.@kwdef mutable struct MinMaxScaler <: AbstractScaler
-  "The range of the input. [def: (minimum,maximum)]. Both ranges are functions of the data. You can consider other relative of absolute ranges using e.g. `inputRange=(x->minimum(x)*0.8,x->100)`"  
+  "The range of the input. [def: (minimum,maximum)]. Both ranges are functions of the data. You can consider other relative or absolute ranges using e.g. `inputRange=(x->minimum(x)*0.8,x->100)`"  
   inputRange::Tuple{Function,Function} = (minimum,maximum)
   "The range of the scaled output [def: (0,1)]"
   outputRange::Tuple{Real,Real} = (0,1)
@@ -741,7 +741,7 @@ $(FIELDS)
 Base.@kwdef mutable struct Scaler_hp <: BetaMLHyperParametersSet
     "The specific scaler method to employ with its own parameters. See [`StandardScaler`](@ref) [def] or [`MinMaxScaler`](@ref)."
     method::AbstractScaler = StandardScaler()
-    "The positional ids of the columns to skip scaling (eg. categorical columns, dummies,...) [def: `[]`]"
+    "The positional ids of the columns to skip scaling (e.g. categorical columns, dummies,...) [def: `[]`]"
     skip::Vector{Int64}    = Int64[]
 end
 
@@ -922,16 +922,16 @@ end
 """
 $(TYPEDEF)
 
-Perform a Principal Component Analysis, a dimensionality reduction tecnique employing a linear trasformation of the original matrix by the eigenvectors of the covariance matrix.
+Perform a Principal Component Analysis, a dimensionality reduction technique employing a linear transformation of the original matrix by the eigenvectors of the covariance matrix.
 
-PCAEncoder returns the matrix reprojected among the dimensions of maximum variance.
+PCAEncoder returns the matrix reprojected along the dimensions of maximum variance.
 
 For the parameters see [`PCAE_hp`](@ref) and [`BML_options`](@ref) 
 
 # Notes:
 - PCAEncoder doesn't automatically scale the data. It is suggested to apply the [`Scaler`](@ref) model before running it. 
 - Missing data are not supported. Impute them first, see the [`Imputation`](@ref) module.
-- If one doesn't know _a priori_ the maximum unexplained variance that he is willling to accept, nor the wished number of dimensions, he can run the model with all the dimensions in output (i.e. with `encoded_size=size(X,2)`), analise the proportions of explained cumulative variance by dimensions in `info(mod,""explained_var_by_dim")`, choose the number of dimensions K according to his needs and finally pick from the reprojected matrix only the number of dimensions required, i.e. `out.X[:,1:K]`.
+- If one doesn't know _a priori_ the maximum unexplained variance that he is willing to accept, nor the wished number of dimensions, he can run the model with all the dimensions in output (i.e. with `encoded_size=size(X,2)`), analyse the proportions of explained cumulative variance by dimensions in `info(mod)["explained_var_by_dim"]`, choose the number of dimensions K according to his needs and finally pick from the reprojected matrix only the number of dimensions required, i.e. `out[:,1:K]`, where `out` is the matrix returned by `fit!`.
 
 # Example:
 
@@ -988,7 +988,7 @@ function PCAEncoder(;kwargs...)
               found = true
           end
         end
-        # Correction for releasing without breaking.. to remove on v0.12 onward...
+        # Correction for releasing without breaking.. to be removed from v0.12 onward...
         # found || error("Keyword \"$kw\" is not part of this model.")
         if !found
             if kw == :outdims
@@ -1019,7 +1019,7 @@ function fit!(m::PCAEncoder,X)
 
     (N,D) = size(X)
     if !isnothing(encoded_size) && encoded_size > D
-        @error("The parameter `encoded_size` must be ≤ of the number of dimensions of the input data matrix")
+        @error("The parameter `encoded_size` must be ≤ the number of dimensions of the input data matrix")
     end
     Σ = (1/N) * X'*(I-(1/N)*ones(N)*ones(N)')*X
     E = eigen(Σ) # eigenvalues are ordered from the smallest to the largest
@@ -1054,7 +1054,7 @@ end
 """
     cols_with_missing(x)
 
-Retuyrn an array with the ids of the columns where there is at least a missing value.
+Return an array with the ids of the columns where there is at least one missing value.
 """
 function cols_with_missing(x)
     cols_with_missing = Int64[]
@@ -1073,28 +1073,28 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Perform cross_validation according to `sampler` rule by calling the function f and collecting its output
+Perform cross_validation according to the `sampler` rule by calling the function f and collecting its output
 
 # Parameters
-- `f`: The user-defined function that consume the specific train and validation data and return somehting (often the associated validation error). See later
-- `data`: A single n-dimenasional array or a vector of them (e.g. X,Y), depending on the tasks required by `f`.
-- sampler: An istance of a ` AbstractDataSampler`, defining the "rules" for sampling at each iteration. [def: `KFold(nsplits=5,nrepeats=1,shuffle=true,rng=Random.GLOBAL_RNG)` ]. Note that the RNG passed to the `f` function is the `RNG` passed to the sampler
-- `dims`: The dimension over performing the cross_validation i.e. the dimension containing the observations [def: `1`]
+- `f`: The user-defined function that consumes the specific train and validation data and returns something (often the associated validation error). See later
+- `data`: A single n-dimensional array or a vector of them (e.g. X,Y), depending on the tasks required by `f`.
+- sampler: An instance of an ` AbstractDataSampler`, defining the "rules" for sampling at each iteration. [def: `KFold(nsplits=5,nrepeats=1,shuffle=true,rng=Random.GLOBAL_RNG)` ]. Note that the RNG passed to the `f` function is the `RNG` passed to the sampler
+- `dims`: The dimension over which to perform the cross_validation i.e. the dimension containing the observations [def: `1`]
 - `verbosity`: The verbosity to print information during each iteration (this can also be printed in the `f` function) [def: `STD`]
-- `return_statistics`: Wheter cross_validation should return the statistics of the output of `f` (mean and standard deviation) or the whole outputs [def: `true`].
+- `return_statistics`: Whether cross_validation should return the statistics of the output of `f` (mean and standard deviation) or the whole outputs [def: `true`].
 
 # Notes
 
-cross_validation works by calling the function `f`, defined by the user, passing to it the tuple `trainData`, `valData` and `rng` and collecting the result of the function f. The specific method for which `trainData`, and `valData` are selected at each iteration depends on the specific `sampler`, whith a single 5 k-fold rule being the default.
+cross_validation works by calling the function `f`, defined by the user, passing to it the tuple `trainData`, `valData` and `rng` and collecting the result of the function f. The specific method by which `trainData` and `valData` are selected at each iteration depends on the specific `sampler`, with a single 5-fold rule being the default.
 
-This approach is very flexible because the specific model to employ or the metric to use is left within the user-provided function. The only thing that cross_validation does is provide the model defined in the function `f` with the opportune data (and the random number generator).
+This approach is very flexible because the specific model to employ or the metric to use is left within the user-provided function. The only thing that cross_validation does is provide the model defined in the function `f` with the appropriate data (and the random number generator).
 
 **Input of the user-provided function**
-`trainData` and `valData` are both themselves tuples. In supervised models, cross_validations `data` should be a tuple of (X,Y) and `trainData` and `valData` will be equivalent to (xtrain, ytrain) and (xval, yval). In unsupervised models `data` is a single array, but the training and validation data should still need to be accessed as  `trainData[1]` and `valData[1]`.
+`trainData` and `valData` are both themselves tuples. In supervised models, cross_validation's `data` should be a tuple of (X,Y) and `trainData` and `valData` will be equivalent to (xtrain, ytrain) and (xval, yval). In unsupervised models `data` is a single array, but the training and validation data still need to be accessed as  `trainData[1]` and `valData[1]`.
 **Output of the user-provided function**
-The user-defined function can return whatever. However, if `return_statistics` is left on its default `true` value the user-defined function must return a single scalar (e.g. some error measure) so that the mean and the standard deviation are returned.
+The user-defined function can return anything. However, if `return_statistics` is left on its default `true` value the user-defined function must return a single scalar (e.g. some error measure) so that the mean and the standard deviation are returned.
 
-Note that `cross_validation` can beconveniently be employed using the `do` syntax, as Julia automatically rewrite `cross_validation(data,...) trainData,valData,rng  ...user defined body... end` as `cross_validation(f(trainData,valData,rng ), data,...)`
+Note that `cross_validation` can be conveniently employed using the `do` syntax, as Julia automatically rewrites `cross_validation(data,...) do trainData,valData,rng  ...user defined body... end` as `cross_validation(f(trainData,valData,rng ), data,...)`
 
 # Example
 
@@ -1129,7 +1129,7 @@ end
 """
 $(TYPEDEF)
 
-Simple grid method for hyper-parameters validation of supervised models.
+Simple grid method for hyper-parameter validation of supervised models.
 
 All parameters are tested using cross-validation and then the "best" combination is used. 
 
@@ -1140,7 +1140,7 @@ All parameters are tested using cross-validation and then the "best" combination
 $(TYPEDFIELDS)
 """
 Base.@kwdef mutable struct GridSearch <: AutoTuneMethod
-    "Loss function to use. [def: [`l2loss_by_cv`](@ref)`]. Any function that takes a model, data (a vector of arrays, even if we work only with X) and (using the `rng` keyword) a RNG and return a scalar loss."
+    "Loss function to use. [def: [`l2loss_by_cv`](@ref)]. Any function that takes a model, data (a vector of arrays, even if we work only with X) and (using the `rng` keyword) an RNG and returns a scalar loss."
     loss::Function = l2loss_by_cv
     "Share of the (data) resources to use for the autotuning [def: 0.1]. With `res_share=1` all the dataset is used for autotuning, it can be very time consuming!"
     res_share::Float64 = 0.1
@@ -1155,22 +1155,22 @@ end
 """
 $(TYPEDEF)
 
-Hyper-parameters validation of supervised models that search the parameters space trouth successive halving
+Hyper-parameter validation of supervised models that searches the parameter space through successive halving
 
-All parameters are tested on a small sub-sample, then the "best" combinations are kept for a second round that use more samples and so on untill only one hyperparameter combination is left.
+All parameters are tested on a small sub-sample, then the "best" combinations are kept for a second round that uses more samples and so on until only one hyperparameter combination is left.
 
 # Notes:
-- the default loss is suitable for 1-dimensional output supervised models, and applies itself cross-validation. Any function that accepts a model, some data and return a scalar loss can be used
-- the rate at which the potential candidate combinations of hyperparameters shrink is controlled by the number of data shares defined in `res_shared` (i.e. the epochs): more epochs are choosen, lower the "shrink" coefficient
+- the default loss is suitable for 1-dimensional output supervised models, and itself applies cross-validation. Any function that accepts a model, some data and returns a scalar loss can be used
+- the rate at which the potential candidate combinations of hyperparameters shrink is controlled by the number of data shares defined in `res_shares` (i.e. the epochs): the more epochs are chosen, the lower the "shrink" coefficient
 
 ## Parameters:
 $(TYPEDFIELDS)
 """
 Base.@kwdef mutable struct SuccessiveHalvingSearch <: AutoTuneMethod
-    "Loss function to use. [def: [`l2loss_by_cv`](@ref)`]. Any function that takes a model, data (a vector of arrays, even if we work only with X) and (using the `rng` keyword) a RNG and return a scalar loss."
+    "Loss function to use. [def: [`l2loss_by_cv`](@ref)]. Any function that takes a model, data (a vector of arrays, even if we work only with X) and (using the `rng` keyword) an RNG and returns a scalar loss."
     loss::Function = l2loss_by_cv
-    """Shares of the (data) resources to use for the autotuning in the successive iterations [def: `[0.05, 0.2, 0.3]`]. With `res_share=1` all the dataset is used for autotuning, it can be very time consuming!
-    The number of models is reduced of the same share in order to arrive with a single model. Increase the number of `res_shares` in order to increase the number of models kept at each iteration.
+    """Shares of the (data) resources to use for the autotuning in the successive iterations [def: `[0.08, 0.1, 0.13, 0.15, 0.2, 0.3, 0.4]`]. With a share of `1` all the dataset is used for autotuning, it can be very time consuming!
+    The number of models is reduced by the same share in order to arrive with a single model. Increase the number of `res_shares` in order to increase the number of models kept at each iteration.
     """
     res_shares::Vector{Float64} = [0.08, 0.1, 0.13, 0.15, 0.2, 0.3, 0.4]
     "Dictionary of parameter names (String) and associated vector of values to test. Note that you can easily sample these values from a distribution with rand(distr_object,n_values). The number of points you provide for a given parameter can be interpreted as proportional to the prior you have on the importance of that parameter for the algorithm quality."
@@ -1179,7 +1179,7 @@ Base.@kwdef mutable struct SuccessiveHalvingSearch <: AutoTuneMethod
     multithreads::Bool = false
 end
 
-"Transform a Dict(parameters => possible range) in a vector of Dict(parameters=>parvalues)"
+"Transform a Dict(parameters => possible range) into a vector of Dict(parameters=>parvalues)"
 function _hpranges_2_candidates(hpranges)
     parLengths = Int64[]
     for (k,v) in hpranges
@@ -1193,7 +1193,7 @@ function _hpranges_2_candidates(hpranges)
             thishpars[k] = hpranges[k][Tuple(ij)[i]]
             i += 1
         end
-        #thishpars = NamedTuple{Tuple(keys(thishpars))}(values(thishpars)) # dict to namedtouple, also  ntuple = (; dict...)
+        #thishpars = NamedTuple{Tuple(keys(thishpars))}(values(thishpars)) # dict to namedtuple, also  ntuple = (; dict...)
         push!(candidates,thishpars)
     end
     return candidates
@@ -1308,7 +1308,7 @@ function tune!(m,method::SuccessiveHalvingSearch,data)
         options(m).verbosity == FULL && println("(e $e) Scores: \n $scores")
         candidates = [scores[i][2] for i in 1:ncandidates_tokeep]     
     end
-    length(candidates) == 1 || error("Here we should have a single candidate remained!")
+    length(candidates) == 1 || error("Here we should have a single remaining candidate!")
     sethp!(m,candidates[1]) 
 end
 
@@ -1322,12 +1322,12 @@ function autotune!(m,data) # or autotune!(m,data) ???
     if !(options(m).autotune)
         return m
     end
-    # let's sure data is always a tuple of arrays, even for unsupervised models
+    # let's make sure data is always a tuple of arrays, even for unsupervised models
     if !(eltype(data) <: AbstractArray) # data is a single array
         data = (data,)
     end
     n = size(data[1],1)
-    n >= 10 || error("Too few records to autotune the model. At very least I need 1O records ($n provided)")
+    n >= 10 || error("Too few records to autotune the model. At the very least I need 10 records ($n provided)")
     tune!(m,hyperparameters(m).tunemethod,data)
     return nothing
 end
@@ -1369,9 +1369,9 @@ end
 """
    class_counts(x;classes=nothing)
 
-Return a (unsorted) vector with the counts of each unique item (element or rows) in a dataset.
+Return an (unsorted) vector with the counts of each unique item (element or rows) in a dataset.
 
-If order is important or not all classes are present in the data, a preset vectors of classes can be given in the parameter `classes`
+If order is important or not all classes are present in the data, a preset vector of classes can be given in the parameter `classes`
 
 """
 function class_counts(x; classes=nothing)
@@ -1455,8 +1455,8 @@ end
 
 Compute the mean of the values of an array of dictionaries.
 
-Given `dicts` an array of dictionaries, `mean_dicts` first compute the union of the keys and then average the values.
-If the original valueas are probabilities (non-negative items summing to 1), the result is also a probability distribution.
+Given `dicts` an array of dictionaries, `mean_dicts` first computes the union of the keys and then averages the values.
+If the original values are probabilities (non-negative items summing to 1), the result is also a probability distribution.
 
 """
 function mean_dicts(dicts; weights=ones(length(dicts)))
@@ -1486,6 +1486,6 @@ end
 
 """ LogSumExp for efficiently computing log(sum(exp.(x))) """
 lse(x) = maximum(x)+log(sum(exp.(x .- maximum(x))))
-""" Sterling number: number of partitions of a set of n elements in k sets """
+""" Stirling number: number of partitions of a set of n elements in k sets """
 sterling(n::BigInt,k::BigInt) = (1/factorial(k)) * sum((-1)^i * binomial(k,i)* (k-i)^n for i in 0:k)
 sterling(n::Int64,k::Int64)   = sterling(BigInt(n),BigInt(k))

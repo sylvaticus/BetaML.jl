@@ -1,6 +1,6 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
-# MLJ interface for GMM based models
+# MLJ interface for GMM-based models
 
 export  GaussianMixtureClusterer, GaussianMixtureRegressor, MultitargetGaussianMixtureRegressor
 
@@ -10,7 +10,7 @@ export  GaussianMixtureClusterer, GaussianMixtureRegressor, MultitargetGaussianM
 """
 $(TYPEDEF)
 
-A Expectation-Maximisation clustering algorithm with customisable mixtures, from the Beta Machine Learning Toolkit (BetaML).
+An Expectation-Maximisation clustering algorithm with customisable mixtures, from the Beta Machine Learning Toolkit (BetaML).
 
 # Hyperparameters:
 $(TYPEDFIELDS)
@@ -61,8 +61,8 @@ mutable struct GaussianMixtureClusterer <: MMI.Unsupervised
   "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
   initial_probmixtures::AbstractArray{Float64,1}
   """An array (of length `n_classes`) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
-    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is set to \"gived\".
-    This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes` mixtures of the specified type.
+    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is set to \"given\".
+    This parameter can also be given simply in terms of a _type_. In this case it is automatically extended to a vector of `n_classes` mixtures of the specified type.
     Note that mixing of different mixture types is not currently supported.
     [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
   mixtures::Union{Type,Vector{<: BetaML.GMM.AbstractMixture}}
@@ -70,20 +70,20 @@ mutable struct GaussianMixtureClusterer <: MMI.Unsupervised
   tol::Float64
   "Minimum variance for the mixtures [default: 0.05]"
   minimum_variance::Float64
-  "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minimum_variance (see notes)."
+  "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set to a value different from minimum_variance."
   minimum_covariance::Float64
   """
   The computation method of the vector of the initial mixtures.
   One of the following:
   - "grid": using a grid approach
   - "given": using the mixture provided in the fully qualified `mixtures` parameter
-  - "kmeans": use first kmeans (itself initialised with a "grid" strategy) to set the initial mixture centers [default]
+  - "kmeans": first use kmeans (itself initialised with a "grid" strategy) to set the initial mixture centers [default]
   Note that currently "random" and "shuffle" initialisations are not supported in gmm-based algorithms.
     """
   initialisation_strategy::String
   "Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]"
   maximum_iterations::Int64
-  "Random Number Generator [deafult: `Random.GLOBAL_RNG`]"
+  "Random Number Generator [default: `Random.GLOBAL_RNG`]"
   rng::AbstractRNG
 end
 function GaussianMixtureClusterer(;
@@ -154,9 +154,9 @@ mutable struct GaussianMixtureRegressor <: MMI.Deterministic
     n_classes::Int64 
     "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
     initial_probmixtures::Vector{Float64}
-    """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
-    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\"`
-    This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
+    """An array (of length `n_classes`) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
+    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"given\".
+    This parameter can also be given simply in terms of a _type_. In this case it is automatically extended to a vector of `n_classes` mixtures of the specified type.
     Note that mixing of different mixture types is not currently supported.
     [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
     mixtures::Union{Type,Vector{<: BetaML.GMM.AbstractMixture}}
@@ -164,20 +164,20 @@ mutable struct GaussianMixtureRegressor <: MMI.Deterministic
     tol::Float64
     "Minimum variance for the mixtures [default: 0.05]"
     minimum_variance::Float64
-    "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minimum_variance (see notes)."
+    "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set to a value different from minimum_variance."
     minimum_covariance::Float64
     """
     The computation method of the vector of the initial mixtures.
     One of the following:
     - "grid": using a grid approach
     - "given": using the mixture provided in the fully qualified `mixtures` parameter
-    - "kmeans": use first kmeans (itself initialised with a "grid" strategy) to set the initial mixture centers [default]
+    - "kmeans": first use kmeans (itself initialised with a "grid" strategy) to set the initial mixture centers [default]
     Note that currently "random" and "shuffle" initialisations are not supported in gmm-based algorithms.
     """
     initialisation_strategy::String
     "Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]"
     maximum_iterations::Int64
-    "Random Number Generator [deafult: `Random.GLOBAL_RNG`]"
+    "Random Number Generator [default: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
 function GaussianMixtureRegressor(;
@@ -192,7 +192,7 @@ function GaussianMixtureRegressor(;
     rng           = Random.GLOBAL_RNG
    )
    if typeof(mixtures) <: UnionAll
-     mixtures = [BetaML.GMM.mixtures() for i in 1:n_classes]
+     mixtures = [mixtures() for i in 1:n_classes]
    end
    return GaussianMixtureRegressor(n_classes,initial_probmixtures,mixtures,tol,minimum_variance,minimum_covariance,initialisation_strategy,maximum_iterations,rng)
 end
@@ -250,9 +250,9 @@ mutable struct MultitargetGaussianMixtureRegressor <: MMI.Deterministic
     n_classes::Int64 
     "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
     initial_probmixtures::Vector{Float64}
-    """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
-    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\"`
-    This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
+    """An array (of length `n_classes`) of the mixtures to employ (see the [`?GMM`](@ref GMM) module).
+    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"given\".
+    This parameter can also be given simply in terms of a _type_. In this case it is automatically extended to a vector of `n_classes` mixtures of the specified type.
     Note that mixing of different mixture types is not currently supported.
     [def: `[DiagonalGaussian() for i in 1:n_classes]`]"""
     mixtures::Union{Type,Vector{<: BetaML.GMM.AbstractMixture}}
@@ -260,20 +260,20 @@ mutable struct MultitargetGaussianMixtureRegressor <: MMI.Deterministic
     tol::Float64
     "Minimum variance for the mixtures [default: 0.05]"
     minimum_variance::Float64
-    "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minimum_variance (see notes)."
+    "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set to a value different from minimum_variance."
     minimum_covariance::Float64
     """
     The computation method of the vector of the initial mixtures.
     One of the following:
     - "grid": using a grid approach
     - "given": using the mixture provided in the fully qualified `mixtures` parameter
-    - "kmeans": use first kmeans (itself initialised with a "grid" strategy) to set the initial mixture centers [default]
+    - "kmeans": first use kmeans (itself initialised with a "grid" strategy) to set the initial mixture centers [default]
     Note that currently "random" and "shuffle" initialisations are not supported in gmm-based algorithms.
     """
     initialisation_strategy::String
     "Maximum number of iterations [def: `typemax(Int64)`, i.e. ∞]"
     maximum_iterations::Int64
-    "Random Number Generator [deafult: `Random.GLOBAL_RNG`]"
+    "Random Number Generator [default: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
 function MultitargetGaussianMixtureRegressor(;
@@ -307,10 +307,10 @@ function MMI.fit(m::GaussianMixtureClusterer, verbosity, X)
     elseif m.mixtures == :spherical_gaussian
         mixtures = [SphericalGaussian() for i in 1:m.n_classes]
     else
-        error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
+        error("Unsupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
     =#
-    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     mixtures = m.mixtures
     res        = BetaML.GMM.gmm(x,m.n_classes,initial_probmixtures=deepcopy(m.initial_probmixtures),mixtures=mixtures, minimum_variance=m.minimum_variance, minimum_covariance=m.minimum_covariance,initialisation_strategy=m.initialisation_strategy,verbosity=verbosity,maximum_iterations=m.maximum_iterations,rng=m.rng)
@@ -323,7 +323,7 @@ MMI.fitted_params(model::GaussianMixtureClusterer, fitresults) = (weights=fitres
 
 function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
     x  = MMI.matrix(X) # convert table to matrix
-    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     ndims(y) < 2 || error("Trying to fit `GaussianMixtureRegressor` with a multidimensional target. Use `MultitargetGaussianMixtureRegressor` instead.")
     #=
@@ -338,7 +338,7 @@ function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
     elseif m.mixtures == :spherical_gaussian
         mixtures = [SphericalGaussian() for i in 1:m.n_classes]
     else
-        error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
+        error("Unsupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
     =#
     mixtures = m.mixtures
@@ -348,6 +348,7 @@ function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
         mixtures     = mixtures,
         tol          = m.tol,
         minimum_variance  = m.minimum_variance,
+        minimum_covariance = m.minimum_covariance,
         initialisation_strategy = m.initialisation_strategy,
         maximum_iterations      = m.maximum_iterations,
         verbosity    = verbosity,
@@ -359,7 +360,7 @@ function MMI.fit(m::GaussianMixtureRegressor, verbosity, X, y)
 end
 function MMI.fit(m::MultitargetGaussianMixtureRegressor, verbosity, X, y)
     x  = MMI.matrix(X) # convert table to matrix
-    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     ndims(y) >= 2 || @warn "Trying to fit `MultitargetGaussianMixtureRegressor` with a single-dimensional target. You may want to consider `GaussianMixtureRegressor` instead."
     #=
@@ -374,7 +375,7 @@ function MMI.fit(m::MultitargetGaussianMixtureRegressor, verbosity, X, y)
     elseif m.mixtures == :spherical_gaussian
         mixtures = [SphericalGaussian() for i in 1:m.n_classes]
     else
-        error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
+        error("Unsupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
     =#
     mixtures = m.mixtures
@@ -384,6 +385,7 @@ function MMI.fit(m::MultitargetGaussianMixtureRegressor, verbosity, X, y)
         mixtures     = mixtures,
         tol          = m.tol,
         minimum_variance  = m.minimum_variance,
+        minimum_covariance = m.minimum_covariance,
         initialisation_strategy = m.initialisation_strategy,
         maximum_iterations      = m.maximum_iterations,
         verbosity    = verbosity,
@@ -403,7 +405,7 @@ function MMI.predict(m::GaussianMixtureClusterer, fitResults, X)
     (N,D)           = size(x)
     (pₖ,mixtures)   = (fitResults.pₖ, fitResults.mixtures)
     nCl             = length(pₖ)
-    # Compute the probabilities that maximise the likelihood given existing mistures and a single iteration (i.e. doesn't update the mixtures)
+    # Compute the probabilities that maximise the likelihood given existing mixtures and a single iteration (i.e. doesn't update the mixtures)
     thisOut         = BetaML.GMM.gmm(x,nCl,initial_probmixtures=pₖ,mixtures=mixtures,tol=m.tol,verbosity=NONE,minimum_variance=m.minimum_variance,minimum_covariance=m.minimum_covariance,initialisation_strategy="given",maximum_iterations=1,rng=m.rng)
     classes         = CategoricalArray(1:nCl)
     predictions     = MMI.UnivariateFinite(classes, thisOut.pₙₖ)

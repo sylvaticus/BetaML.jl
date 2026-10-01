@@ -6,14 +6,14 @@
 """
     Forest{Ty}
 
-TLow level type representing a Random Forest.
+Low level type representing a Random Forest.
 
 Individual trees are stored in the array `trees`. The "type" of the forest is given by the type of the labels on which it has been trained.
 
 # Struct members:
 - `trees`:        The individual Decision Trees
 - `is_regression`: Whether the forest is to be used for regression jobs or classification
-- `oobData`:      For each tree, the rows number if the data that have _not_ being used to train the specific tree
+- `oobData`:      For each tree, the row numbers of the data that have _not_ been used to train the specific tree
 - `ooberror`:     The out of bag error (if it has been computed)
 - `weights`:      A weight for each tree depending on the tree's score on the oobData (see [`buildForest`](@ref))
 """
@@ -43,34 +43,34 @@ Base.@kwdef mutable struct RandomForestE_hp <: BetaMLHyperParametersSet
     max_depth::Union{Nothing,Int64}              = nothing
     "The minimum information gain to allow for a node's partition [def: `0`]"
     min_gain::Float64                            = 0.0
-    "The minimum number of records a node must holds to consider for a partition of it [def: `2`]"
+    "The minimum number of records a node must hold to be considered for a partition [def: `2`]"
     min_records::Int64                           = 2
-    "The maximum number of (random) features to consider when choosing the optimal partition of the dataset [def: `nothing`, i.e. square root of the dimensions of the training data`]"
+    "The maximum number of (random) features to consider when choosing the optimal partition of the dataset [def: `nothing`, i.e. square root of the dimensions of the training data]"
     max_features::Union{Nothing,Int64}           = nothing
     "Share of samples to bootstrap for each individual tree [def: `1.0`]"
     sampling_share::Float64                      = 1.0
     "Whether to force a classification task even if the labels are numerical (typically when labels are integers encoding some feature rather than representing a real cardinal measure) [def: `false`]"
     force_classification::Bool                   = false
-    "Either `gini`, `entropy` or `variance`. This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `nothing`, i.e. `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]. It can be an anonymous function."
+    "Either `gini`, `entropy` or `variance`. This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference between the \"impurity\" of the labels of the parent node and those of the two child nodes, weighted by the respective number of items. [def: `nothing`, i.e. `gini` for categorical labels (classification task) and `variance` for numerical labels (regression task)]. It can be an anonymous function."
     splitting_criterion::Union{Nothing,Function} = nothing
-    "Use an experimental faster algoritm for looking up the best split in ordered fields (colums). Currently it brings down the fitting time of an order of magnitude, but predictions are sensibly affected. If used, control the meaning of integer fields with `integer_encoded_cols`."
+    "Use an experimental faster algorithm for looking up the best split in ordered fields (columns). Currently it brings down the fitting time by an order of magnitude, but predictions are noticeably affected. If used, control the meaning of integer fields with `integer_encoded_cols`."
     fast_algorithm::Bool                         = false
-    "A vector of columns positions to specify which integer columns should be treated as encoding of categorical variables insteads of ordered classes/values. [def: `nothing`, integer columns with less than 20 unique values are considered categorical]. Useful in conjunction with `fast_algorithm`, little difference otherwise."
+    "A vector of column positions to specify which integer columns should be treated as encoding of categorical variables instead of ordered classes/values. [def: `nothing`, integer columns with less than 20 unique values are considered categorical]. Useful in conjunction with `fast_algorithm`, little difference otherwise."
     integer_encoded_cols::Union{Nothing,Array{Int64,1}} =nothing
-    "Parameter that regulate the weights of the scoring of each tree, to be (optionally) used in prediction based on the error of the individual trees computed on the records on which trees have not been trained. Higher values favour \"better\" trees, but too high values will cause overfitting [def: `0`, i.e. uniform weigths]"
+    "Parameter that regulates the weights of the scoring of each tree, to be (optionally) used in prediction based on the error of the individual trees computed on the records on which trees have not been trained. Higher values favour \"better\" trees, but too high values will cause overfitting [def: `0`, i.e. uniform weights]"
     beta::Float64                               = 0.0
-    "Wheter to compute the _Out-Of-Bag_ error, an estimation of the validation error (the mismatching error for classification and the relative mean error for regression jobs)."
+    "Whether to compute the _Out-Of-Bag_ error, an estimation of the validation error (the mismatching error for classification and the relative mean error for regression jobs)."
     oob::Bool                                   = false
     """
     The method - and its parameters - to employ for hyperparameters autotuning.
     See [`SuccessiveHalvingSearch`](@ref) for the default method.
-    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
+    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and optionally change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
     tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("n_trees" => [10, 20, 30, 40], "max_depth" =>[5,10,nothing], "min_gain"=>[0.0, 0.1, 0.5], "min_records"=>[2,3,5],"max_features"=>[nothing,5,10,30],"beta"=>[0,0.01,0.1]),multithreads=false) # RF are already MT
 end
 
 Base.@kwdef mutable struct RF_lp <: BetaMLLearnableParametersSet
-    forest::Union{Nothing,Forest} = nothing #TODO: Forest contain info that is actualy in report. Currently we duplicate, we should just remove them from par by making a dedicated struct instead of Forest
+    forest::Union{Nothing,Forest} = nothing #TODO: Forest contains info that is actually in report. Currently we duplicate, we should just remove them from par by making a dedicated struct instead of Forest
     Ty::DataType = Any
 end
 
@@ -80,15 +80,15 @@ $(TYPEDEF)
 
 A Random Forest classifier and regressor (supervised).
 
-Random forests are _ensemble_ of Decision Trees models (see [`?DecisionTreeEstimator`](@ref DecisionTreeEstimator)).
+Random forests are _ensembles_ of Decision Tree models (see [`?DecisionTreeEstimator`](@ref DecisionTreeEstimator)).
 
 For the parameters see [`?RandomForestE_hp`](@ref RandomForestE_hp) and [`?BML_options`](@ref BML_options).
 
 # Notes :
-- Each individual decision tree is built using bootstrap over the data, i.e. "sampling N records with replacement" (hence, some records appear multiple times and some records do not appear in the specific tree training). The `maxx_feature` injects further variability and reduces the correlation between the forest trees.
-- The predictions of the "forest" (using the function `predict()`) are then the aggregated predictions of the individual trees (from which the name "bagging": **b**oostrap **agg**regat**ing**).
-- The performances of each individual trees,  as measured using the records they have not being trained with, can then be (optionally) used as weights in the `predict` function. The parameter `beta ≥ 0` regulate the distribution of these weights: larger is `β`, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of `beta` depends on the problem under exam (and the chosen caratteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
-- Note that training `RandomForestEstimator` uses multiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
+- Each individual decision tree is built using bootstrap over the data, i.e. "sampling N records with replacement" (hence, some records appear multiple times and some records do not appear in the specific tree training). The `max_features` injects further variability and reduces the correlation between the forest trees.
+- The predictions of the "forest" (using the function `predict()`) are then the aggregated predictions of the individual trees (from which the name "bagging": **b**ootstrap **agg**regat**ing**).
+- The performances of each individual tree,  as measured using the records it has not been trained with, can then be (optionally) used as weights in the `predict` function. The parameter `beta ≥ 0` regulates the distribution of these weights: the larger `β` is, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of `beta` depends on the problem under examination (and the chosen characteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
+- Note that training `RandomForestEstimator` uses multiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environment variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
 - Online fitting (re-fitting with new data) is not supported
 - Missing data (in the feature dataset) is supported.
 
@@ -178,28 +178,28 @@ end
 """
    buildForest(x, y, n_trees; max_depth, min_gain, min_records, max_features, splitting_criterion, force_classification)
 
-Builds (define and train) a "forest" of Decision Trees.
+Build (define and train) a "forest" of Decision Trees.
 
 !!! warning
     Direct usage of this low-level function is deprecated and it has been unexported in BetaML 0.9.
     Use [`RandomForestEstimator`](@ref) instead. 
 
 # Parameters:
-See [`buildTree`](@ref). The function has all the parameters of `bildTree` (with the `max_features` defaulting to `√D` instead of `D`) plus the following parameters:
+See [`buildTree`](@ref). The function has all the parameters of `buildTree` (with the `max_features` defaulting to `√D` instead of `D`) plus the following parameters:
 - `n_trees`: Number of trees in the forest [def: `30`]
-- `β`: Parameter that regulate the weights of the scoring of each tree, to be (optionally) used in prediction (see later) [def: `0`, i.e. uniform weigths]
-- `oob`: Whether to coompute the out-of-bag error, an estimation of the generalization accuracy [def: `false`]
-- `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+- `β`: Parameter that regulates the weights of the scoring of each tree, to be (optionally) used in prediction (see later) [def: `0`, i.e. uniform weights]
+- `oob`: Whether to compute the out-of-bag error, an estimation of the generalization accuracy [def: `false`]
+- `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
 # Output:
 - The function returns a Forest object.
-- The forest weights default to array of ones if `β ≤ 0` and the oob error to `+Inf` if `oob` == `false`.
+- The forest weights default to an array of ones if `β ≤ 0` and the oob error to `+Inf` if `oob` == `false`.
 
 # Notes :
-- Each individual decision tree is built using bootstrap over the data, i.e. "sampling N records with replacement" (hence, some records appear multiple times and some records do not appear in the specific tree training). The `maxFeature` injects further variability and reduces the correlation between the forest trees.
-- The predictions of the "forest" (using the function `predict()`) are then the aggregated predictions of the individual trees (from which the name "bagging": **b**oostrap **agg**regat**ing**).
-- This function optionally reports a weight distribution of the performances of eanch individual trees, as measured using the records he has not being trained with. These weights can then be (optionally) used in the `predict` function. The parameter `β ≥ 0` regulate the distribution of these weights: larger is `β`, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of β depends on the problem under exam (and the chosen caratteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
-- Note that this function uses multiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environmental variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
+- Each individual decision tree is built using bootstrap over the data, i.e. "sampling N records with replacement" (hence, some records appear multiple times and some records do not appear in the specific tree training). The `max_features` injects further variability and reduces the correlation between the forest trees.
+- The predictions of the "forest" (using the function `predict()`) are then the aggregated predictions of the individual trees (from which the name "bagging": **b**ootstrap **agg**regat**ing**).
+- This function optionally reports a weight distribution of the performances of each individual tree, as measured using the records it has not been trained with. These weights can then be (optionally) used in the `predict` function. The parameter `β ≥ 0` regulates the distribution of these weights: the larger `β` is, the greater the importance (hence the weights) attached to the best-performing trees compared to the low-performing ones. Using these weights can significantly improve the forest performances (especially using small forests), however the correct value of β depends on the problem under examination (and the chosen characteristics of the random forest estimator) and should be cross-validated to avoid over-fitting.
+- Note that this function uses multiple threads if these are available. You can check the number of threads available with `Threads.nthreads()`. To set the number of threads in Julia either set the environment variable `JULIA_NUM_THREADS` (before starting Julia) or start Julia with the command line option `--threads` (most integrated development editors for Julia already set the number of threads to 4).
 """
 function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1), min_gain=0.0, min_records=2, max_features=Int(round(sqrt(size(x,2)))), sampling_share=1.0, force_classification=false, splitting_criterion = (Ty <: Number && !force_classification) ? variance : gini, integer_encoded_cols=nothing, fast_algorithm=false, β=0, oob=false,rng = Random.GLOBAL_RNG, verbosity=NONE) where {Ty}
     # Force what would be a regression task into a classification task
@@ -211,13 +211,13 @@ function buildForest(x, y::AbstractArray{Ty,1}, n_trees=30; max_depth = size(x,1
 
     errors = Float64[]
 
-    job_is_regression = (force_classification || !(eltype(y) <: Number )) ? false : true # we don't need the tertiary operator here, but it is more clear with it...
+    job_is_regression = (force_classification || !(eltype(y) <: Number )) ? false : true # we don't need the ternary operator here, but it is clearer with it...
     (N,D) = size(x)
 
     if isnothing(integer_encoded_cols)
         integer_encoded_cols = Int64[]
         for (d,c) in enumerate(eachcol(x))
-            if(all(isinteger_bml.(skipmissing(c)))) && length(unique(skipmissing(c))) < 20 # hardcoded: when using automatic identifier of integer encoded cols, if more than XX values, we consider that is not a categorical variable 
+            if(all(isinteger_bml.(skipmissing(c)))) && length(unique(skipmissing(c))) < 20 # hardcoded: when using automatic identifier of integer encoded cols, if more than XX values, we consider that it is not a categorical variable 
               push!(integer_encoded_cols,d)
             end
         end
@@ -270,7 +270,7 @@ function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
     end
 
     Tynm = nonmissingtype(Ty)
-    # Setting default parameters that depends from the data...
+    # Setting default parameters that depend on the data...
     max_depth    = m.hpar.max_depth    == nothing ?  size(x,1) : m.hpar.max_depth
     max_features = m.hpar.max_features == nothing ?  Int(round(sqrt(size(x,2)))) : m.hpar.max_features
     splitting_criterion = m.hpar.splitting_criterion == nothing ? ( (Tynm <: Number && !m.hpar.force_classification) ? variance : gini) : m.hpar.splitting_criterion
@@ -279,7 +279,7 @@ function fit!(m::RandomForestEstimator,x,y::AbstractArray{Ty,1}) where {Ty}
         y = convert.(BetaMLClass,y)
     end
 
-    # Setting schortcuts to other hyperparameters/options....
+    # Setting shortcuts to other hyperparameters/options....
     min_gain             = m.hpar.min_gain
     min_records          = m.hpar.min_records
     sampling_share       = m.hpar.sampling_share
@@ -327,7 +327,7 @@ end
 # ------------------------------------------------------------------------------
 # MODEL PREDICTIONS 
 
-# Optionally a weighted mean of tree's prediction is used if the parameter `weights` is given.
+# Optionally a weighted mean of the trees' predictions is used if the parameter `weights` is given.
 """
     predictSingle(forest,x)
 
@@ -356,8 +356,8 @@ Predict the labels of a feature dataset.
     Direct usage of this low-level function is deprecated and it has been unexported in BetaML 0.9.
     Use [`RandomForestEstimator`](@ref) and the associated `predict(m::Model,x)` function instead.
 
-For each record of the dataset and each tree of the "forest", recursivelly traverse the tree to find the prediction most opportune for the given record.
-If the labels the tree has been trained with are numeric, the prediction is also numeric (the mean of the different trees predictions, in turn the mean of the labels of the training records ended in that leaf node).
+For each record of the dataset and each tree of the "forest", recursively traverse the tree to find the most appropriate prediction for the given record.
+If the labels the tree has been trained with are numeric, the prediction is also numeric (the mean of the different trees' predictions, in turn the mean of the labels of the training records that ended in that leaf node).
 If the labels were categorical, the prediction is a dictionary with the probabilities of each item and in such case the probabilities of the different trees are averaged to compose the forest predictions. This is a bit different than most other implementations where the mode instead is reported.
 
 In the first case (numerical predictions) use `relative_mean_error(ŷ,y)` to assess the mean relative error, in the second case you can use `accuracy(ŷ,y)`.
@@ -371,7 +371,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the labels associated to some feature data using a trained [`RandomForestEstimator`](@ref)
+Predict the labels associated with some feature data using a trained [`RandomForestEstimator`](@ref)
 
 """
 function predict(m::RandomForestEstimator,x; ignore_dims=[])
@@ -402,7 +402,7 @@ end
 
 Update the weights of each tree (to use in the prediction of the forest) based on the error of the individual tree computed on the records on which it has not been trained.
 
-As training a forest is expensive, this function can be used to "just" upgrade the trees weights using different betas, without retraining the model.
+As training a forest is expensive, this function can be used to "just" update the trees' weights using different betas, without retraining the model.
 """
 function updateTreesWeights!(forest::Forest{Ty},x,y;β=50,rng = Random.GLOBAL_RNG) where {Ty}
     trees            = forest.trees
@@ -418,7 +418,7 @@ function updateTreesWeights!(forest::Forest{Ty},x,y;β=50,rng = Random.GLOBAL_RN
             else
                 push!(weights,accuracy(yoob,ŷ)*β)
             end
-        else  # there has been no data that has not being used for this tree, because by a (rare!) chance all the sampled data for this tree was on a different row
+        else  # there has been no data that has not been used for this tree, because by a (rare!) chance all the sampled data for this tree was on a different row
             push!(weights,forest.weights[i])
         end
     end
@@ -431,7 +431,7 @@ end
 
 Compute the Out-Of-Bag error, an estimation of the validation error.
 
-This function is called at time of train the forest if the parameter `oob` is `true`, or can be used later to get the oob error on an already trained forest.
+This function is called when training the forest if the parameter `oob` is `true`, or can be used later to get the oob error on an already trained forest.
 The oob error reported is the mismatching error for classification and the relative mean error for regression. 
 """
 function ooberror(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
@@ -447,7 +447,7 @@ function ooberror(forest::Forest{Ty},x,y;rng = Random.GLOBAL_RNG) where {Ty}
     else
         ŷ = Array{Dict{Ty,Float64},1}(undef,N)
     end
-    # Rarelly a given n has been visited by al lthe trees of the forest, so there is no trees available to compute the oob error
+    # Rarely a given n has been visited by all the trees of the forest, so there are no trees available to compute the oob error
     # This serves as a mask to remove this n from the computation of the oob error
     nMask = fill(true,N)
     for (n,x) in enumerate(eachrow(x))

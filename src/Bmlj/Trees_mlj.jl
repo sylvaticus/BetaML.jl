@@ -59,13 +59,13 @@ mutable struct DecisionTreeRegressor <: MMI.Deterministic
     max_depth::Int64
     "The minimum information gain to allow for a node's partition [def: `0`]"
     min_gain::Float64
-    "The minimum number of records a node must holds to consider for a partition of it [def: `2`]"
+    "The minimum number of records a node must hold to be considered for partitioning [def: `2`]"
     min_records::Int64
     "The maximum number of (random) features to consider at each partitioning [def: `0`, i.e. look at all features]"
     max_features::Int64
-    "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `variance`]. Either `variance` or a custom function. It can also be an anonymous function."
+    "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference between the \"impurity\" of the labels of the parent node and those of the two child nodes, weighted by the respective number of items. [def: `variance`]. Either `variance` or a custom function. It can also be an anonymous function."
     splitting_criterion::Function
-    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
+    "A Random Number Generator to be used in stochastic parts of the code [default: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
 DecisionTreeRegressor(;
@@ -124,13 +124,13 @@ mutable struct DecisionTreeClassifier <: MMI.Probabilistic
    max_depth::Int64
    "The minimum information gain to allow for a node's partition [def: `0`]"
    min_gain::Float64
-   "The minimum number of records a node must holds to consider for a partition of it [def: `2`]"
+   "The minimum number of records a node must hold to be considered for partitioning [def: `2`]"
    min_records::Int64
    "The maximum number of (random) features to consider at each partitioning [def: `0`, i.e. look at all features]"
    max_features::Int64
-   "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `gini`]. Either `gini`, `entropy` or a custom function. It can also be an anonymous function."
+   "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference between the \"impurity\" of the labels of the parent node and those of the two child nodes, weighted by the respective number of items. [def: `gini`]. Either `gini`, `entropy` or a custom function. It can also be an anonymous function."
    splitting_criterion::Function
-   "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
+   "A Random Number Generator to be used in stochastic parts of the code [default: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG
 end
 DecisionTreeClassifier(;
@@ -196,15 +196,15 @@ mutable struct RandomForestRegressor <: MMI.Deterministic
    max_depth::Int64
    "The minimum information gain to allow for a node's partition [def: `0`]"
    min_gain::Float64
-   "The minimum number of records a node must holds to consider for a partition of it [def: `2`]"
+   "The minimum number of records a node must hold to be considered for partitioning [def: `2`]"
    min_records::Int64
    "The maximum number of (random) features to consider at each partitioning [def: `0`, i.e. square root of the data dimension]"
    max_features::Int64
-   "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `variance`]. Either `variance` or a custom function. It can also be an anonymous function."
+   "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference between the \"impurity\" of the labels of the parent node and those of the two child nodes, weighted by the respective number of items. [def: `variance`]. Either `variance` or a custom function. It can also be an anonymous function."
    splitting_criterion::Function
-   "Parameter that regulate the weights of the scoring of each tree, to be (optionally) used in prediction based on the error of the individual trees computed on the records on which trees have not been trained. Higher values favour \"better\" trees, but too high values will cause overfitting [def: `0`, i.e. uniform weigths]"
+   "Parameter that regulates the weights of the scoring of each tree, to be (optionally) used in prediction based on the error of the individual trees computed on the records on which trees have not been trained. Higher values favour \"better\" trees, but too high values will cause overfitting [def: `0`, i.e. uniform weights]"
    β::Float64
-   "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
+   "A Random Number Generator to be used in stochastic parts of the code [default: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG
 end
 RandomForestRegressor(;
@@ -226,7 +226,7 @@ A simple Random Forest model for classification with support for Missing data, f
 # Hyperparameters:
 $(TYPEDFIELDS)
 
-# Example :
+# Example:
 ```julia
 julia> using MLJ
 
@@ -261,20 +261,21 @@ julia> cat_est    = predict(mach, X)
 ```
 """
 mutable struct RandomForestClassifier <: MMI.Probabilistic
+    "Number of (decision) trees in the forest [def: `30`]"
     n_trees::Int64
     "The maximum depth the tree is allowed to reach. When this is reached the node is forced to become a leaf [def: `0`, i.e. no limits]"
     max_depth::Int64
     "The minimum information gain to allow for a node's partition [def: `0`]"
     min_gain::Float64
-    "The minimum number of records a node must holds to consider for a partition of it [def: `2`]"
+    "The minimum number of records a node must hold to be considered for partitioning [def: `2`]"
     min_records::Int64
     "The maximum number of (random) features to consider at each partitioning [def: `0`, i.e. square root of the data dimensions]"
     max_features::Int64
-    "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `gini`]. Either `gini`, `entropy` or a custom function. It can also be an anonymous function."
+    "This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference between the \"impurity\" of the labels of the parent node and those of the two child nodes, weighted by the respective number of items. [def: `gini`]. Either `gini`, `entropy` or a custom function. It can also be an anonymous function."
     splitting_criterion::Function
-    "Parameter that regulate the weights of the scoring of each tree, to be (optionally) used in prediction based on the error of the individual trees computed on the records on which trees have not been trained. Higher values favour \"better\" trees, but too high values will cause overfitting [def: `0`, i.e. uniform weigths]"
+    "Parameter that regulates the weights of the scoring of each tree, to be (optionally) used in prediction based on the error of the individual trees computed on the records on which trees have not been trained. Higher values favour \"better\" trees, but too high values will cause overfitting [def: `0`, i.e. uniform weights]"
     β::Float64
-    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
+    "A Random Number Generator to be used in stochastic parts of the code [default: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
 RandomForestClassifier(;
@@ -310,7 +311,7 @@ MMI.hyperparameter_ranges(::Type{<:DecisionTreeRegressor}) = (
 
 function MMI.fit(model::Union{DecisionTreeRegressor,RandomForestRegressor}, verbosity, X, y)
    x = MMI.matrix(X)                     # convert table to matrix
-   typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+   typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
    verbosity = mljverbosity_to_betaml_verbosity(verbosity)
    max_depth         = model.max_depth == 0 ? size(x,1) : model.max_depth
    # Using low level API here. We could switch to APIV2...
@@ -331,7 +332,7 @@ function MMI.fit(model::Union{DecisionTreeClassifier,RandomForestClassifier}, ve
    a_target_element = y[1]                                 # a CategoricalValue or CategoricalString
    #y_plain          = MMI.int(y) .- 1                     # integer relabeling should start at 0
    yarray           = convert(Vector{eltype(levels(y))},y) # convert to a simple Array{T}
-   typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+   typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
    verbosity = mljverbosity_to_betaml_verbosity(verbosity)
    max_depth         = model.max_depth == 0 ? size(x,1) : model.max_depth
    # Using low level API here. We could switch to APIV2...

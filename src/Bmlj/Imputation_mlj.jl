@@ -1,6 +1,6 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
-# MLJ interface for imputers models
+# MLJ interface for imputer models
 
 export SimpleImputer,GaussianMixtureImputer, RandomForestImputer, GeneralImputer
 
@@ -47,7 +47,7 @@ julia> X_full       = transform(mach) |> MLJ.matrix
 mutable struct SimpleImputer <: MMI.Unsupervised
     "The descriptive statistic of the column (feature) to use as imputed value [def: `mean`]"
     statistic::Function
-    "Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries)."
+    "Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneous (e.g. quantity exports of different countries)."
     norm::Union{Nothing,Int64}
 end
 SimpleImputer(;
@@ -63,7 +63,7 @@ Impute missing values using a probabilistic approach (Gaussian Mixture Models) f
 # Hyperparameters:
 $(TYPEDFIELDS)
 
-# Example :
+# Example:
 ```julia
 julia> using MLJ
 
@@ -107,9 +107,9 @@ mutable struct GaussianMixtureImputer <: MMI.Unsupervised
     n_classes::Int64
     "Initial probabilities of the categorical distribution (n_classes x 1) [default: `[]`]"
     initial_probmixtures::Vector{Float64}
-    """An array (of length `n_classes``) of the mixtures to employ (see the [`?GMM`](@ref GMM) module in BetaML).
-    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"gived\"`
-    This parameter can also be given symply in term of a _type_. In this case it is automatically extended to a vector of `n_classes`` mixtures of the specified type.
+    """An array (of length `n_classes`) of the mixtures to employ (see the [`?GMM`](@ref GMM) module in BetaML).
+    Each mixture object can be provided with or without its parameters (e.g. mean and variance for the gaussian ones). Fully qualified mixtures are useful only if the `initialisation_strategy` parameter is  set to \"given\".
+    This parameter can also be given simply in terms of a _type_. In this case it is automatically extended to a vector of `n_classes` mixtures of the specified type.
     Note that mixing of different mixture types is not currently supported and that currently implemented mixtures are `SphericalGaussian`, `DiagonalGaussian` and `FullGaussian`.
     [def: `DiagonalGaussian`]"""
     mixtures::Union{Type,Vector{<: BetaML.GMM.AbstractMixture}}
@@ -117,18 +117,18 @@ mutable struct GaussianMixtureImputer <: MMI.Unsupervised
     tol::Float64
     "Minimum variance for the mixtures [default: 0.05]"
     minimum_variance::Float64
-    "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set different than minimum_variance."
+    "Minimum covariance for the mixtures with full covariance matrix [default: 0]. This should be set to a value different from minimum_variance."
     minimum_covariance::Float64
     """
     The computation method of the vector of the initial mixtures.
     One of the following:
     - "grid": using a grid approach
     - "given": using the mixture provided in the fully qualified `mixtures` parameter
-    - "kmeans": use first kmeans (itself initialised with a "grid" strategy) to set the initial mixture centers [default]
+    - "kmeans": first use kmeans (itself initialised with a "grid" strategy) to set the initial mixture centers [default]
     Note that currently "random" and "shuffle" initialisations are not supported in gmm-based algorithms.
     """
     initialisation_strategy::String
-    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
+    "A Random Number Generator to be used in stochastic parts of the code [default: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
 function GaussianMixtureImputer(;
@@ -201,17 +201,17 @@ mutable struct RandomForestImputer <: MMI.Unsupervised
     max_depth::Union{Nothing,Int64}
     "The minimum information gain to allow for a node's partition [def: `0`]"
     min_gain::Float64
-    "The minimum number of records a node must holds to consider for a partition of it [def: `2`]"
+    "The minimum number of records a node must hold to be considered for partitioning [def: `2`]"
     min_records::Int64
     "The maximum number of (random) features to consider at each partitioning [def: `nothing`, i.e. square root of the data dimension]"
     max_features::Union{Nothing,Int64}
     "Specify the positions of the integer columns to treat as categorical instead of cardinal. [Default: empty vector (all numerical cols are treated as cardinal by default and the others as categorical)]"
     forced_categorical_cols::Vector{Int64}
-    "Either `gini`, `entropy` or `variance`. This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference betwwen the \"impurity\" of the labels of the parent node with those of the two child nodes, weighted by the respective number of items. [def: `nothing`, i.e. `gini` for categorical labels (classification task) and `variance` for numerical labels(regression task)]. It can be an anonymous function."
+    "Either `gini`, `entropy` or `variance`. This is the name of the function to be used to compute the information gain of a specific partition. This is done by measuring the difference between the \"impurity\" of the labels of the parent node and those of the two child nodes, weighted by the respective number of items. [def: `nothing`, i.e. `gini` for categorical labels (classification task) and `variance` for numerical labels (regression task)]. It can be an anonymous function."
     splitting_criterion::Union{Nothing,Function}
-    "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
+    "Define the number of times to go through the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
     recursive_passages::Int64                  
-    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]"
+    "A Random Number Generator to be used in stochastic parts of the code [default: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG
 end
 RandomForestImputer(;
@@ -232,13 +232,13 @@ $(TYPEDEF)
 
 Impute missing values using arbitrary learning models, from the Beta Machine Learning Toolkit (BetaML).
 
-Impute missing values using a vector (one per column) of arbitrary learning models (classifiers/regressors, not necessarily from BetaML) that implement the interface `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)`.
+Impute missing values using a vector (one per column) of arbitrary learning models (classifiers/regressors, not necessarily from BetaML) that implement the interface `m = Model([options])`, `fit!(m,X,Y)` and `predict(m,X)`.
 
 
 # Hyperparameters:
 $(TYPEDFIELDS)
 
-# Examples :
+# Examples:
 
 - *Using BetaML models*:
 
@@ -311,19 +311,19 @@ julia> X_full       = transform(mach) |> MLJ.matrix
 ```
 """
 mutable struct GeneralImputer <: MMI.Unsupervised
-    "Columns in the matrix for which to create an imputation model, i.e. to impute. It can be a vector of columns IDs (positions), or the keywords \"auto\" (default) or \"all\". With \"auto\" the model automatically detects the columns with missing data and impute only them. You may manually specify the columns or use \"all\" if you want to create a imputation model for that columns during training even if all training data are non-missing to apply then the training model to further data with possibly missing values."
+    "Columns in the matrix for which to create an imputation model, i.e. to impute. It can be a vector of column IDs (positions), or the keywords \"auto\" (default) or \"all\". With \"auto\" the model automatically detects the columns with missing data and imputes only them. You may manually specify the columns or use \"all\" if you want to create an imputation model for those columns during training even if all training data are non-missing, and then apply the trained model to further data with possibly missing values."
     cols_to_impute::Union{String,Vector{Int64}}
-    "An entimator model (regressor or classifier), with eventually its options (hyper-parameters), to be used to impute the various columns of the matrix. It can also be a `cols_to_impute`-length vector of different estimators to consider a different estimator for each column (dimension) to impute, for example when some columns are categorical (and will hence require a classifier) and some others are numerical (hence requiring a regressor). [default: `nothing`, i.e. use BetaML random forests, handling classification and regression jobs automatically]."
+    "An estimator model (regressor or classifier), optionally with its options (hyper-parameters), to be used to impute the various columns of the matrix. It can also be a `cols_to_impute`-length vector of different estimators to consider a different estimator for each column (dimension) to impute, for example when some columns are categorical (and will hence require a classifier) and some others are numerical (hence requiring a regressor). [default: `nothing`, i.e. use BetaML random forests, handling classification and regression jobs automatically]."
     estimator
-    "Wheter the estimator(s) used to predict the missing data support itself missing data in the training features (X). If not, when the model for a certain dimension is fitted, dimensions with missing data in the same rows of those where imputation is needed are dropped and then only non-missing rows in the other remaining dimensions are considered. It can be a vector of boolean values to specify this property for each individual estimator or a single booleann value to apply to all the estimators [default: `false`]"
+    "Whether the estimator(s) used to predict the missing data themselves support missing data in the training features (X). If not, when the model for a certain dimension is fitted, dimensions with missing data in the same rows as those where imputation is needed are dropped and then only non-missing rows in the other remaining dimensions are considered. It can be a vector of boolean values to specify this property for each individual estimator or a single boolean value to apply to all the estimators [default: `false`]"
     missing_supported::Union{Vector{Bool},Bool}
-    "The function used by the estimator(s) to fit the model. It should take as fist argument the model itself, as second argument a matrix representing the features, and as third argument a vector representing the labels. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.fit!`]"
+    "The function used by the estimator(s) to fit the model. It should take as first argument the model itself, as second argument a matrix representing the features, and as third argument a vector representing the labels. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case different estimator packages are used. [default: `BetaML.fit!`]"
     fit_function::Union{Vector{Function},Function}
-    "The function used by the estimator(s) to predict the labels. It should take as fist argument the model itself and as second argument a matrix representing the features. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.predict`]"
+    "The function used by the estimator(s) to predict the labels. It should take as first argument the model itself and as second argument a matrix representing the features. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case different estimator packages are used. [default: `BetaML.predict`]"
     predict_function::Union{Vector{Function},Function}
-    "Define the number of times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
+    "Define the number of times to go through the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
     recursive_passages::Int64
-    "A Random Number Generator to be used in stochastic parts of the code [deafult: `Random.GLOBAL_RNG`]. Note that this influence only the specific GeneralImputer code, the individual estimators may have their own rng (or similar) parameter."
+    "A Random Number Generator to be used in stochastic parts of the code [default: `Random.GLOBAL_RNG`]. Note that this influences only the specific GeneralImputer code, the individual estimators may have their own rng (or similar) parameter."
     rng::AbstractRNG      
 end
 GeneralImputer(;
@@ -342,7 +342,7 @@ GeneralImputer(;
 
 function MMI.fit(m::SimpleImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
-    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     mod = BetaML.Imputation.SimpleImputer(
         statistic = m.statistic,
@@ -359,7 +359,7 @@ end
 
 function MMI.fit(m::GaussianMixtureImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
-    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     #=if m.mixtures == :diag_gaussian
         mixtures = [DiagonalGaussian() for i in 1:m.n_classes]
@@ -368,7 +368,7 @@ function MMI.fit(m::GaussianMixtureImputer, verbosity, X)
     elseif m.mixtures == :spherical_gaussian
         mixtures = [SphericalGaussian() for i in 1:m.n_classes]
     else
-        error("Usupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
+        error("Unsupported mixture. Supported mixtures are either `:diag_gaussian`, `:full_gaussian` or `:spherical_gaussian`.")
     end
     =#
 
@@ -394,7 +394,7 @@ end
 
 function MMI.fit(m::RandomForestImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
-    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     mod = BetaML.Imputation.RandomForestImputer(
         n_trees                 = m.n_trees, 
@@ -423,7 +423,7 @@ end
 
 function MMI.fit(m::GeneralImputer, verbosity, X)
     x          = MMI.matrix(X) # convert table to matrix
-    typeof(verbosity) <: Integer || error("Verbosity must be a integer. Current \"steps\" are 0, 1, 2 and 3.")  
+    typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     mod =  BetaML.Imputation.GeneralImputer(
         cols_to_impute     = m.cols_to_impute,
@@ -450,7 +450,7 @@ end
 # ------------------------------------------------------------------------------
 # Transform functions...
 
-""" transform(m, fitResults, X) - Given a trained imputator model fill the missing data of some new observations"""
+""" transform(m, fitResults, X) - Given a trained imputer model, fill the missing data of some new observations"""
 function MMI.transform(m::Union{SimpleImputer,GaussianMixtureImputer,RandomForestImputer}, fitResults, X)
     x   = MMI.matrix(X) # convert table to matrix
     mod = fitResults
@@ -461,8 +461,8 @@ end
 """
     transform(m, fitResults, X)
 
-Given a trained imputator model fill the missing data of some new observations.
-Note that with multiple recursive imputations and inner estimators that don't support missing data, this function works only for X for which th model has been trained with, i.e. this function can not be applied to new matrices with empty values using model trained on other matrices.
+Given a trained imputer model, fill the missing data of some new observations.
+Note that with multiple recursive imputations and inner estimators that don't support missing data, this function works only for the X on which the model has been trained, i.e. this function cannot be applied to new matrices with empty values using a model trained on other matrices.
 """
 function MMI.transform(m::GeneralImputer, fitResults, X)
     cols2imp = fitResults.par.cols_to_impute_actual

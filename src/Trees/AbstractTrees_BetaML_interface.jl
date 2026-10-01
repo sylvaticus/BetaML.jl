@@ -15,7 +15,7 @@ export InfoNode, InfoLeaf, wrapdn, DecisionNode, Leaf
 
 """
 These types are introduced so that additional information currently not present in 
-a `DecisionTree`-structure -- namely the feature names  -- 
+a `DecisionTree` structure -- namely the feature names -- 
 can be used for visualization.
 """
 struct InfoNode{T} <: AbstractTrees.AbstractNode{DecisionNode{T}}
@@ -33,7 +33,7 @@ AbstractTrees.nodevalue(l::InfoLeaf) = l.leaf # round(l.leaf,sigdigits=4)
 """
     wrapdn(node:: DecisionNode, ...)
 
-Called on the root node of a `DecsionTree` `dc` in order to add visualization information.
+Called on the root node of a `DecisionTree` `dc` in order to add visualization information.
 In case of a `BetaML/DecisionTree` this is typically a list of feature names as follows:
 
 `wdc = wrapdn(dc, featurenames = ["Colour","Size"])`

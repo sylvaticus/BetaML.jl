@@ -6,35 +6,35 @@ Welcome to the documentation of the [_Beta Machine Learning toolkit_](https://gi
 
 The `BetaML` toolkit provides machine learning algorithms written in the Julia programming language.
 
-Aside the algorithms themselves, `BetaML` provides many "utility" functions. Because algorithms are all self-contained in the library itself (you are invited to explore their source code by typing `@edit functionOfInterest(par1,par2,...)`), the utility functions have APIs that are coordinated with the algorithms, facilitating the "preparation" of the data for the analysis, the choice of the hyper-parameters or the evaluation of the models.
+Aside from the algorithms themselves, `BetaML` provides many "utility" functions. Because algorithms are all self-contained in the library itself (you are invited to explore their source code by typing `@edit functionOfInterest(par1,par2,...)`), the utility functions have APIs that are coordinated with the algorithms, facilitating the "preparation" of the data for the analysis, the choice of the hyper-parameters or the evaluation of the models.
 Most models have [`an interface`](@ref BetaML.Bmlj) for the [`MLJ`](https://github.com/alan-turing-institute/MLJ.jl) framework.
 
-Aside Julia, BetaML can be accessed in R or Python using respectively [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) and [PyJulia](https://github.com/JuliaPy/pyjulia). See [the tutorial](@ref using_betaml_from_other_languages) for details.
+Aside from Julia, BetaML can be accessed in R or Python using respectively [JuliaCall](https://github.com/Non-Contradiction/JuliaCall) and [juliacall](https://pypi.org/project/juliacall/). See [the tutorial](@ref using_betaml_from_other_languages) for details.
 
 ## Installation
 
-The BetaML package is included in the standard Julia register, install it with:
+The BetaML package is included in the standard Julia registry, install it with:
 * `] add BetaML`
 
 ## Available modules
 
-While `BetaML` is split in several (sub)modules, all of them are re-exported at the root module level. This means that you can access their functionality by simply typing `using BetaML`:
+While `BetaML` is split into several (sub)modules, all of them are re-exported at the root module level. This means that you can access their functionality by simply typing `using BetaML`:
 
 ```julia
 using BetaML
 myLayer = DenseLayer(2,3) # DenseLayer is defined in the Nn submodule
 res     = KernelPerceptronClassifier() # KernelPerceptronClassifier is defined in the Perceptron module
-@edit DenseLayer(2,3)     # Open a text editor with to the relevant source code
+@edit DenseLayer(2,3)     # Open a text editor with the relevant source code
 ```
 Each module is documented on the links below (you can also use the inline Julia help system: just press the question mark `?` and then, on the special help prompt `help?>`, type the function name):
 
 - [**`BetaML.Perceptron`**](@ref BetaML.Perceptron): The Perceptron, Kernel Perceptron and Pegasos classification algorithms;
 - [**`BetaML.Trees`**](@ref BetaML.Trees): The Decision Trees and Random Forests algorithms for classification or regression (with missing values supported);
 - [**`BetaML.Nn`**](@ref BetaML.Nn): Implementation of Artificial Neural Networks;
-- [**`BetaML.Clustering`**](@ref BetaML.Clustering): (hard) Clustering algorithms (K-Means, K-Mdedoids)
-- [**`BetaML.GMM`**](@ref BetaML.GMM): Various algorithms (Clustering, regressor, missing imputation / collaborative filtering / recommandation systems) that use a Generative (Gaussian) mixture models (probabilistic) fitter, fitted using a EM algorithm;
+- [**`BetaML.Clustering`**](@ref BetaML.Clustering): (hard) Clustering algorithms (K-Means, K-Medoids)
+- [**`BetaML.GMM`**](@ref BetaML.GMM): Various algorithms (Clustering, regressor, missing imputation / collaborative filtering / recommendation systems) that use a Generative (Gaussian) mixture model (probabilistic) fitter, fitted using an EM algorithm;
 - [**`BetaML.Imputation`**](@ref BetaML.Imputation): Imputation algorithms;
-- [**`BetaML.Utils`**](@ref BetaML.Utils): Various utility functions (scale, one-hot, distances, kernels, pca, autoencoder, predictions analysis, feature importance..).
+- [**`BetaML.Utils`**](@ref BetaML.Utils): Various utility functions (scale, one-hot, distances, kernels, pca, autoencoder, predictions analysis, feature importance...).
 
 ## [Available models](@id models_list)
 
@@ -67,13 +67,13 @@ Currently BetaML provides the following models:
 | [`ConfusionMatrix`](@ref) | [☒](@ref ConfusionMatrix_hp) | | _Predictions analysis_ |
 | [`FeatureRanker`](@ref) | [☒](@ref FeatureR_hp) | | _Predictions analysis_ |
 
-\* There is no formal distinction in `BetaML` between a transformer, or also a model to assess predictions, and a unsupervised model. They are all treated as unsupervised models that given some data they lern how to return some useful information, wheter a class grouping, a specific tranformation or a quality evaluation..
+\* There is no formal distinction in `BetaML` between a transformer, or also a model to assess predictions, and an unsupervised model. They are all treated as unsupervised models that, given some data, learn how to return some useful information, whether a class grouping, a specific transformation or a quality evaluation.
 
 ## Usage
 
 New to BetaML or even to Julia / Machine Learning altogether? [Start from the tutorial](@ref getting_started)!
 
-All models supports the (a) model **construction** (where hyperparameters and options are choosen), (b) **fitting**  and (c) **prediction** paradigm. A few model support `inverse_transform`, for example to go back from the one-hot encoded columns to the original categorical variable (factor). 
+All models support the (a) model **construction** (where hyperparameters and options are chosen), (b) **fitting**  and (c) **prediction** paradigm. A few models support `inverse_transform`, for example to go back from the one-hot encoded columns to the original categorical variable (factor). 
 
 This paradigm is described in detail in the [`API V2`](@ref api_usage) page.
 
@@ -83,7 +83,7 @@ _(see the_ [tutorial](@ref getting_started) _for a more step-by-step guide to th
 
 - **Using an Artificial Neural Network for multinomial categorisation**
 
-In this example we see how to train a neural networks model to predict the specie's name (5th column) given floral sepals and petals measures (first 4 columns) in the famous [iris flower dataset](https://en.wikipedia.org/wiki/Iris_flower_data_set).
+In this example we see how to train a neural network model to predict the species name (5th column) given floral sepal and petal measurements (first 4 columns) in the famous [iris flower dataset](https://en.wikipedia.org/wiki/Iris_flower_data_set).
 
 
 ```julia
@@ -96,7 +96,7 @@ Random.seed!(123);  # Fix the random seed (to obtain reproducible results).
 iris     = readdlm(joinpath(dirname(Base.find_package("BetaML")),"..","test","data","iris.csv"),',',skipstart=1)
 x        = convert(Array{Float64,2}, iris[:,1:4])
 y        = convert(Array{String,1}, iris[:,5])
-# Encode the categories (levels) of y using a separate column per each category (aka "one-hot" encoding) 
+# Encode the categories (levels) of y using a separate column for each category (aka "one-hot" encoding) 
 ohmod    = OneHotEncoder()
 y_oh     = fit!(ohmod,y) 
 # Split the data in training/testing sets
@@ -106,20 +106,20 @@ y_oh     = fit!(ohmod,y)
 # Define the Artificial Neural Network model
 l1   = DenseLayer(4,10,f=relu) # The activation function is `ReLU`
 l2   = DenseLayer(10,3)        # The activation function is `identity` by default
-l3   = VectorFunctionLayer(3,f=softmax) # Add a (parameterless  include("Imputation_tests.jl")) layer whose activation function (`softmax` in this case) is defined to all its nodes at once
+l3   = VectorFunctionLayer(3,f=softmax) # Add a (parameterless) layer whose activation function (`softmax` in this case) is applied to all its nodes at once
 mynn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=crossentropy,descr="Multinomial logistic regression Model Sepal", batch_size=2, epochs=200) # Build the NN and use the cross-entropy as error function.
-# Alternatively, swith to hyperparameters auto-tuning with `autotune=true` instead of specify `batch_size` and `epoch` manually
+# Alternatively, switch to hyperparameter auto-tuning with `autotune=true` instead of specifying `batch_size` and `epochs` manually
 
 # Train the model (using the ADAM optimizer by default)
 res = fit!(mynn,fit!(Scaler(),xtrain),ytrain_oh) # Fit the model to the (scaled) data
 
-# Obtain predictions and test them against the ground true observations
+# Obtain predictions and test them against the ground truth observations
 ŷtrain         = @pipe predict(mynn,fit!(Scaler(),xtrain)) |> inverse_predict(ohmod,_)  # Note the scaling and reverse one-hot encoding functions
 ŷtest          = @pipe predict(mynn,fit!(Scaler(),xtest))  |> inverse_predict(ohmod,_) 
-train_accuracy = accuracy(ŷtrain,ytrain) # 0.975
-test_accuracy  = accuracy(ŷtest,ytest)   # 0.96
+train_accuracy = accuracy(ytrain,ŷtrain) # 0.975
+test_accuracy  = accuracy(ytest,ŷtest)   # 0.96
 
-# Analyse model performances
+# Analyse model performance
 cm = ConfusionMatrix()
 fit!(cm,ytest,ŷtest)
 print(cm)
@@ -160,12 +160,12 @@ Normalised scores actual (rows) vs predicted (columns):
   3 setosa         1.000    1.000        1.000    1.000            7               7
 
 - Simple   avg.    0.978    0.963        0.979    0.969
-- Weigthed avg.    0.969    0.967        0.971    0.966
+- Weighted avg.    0.969    0.967        0.971    0.966
 ```
 
 ```julia
 ϵ = info(mynn)["loss_per_epoch"]
-plot(1:length(ϵ),ϵ, ylabel="epochs",xlabel="error",legend=nothing,title="Avg. error per epoch on the Sepal dataset")
+plot(1:length(ϵ),ϵ, ylabel="error",xlabel="epochs",legend=nothing,title="Avg. error per epoch on the Sepal dataset")
 heatmap(info(cm)["categories"],info(cm)["categories"],info(cm)["normalised_scores"],c=cgrad([:white,:blue]),xlabel="Predicted",ylabel="Actual", title="Confusion Matrix")
 ```
 
@@ -178,7 +178,7 @@ In this example we predict, using [another classical ML dataset](https://archive
 
 Note in particular:
 - (a) how easy it is in Julia to import remote data, even cleaning them without ever saving a local file on disk;
-- (b) how Random Forest models can directly work on data with missing values, categorical one and non-numerical one in general without any preprocessing 
+- (b) how Random Forest models can directly work on data with missing values, categorical ones and non-numerical ones in general without any preprocessing 
 
 ```julia
 # Load modules
@@ -200,7 +200,7 @@ y = data[:,1]           # miles per gallon
 
 # Model definition, hyper-parameters auto-tuning, training and prediction
 m      = RandomForestEstimator(autotune=true)
-ŷtrain = fit!(m,xtrain,ytrain) # shortcut for `fit!(m,xtrain,ytrain); ŷtrain = predict(x,xtrain)`
+ŷtrain = fit!(m,xtrain,ytrain) # shortcut for `fit!(m,xtrain,ytrain); ŷtrain = predict(m,xtrain)`
 ŷtest  = predict(m,xtest)
 
 # Prediction assessment
@@ -213,7 +213,7 @@ scatter(ytest,ŷtest,xlabel="Actual",ylabel="Estimated",label=nothing,title="Es
 
 - **Further examples**
 
-Finally, you may want to give a look at the ["test" folder](https://github.com/sylvaticus/BetaML.jl/tree/master/test). While the primary objective of the scripts under the "test" folder is to provide automatic testing of the BetaML toolkit, they can also be used to see how functions should be called, as virtually all functions provided by BetaML are tested there.
+Finally, you may want to have a look at the ["test" folder](https://github.com/sylvaticus/BetaML.jl/tree/master/test). While the primary objective of the scripts under the "test" folder is to provide automatic testing of the BetaML toolkit, they can also be used to see how functions should be called, as virtually all functions provided by BetaML are tested there.
 
 ## Benchmarks
 
@@ -223,4 +223,4 @@ A page summarising some basic benchmarks for BetaML and other leading Julia ML l
 
 The development of this package at the _Bureau d'Economie Théorique et Appliquée_ (BETA, Nancy) was supported by the French National Research Agency through the [Laboratory of Excellence ARBRE](http://mycor.nancy.inra.fr/ARBRE/), a part of the “Investissements d'Avenir” Program (ANR 11 – LABX-0002-01).
 
-[![BLogos](assets/logos_betaumr.png)](hhttp://www.beta-umr7522.fr/)
+[![BLogos](assets/logos_betaumr.png)](http://www.beta-umr7522.fr/)

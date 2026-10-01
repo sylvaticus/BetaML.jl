@@ -3,18 +3,18 @@
 """
 init_representatives(X,K;initialisation_strategy,initial_representatives)
 
-Initialisate the representatives for a K-Mean or K-Medoids algorithm
+Initialise the representatives for a K-Means or K-Medoids algorithm
 
 # Parameters:
-* `X`: a (N x D) data to clusterise
-* `K`: Number of cluster wonted
-* `initialisation_strategy`: Whether to select the initial representative vectors:
+* `X`: the (N x D) data to clusterise
+* `K`: Number of clusters wanted
+* `initialisation_strategy`: How to select the initial representative vectors:
 * `random`: randomly in the X space
 * `grid`: using a grid approach [default]
 * `shuffle`: selecting randomly within the available points
 * `given`: using a provided set of initial representatives provided in the `initial_representatives` parameter
 * `initial_representatives`: Provided (K x D) matrix of initial representatives (used only together with the `given` initialisation_strategy) [default: `nothing`]
-* `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+* `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
 # Returns:
 * A (K x D) matrix of initial representatives
@@ -79,7 +79,7 @@ function updateKMeansRepresentatives!(Z,X,cIdx)
       if size(Cⱼ)[1] > 0
           Z[j,:] = sum(Cⱼ,dims=1) ./ size(Cⱼ)[1]
       else
-          # move toward the center if no costituency
+          # move toward the center if no constituency
           xAvg = mean(X,dims=1)'
           Z[j,:] = Z[j,:] .+ ((xAvg - Z[j,:]) .* 0.01)
       end
@@ -91,22 +91,22 @@ end
 """
 kmeans(X,K;dist,initialisation_strategy,initial_representatives)
 
-Compute K-Mean algorithm to identify K clusters of X using Euclidean distance
+Compute the K-Means algorithm to identify K clusters of X using Euclidean distance
 
 !!! warning
     This function is no longer exported.  Use `KMeansClusterer` instead. 
 
 # Parameters:
-* `X`: a (N x D) data to clusterise
-* `K`: Number of cluster wonted
-* `dist`: Function to employ as distance (see notes). Default to Euclidean distance.
-* `initialisation_strategy`: Whether to select the initial representative vectors:
+* `X`: the (N x D) data to clusterise
+* `K`: Number of clusters wanted
+* `dist`: Function to employ as distance (see notes). Defaults to Euclidean distance.
+* `initialisation_strategy`: How to select the initial representative vectors:
 * `random`: randomly in the X space
 * `grid`: using a grid approach [default]
 * `shuffle`: selecting randomly within the available points
 * `given`: using a provided set of initial representatives provided in the `initial_representatives` parameter
 * `initial_representatives`: Provided (K x D) matrix of initial representatives (used only together with the `given` initialisation_strategy) [default: `nothing`]
-* `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+* `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
 # Returns:
 * A tuple of two items, the first one being a vector of size N of ids of the clusters associated to each point and the second one the (K x D) matrix of representatives
@@ -138,7 +138,7 @@ function kmeans(X,K;dist=(x,y) -> norm(x-y),initialisation_strategy="grid",initi
       # Determining the constituency of each cluster
       cIdx = classAssignation(X,Z,dist)
 
-      # Determining the new representative by each cluster
+      # Determining the new representative for each cluster
       # for (j,z) in enumerate(eachrow(Z))
       updateKMeansRepresentatives!(Z,X,cIdx)
 
@@ -156,7 +156,7 @@ function updateKMedoidsRepresentatives!(Z,X,cIdx,dist)
   for j in  1:K
       Cⱼ = X[cIdx .== j,:] # Selecting the constituency by boolean selection
       nⱼ = size(Cⱼ)[1]     # Size of the cluster
-      if nⱼ == 0 continue end # empty continuency. Let's not do anything. Stil in the next batch other representatives could move away and points could enter this cluster
+      if nⱼ == 0 continue end # empty constituency. Let's not do anything. Still, in the next batch other representatives could move away and points could enter this cluster
       bestCost = Inf
       bestCIdx = 0
       for cIdx in 1:nⱼ      # candidate index
@@ -177,22 +177,22 @@ end
 """
 kmedoids(X,K;dist,initialisation_strategy,initial_representatives)
 
-Compute K-Medoids algorithm to identify K clusters of X using distance definition `dist`
+Compute the K-Medoids algorithm to identify K clusters of X using distance definition `dist`
 
 !!! warning
     This function is no longer exported. Use `KMedoidsClusterer` instead. 
 
 # Parameters:
-* `X`: a (n x d) data to clusterise
-* `K`: Number of cluster wonted
-* `dist`: Function to employ as distance (see notes). Default to Euclidean distance.
-* `initialisation_strategy`: Whether to select the initial representative vectors:
+* `X`: the (n x d) data to clusterise
+* `K`: Number of clusters wanted
+* `dist`: Function to employ as distance (see notes). Defaults to Euclidean distance.
+* `initialisation_strategy`: How to select the initial representative vectors:
 * `random`: randomly in the X space
-* `grid`: using a grid approach
-* `shuffle`: selecting randomly within the available points [default]
+* `grid`: using a grid approach [default]
+* `shuffle`: selecting randomly within the available points
 * `given`: using a provided set of initial representatives provided in the `initial_representatives` parameter
 * `initial_representatives`: Provided (K x D) matrix of initial representatives (used only together with the `given` initialisation_strategy) [default: `nothing`]
-* `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+* `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
 # Returns:
 * A tuple of two items, the first one being a vector of size N of ids of the clusters associated to each point and the second one the (K x D) matrix of representatives
@@ -222,7 +222,7 @@ function kmedoids(X,K;dist=(x,y) -> norm(x-y),initialisation_strategy="grid",ini
       # Determining the constituency of each cluster
       cIdx = classAssignation(X,Z,dist)
 
-      # Determining the new representative by each cluster (within the points member)
+      # Determining the new representative for each cluster (within the points member)
       #for (j,z) in enumerate(eachrow(Z))
       updateKMedoidsRepresentatives!(Z,X,cIdx,dist)
 
@@ -250,13 +250,13 @@ $(TYPEDFIELDS)
 Base.@kwdef mutable struct KMeansC_hp <: BetaMLHyperParametersSet
     "Number of classes to discriminate the data [def: 3]"
     n_classes::Int64                  = 3
-    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`,  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
+    "Function to employ as distance. Defaults to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`,  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Note that the `KMeansClusterer` algorithm is not guaranteed to converge with distances other than the Euclidean one."
     dist::Function                    = (x,y) -> norm(x-y)
     """
     The computation method of the vector of the initial representatives.
     One of the following:
-    - "random": randomly in the X space [default]
-    - "grid": using a grid approach
+    - "random": randomly in the X space
+    - "grid": using a grid approach [default]
     - "shuffle": selecting randomly within the available points
     - "given": using a provided set of initial representatives provided in the `initial_representatives` parameter
     """
@@ -268,7 +268,7 @@ end
 """
 $(TYPEDEF)
 
-Hyperparameters for the and [`KMedoidsClusterer`](@ref) models
+Hyperparameters for the [`KMedoidsClusterer`](@ref) model
 
 # Parameters:
 $(TYPEDFIELDS)
@@ -276,7 +276,7 @@ $(TYPEDFIELDS)
 Base.@kwdef mutable struct KMedoidsC_hp <: BetaMLHyperParametersSet
     "Number of classes to discriminate the data [def: 3]"
     n_classes::Int64                  = 3
-    "Function to employ as distance. Default to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`,  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics. Attention that the `KMeansClusterer` algorithm is not guaranteed to converge with other distances than the Euclidean one."
+    "Function to employ as distance. Defaults to the Euclidean distance. Can be one of the predefined distances (`l1_distance`, `l2_distance`, `l2squared_distance`,  `cosine_distance`), any user defined function accepting two vectors and returning a scalar or an anonymous function with the same characteristics."
     dist::Function                    = (x,y) -> norm(x-y)
     """
     The computation method of the vector of the initial representatives.
@@ -362,14 +362,14 @@ $(TYPEDEF)
 
 The classical "K-Medoids" clustering algorithm (unsupervised).
 
-Similar to K-Means, learn to partition the data and assign each record to one of the `n_classes` classes according to a distance metric, but the "representatives" (the cetroids) are guaranteed to be one of the training points. The algorithm work with any arbitrary distance measure (default Euclidean).
+Similar to K-Means, learn to partition the data and assign each record to one of the `n_classes` classes according to a distance metric, but the "representatives" (the centroids) are guaranteed to be one of the training points. The algorithm works with any arbitrary distance measure (default Euclidean).
 
 For the parameters see [`?KMedoidsC_hp`](@ref KMedoidsC_hp) and [`?BML_options`](@ref BML_options).
 
 # Notes:
 - data must be numerical
 - online fitting (re-fitting with new data) is supported by using the "old" representatives as init ones
-- with `initialisation_strategy` different than `shuffle` (the default initialisation for K-Medoids) the representatives may not be one of the training points when the algorithm doesn't perform enought iterations. This can happen for example when the number of classes is close to the number of records to cluster.
+- with `initialisation_strategy` different than `shuffle` (the default initialisation for K-Medoids) the representatives may not be one of the training points when the algorithm doesn't perform enough iterations. This can happen for example when the number of classes is close to the number of records to cluster.
 
 # Example:
 ```julia
@@ -471,7 +471,7 @@ function fit!(m::KMeansClusterer,x)
     rng                     = m.opt.rng
 
     if m.fitted
-        # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee fitted with milions of records.
+        # Note that doing this we give a lot of importance to the new data, even if these are few records and the model has been fitted with millions of records.
         # So, training 1000 records doesn't give the same output as training 990 records and then training again with 10 records
         verbosity >= HIGH  && @info "Continuing training of a pre-fitted model"
         (clIdx,Z) = kmeans(x,K,dist=dist,initial_representatives=m.par.representatives,initialisation_strategy="given",verbosity=verbosity,rng=rng)
@@ -506,7 +506,7 @@ function fit!(m::KMedoidsClusterer,x)
     rng                     = m.opt.rng
 
     if m.fitted
-        # Note that doing this we give lot of importance to the new data, even if this is few records and the model has bee fitted with milions of records.
+        # Note that doing this we give a lot of importance to the new data, even if these are few records and the model has been fitted with millions of records.
         # So, training 1000 records doesn't give the same output as training 990 records and then training again with 10 records
         verbosity >= HIGH  && @info "Continuing training of a pre-fitted model"
         (clIdx,Z) = kmedoids(x,K,dist=dist,initial_representatives=m.par.representatives,initialisation_strategy="given",verbosity=verbosity,rng=rng)

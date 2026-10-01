@@ -19,21 +19,21 @@ $(FIELDS)
 
 """
 Base.@kwdef mutable struct AutoE_hp <: BetaMLHyperParametersSet
-   "The desired size of the encoded data, that is the number of dimensions in output or the size of the latent space. This is the number of neurons of the layer sitting between the econding and decoding layers. If the value is a float it is considered a percentual (to be rounded) of the dimensionality of the data [def: `0.33`]"
+   "The desired size of the encoded data, that is the number of dimensions in output or the size of the latent space. This is the number of neurons of the layer sitting between the encoding and decoding layers. If the value is a float it is considered a percentage (to be rounded) of the dimensionality of the data [def: `0.333`]"
    encoded_size::Union{Float64,Int64}  = 0.333
-   "Inner layers dimension (i.e. number of neurons). If the value is a float it is considered a percentual (to be rounded) of the dimensionality of the data [def: `nothing` that applies a specific heuristic]. Consider that the underlying neural network is trying to predict multiple values at the same times. Normally this requires many more neurons than a scalar prediction. If `e_layers` or `d_layers` are specified, this parameter is ignored for the respective part."
+   "Inner layers dimension (i.e. number of neurons). If the value is a float it is considered a percentage (to be rounded) of the dimensionality of the data [def: `nothing` that applies a specific heuristic]. Consider that the underlying neural network is trying to predict multiple values at the same time. Normally this requires many more neurons than a scalar prediction. If `e_layers` or `d_layers` are specified, this parameter is ignored for the respective part."
    layers_size::Union{Int64,Float64,Nothing} = nothing
-   "The layers (vector of `AbstractLayer`s) responsable of the encoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `layers_size`]"
+   "The layers (vector of `AbstractLayer`s) responsible for the encoding of the data [def: `nothing`, i.e. three dense layers with the inner ones of `layers_size`]"
    e_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
-   "The layers (vector of `AbstractLayer`s) responsable of the decoding of the data [def: `nothing`, i.e. two dense layers with the inner one of `layers_size`]"
+   "The layers (vector of `AbstractLayer`s) responsible for the decoding of the data [def: `nothing`, i.e. three dense layers with the inner ones of `layers_size`]"
    d_layers::Union{Nothing,Vector{AbstractLayer}} = nothing
    """Loss (cost) function [def: `squared_cost`]
-   It must always assume y and ŷ as (n x d) matrices, eventually using `dropdims` inside.
+   It must always assume y and ŷ as (n x d) matrices, possibly using `dropdims` inside.
    """
    loss::Union{Nothing,Function} = squared_cost
    "Derivative of the loss function [def: `dsquared_cost` if `loss==squared_cost`, `nothing` otherwise, i.e. use the derivative of the squared cost or autodiff]"
    dloss::Union{Function,Nothing}  = nothing
-   "Number of epochs, i.e. passages trough the whole training sample [def: `200`]"
+   "Number of epochs, i.e. passes through the whole training sample [def: `200`]"
    epochs::Int64 = 200
    "Size of each individual batch [def: `8`]"
    batch_size::Int64 = 8
@@ -44,7 +44,7 @@ Base.@kwdef mutable struct AutoE_hp <: BetaMLHyperParametersSet
    """
    The method - and its parameters - to employ for hyperparameters autotuning.
    See [`SuccessiveHalvingSearch`](@ref) for the default method.
-   To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
+   To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and optionally change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
    """
   tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges = Dict("epochs"=>[100,200,400],"batch_size"=>[8,16],"encoded_size"=>[0.2,0.3,0.5],"layers_size"=>[1.3,2.0,5.0,10.0,nothing]),multithreads=true)
 end
@@ -59,9 +59,9 @@ end
 """
 $(TYPEDEF)
 
-Perform a (possibly-non linear) transformation ("encoding") of the data into a different space, e.g. for dimensionality reduction using neural network trained to replicate the input data.
+Perform a (possibly non-linear) transformation ("encoding") of the data into a different space, e.g. for dimensionality reduction using a neural network trained to replicate the input data.
 
-A neural network is trained to first transform the data (ofter "compress") to a subspace (the output of an inner layer) and then retransform (subsequent layers) to the original data.
+A neural network is trained to first transform the data (often "compress") to a subspace (the output of an inner layer) and then retransform (subsequent layers) to the original data.
 
 `predict(mod::AutoEncoder,x)` returns the encoded data, `inverse_predict(mod::AutoEncoder,xtransformed)` performs the decoding.
 
@@ -70,7 +70,7 @@ For the parameters see [`AutoE_hp`](@ref) and [`BML_options`](@ref)
 # Notes:
 - AutoEncoder doesn't automatically scale the data. It is suggested to apply the [`Scaler`](@ref) model before running it. 
 - Missing data are not supported. Impute them first, see the [`Imputation`](@ref) module.
-- Decoding layers can be optinally choosen (parameter `d_layers`) in order to suit the kind of data, e.g. a `relu` activation function for nonegative data
+- Decoding layers can be optionally chosen (parameter `d_layers`) in order to suit the kind of data, e.g. a `relu` activation function for non-negative data
 
 # Example:
 
@@ -92,7 +92,7 @@ julia> x_reduced = fit!(m,x)
 Training..       avg loss on epoch 1 (1):        60.27802763757111
 Training..       avg loss on epoch 200 (200):    0.08970099870421573
 Training..       avg loss on epoch 400 (400):    0.013138484118673664
-Training of 400 epoch completed. Final epoch error: 0.013138484118673664.
+Training of 400 epochs completed. Final epoch error: 0.013138484118673664.
 5×1 Matrix{Float64}:
   -3.5483740608901186
   -6.90396890458868
@@ -141,7 +141,7 @@ function AutoEncoder(;kwargs...)
               found = true
           end
         end
-        # Correction for releasing without breaking.. to remove on v0.12 onward...
+        # Correction for releasing without breaking.. to be removed from v0.12 onward...
         # found || error("Keyword \"$kw\" is not part of this model.")
         if !found
             if kw == :outdims

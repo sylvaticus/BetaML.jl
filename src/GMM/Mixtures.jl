@@ -116,7 +116,7 @@ end
 
  The parameter `initialisation_strategy` can be `grid`, `kmeans` or `given`:
  - `grid`: Uniformly cover the space observed by the data
- - `kmeans`: Use the kmeans algorithm. If the data contains missing values, a first run of `predictMissing` is done under init=`grid` to impute the missing values just to allow the kmeans algorithm. Then the em algorithm is used with the output of kmean as init values.
+ - `kmeans`: Use the kmeans algorithm. If the data contains missing values, a first run of `predictMissing` is done under init=`grid` to impute the missing values just to allow the kmeans algorithm. Then the em algorithm is used with the output of kmeans as init values.
  - `given`: Leave the provided set of initial mixtures
 
 """
@@ -178,7 +178,7 @@ function init_mixtures!(mixtures::Array{T,1}, X; minimum_variance=0.25, minimum_
             # First pass of predictMissing using initialisation_strategy=grid
             #emOut1 = predictMissing(X,K;mixtures=mixtures,verbosity=NONE,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy="grid",rng=rng,maximum_iterations=10) 
             #kmμ = kmeans(emOut1.X̂,K,rng=rng)[2]
-            # replicate here code of predictMissing as this has been modev to a subsequent module Imputation, so not available here
+            # replicate here code of predictMissing as this has been moved to a subsequent module Imputation, so not available here
             emOutInner = gmm(X,K;mixtures=mixtures,verbosity=NONE,minimum_variance=minimum_variance,minimum_covariance=minimum_covariance,initialisation_strategy="grid",rng=rng,maximum_iterations=10) 
             (N,D) = size(X)
             XMask = .! ismissing.(X)
@@ -427,7 +427,7 @@ function update_parameters!(mixtures::Array{T,1}, X, pₙₖ; minimum_variance=0
     #pₖ = nₖ ./ n
 
     nkd = fill(0.0,K,D)
-    #nkd = [sum(pₙₖ[Xmask[:,d],k]) for k in 1:K, d in 1:D] # number of point associated to a given mixture for a specific dimension
+    #nkd = [sum(pₙₖ[Xmask[:,d],k]) for k in 1:K, d in 1:D] # number of points associated to a given mixture for a specific dimension
 
 
     # updating μ...

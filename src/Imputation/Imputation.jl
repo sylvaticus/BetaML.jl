@@ -14,8 +14,8 @@ Implement the BetaML.Imputation module
 """
     Imputation module
 
-Provide various imputation methods for missing data. Note that the interpretation of "missing" can be very wide.
-For example, reccomendation systems / collaborative filtering (e.g. suggestion of the film to watch) can well be representated as a missing data to impute problem, often with better results than traditional algorithms as k-nearest neighbors (KNN)
+Provides various imputation methods for missing data. Note that the interpretation of "missing" can be very wide.
+For example, recommendation systems / collaborative filtering (e.g. suggestion of the film to watch) can well be represented as a missing data to impute problem, often with better results than traditional algorithms such as k-nearest neighbors (KNN)
 
 Provided imputers:
 
@@ -25,9 +25,9 @@ Provided imputers:
 - [`GeneralImputer`](@ref): Impute missing data using a vector (one per column) of arbitrary learning models (classifiers/regressors) that implement `m = Model([options])`, `fit!(m,X,Y)` and `predict(m,X)` (not necessarily from `BetaML`).
 
 
-Imputations for all these models can be optained by running `mod = ImputatorModel([options])`, `fit!(mod,X)`. The data with the missing values imputed can then be obtained with `predict(mod)`. Use`info(m::Imputer)` to retrieve further information concerning the imputation.
-Trained models can be also used to impute missing values in new data with `predict(mox,xNew)`.
-Note that if multiple imputations are run (for the supporting imputators) `predict()` will return a vector of predictions rather than a single one`.
+Imputations for all these models can be obtained by running `mod = ImputatorModel([options])`, `fit!(mod,X)`. The data with the missing values imputed can then be obtained with `predict(mod)`. Use `info(m::Imputer)` to retrieve further information concerning the imputation.
+Trained models can also be used to impute missing values in new data with `predict(mod,xNew)`.
+Note that if multiple imputations are run (for the supporting imputers) `predict()` will return a vector of predictions rather than a single one.
 
 ## Example   
 
@@ -113,7 +113,7 @@ $(TYPEDFIELDS)
 Base.@kwdef mutable struct SimpleI_hp <: BetaMLHyperParametersSet
     "The descriptive statistic of the column (feature) to use as imputed value [def: `mean`]"
     statistic::Function                   = mean
-    "Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries)."
+    "Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneous (e.g. quantity exports of different countries)."
     norm::Union{Nothing,Int64}       = nothing
 end
 Base.@kwdef mutable struct SimpleImputer_lp <: BetaMLLearnableParametersSet
@@ -129,8 +129,8 @@ $(TYPEDEF)
 Simple imputer using the missing data's feature (column) statistic (def: `mean`), optionally normalised by l-norms of the records (rows)
 
 # Parameters:
-- `statistics`: The descriptive statistic of the column (feature) to use as imputed value [def: `mean`]
-- `norm`: Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneus (e.g. quantity exports of different countries).  
+- `statistic`: The descriptive statistic of the column (feature) to use as imputed value [def: `mean`]
+- `norm`: Normalise the feature mean by l-`norm` norm of the records [default: `nothing`]. Use it (e.g. `norm=1` to use the l-1 norm) if the records are highly heterogeneous (e.g. quantity exports of different countries).  
 
 # Limitations:
 - data must be numerical
@@ -224,7 +224,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Predict the missing data using the feature averages (eventually normalised) learned by fitting a [`SimpleImputer`](@ref) model
+Predict the missing data using the feature averages (optionally normalised) learned by fitting a [`SimpleImputer`](@ref) model
 """
 function predict(m::SimpleImputer,X)
     nR,nC = size(X)
@@ -279,7 +279,7 @@ For the parameters (`n_classes`,`mixtures`,..) see  [`GaussianMixture_hp`](@ref)
 
 # Limitations:
 - data must be numerical
-- the resulted matrix is a Matrix{Float64}
+- the resulting matrix is a Matrix{Float64}
 - currently the Mixtures available do not support random initialisation for missing imputation, and the rest of the algorithm (Expectation-Maximisation) is deterministic, so there is no random component involved (i.e. no multiple imputations)
 
 # Example: 
@@ -481,11 +481,11 @@ Base.@kwdef mutable struct RandomForestI_hp <: BetaMLHyperParametersSet
     rfhpar                                      = RandomForestE_hp()
     "Specify the positions of the integer columns to treat as categorical instead of cardinal. [Default: empty vector (all numerical cols are treated as cardinal by default and the others as categorical)]"
     forced_categorical_cols::Vector{Int64}                = Int64[] # like in RF, normally integers are considered ordinal
-    "Define the times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
+    "Define the number of times to go through the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
     recursive_passages::Int64                    = 1
-    "Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG)."
+    "Determine the number of independent imputations of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG)."
     multiple_imputations::Int64                  = 1
-    "Columns in the matrix for which to create an imputation model, i.e. to impute. It can be a vector of columns IDs (positions), or the keywords \"auto\" (default) or \"all\". With \"auto\" the model automatically detects the columns with missing data and impute only them. You may manually specify the columns or use \"auto\" if you want to create a imputation model for that columns during training even if all training data are non-missing to apply then the training model to further data with possibly missing values."
+    "Columns in the matrix for which to create an imputation model, i.e. to impute. It can be a vector of columns IDs (positions), or the keywords \"auto\" (default) or \"all\". With \"auto\" the model automatically detects the columns with missing data and imputes only them. You may manually specify the columns or use \"all\" if you want to create an imputation model for those columns during training even if all training data are non-missing, to then apply the trained model to further data with possibly missing values."
     cols_to_impute::Union{String,Vector{Int64}} = "auto"
 end
 
@@ -585,14 +585,14 @@ function fit!(m::RandomForestImputer,X)
         m.opt.verbosity >= STD && @warn "This model has already been fitted and it doesn't support multiple training. This training will override the previous one(s)"
     end
 
-    # Setting default parameters that depends from the data...
+    # Setting default parameters that depend on the data...
     max_depth    = m.hpar.rfhpar.max_depth    == nothing ?  size(X,1) : m.hpar.rfhpar.max_depth
     max_features = m.hpar.rfhpar.max_features == nothing ?  Int(round(sqrt(size(X,2)-1))) : m.hpar.rfhpar.max_features
     # Here only the hpar setting, later for each column
     #splitting_criterion = m.hpar.splitting_criterion == nothing ? ( (Ty <: Number && !m.hpar.force_classification) ? variance : gini) : m.hpar.splitting_criterion
     #splitting_criterion = m.hpar.rfhpar.splitting_criterion
     
-    # Setting schortcuts to other hyperparameters/options....
+    # Setting shortcuts to other hyperparameters/options....
     min_gain             = m.hpar.rfhpar.min_gain
     min_records          = m.hpar.rfhpar.min_records
     #force_classification = m.hpar.rfhpar.force_classification
@@ -639,7 +639,7 @@ function fit!(m::RandomForestImputer,X)
         for pass in 1:recursive_passages 
             m.opt.verbosity >= HIGH && println("- processing passage $pass")
             if pass > 1
-                shuffle!(rng, sortedDims) # randomise the order we go trough the various dimensions at this passage
+                shuffle!(rng, sortedDims) # randomise the order we go through the various dimensions at this passage
             end 
             for d in sortedDims
                 !(d in cols2imp) && continue
@@ -650,7 +650,7 @@ function fit!(m::RandomForestImputer,X)
                     splitting_criterion = splitting_criterion
                 end
                 nmy  = nonMissingMask[:,d]
-                y    = catCols[d] ? X[nmy,d] : identity.(X[nmy,d]) # witout the identity it remains any and force always a classification
+                y    = catCols[d] ? X[nmy,d] : identity.(X[nmy,d]) # without the identity it remains any and always forces a classification
                 ty   = nonmissingtype(eltype(y))
                 y    = convert(Vector{ty},y)
                 Xd   = Matrix(Xout[nmy,[1:(d-1);(d+1):end]])
@@ -686,7 +686,7 @@ function fit!(m::RandomForestImputer,X)
                     Xout[i,d] = yest
                     #return Xout
                 end
-                # This is last passage: save the model and compute oob errors if requested
+                # This is the last passage: save the model and compute oob errors if requested
                 if pass == recursive_passages 
                     forests[imputation,d] = dfor 
                     if oob
@@ -717,7 +717,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Return the data with the missing values replaced with the imputed ones using the non-linear structure learned fitting a [`RandomForestImputer`](@ref) model.
+Return the data with the missing values replaced with the imputed ones using the non-linear structure learned by fitting a [`RandomForestImputer`](@ref) model.
 
 # Notes:
 - If `multiple_imputations` was set > 1 this is a vector of matrices (the individual imputations) instead of a single matrix.
@@ -805,26 +805,26 @@ Hyperparameters for [`GeneralImputer`](@ref)
 $(FIELDS)
 """
 Base.@kwdef mutable struct GeneralI_hp <: BetaMLHyperParametersSet
-    "Columns in the matrix for which to create an imputation model, i.e. to impute. It can be a vector of columns IDs (positions), or the keywords \"auto\" (default) or \"all\". With \"auto\" the model automatically detects the columns with missing data and impute only them. You may manually specify the columns or use \"all\" if you want to create a imputation model for that columns during training even if all training data are non-missing to apply then the training model to further data with possibly missing values."
+    "Columns in the matrix for which to create an imputation model, i.e. to impute. It can be a vector of columns IDs (positions), or the keywords \"auto\" (default) or \"all\". With \"auto\" the model automatically detects the columns with missing data and imputes only them. You may manually specify the columns or use \"all\" if you want to create an imputation model for those columns during training even if all training data are non-missing, to then apply the trained model to further data with possibly missing values."
     cols_to_impute::Union{String,Vector{Int64}} = "auto"
-    "An entimator model (regressor or classifier), with eventually its options (hyper-parameters), to be used to impute the various columns of the matrix. It can also be a `cols_to_impute`-length vector of different estimators to consider a different estimator for each column (dimension) to impute, for example when some columns are categorical (and will hence require a classifier) and some others are numerical (hence requiring a regressor). [default: `nothing`, i.e. use BetaML random forests, handling classification and regression jobs automatically]."
+    "An estimator model (regressor or classifier), optionally with its options (hyper-parameters), to be used to impute the various columns of the matrix. It can also be a `cols_to_impute`-length vector of different estimators to consider a different estimator for each column (dimension) to impute, for example when some columns are categorical (and will hence require a classifier) and some others are numerical (hence requiring a regressor). [default: `nothing`, i.e. use BetaML random forests, handling classification and regression jobs automatically]."
     estimator                        = nothing
-    "Wheter the estimator(s) used to predict the missing data support itself missing data in the training features (X). If not, when the model for a certain dimension is fitted, dimensions with missing data in the same rows of those where imputation is needed are dropped and then only non-missing rows in the other remaining dimensions are considered. It can be a vector of boolean values to specify this property for each individual estimator or a single booleann value to apply to all the estimators [default: `false`]"
+    "Whether the estimator(s) used to predict the missing data themselves support missing data in the training features (X). If not, when the model for a certain dimension is fitted, dimensions with missing data in the same rows as those where imputation is needed are dropped and then only non-missing rows in the other remaining dimensions are considered. It can be a vector of boolean values to specify this property for each individual estimator or a single boolean value to apply to all the estimators [default: `false`]"
     missing_supported::Union{Vector{Bool},Bool} = false
-    "The function used by the estimator(s) to fit the model. It should take as fist argument the model itself, as second argument a matrix representing the features, and as third argument a vector representing the labels. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.fit!`]"
+    "The function used by the estimator(s) to fit the model. It should take as first argument the model itself, as second argument a matrix representing the features, and as third argument a vector representing the labels. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.fit!`]"
     fit_function::Union{Vector{Function},Function}     = fit!
-    "The function used by the estimator(s) to predict the labels. It should take as fist argument the model itself and as second argument a matrix representing the features. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.predict`]"
+    "The function used by the estimator(s) to predict the labels. It should take as first argument the model itself and as second argument a matrix representing the features. This parameter is mandatory for non-BetaML estimators and can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.predict`]"
     predict_function::Union{Vector{Function},Function} = predict
-    # "The function used to reset the learned parameters of the estimator(s) before each multiple inputations (but not the random number generator). It should take as first argument the model itself. Use `nothing` if your estimator doesn't support reset, but each imputation will train the same model. It can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.reset!`]"
+    # "The function used to reset the learned parameters of the estimator(s) before each multiple imputations (but not the random number generator). It should take as first argument the model itself. Use `nothing` if your estimator doesn't support reset, but each imputation will train the same model. It can be a single value or a vector (one per estimator) in case of different estimator packages used. [default: `BetaML.reset!`]"
     #reset_function::Union{Vector{Function},Function,Nothing} = reset!
-    "Define the number of times to go trough the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
+    "Define the number of times to go through the various columns to impute their data. Useful when there are data to impute on multiple columns. The order of the first passage is given by the decreasing number of missing values per column, the other passages are random [default: `1`]."
     recursive_passages::Int64      = 1
-    "Determine the number of independent imputation of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG)."
+    "Determine the number of independent imputations of the whole dataset to make. Note that while independent, the imputations share the same random number generator (RNG)."
     multiple_imputations::Int64    = 1
 end
 
 Base.@kwdef struct GeneralImputer_lp <: BetaMLLearnableParametersSet
-    fittedModels          = nothing         # by cols_to_imute only
+    fittedModels          = nothing         # by cols_to_impute only
     cols_to_impute_actual = Int64[] 
     x_used_cols           = Vector{Int64}[] # by all columns
     #imputedValues  = nothing
@@ -835,9 +835,9 @@ $(TYPEDEF)
 
 Impute missing values using arbitrary learning models.
 
-Impute missing values using any arbitrary learning model (classifier or regressor, not necessarily from BetaML) that implement an interface `m = Model([options])`, `train!(m,X,Y)` and `predict(m,X)`. For non-BetaML supervised models the actual training and predict functions must be specified in the `fit_function` and `predict_function` parameters respectively. For multiple imputations and recursive passages trough the various columns to impute, a `reset_function` can be specified to reset the model parameters before each imputation.
+Impute missing values using any arbitrary learning model (classifier or regressor, not necessarily from BetaML) that implements an interface `m = Model([options])`, `fit!(m,X,Y)` and `predict(m,X)`. For non-BetaML supervised models the actual training and predict functions must be specified in the `fit_function` and `predict_function` parameters respectively.
 If needed (for example when some columns with missing data are categorical and some numerical) different models can be specified for each column.
-Multiple imputations and multiple "passages" trought the various colums for a single imputation are supported. 
+Multiple imputations and multiple "passages" through the various columns for a single imputation are supported. 
 
 See [`GeneralI_hp`](@ref) for all the hyper-parameters.
 
@@ -857,7 +857,7 @@ julia> X = [1.4 2.5 "a"; missing 20.5 "b"; 0.6 18 missing; 0.7 22.8 "b"; 0.4 mis
  1.6        3.7       "a"
 
  julia> mod = GeneralImputer(recursive_passages=2,multiple_imputations=2)
- GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted)
+ GeneralImputer - An imputer based on an arbitrary regressor/classifier (unfitted)
 
  julia> mX_full = fit!(mod,X);
  ** Processing imputation 1
@@ -901,7 +901,7 @@ julia> X = [1.4 2.5 "a"; missing 20.5 "b"; 0.6 18 missing; 0.7 22.8 "b"; 0.4 mis
  0.4         missing  "b"
  1.6        3.7       "a"
 julia> mod = GeneralImputer(estimator=[DecisionTree.DecisionTreeRegressor(),DecisionTree.DecisionTreeRegressor(),DecisionTree.DecisionTreeClassifier()], fit_function = DecisionTree.fit!, predict_function=DecisionTree.predict, recursive_passages=2)
-GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted)
+GeneralImputer - An imputer based on an arbitrary regressor/classifier (unfitted)
 julia> X_full = fit!(mod,X)
 ** Processing imputation 1
 6×3 Matrix{Any}:
@@ -1011,14 +1011,14 @@ function fit!(m::GeneralImputer,X)
             Xout_passage = copy(Xout)
             m.opt.verbosity >= HIGH && println("- processing passage $pass")
             if pass > 1
-                shuffle!(rng, sortedDims) # randomise the order we go trough the various dimensions at this passage
+                shuffle!(rng, sortedDims) # randomise the order we go through the various dimensions at this passage
             end 
             for d in sortedDims
                 !(d in cols2imp) && continue
                 dIdx = findfirst(x -> x == d, cols2imp)
                 verbosity >= FULL && println("  - processing dimension $d")
                 msup = missing_supported[dIdx]
-                if msup # missing is support, I consider all non-missing y rows and all dimensions..
+                if msup # missing is supported, I consider all non-missing y rows and all dimensions..
                     nmy  = nonMissingMask[:,d]
                     y    = identity.(X[nmy,d]) # otherwise for some models it remains a classification
                     ty   = nonmissingtype(eltype(y))
@@ -1027,7 +1027,7 @@ function fit!(m::GeneralImputer,X)
                     x_used_cols[d] = setdiff(collect(1:nC),d)
                 else # missing is NOT supported, I consider only cols with nonmissing data in rows to impute and full rows in the remaining cols
                     nmy  = nonMissingMask[:,d]
-                    # Step 1 removing cols with missing values in the rows that we will need to impute (i.e. that are also missing in the the y col)..
+                    # Step 1 removing cols with missing values in the rows that we will need to impute (i.e. that are also missing in the y col)..
                     # I need to remove col and not row, as I need to impute this value, I can't just skip the row
                     candidates_d = setdiff(collect(1:nC),d)
                     for (ri,r) in enumerate(eachrow(Xout))
@@ -1042,7 +1042,7 @@ function fit!(m::GeneralImputer,X)
                     Xd = Xout[:,candidates_d]
                     # Step 2: for training, consider only the rows where not-dropped cols values are all nonmissing
                     nmxrows = [all(.! ismissing.(r)) for r in eachrow(Xd)]
-                    nmrows = nmxrows .& nmy # non missing both in Y and remained X rows
+                    nmrows = nmxrows .& nmy # non missing both in Y and remaining X rows
 
                     y    = identity.(X[nmrows,d]) # otherwise for some models it remains a classification
                     ty   = nonmissingtype(eltype(y))
@@ -1066,11 +1066,11 @@ function fit!(m::GeneralImputer,X)
                         continue
                     end
                     xrow = Vector(Xout[i,x_used_cols[d]])
-                    if !msup # no missing supported, the row shoudn't contain missing values
+                    if !msup # no missing supported, the row shouldn't contain missing values
                         xrow = Utils.disallowmissing(xrow)
                     end
                     yest = predict_functions[dIdx](dmodel,xrow)
-                    # handling some particualr cases... 
+                    # handling some particular cases... 
                     if typeof(yest) <: AbstractMatrix
                         yest = yest[1,1]
                     elseif typeof(yest) <: AbstractVector
@@ -1095,7 +1095,7 @@ function fit!(m::GeneralImputer,X)
                     Xout_passage[i,d] = yest
                     #return Xout
                 end
-                # This is last passage: save the model
+                # This is the last passage: save the model
                 if pass == recursive_passages 
                     estimators[imputation,dIdx] = dmodel 
                 end
@@ -1122,11 +1122,11 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Return the data with the missing values replaced with the imputed ones using the non-linear structure learned fitting a [`GeneralImputer`](@ref) model.
+Return the data with the missing values replaced with the imputed ones using the non-linear structure learned by fitting a [`GeneralImputer`](@ref) model.
 
 # Notes:
 - if `multiple_imputations` was set > 1 this is a vector of matrices (the individual imputations) instead of a single matrix.
-- due to the fact that the final models are fitted with already imputed values when multiple passages are emploied, these models can not be used to impute "new" matrices if they do not support themselves missing values. In this case, use `X̂new = fit!(m::GeneralImputer,Xnew)` instad of `fit!(m::GeneralImputer,X); X̂new = predict(m,Xnew)`.  
+- due to the fact that the final models are fitted with already imputed values when multiple passages are employed, these models can not be used to impute "new" matrices if they do not themselves support missing values. In this case, use `X̂new = fit!(m::GeneralImputer,Xnew)` instead of `fit!(m::GeneralImputer,X); X̂new = predict(m,Xnew)`.  
 """
 function predict(m::GeneralImputer,X)
     cols2imp              = m.par.cols_to_impute_actual
@@ -1169,11 +1169,11 @@ function predict(m::GeneralImputer,X)
                     continue
                 end
                 xrow = Vector(Xout[i,x_used_cols[d]])
-                if !msup # no missing supported, the row shoudn't contain missing values
+                if !msup # no missing supported, the row shouldn't contain missing values
                     xrow = Utils.disallowmissing(xrow)
                 end
                 yest = predict_functions[dIdx](dmod,xrow)
-                # handling some particualr cases... 
+                # handling some particular cases... 
                 if typeof(yest) <: AbstractMatrix
                     yest = yest[1,1]
                 elseif typeof(yest) <: AbstractVector
@@ -1207,18 +1207,18 @@ end
 
 function show(io::IO, ::MIME"text/plain", m::GeneralImputer)
     if m.fitted == false
-        print(io,"GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted)")
+        print(io,"GeneralImputer - An imputer based on an arbitrary regressor/classifier (unfitted)")
     else
-        print(io,"GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted) (fitted)")
+        print(io,"GeneralImputer - An imputer based on an arbitrary regressor/classifier (fitted)")
     end
 end
 
 function show(io::IO, m::GeneralImputer)
     m.opt.descr != "" && println(io,m.opt.descr)
     if m.fitted == false
-        print(io,"GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted) (unfitted)")
+        print(io,"GeneralImputer - An imputer based on an arbitrary regressor/classifier (unfitted)")
     else
-        print(io,"GeneralImputer - A imputer based on an arbitrary regressor/classifier(unfitted) (fitted)")
+        print(io,"GeneralImputer - An imputer based on an arbitrary regressor/classifier (fitted)")
         println(io,m.info)
     end
 end

@@ -6,13 +6,13 @@
 
 Implement classical statistical methods. EXPERIMENTAL !
 
-The module provide the following functions. Use `?[type or function]` to access their full signature and detailed documentation:
+The module provides the following functions. Use `?[type or function]` to access their full signature and detailed documentation:
 
-# Hyphothesis testing
+# Hypothesis testing
 
 
 
-Acknowlegdments: most code is based on the MITx MOOC [Fundamentals of Statistics](https://www.edx.org/course/fundamentals-of-statistics)
+Acknowledgements: most code is based on the MITx MOOC [Fundamentals of Statistics](https://www.edx.org/course/fundamentals-of-statistics)
 """
 module Stats
 
@@ -94,10 +94,10 @@ end
 """
     goodnessOfFitDiscrete(data,support,f₀;compressedData=true,α=0.05,d=0)
 
-Perform a goodness to fit chi-squared test to check for a particular MMF.
+Perform a goodness-of-fit chi-squared test to check for a particular PMF.
 
 The passed distribution must support the method `pdf(dist,x)` for the provided support.
-H₀ can be either the PDF with a specified set of parameters or the PDF in general. In this case the distribution object should be passed to this function with the MLE estimators that best fit the data (it is NOT done inside this function). In such case  the `d` parameter should be set to the number of estimated parameters in order to remove the `d` degree of freedom from the chi-square test.
+H₀ can be either the PDF with a specified set of parameters or the PDF in general. In this case the distribution object should be passed to this function with the MLE estimators that best fit the data (it is NOT done inside this function). In such a case  the `d` parameter should be set to the number of estimated parameters in order to remove the `d` degrees of freedom from the chi-square test.
 """
 function goodnessOfFitDiscrete(data,support,f₀;compressedData=true,α=0.05,d=0)
     if !compressedData
@@ -117,12 +117,12 @@ end
 
 
 """
-   ksTest(data,f₀;α=0.05,asymptoticThreshold)
+   ksTest(data,f₀;α=0.05,asymptoticThreshold=100)
 
-Perform the Kolmogorov-Smirnov goodness-of-fits table using the asymptotic Kolmogorov distribution (for N > 30, as it is faster) or the non-asymptotic KS Table for N < 30.
+Perform the Kolmogorov-Smirnov goodness-of-fit test using the asymptotic Kolmogorov distribution (for N > `asymptoticThreshold`, as it is faster) or the non-asymptotic KS Table for N <= `asymptoticThreshold`.
 
 Note that as n → ∞, Distributions.quantile_bisect(distr,1-α) * sqrt(N) → quantile(distr,1-α)
-For a three-digit precision use a asymptoticThreshold >= 1000, but slower!
+For a three-digit precision use an asymptoticThreshold >= 1000, but slower!
 """
 function ksTest(data,f₀,;α=0.05,asymptoticThreshold=100)
     data       = sort(data)

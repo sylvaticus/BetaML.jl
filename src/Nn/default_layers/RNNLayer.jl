@@ -10,8 +10,8 @@
 Representation of a layer in the network
 
 # Fields:
-* `wx`: Weigths matrix with respect to the input from data (n by n_input)
-* `ws`: Weigths matrix with respect to the layer state (n x n )
+* `wx`: Weights matrix with respect to the input from data (n by n_input)
+* `ws`: Weights matrix with respect to the layer state (n x n )
 * `wb`: Biases (n)
 * `f`:  Activation function
 * `df`: Derivative of the activation function
@@ -27,32 +27,32 @@ mutable struct RNNLayer <: RecursiveLayer
      """
         RNNLayer(nₗ,n;f,wx,ws,wb,df)
 
-     **Experimantal - not working**
+     **Experimental - not working**
       Instantiate a new RNNLayer
 
      # Positional arguments:
      * `nₗ`: Number of nodes of the input
      * `n`:  Number of nodes of the state (and the output)
      # Keyword arguments:
-     * `wx`:  Initial weigths with respect to input [default: Xavier initialisation, dims = (n,nₗ)]
-     * `ws`:  Initial weigths with respect to input [default: Xavier initialisation, dims = (n,n)]
-     * `wb`:  Initial weigths with respect to bias [default: Xavier initialisation, dims = (n)]
+     * `wx`:  Initial weights with respect to input [default: Xavier initialisation, dims = (n,nₗ)]
+     * `ws`:  Initial weights with respect to the layer state [default: Xavier initialisation, dims = (n,n)]
+     * `wb`:  Initial weights with respect to bias [default: Xavier initialisation, dims = (n)]
      * `s`:   Initial states [def: zeros(n)]
      * `f`:   Activation function [def: `relu`]
-     * `df`:  Derivative of the activation function [default: `nothing` (i.e. use AD)]
-     * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+     * `df`:  Derivative of the activation function [default: try to match with well-known derivatives, resort to AD if `f` is unknown]
+     * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
      # Notes:
      - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n))`
 
      """
      function RNNLayer(nₗ,n;rng = Random.GLOBAL_RNG,wx=rand(rng, Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n)),n,nₗ),ws=rand(rng, Uniform(-sqrt(6)/sqrt(n+n),sqrt(6)/sqrt(n+n)),n,n),wb=rand(rng, Uniform(-sqrt(6)/sqrt(nₗ+n),sqrt(6)/sqrt(nₗ+n)),n),s=zeros(n),f=relu,df=match_known_derivatives(f))
-         # To be sure w is a matrix and wb a column vector..
-         wx  = reshape(w,n,nₗ)
-         ws  = reshape(w,n,n)
+         # To be sure wx and ws are matrices and wb a column vector..
+         wx  = reshape(wx,n,nₗ)
+         ws  = reshape(ws,n,n)
          wb  = reshape(wb,n)
          s   = reshape(s,n)
-         return new(w,wb,s,f,df)
+         return new(wx,ws,wb,s,f,df)
      end
 end
 #=
@@ -73,8 +73,8 @@ end
 =#
 
 function forward(layer::RNNLayer,x)
-  #z =  _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) #layer.w * x + layer.wb # _zComp(layer,x) #   layer.w * x + layer.wb # testd @avx
-  z =  layer.wb + layer.wx * x + layer.ws * s 
+  #z =  _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) #layer.w * x + layer.wb # _zComp(layer,x) #   layer.w * x + layer.wb # tested @avx
+  z =  layer.wb + layer.wx * x + layer.ws * layer.s 
   return layer.f.(z)
 end
 
@@ -113,6 +113,6 @@ function set_params!(layer::RNNLayer,w)
    layer.ws = w.data[3]
 end
 function size(layer::RNNLayer)
-   w_size =  size(layer.w')
+   w_size =  size(layer.wx')
    return ((w_size[1],),(w_size[2],))
 end

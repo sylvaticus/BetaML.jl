@@ -1,14 +1,14 @@
 "Part of [BetaML](https://github.com/sylvaticus/BetaML.jl). Licence is MIT."
 
 # Part of submodule Utils of BetaML _ the Beta Machine Learning Toolkit
-# Vatious utils to help in logging/debugging
+# Various utils to help in logging/debugging
 
 
 
 """
     @codelocation()
 
-Helper macro to print during runtime an info message concerning the code being executed position
+Helper macro to print at runtime an info message concerning the position of the code being executed
 
 """
 macro codelocation()

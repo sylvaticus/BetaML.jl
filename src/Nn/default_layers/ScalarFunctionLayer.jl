@@ -6,9 +6,9 @@ $(TYPEDEF)
 
 Representation of a ScalarFunction layer in the network.
 ScalarFunctionLayer applies the activation function directly to the output of
-the previous layer (i.e., without passing for a weigth matrix), but using an 
+the previous layer (i.e., without passing through a weight matrix), but using an 
 optional learnable parameter (an array) used as second argument, similarly to
-[`VectorFunctionLayer`(@ref).
+[`VectorFunctionLayer`](@ref).
 Differently from `VectorFunctionLayer`, the function is applied scalarwise to
 each node. 
  
@@ -16,17 +16,17 @@ The number of nodes in input must be set to the same as in the previous layer
 
 
 # Fields:
-* `w`:   Weigths (parameter) array passes as second argument to the activation
+* `w`:   Weights (parameter) array passed as second argument to the activation
          function (if not empty)
 * `n`:   Number of nodes in output (≡ number of nodes in input )
 * `f`:   Activation function (vector)
 * `dfx`: Derivative of the (vector) activation function with respect to the
          layer inputs (x)
 * `dfw`: Derivative of the (vector) activation function with respect to the
-         optional learnable weigths (w)         
+         optional learnable weights (w)         
 
 # Notes:
-* The output `size` of this layer is the same as those of the previous layers.
+* The output `size` of this layer is the same as that of the previous layer.
 """
 struct ScalarFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, TDFW <: Union{Nothing,Function}, WET <: Number} <: AbstractLayer
      w::Array{WET,N}
@@ -40,17 +40,17 @@ struct ScalarFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, T
      Instantiate a new ScalarFunctionLayer
 
      # Positional arguments:
-     * `nₗ`: Number of nodes (must be same as in the previous layer)
+     * `nₗ`: Number of nodes (must be the same as in the previous layer)
      # Keyword arguments:
      * `wsize`: A tuple or array specifying the size (number of elements) of the
        learnable parameter [def: empty array]
-     * `w_eltype`: Eltype of the weigths [def: `Float64`]
-     * `w`:   Initial weigths with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
+     * `w_eltype`: Eltype of the weights [def: `Float64`]
+     * `w`:   Initial weights with respect to input [default: Xavier initialisation, dims = (nₗ,n)]
      * `f`:  Activation function [def: `softmax`]
      * `dfx`: Derivative of the activation function with respect to the data  [default: try to match with well-known derivatives, resort to AD if `f` is unknown]
      * `dfw`: Derivative of the activation function with respect to the
               learnable parameter [default: `nothing` (i.e. use AD)]
-     * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+     * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
      # Notes:
      - If the derivative is provided, it should return the gradient as a (n,n) matrix (i.e. the Jacobian)
      - Xavier initialization = `rand(Uniform(-sqrt(6)/sqrt(sum(wsize...)),sqrt(6)/sqrt(sum(wsize...))))`
@@ -69,14 +69,14 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Create a weigthless layer whose output is equal to the input. 
+Create a weightless layer whose output is equal to the input. 
  
 # Fields:
 * `n`:   Number of nodes in output (≡ number of nodes in input )       
 
 # Notes:
-- The output `size` of this layer is the same as those of the previous layers.
-- This is just an alias for a [`ScalarFunctionLayer`](@ref) with no weigths and identity function.
+- The output `size` of this layer is the same as that of the previous layer.
+- This is just an alias for a [`ScalarFunctionLayer`](@ref) with no weights and identity function.
 """
 function ReplicatorLayer(n)
    return ScalarFunctionLayer(n,f=identity)

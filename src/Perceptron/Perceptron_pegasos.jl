@@ -15,19 +15,19 @@ PegasosClassifier is a _linear_, gradient-based classifier. Multiclass is suppor
 * `x`:           Feature matrix of the training data (n × d)
 * `y`:           Associated labels of the training data, can be in any format (string, integers..)
 * `θ`:           Initial value of the weights (parameter) [def: `zeros(d)`]
-* `θ₀`:          Initial value of the weight (parameter) associated to the constant term [def: `0`]
+* `θ₀`:          Initial value of the weight (parameter) associated with the constant term [def: `0`]
 * `λ`:           Multiplicative term of the learning rate
 * `η`:           Learning rate [def: (t -> 1/sqrt(t))]
 * `T`:           Maximum number of iterations across the whole set (if the set is not fully classified earlier) [def: 1000]
-* `nMsg`:        Maximum number of messages to show if all iterations are done
+* `nMsgs`:       Maximum number of messages to show if all iterations are done
 * `shuffle`:     Whether to randomly shuffle the data at each iteration [def: `false`]
 * `force_origin`: Whether to force `θ₀` to remain zero [def: `false`]
-* `return_mean_hyperplane`: Whether to return the average hyperplane coefficients instead of the average ones  [def: `false`]
-* `rng`:         Random Number Generator (see [`FIXEDSEED`](@ref)) [deafult: `Random.GLOBAL_RNG`]
+* `return_mean_hyperplane`: Whether to return the average hyperplane coefficients instead of the final ones  [def: `false`]
+* `rng`:         Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
 
 # Return a named tuple with:
 * `θ`:          The weights of the classifier
-* `θ₀`:         The weight of the classifier associated to the constant term
+* `θ₀`:         The weight of the classifier associated with the constant term
 * `classes`:    The classes (unique values) of y
 
 # Notes:
@@ -84,7 +84,7 @@ for (i,c) in enumerate(yclasses)
     if nCl == 2
         outθ[2] = - outθ[1]
         outθ₀[2] = .- outθ₀[1]
-        break    # if there are only two classes we do compute only one passage, as A vs B would be the same as B vs A
+        break    # if there are only two classes we compute only one pass, as A vs B would be the same as B vs A
     end
 end
 return (θ=outθ,θ₀=outθ₀,classes=yclasses)
@@ -95,7 +95,7 @@ end
 """
 pegasosBinary(x,y;θ,θ₀,λ,η,T,nMsgs,shuffle,force_origin)
 
-Train the peagasos algorithm based on x and y (labels)
+Train the pegasos algorithm based on x and y (labels)
 
 !!! warning
     Direct usage of this low-level function is deprecated. It has been unexported in BetaML 0.9.
@@ -105,33 +105,33 @@ Train the peagasos algorithm based on x and y (labels)
 * `x`:           Feature matrix of the training data (n × d)
 * `y`:           Associated labels of the training data, in the format of ⨦ 1
 * `θ`:           Initial value of the weights (parameter) [def: `zeros(d)`]
-* `θ₀`:          Initial value of the weight (parameter) associated to the constant term [def: `0`]
+* `θ₀`:          Initial value of the weight (parameter) associated with the constant term [def: `0`]
 * `λ`:           Multiplicative term of the learning rate
 * `η`:           Learning rate [def: (t -> 1/sqrt(t))]
 * `T`:           Maximum number of iterations across the whole set (if the set is not fully classified earlier) [def: 1000]
-* `nMsg`:        Maximum number of messages to show if all iterations are done
+* `nMsgs`:       Maximum number of messages to show if all iterations are done
 * `shuffle`:    Whether to randomly shuffle the data at each iteration [def: `false`]
 * `force_origin`: Whether to force `θ₀` to remain zero [def: `false`]
 
 # Return a named tuple with:
 * `θ`:          The final weights of the classifier
-* `θ₀`:         The final weight of the classifier associated to the constant term
+* `θ₀`:         The final weight of the classifier associated with the constant term
 * `avgθ`:       The average weights of the classifier
-* `avgθ₀`:      The average weight of the classifier associated to the constant term
+* `avgθ₀`:      The average weight of the classifier associated with the constant term
 * `errors`:     The number of errors in the last iteration
 * `besterrors`: The minimum number of errors in classifying the data ever reached
 * `iterations`: The actual number of iterations performed
-* `separated`:  Weather the data has been successfully separated
+* `separated`:  Whether the data has been successfully separated
 
 # Notes:
 * The trained parameters can then be used to make predictions using the function `predict()`.
 
 # Example:
 ```jldoctest
-julia> pegasos([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
+julia> pegasosBinary([1.1 2.1; 5.3 4.2; 1.8 1.7], [-1,1,-1])
 ```
 """
-function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, shuffle=false, force_origin=false, rng = Random.GLOBAL_RNG, verbosity=verbosity)
+function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/sqrt(t)), T=1000, nMsgs=10, shuffle=false, force_origin=false, rng = Random.GLOBAL_RNG, verbosity=NONE)
     if verbosity == NONE
         nMsgs = 0
     elseif verbosity <= LOW
@@ -152,7 +152,7 @@ function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/s
     x = makematrix(x)
     (n,d) = size(x)
     ny = size(y,1)
-    ny == n || error("y and x have different number of rows (records) !")
+    ny == n || error("y and x have a different number of rows (records) !")
     bestϵ = Inf
     lastϵ = Inf
     if force_origin θ₀ = 0.0; end
@@ -178,7 +178,7 @@ function pegasosBinary(x, y; θ=zeros(size(x,2)),θ₀=0.0, λ=0.5,η= (t -> 1/s
     end
     if (ϵ == 0)
         if nMsgs > 5
-            println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set has been correctly classified)")
+            println("*** Avg. error after epoch $t : $(ϵ/size(x)[1]) (all elements of the set have been correctly classified)")
         end
         return (θ=θ,θ₀=θ₀,avgθ=sumθ/(n*T),avgθ₀=sumθ₀/(n*T),errors=0,besterrors=0,iterations=t,separated=true)
     elseif ϵ < bestϵ
@@ -210,7 +210,7 @@ Base.@kwdef mutable struct PegasosC_hp <: BetaMLHyperParametersSet
     learning_rate_multiplicative::Float64 = 0.5           
     "Initial parameters. If given, should be a matrix of n-classes by feature dimension + 1 (to include the constant term as the first element) [def: `nothing`, i.e. zeros]"
     initial_parameters::Union{Nothing,Matrix{Float64}} = nothing
-    "Maximum number of epochs, i.e. passages trough the whole training sample [def: `1000`]"
+    "Maximum number of epochs, i.e. passes through the whole training sample [def: `1000`]"
     epochs::Int64 = 1000
     "Whether to randomly shuffle the data at each iteration (epoch) [def: `true`]"
     shuffle::Bool = true  
@@ -221,13 +221,13 @@ Base.@kwdef mutable struct PegasosC_hp <: BetaMLHyperParametersSet
     """
     The method - and its parameters - to employ for hyperparameters autotuning.
     See [`SuccessiveHalvingSearch`](@ref) for the default method.
-    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and eventually change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
+    To implement automatic hyperparameter tuning during the (first) `fit!` call simply set `autotune=true` and optionally change the default `tunemethod` options (including the parameter ranges, the resources to employ and the loss function to adopt).
     """
     tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges=Dict("learning_rate" =>[(epoch -> 1/sqrt(epoch)),(epoch -> 1/epoch),(epoch -> 1)], "epochs" =>[50,100,1000,10000], "shuffle"=>[true,false], "force_origin"=>[true,false],"return_mean_hyperplane"=>[true,false]),multithreads=true)
 end
 
 Base.@kwdef mutable struct PegasosClassifier_lp <: BetaMLLearnableParametersSet
-    weigths::Union{Nothing,Matrix{Float64}} = nothing
+    weights::Union{Nothing,Matrix{Float64}} = nothing
     classes::Vector  = []
 end
 
@@ -253,7 +253,7 @@ julia> ŷ = fit!(mod,X,y) |> mode
 ***
 *** Training pegasos for maximum 100 iterations. Random shuffle: true
 Avg. error after iteration 1 : 0.5
-*** Avg. error after epoch 3 : 0.0 (all elements of the set has been correctly classified)
+*** Avg. error after epoch 3 : 0.0 (all elements of the set have been correctly classified)
 6-element Vector{String}:
  "a"
  "b"
@@ -354,8 +354,8 @@ Predict labels using a fitted [`PegasosClassifier`](@ref) model.
 
 """
 function predict(m::PegasosClassifier,X)
-    θ₀ = [ i for i in m.par.weigths[:,1]]
-    θ  = [r for r in eachrow(m.par.weigths[:,2:end])]
+    θ₀ = [ i for i in m.par.weights[:,1]]
+    θ  = [r for r in eachrow(m.par.weights[:,2:end])]
     return predict(X,θ,θ₀,m.par.classes)
 end
 
@@ -372,7 +372,7 @@ function show(io::IO, m::PegasosClassifier)
     if m.fitted == false
         println(io,"PegasosClassifier - A loss-based linear classifier without regularisation term (unfitted)")
     else
-        println(io,"PegasosClassifier - A $(m.info["xndims"])-dimensions $(m.info["n_classes"])-classes a loss-based linear classifier without regularisation term (fitted on $(m.info["fitted_records"]) records)")
+        println(io,"PegasosClassifier - A $(m.info["xndims"])-dimensions $(m.info["n_classes"])-classes loss-based linear classifier without regularisation term (fitted on $(m.info["fitted_records"]) records)")
         println(io,"Weights:")
         println(io,m.par.weights)
     end

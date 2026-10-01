@@ -9,4 +9,4 @@ using BetaML.Clustering
 println("*** Additional testing for the Clustering algorithms...")
 
 #println("Testing MLJ interface for Clustering models....")
-# evaluate seem not supported for unsupervised models
+# evaluate seems not to be supported for unsupervised models
