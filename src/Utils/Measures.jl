@@ -1027,7 +1027,7 @@ end
 
 function compute_cols_losses(m,X,y,ia,ns,cols_ids,ohm)
 
-    rec_ids = StatsBase.sample(1:size(X,1), ns; replace=false)
+    rec_ids = StatsBase.sample(m.opt.rng, 1:size(X,1), ns; replace=false)
     X = X[rec_ids,:]
     y = (ndims(y) ==1 ) ? y[rec_ids] : y[rec_ids,:]
     nR,nC   = size(X)

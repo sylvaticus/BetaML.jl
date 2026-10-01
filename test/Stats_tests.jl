@@ -1,7 +1,7 @@
 using Test
 
 using StableRNGs
-import Distributions: Uniform, Gamma, Normal
+import Distributions: Uniform, Gamma, Normal, Binomial
 using BetaML
 
 #TESTRNG = FIXEDRNG # This could change...
@@ -23,9 +23,9 @@ candidates              = 0:0.01:maximum(obs)
 medianWithAbs           = mEstimationBruteForce(obs,candidates)
 # @test medianWithAbs     ≈ 3.35 This doesn't work in GitHub starting 22.09.2022 TODO
 medianWithHuberLoss     = mEstimationBruteForce(obs,candidates,x->huberLoss(x,0.0000000001))
-@test medianWithAbs     ≈ 3.35
+@test isapprox(medianWithAbs, 3.357, atol=0.05) # the exact sample depends on the Distributions.jl sampling algorithm; 3.357 is the theoretical median of Gamma(2,2)
 meanWithHuberLoss       = mEstimationBruteForce(obs,candidates,x->huberLoss(x,1000))
-@test meanWithHuberLoss ≈ 3.98
+@test isapprox(meanWithHuberLoss, 4.0, atol=0.05) # 4.0 is the theoretical mean of Gamma(2,2)
 
 # ----------------------------------------
 

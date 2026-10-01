@@ -63,7 +63,7 @@ lossOrig = loss(mynn,x',y')
 @test ϵ == lossOrig
 #@code_warntype  loss(mynn,x',y')
 dϵ_do2 = dsquared_cost(y,o2)
-@test dϵ_do2 == [-0.4750208125210601,0.47502081252106]
+@test dϵ_do2 ≈ [-0.4750208125210601,0.47502081252106]
 #@code_warntype dsquared_cost(o2,y)
 dϵ_do1 = backward(l2,o1,dϵ_do2) # here it takes long as it needs Zygote (because Vector Function layer has dfw that still uses zygote)
 @test dϵ_do1 ≈ [-0.23691761847142412, 0.23691761847142412]
@@ -155,11 +155,11 @@ mynn = buildNetwork(deepcopy([l1,l2,l3]),squared_cost,name="Feed-forward Neural 
 train!(mynn,xtrain,ytrain, opt_alg=SGD(η=t -> 1/(1+t),λ=1), batch_size=1,sequential=true,epochs=100,verbosity=NONE,rng=copy(TESTRNG),onfail="continue") # 
 #@benchmark train!(mynn,xtrain,ytrain,batch_size=1,sequential=true,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1))
 avgLoss = loss(mynn,xtest,ytest)
-@test  avgLoss ≈ 1.599729991966362
+@test isapprox(avgLoss, 1.599729991966362, rtol=1e-6)
 expectedŷtest= [0.7360644412052633, 0.7360644412052633, 0.7360644412052633, 2.47093434438514]
 ŷtrain = dropdims(predict(mynn,xtrain),dims=2)
 ŷtest = dropdims(predict(mynn,xtest),dims=2)
-@test any(isapprox(expectedŷtest,ŷtest))
+@test isapprox(expectedŷtest,ŷtest,rtol=1e-6)
 
 m = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=squared_cost,dloss=dsquared_cost,batch_size=1,shuffle=false,epochs=100,verbosity=NONE,opt_alg=SGD(η=t -> 1/(1+t),λ=1),rng=copy(TESTRNG),descr="First test",onfail="continue")
 fit!(m,xtrain,ytrain)
@@ -177,10 +177,10 @@ l3 = DenseLayer(2,1, w=[1 1], wb=[0], f=identity,df=didentity,rng=copy(TESTRNG))
 mynn = buildNetwork([l1,l2,l3],squared_cost,name="Feed-forward Neural Network with ADAM",dcf=dsquared_cost)
 train!(mynn,xtrain,ytrain,batch_size=1,sequential=true,epochs=100,verbosity=NONE,opt_alg=ADAM(),rng=copy(TESTRNG))
 avgLoss = loss(mynn,xtest,ytest)
-@test  avgLoss ≈ 0.9497779759064725
+@test isapprox(avgLoss, 0.9497779759064725, rtol=1e-6)
 expectedOutput = [1.7020525792404175, -0.1074729043392682, 1.4998367847079956, 3.3985794704732717]
 predicted = dropdims(predict(mynn,xtest),dims=2)
-@test any(isapprox(expectedOutput,predicted))
+@test isapprox(expectedOutput,predicted,rtol=1e-6)
 
 # ==================================
 # NEW TEST
@@ -199,11 +199,11 @@ l2   = DenseLayer(3,1, w=ones(1,3), wb=zeros(1),rng=copy(TESTRNG))
 mynn = buildNetwork([l1,l2],squared_cost,name="Feed-forward Neural Network Model 1")
 train!(mynn,xtrain,ytrain,epochs=1000,sequential=true,batch_size=1,verbosity=NONE,opt_alg=SGD(η=t->0.01,λ=1),rng=copy(TESTRNG))
 avgLoss = loss(mynn,xtest,ytest)
-@test  avgLoss ≈ 0.0032018998005211886
+@test isapprox(avgLoss, 0.0032018998005211886, rtol=1e-6)
 ŷtestExpected = [0.4676699631752518,0.3448383593117405,0.4500863419692639,9.908883999376018]
 ŷtrain = dropdims(predict(mynn,xtrain),dims=2)
 ŷtest = dropdims(predict(mynn,xtest),dims=2)
-@test any(isapprox(ŷtest,ŷtestExpected))
+@test isapprox(ŷtest,ŷtestExpected,rtol=1e-6)
 mreTrain = relative_mean_error(ytrain,ŷtrain,normrec=true)
 @test mreTrain <= 0.06
 mreTest  = relative_mean_error(ytest,ŷtest,normrec=true)
@@ -352,7 +352,7 @@ train!(treenn,X,Y,epochs=5000,rng=copy(TESTRNG))
 
 Ŷ = predict(treenn,X)
 rme = relative_mean_error(Y,Ŷ) 
-@test rme = relative_mean_error(Y,Ŷ)<= 0.3
+@test rme <= 0.3
 
 #=
 if "all" in ARGS

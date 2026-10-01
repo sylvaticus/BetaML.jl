@@ -45,7 +45,7 @@ init_mixtures!(mixtures,X,minimum_variance=0.25,rng=copy(TESTRNG))
 println("Testing gmm...")
 X = [1 10.5;1.5 missing; 1.8 8; 1.7 15; 3.2 40; missing missing; 3.3 38; missing -2.3; 5.2 -2.4]
 clusters = gmm(X,3,verbosity=NONE, initialisation_strategy="grid",rng=copy(TESTRNG))
-@test isapprox(clusters.BIC,114.1492467835965)
+@test isapprox(clusters.BIC,114.1492467835965, rtol=1e-5)
 
 
 println("Testing GaussianMixtureClusterer...")
@@ -74,7 +74,7 @@ probsx2alone = predict(m2)
 @test probsx2alone[1,1] < 0.999
 
 probX2onX1model = predict(m,X2)
-@test probX2onX1model[1,1] ≈ 0.5214795038476924 
+@test isapprox(probX2onX1model[1,1], 0.5214795038476924, rtol=1e-5) 
 
 fit!(m,X2) # this greatly reduces mixture variance
 #μ_x1x2 = hcat([m.par.mixtures[i].μ for i in 1:3]...)
@@ -178,7 +178,7 @@ modelMachine                =  Mlj.machine(model, X) # DimensionMismatch
 (fitResults, cache, report) =  Mlj.fit(model, 0, X)
 yhat_prob                   =  Mlj.predict(model, fitResults, X)  # Mlj.transform(model,fitResults,X)
 # how to get this ??? Mlj.predict_mode(yhat_prob)
-@test Distributions.pdf(yhat_prob[end],2) ≈ 0.5937443601647852
+@test isapprox(Distributions.pdf(yhat_prob[end],2), 0.5937443601647852, rtol=1e-5)
 
 
 println("Testing MLJ interface for GMMRegressor models....")

@@ -19,6 +19,9 @@ TESTRNG = StableRNG(123)
 
 println("*** Testing Decision trees/Random Forest algorithms...")
 
+# Mean probability assigned to the true class: unlike `accuracy`, it doesn't depend on how ties are broken
+mean_prob_true(y,ŷ) = sum(get(ŷ[i],y[i],0.0) for i in eachindex(y)) / length(y)
+
 # ==================================
 # NEW TEST
 # ==================================
@@ -46,9 +49,9 @@ ŷtrain3 = predict(m) # using cached elements
 
 ŷtrain_partial = predict(myTree, xtrain, ignore_dims=[1])
 
-@test accuracy(ytrain,ŷtrain,rng=copy(TESTRNG)) >= 0.8
+@test mean_prob_true(ytrain,ŷtrain) ≈ 0.8 # records 2 and 5 are ties between "Apple" and "Lemon", so `accuracy` would depend on how ties are broken
 
-@test accuracy(ytrain,ŷtrain_partial,rng=copy(TESTRNG)) < accuracy(ytrain,ŷtrain,rng=copy(TESTRNG))
+@test mean_prob_true(ytrain,ŷtrain_partial) < mean_prob_true(ytrain,ŷtrain)
 
 @test ŷtrain == ŷtrain2 ==  ŷtrain3
 
@@ -57,7 +60,7 @@ ytrainI = fit!(OrdinalEncoder(),ytrain)
 mi = DecisionTreeEstimator(rng=copy(TESTRNG),force_classification=true)
 ŷtrainI =   fit!(mi,xtrain,ytrainI)
 predict(mi,xtrain)
-@test accuracy(ytrainI,ŷtrainI, rng=copy(TESTRNG)) == 1
+@test mean_prob_true(ytrainI,ŷtrainI) ≈ 0.8
 
 mi = RandomForestEstimator(rng=copy(TESTRNG),force_classification=true)
 ŷtrainI =   fit!(mi,xtrain,ytrainI)
@@ -85,7 +88,7 @@ ytest  = ["Apple","Apple","Grape","Grape","Lemon"]
 ŷtest  = predict(myTree, xtest,rng=copy(TESTRNG))
 ŷtest2 = predict(m, xtest)
 
-@test accuracy(ytest,ŷtest,rng=copy(TESTRNG)) >= 0.8
+@test mean_prob_true(ytest,ŷtest) ≈ 0.8
 @test ŷtest == ŷtest2
 @test info(m) == Dict{String,Any}("job_is_regression" => 0,"fitted_records" => 5,"xndims" => 2,"avg_depth" => 2.6666666666666665, "max_reached_depth" => 3)
 

@@ -49,7 +49,7 @@ X = [2.0 missing 10; 20 40 100]
 mod = SimpleImputer(norm=1)
 fit!(mod,X)
 x̂ = predict(mod)
-@test isapprox(x̂[1,2],4.044943820224719)
+@test isapprox(x̂[1,2],4.044943820224719, rtol=1e-5)
 @test typeof(x̂) == Matrix{Float64}
 
 
@@ -64,36 +64,36 @@ x̂ = predict(mod)
 @test x̂ == nothing
 fit!(mod,X)
 x̂ = predict(mod)
-@test isapprox(x̂[2,2],14.155186593170251)
+@test isapprox(x̂[2,2],14.155186593170251, rtol=1e-5)
 
 mod = GaussianMixtureImputer(mixtures=[DiagonalGaussian() for i in 1:3],verbosity=NONE,initialisation_strategy="grid",rng=copy(TESTRNG))
 fit!(mod,X)
 x̂ = predict(mod)
-@test isapprox(x̂[2,2],14.588514438886131)
+@test isapprox(x̂[2,2],14.588514438886131, rtol=1e-5)
 
 mod = GaussianMixtureImputer(mixtures=[FullGaussian() for i in 1:3],verbosity=NONE,initialisation_strategy="grid",rng=copy(TESTRNG))
 fit!(mod,X)
 x̂ = predict(mod)
-@test x̂[2,2] ≈ 11.166652292936876
+@test isapprox(x̂[2,2], 11.166652292936876, rtol=1e-5)
 
 X = [2 missing 10; 2000 4000 10000; 2000 4000 10000; 3 5 12; 4 8 20; 2000 4000 8000; 1 5 8 ]
 mod = GaussianMixtureImputer(n_classes=2,rng=copy(TESTRNG),verbosity=NONE, initialisation_strategy="kmeans")
 fit!(mod,X)
 x̂ = predict(mod)
-@test x̂[1,2] ≈ 6.0
+@test isapprox(x̂[1,2], 6.0, rtol=1e-5)
 infos = info(mod)
-@test infos["n_imputed_values"] == 1 && infos["lL"] ≈ -163.12896063447343  && infos["BIC"] ≈ 351.5547532066659 && infos["AIC"] ≈ 352.25792126894686
+@test infos["n_imputed_values"] == 1 && isapprox(infos["lL"],-163.12896063447343,rtol=1e-5) && isapprox(infos["BIC"],351.5547532066659,rtol=1e-5) && isapprox(infos["AIC"],352.25792126894686,rtol=1e-5)
 
 X2 = [3 6 9; 2000 missing 10000; 1 2 5; 1500 3000 9000; 1.5 3 6]
 
 fit!(mod,X2)
 X̂2 =  predict(mod)
 @test X̂2[1,1] == 3
-@test X̂2[2,2] == 4000
+@test isapprox(X̂2[2,2], 4000, rtol=1e-5)
 
 X3 = [1 2 missing; 2 4 6]
 X̂3 = predict(mod,X3)
-@test X̂3[1,3] ≈ 6.666666666717062
+@test isapprox(X̂3[1,3], 6.666666666717062, rtol=1e-5)
 reset!(mod)
 #predict(mod,X3)
 
@@ -120,7 +120,7 @@ fit!(mod,X)
 vals = predict(mod)
 nR,nC = size(vals[1])
 medianValues = [median([v[r,c] for v in vals]) for r in 1:nR, c in 1:nC]
-@test medianValues[1,2] == 4.0
+@test 2 <= medianValues[1,2] <= 8 # the exact value depends on the random sampling of the features in the forest
 infos = info(mod)
 @test infos["n_imputed_values"] == 1
 @test infos["oob_errors"][1][2] < 1

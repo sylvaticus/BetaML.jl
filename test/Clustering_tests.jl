@@ -41,14 +41,19 @@ fit!(m,X)
 classes = predict(m)
 @test clIdxKMeans == classes
 @test info(m)["fitted_records"] == 9
-@test sprint(print, m) == "First test k-means model\nKMeansClusterer - A 2-dimensions 3-classes K-Means Model (fitted on 9 records)\nDict{String, Any}(\"fitted_records\" => 9, \"av_distance_last_fit\" => 1.9492325925652934, \"xndims\" => 2)\nRepresentatives:\n[5.15 -2.3499999999999996; 1.5 11.075; 3.366666666666667 36.666666666666664]\n"
+# We don't compare the full printout, as the order of the `info` dictionary and the printing of numbers may change with the Julia version
+mstr = sprint(print, m)
+@test startswith(mstr, "First test k-means model\nKMeansClusterer - A 2-dimensions 3-classes K-Means Model (fitted on 9 records)\n")
+@test occursin("\nRepresentatives:\n", mstr)
+@test info(m)["av_distance_last_fit"] ≈ 1.9492325925652934
+@test parameters(m).representatives ≈ [5.15 -2.35; 1.5 11.075; 3.366666666666667 36.666666666666664]
 
 # ==================================
 # New test
 # ==================================
 println("Testing kmedoids...")
 (clIdxKMedoids,Z) = kmedoids([1 10.5;1.5 10.8; 1.8 8; 1.7 15; 3.2 40; 3.6 32; 3.3 38; 5.1 -2.3; 5.2 -2.4],3,initialisation_strategy="shuffle",rng=copy(TESTRNG))
-@test clIdxKMedoids == [2, 2, 2, 1, 3, 3, 3, 2, 2]
+@test accuracy([2, 2, 2, 1, 3, 3, 3, 2, 2],clIdxKMedoids,ignorelabels=true) == 1 # the label numbers depend on the random initialisation
 m = KMedoidsClusterer(n_classes=3,verbosity=NONE, initialisation_strategy="shuffle",rng=copy(TESTRNG))
 fit!(m,X)
 classes = predict(m)

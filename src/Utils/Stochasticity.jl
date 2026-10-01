@@ -74,7 +74,7 @@ function consistent_shuffle(data::AbstractArray{T,1};dims=1,rng=Random.GLOBAL_RN
     =#
     Ns = [size(m,dims) for m in data]
     length(Set(Ns)) == 1 || @error "In `consistent_shuffle(arrays)` all individual arrays need to have the same size on the dimension specified"
-    ix = randperm(rng,size(data[1],dims))
+    ix = shuffle(rng,1:size(data[1],dims)) # `shuffle` rather than `randperm`, as it is guaranteed to be stable across Julia versions with StableRNGs
     return mapslices.(x->x[ix], data, dims=dims)
 end
 consistent_shuffle(rng::AbstractRNG,data::AbstractArray{T,1};dims=1) where T <: Any = consistent_shuffle(data;dims=dims,rng=rng)
