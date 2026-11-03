@@ -102,6 +102,50 @@ check_layer(ConvLayer(7,3,1,2,stride=2,rng=rng),randn(rng,7,1,B),randn(rng,4,2,B
 check_layer(PoolingLayer((6,4),(2,2),3),randn(rng,6,4,3,B),randn(rng,3,2,3,B))
 check_layer(PoolingLayer((5,4),(3,2),3,stride=(1,2),f=mean),randn(rng,5,4,3,B),randn(rng,5,2,3,B)) # overlapping windows
 
+println("Testing ScalarFunctionLayer and VectorFunctionLayer with learnable weights or batched functions...")
+# ScalarFunctionLayer: yᵢ = f(xᵢ,wᵢ), with one weight per node or a single one shared by all nodes
+fs(x,w) = w*tanh(x)
+X = randn(rng,3,B); G = randn(rng,3,B)
+for wsize in ([3],[1])
+    w    = rand(rng,wsize[1]) .+ 0.5
+    lad  = ScalarFunctionLayer(3,wsize=wsize,f=fs,w=copy(w)) # derivatives by AD
+    lman = ScalarFunctionLayer(3,wsize=wsize,f=fs,w=copy(w),dfx=(x,w)->w*(1-tanh(x)^2),dfw=(x,w)->tanh(x))
+    @test forward_batch(lad,X) ≈ w .* tanh.(X)
+    @test backward_batch(lad,X,G) ≈ w .* (1 .- tanh.(X).^2) .* G
+    dw = get_gradient_batch(lad,X,G).data[1]
+    @test dw ≈ (wsize == [3] ? vec(sum(tanh.(X) .* G,dims=2)) : [sum(tanh.(X) .* G)])
+    @test backward_batch(lman,X,G) ≈ backward_batch(lad,X,G)
+    @test get_gradient_batch(lman,X,G).data[1] ≈ dw
+    check_layer(lad,X,G)
+    check_layer(lman,X,G)
+end
+@test_throws ErrorException ScalarFunctionLayer(3,wsize=[2],f=fs)
+
+# VectorFunctionLayer: derivatives by AD (pullback), record by record or on the whole batch
+fv(x) = x ./ sum(x,dims=1) # works on a single record as well as on a batch (column by column)
+X = rand(rng,3,B) .+ 0.1; G = randn(rng,3,B)
+lrec = VectorFunctionLayer(3,f=fv)
+lbat = VectorFunctionLayer(3,f=fv,batched=true)
+@test size(lbat) == ((3,),(3,))
+@test forward_batch(lbat,X) ≈ forward_batch(lrec,X) ≈ X ./ sum(X,dims=1)
+jacobian_based = stack(BetaML.autojacobian(fv,x)' * g for (x,g) in zip(eachcol(X),eachcol(G)))
+@test backward_batch(lrec,X,G) ≈ jacobian_based
+@test backward_batch(lbat,X,G) ≈ jacobian_based
+check_layer(lrec,X,G)
+check_layer(lbat,X,G)
+# ...with learnable weights
+fvw(x,w) = (x .* w) ./ sum(x .* w,dims=1)
+w     = rand(rng,3) .+ 0.5
+lrecw = VectorFunctionLayer(3,f=fvw,wsize=[3],w=copy(w))
+lbatw = VectorFunctionLayer(3,f=fvw,wsize=[3],w=copy(w),batched=true)
+@test forward_batch(lbatw,X) ≈ forward_batch(lrecw,X)
+@test backward_batch(lbatw,X,G) ≈ backward_batch(lrecw,X,G)
+dwjac = sum(BetaML.autojacobian(wt -> fvw(x,wt),w)' * g for (x,g) in zip(eachcol(X),eachcol(G)))
+@test get_gradient_batch(lrecw,X,G).data[1] ≈ dwjac
+@test get_gradient_batch(lbatw,X,G).data[1] ≈ dwjac
+check_layer(lrecw,X,G)
+check_layer(lbatw,X,G)
+
 # Convolution vs a direct (brute force) computation
 l  = ConvLayer((5,4),(3,2),2,3,stride=(2,1),padding=((1,0),(1,1)),rng=copy(TESTRNG))
 X  = randn(copy(TESTRNG),5,4,2,B)

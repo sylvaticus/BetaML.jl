@@ -43,6 +43,7 @@ struct VectorFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, T
      f::TF
      dfx::TDFX
      dfw::TDFW
+     batched::Bool
      @doc """
      $(TYPEDSIGNATURES)
 
@@ -60,11 +61,13 @@ struct VectorFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, T
      [default: try to match with well-known derivatives, resort to AD if `f` is unknown]
      * `dfw`: Derivative of the activation function with respect to the
               learnable parameter [default: `nothing` (i.e. use AD)]
+     * `batched`: Whether `f` can be applied directly to a whole batch of records, i.e. to a (nₗ × n records) matrix, returning the (n × n records) matrix of the outputs of each record (e.g. `f = X -> X ./ sum(X,dims=1)`) [def: `false`, i.e. `f` is applied record by record]
      * `dummyDataToTestOutputSize`: Dummy data to test the output size [def:
      `ones(nₗ)`]
      * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
      # Notes:
-     - If the derivative is provided, it should return the gradient as a (n,n) matrix (i.e. the Jacobian)
+     - If the derivative is provided, it should return the gradient as a (n,n) matrix (i.e. the Jacobian) and it is computed record by record. Otherwise the derivatives are computed by AD (with Zygote), on the whole batch if `batched=true`
+     - With `batched=true` (and no derivative provided) the layer is computed with array-level operations on the whole batch, so it is much faster and it can run on GPUs (if `f` is written with array-level operations, e.g. broadcasting). Otherwise the computation is performed record by record on the CPU (except for `softmax`, that is always computed on the whole batch)
      - To avoid recomputing the activation function just to determine its output size,
        we compute the output size once here in the layer constructor by calling the
        activation function with `dummyDataToTestOutputSize`. Feel free to change
@@ -77,25 +80,25 @@ struct VectorFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, T
                 f=softmax,
                 dfx=match_known_derivatives(f),
                 dfw=nothing,
+                batched=false,
                 dummyDataToTestOutputSize=ones(nₗ))
         nw = length(wsize) 
-        if nw ==0 
-          n  = length(f(dummyDataToTestOutputSize))
-        else
-         n  = length(f(dummyDataToTestOutputSize,w))
-        end
+        x  = batched ? reshape(dummyDataToTestOutputSize,:,1) : dummyDataToTestOutputSize
+        n  = size(nw == 0 ? f(x) : f(x,w),1)
         w = _dense(w,w_eltype)
-        return new{nw,typeof(f),typeof(dfx),typeof(dfw),w_eltype,typeof(w)}(w,nₗ,n,f,dfx,dfw)
+        return new{nw,typeof(f),typeof(dfx),typeof(dfw),w_eltype,typeof(w)}(w,nₗ,n,f,dfx,dfw,batched)
      end
      # Constructor from the individual fields (used e.g. to move the layer to a GPU)
-     function VectorFunctionLayer(w::AbstractArray,nₗ::Integer,n::Integer,f,dfx,dfw)
-        return new{ndims(w),typeof(f),typeof(dfx),typeof(dfw),eltype(w),typeof(w)}(w,nₗ,n,f,dfx,dfw)
+     function VectorFunctionLayer(w::AbstractArray,nₗ::Integer,n::Integer,f,dfx,dfw,batched::Bool)
+        return new{ndims(w),typeof(f),typeof(dfx),typeof(dfw),eltype(w),typeof(w)}(w,nₗ,n,f,dfx,dfw,batched)
      end
 end
 
 # The batch X has the records along the columns (nₗ × n records).
-# The softmax function (the most common vector activation function) is vectorised over the
-# batch, while other functions are applied record by record (on the CPU).
+# The softmax function (the most common vector activation function) and the functions declared
+# as `batched` are computed on the whole batch, while the other functions are applied record by
+# record (on the CPU). When not provided, the derivatives are computed by AD as the pullback of
+# the function (i.e. the product of the transposed Jacobian with the next gradient).
 
 _isbatchsoftmax(layer::VectorFunctionLayer{N}) where {N} = N == 0 && layer.f === softmax
 
@@ -105,11 +108,22 @@ function _softmax_batch(X)
    return E ./ sum(E,dims=1)
 end
 
-function forward_batch(layer::VectorFunctionLayer{N},X) where {N}
+"Return the arguments of the activation function: `(x,)` or `(x,w)`"
+_fargs(layer::VectorFunctionLayer{N},x,w) where {N} = N == 0 ? (x,) : (x,w)
+
+"Pullback of the activation function with respect to all its arguments (records and weights)"
+function _pullback(layer::VectorFunctionLayer,args,next_gradient)
+   _, back = Zygote.pullback(layer.f,args...)
+   grads   = back(next_gradient)
+   return map((d,a) -> isnothing(d) ? zero(a) : d, grads, args) # AD returns `nothing` for args not used
+end
+
+function forward_batch(layer::VectorFunctionLayer,X)
    X = _asmatrix(X)
    _isbatchsoftmax(layer) && return _softmax_batch(X)
+   layer.batched && return layer.f(_fargs(layer,X,layer.w)...)
    w = _tocpu(layer.w)
-   return _recordwise(x -> N == 0 ? layer.f(x) : layer.f(x,w),X)
+   return _recordwise(x -> layer.f(_fargs(layer,x,w)...),X)
 end
 
 function backward_batch(layer::VectorFunctionLayer,X,next_gradient)
@@ -120,24 +134,13 @@ function backward_batch(layer::VectorFunctionLayer,X,next_gradient)
       S = _softmax_batch(X)
       return S .* (next_gradient .- sum(S .* next_gradient,dims=1))
    end
+   (layer.batched && isnothing(layer.dfx)) && return _pullback(layer,_fargs(layer,X,layer.w),next_gradient)[1]
    w = _tocpu(layer.w)
    return _recordwise((x,g) -> _backward_record(layer,w,x,g),X,next_gradient)
 end
 function _backward_record(layer::VectorFunctionLayer{N},w,x,next_gradient) where N
-   if N == 0
-      if layer.dfx != nothing
-         dfz = layer.dfx(x)'
-      else  # using AD
-         dfz = (autojacobian(layer.f,x; nY=layer.n))'
-      end
-   else
-      if layer.dfx != nothing
-         dfz = layer.dfx(x,w)'
-      else  # using AD
-        tempfunction(x) = layer.f(x,w)
-        dfz = (autojacobian(tempfunction,x; nY=layer.n))'
-      end
-   end
+   isnothing(layer.dfx) && return _pullback(layer,_fargs(layer,x,w),next_gradient)[1]
+   dfz = N == 0 ? layer.dfx(x)' : layer.dfx(x,w)'
    return dfz * next_gradient
 end
 
@@ -149,17 +152,25 @@ function get_gradient_batch(layer::VectorFunctionLayer{0},X,next_gradient)
    return Learnable(()) # parameterless layer
 end
 function get_gradient_batch(layer::VectorFunctionLayer,X,next_gradient)
+   X = _asmatrix(X)
+   next_gradient = _asmatrix(next_gradient)
+   (layer.batched && isnothing(layer.dfw)) && return Learnable((_pullback(layer,(X,layer.w),next_gradient)[2],))
    w = _tocpu(layer.w)
-   return _recordwise_sum((x,g) -> _get_gradient_record(layer,w,x,g),_asmatrix(X),_asmatrix(next_gradient),layer.w)
+   return _recordwise_sum((x,g) -> _get_gradient_record(layer,w,x,g),X,next_gradient,layer.w)
 end
 function _get_gradient_record(layer::VectorFunctionLayer,w,x,next_gradient)
-   if layer.dfw != nothing
-      dfz = layer.dfw(x,w)'
-   else  # using AD
-      dfz = (autojacobian(wt -> layer.f(x,wt),w; nY=layer.n))'
+   isnothing(layer.dfw) && return Learnable((_pullback(layer,(x,w),next_gradient)[2],))
+   dfz = layer.dfw(x,w)'
+   return Learnable((dfz * next_gradient,))
+end
+
+function backward_and_gradient_batch(layer::VectorFunctionLayer{N},X,next_gradient) where {N}
+   if N > 0 && layer.batched && isnothing(layer.dfx) && isnothing(layer.dfw)
+      # a single pullback gives both the derivatives with respect to the inputs and to the weights
+      (dϵ_dX, dϵ_dw) = _pullback(layer,(_asmatrix(X),layer.w),_asmatrix(next_gradient))
+      return (dϵ_dX,Learnable((dϵ_dw,)))
    end
-   dϵ_dw = dfz * next_gradient
-   return Learnable((dϵ_dw,))
+   return (backward_batch(layer,X,next_gradient),get_gradient_batch(layer,X,next_gradient))
 end
 
 function set_params!(layer::VectorFunctionLayer{N},w) where {N}
