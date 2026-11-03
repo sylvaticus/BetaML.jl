@@ -422,6 +422,18 @@ rme = info(m)["rme"]
 @test size(x̂ ) == (10,5)
 @test rme < 0.1
 
+# AutoEncoder with convolutional layers, i.e. with inner layers whose output is not a vector (issue #68)
+x  = rand(copy(TESTRNG),60,6*6*2) # 60 records of 6x6 images with 2 channels, flattened
+el = [BetaML.Nn.ReshaperLayer((72,),(6,6,2)), BetaML.Nn.ConvLayer((6,6),(3,3),2,4,f=relu,rng=copy(TESTRNG)),
+      PoolingLayer((6,6,4),(2,2)), BetaML.Nn.ReshaperLayer((3,3,4)), DenseLayer(36,5,rng=copy(TESTRNG))]
+dl = [DenseLayer(5,36,f=relu,rng=copy(TESTRNG)), BetaML.Nn.ReshaperLayer((36,),(3,3,4)),
+      BetaML.Nn.ConvLayer((3,3),(2,2),4,8,rng=copy(TESTRNG)), BetaML.Nn.ReshaperLayer((3,3,8)), DenseLayer(72,72,rng=copy(TESTRNG))]
+m  = AutoEncoder(e_layers=el,d_layers=dl,epochs=5,verbosity=NONE,rng=copy(TESTRNG))
+x_reduced = fit!(m,x)
+@test size(x_reduced) == (60,5)
+@test predict(m,x) ≈ x_reduced
+@test size(inverse_predict(m,x_reduced)) == (60,72)
+
 # ==================================
 # New test
 println("** Testing accuracy() on probs given in a dictionary...")
