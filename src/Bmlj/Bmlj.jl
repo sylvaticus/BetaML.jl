@@ -27,6 +27,7 @@ import ..BetaML
 import ..Utils # can't using it as it exports some same-name models
 import ..Perceptron
 import ..Nn: AbstractLayer, ADAM, SGD, NeuralNetworkEstimator, OptimisationAlgorithm, DenseLayer, NN
+import MLDataDevices
 import ..Utils: AbstractRNG, squared_cost, SuccessiveHalvingSearch, radial_kernel
 import ..GMM
 

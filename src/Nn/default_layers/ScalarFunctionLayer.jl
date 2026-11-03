@@ -28,8 +28,8 @@ The number of nodes in input must be set to the same as in the previous layer
 # Notes:
 * The output `size` of this layer is the same as that of the previous layer.
 """
-struct ScalarFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, TDFW <: Union{Nothing,Function}, WET <: Number} <: AbstractLayer
-     w::Array{WET,N}
+struct ScalarFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, TDFW <: Union{Nothing,Function}, WET <: Number, WT <: AbstractArray{WET,N}} <: AbstractLayer
+     w::WT
      n::Int64
      f::TF
      dfx::TDFX
@@ -62,7 +62,12 @@ struct ScalarFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, T
               dfx=match_known_derivatives(f),
               dfw=nothing)
         nw = length(wsize) 
-        return new{nw,typeof(f),typeof(dfx),typeof(dfw),w_eltype}(w,nₗ,f,dfx,dfw)
+        w  = _dense(w,w_eltype)
+        return new{nw,typeof(f),typeof(dfx),typeof(dfw),w_eltype,typeof(w)}(w,nₗ,f,dfx,dfw)
+     end
+     # Constructor from the individual fields (used e.g. to move the layer to a GPU)
+     function ScalarFunctionLayer(w::AbstractArray,n::Integer,f,dfx,dfw)
+        return new{ndims(w),typeof(f),typeof(dfx),typeof(dfw),eltype(w),typeof(w)}(w,n,f,dfx,dfw)
      end
 end
 
@@ -82,49 +87,54 @@ function ReplicatorLayer(n)
    return ScalarFunctionLayer(n,f=identity)
 end
 
-function forward(layer::ScalarFunctionLayer{N},x) where {N}
-  return N == 0 ? layer.f.(x) : layer.f.(x,layer.w)
+# The batch X has the records along the columns (n × n records).
+# Without learnable weights the layer is fully vectorised, while with learnable weights the
+# computation is performed record by record (on the CPU).
+
+function forward_batch(layer::ScalarFunctionLayer{0},X)
+   return layer.f.(X)
+end
+function forward_batch(layer::ScalarFunctionLayer,X)
+   w = _tocpu(layer.w)
+   return _recordwise(x -> layer.f.(x,w),X)
 end
 
-function backward(layer::ScalarFunctionLayer{N},x,next_gradient) where N
-   if N == 0
-      if layer.dfx != nothing
-         dfz = layer.dfx.(x)
-      else  # using AD
-         dfz = layer.f'.(x)
-      end
-      dϵ_dI = @turbo dfz  .* next_gradient
-      return dϵ_dI
-   else
-      if layer.dfx != nothing
-         df_dx = layer.dfx.(x,Ref(layer.w))
-      else  # using AD
-        #tempfunction(x) = layer.f.(x,Ref(layer.w))
-        df_dx = [gradient(xt -> layer.f(xt,layer.w),xi)[1] for xi in x]  
-      end
-      dϵ_dI = @turbo df_dx .* next_gradient
-     return dϵ_dI
+function backward_batch(layer::ScalarFunctionLayer{0},X,next_gradient)
+   return _derivative(layer.f,layer.dfx).(X) .* next_gradient
+end
+function backward_batch(layer::ScalarFunctionLayer,X,next_gradient)
+   w = _tocpu(layer.w)
+   return _recordwise((x,g) -> _backward_record(layer,w,x,g),X,next_gradient)
+end
+function _backward_record(layer::ScalarFunctionLayer,w,x,next_gradient)
+   if layer.dfx != nothing
+      df_dx = layer.dfx.(x,Ref(w))
+   else  # using AD
+      df_dx = [gradient(xt -> layer.f(xt,w),xi)[1] for xi in x]
    end
+   return df_dx .* next_gradient
 end
 
 function get_params(layer::ScalarFunctionLayer{N}) where {N}
    return N == 0 ? Learnable(()) : Learnable((layer.w,))
 end
 
-function get_gradient(layer::ScalarFunctionLayer{N},x,next_gradient) where {N}
-   if N == 0
-     return Learnable(()) # parameterless layer
-   else
-      if layer.dfw != nothing
-         dfz = [layer.dfw(xi,wj) for wj in layer.w, xi in x] 
-         
-      else  # using AD
-        tempfunction(w) = [layer.f(xi,w) for xi in x]
-        dfz = (autojacobian(tempfunction,layer.w; nY=layer.n))'
-      end
-      dϵ_dw = @turbo dfz * next_gradient
-     return Learnable((dϵ_dw,))
+function get_gradient_batch(layer::ScalarFunctionLayer{0},X,next_gradient)
+   return Learnable(()) # parameterless layer
+end
+function get_gradient_batch(layer::ScalarFunctionLayer,X,next_gradient)
+   w = _tocpu(layer.w)
+   return _recordwise_sum((x,g) -> _get_gradient_record(layer,w,x,g),X,next_gradient,layer.w)
+end
+function _get_gradient_record(layer::ScalarFunctionLayer,w,x,next_gradient)
+   if layer.dfw != nothing
+      dfz = [layer.dfw(xi,wj) for wj in w, xi in x]
+   else  # using AD
+     tempfunction(w) = [layer.f(xi,w) for xi in x]
+     dfz = (autojacobian(tempfunction,w; nY=layer.n))'
    end
+   dϵ_dw = dfz * next_gradient
+   return Learnable((dϵ_dw,))
 end
 
 function set_params!(layer::ScalarFunctionLayer{N},w) where {N}

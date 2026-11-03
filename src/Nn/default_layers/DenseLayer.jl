@@ -12,9 +12,9 @@ Representation of a layer in the network
 * `f`:  Activation function
 * `df`: Derivative of the activation function
 """
-struct DenseLayer{TF <: Function, TDF <: Union{Nothing,Function}, WET <: Number} <: AbstractLayer
-     w::Array{WET,2}
-     wb::Array{WET,1}
+struct DenseLayer{TF <: Function, TDF <: Union{Nothing,Function}, WET <: Number, WT <: AbstractMatrix{WET}, BT <: AbstractVector{WET}} <: AbstractLayer
+     w::WT
+     wb::BT
      f::TF
      df::TDF
      @doc """
@@ -46,77 +46,47 @@ struct DenseLayer{TF <: Function, TDF <: Union{Nothing,Function}, WET <: Number}
         size(w) == (n,nₗ) || error("If manually provided, w should have size (n,nₗ)")
         size(wb) == (n,) || error("If manually provided, wb should have size (n)")
         # To be sure w is a matrix and wb a column vector..
-        w  = reshape(w,n,nₗ)
-        wb = reshape(wb,n)
-        return new{typeof(f),typeof(df),w_eltype}(w,wb,f,df)
+        w  = _dense(reshape(w,n,nₗ),w_eltype)
+        wb = _dense(reshape(wb,n),w_eltype)
+        return new{typeof(f),typeof(df),w_eltype,typeof(w),typeof(wb)}(w,wb,f,df)
+     end
+     # Constructor from the individual fields (used e.g. to move the layer to a GPU)
+     function DenseLayer(w::AbstractMatrix,wb::AbstractVector,f,df)
+        return new{typeof(f),typeof(df),eltype(w),typeof(w),typeof(wb)}(w,wb,f,df)
      end
 end
 
-function _zComp(layer::DenseLayer{TF,DTF,WET},x) where {TF, DTF, WET}
-    w  = layer.w
-    wb = layer.wb
-    z  = zeros(WET,size(w,1))
-    @inbounds for n in axes(w,1)
-        zn = zero(eltype(x))
-        for nl in axes(x,1) # @turbo
-            zn += w[n,nl] * x[nl]
-        end
-        zn   += wb[n]
-        z[n]  = zn
-    end
-    return z
+# The batch X has the records along the columns (nₗ × n records)
+
+"Compute the derivative of the loss with respect to the layer's linear outputs (z = w * x + wb)"
+function _dϵ_dz(layer::DenseLayer,X,next_gradient)
+   df = _derivative(layer.f,layer.df)
+   return df.(layer.w * X .+ layer.wb) .* next_gradient
 end
 
-function _zComp!(z,layer::DenseLayer{TF,DTF,WET},x) where {TF, DTF, WET}
-   @inbounds for n in axes(layer.w,1)
-      zn = zero(WET)
-      for nl in axes(x,1) # @turbo
-         zn += layer.w[n,nl] * x[nl]
-      end
-      z[n] += zn
-      z[n] += layer.wb[n]
-   end
-   return nothing
+function forward_batch(layer::DenseLayer,X)
+   return layer.f.(layer.w * _asmatrix(X) .+ layer.wb)
 end
 
-
-function forward(layer::DenseLayer{TF,DTF,WET},x) where {TF, DTF, WET}
-  z = zeros(WET,size(layer)[2][1])
-  _zComp!(z,layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) #layer.w * x + layer.wb # _zComp(layer,x) #   layer.w * x + layer.wb # tested @avx
-  return layer.f.(z)
+function backward_batch(layer::DenseLayer,X,next_gradient)
+   dϵ_dz = _dϵ_dz(layer,_asmatrix(X),_asmatrix(next_gradient))
+   return layer.w' * dϵ_dz
 end
 
-function backward(layer::DenseLayer{TF,DTF,WET},x,next_gradient) where {TF, DTF, WET}
-   z = zeros(WET,size(layer)[2][1])
-   _zComp!(z,layer,x)
-   #z = _zComp(layer,x) #@avx layer.w * x + layer.wb #_zComp(layer,x) # layer.w * x + layer.wb # _zComp(layer,x) # @avx layer.w * x + layer.wb               # tested @avx
-   if layer.df != nothing
-      dfz = layer.df.(z)
-    else
-      dfz = layer.f'.(z) # using AD
-    end
-   dϵ_dz = dfz .* next_gradient # @turbo
-   dϵ_dI = layer.w' * dϵ_dz  # @turbo # @avx
-   return dϵ_dI
+function get_gradient_batch(layer::DenseLayer,X,next_gradient)
+   X     = _asmatrix(X)
+   dϵ_dz = _dϵ_dz(layer,X,_asmatrix(next_gradient))
+   return Learnable((dϵ_dz * X',vec(sum(dϵ_dz,dims=2))))
+end
+
+function backward_and_gradient_batch(layer::DenseLayer,X,next_gradient)
+   X     = _asmatrix(X)
+   dϵ_dz = _dϵ_dz(layer,X,_asmatrix(next_gradient))
+   return (layer.w' * dϵ_dz, Learnable((dϵ_dz * X',vec(sum(dϵ_dz,dims=2)))))
 end
 
 function get_params(layer::DenseLayer)
   return Learnable((layer.w,layer.wb))
-end
-
-function get_gradient(layer::DenseLayer{TF,DTF,WET},x,next_gradient) where {TF, DTF, WET}
-   z = zeros(WET,size(layer)[2][1])
-   _zComp!(z,layer,x)
-   #z      =  _zComp(layer,x) #@avx layer.w * x + layer.wb #  _zComp(layer,x) #layer.w * x + layer.wb # @avx
-   if layer.df != nothing
-      dfz = layer.df.(z)  
-   else
-      dfz =  layer.f'.(z) # using AD
-   end
-   dϵ_dz  =  dfz .* next_gradient # @turbo 
-   dϵ_dw  =  dϵ_dz * x' # @turbo # @avx
-   dϵ_dwb = dϵ_dz
-   return Learnable((dϵ_dw,dϵ_dwb))
 end
 
 function set_params!(layer::DenseLayer,w)

@@ -34,20 +34,6 @@ struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Func
    "Derivative of the activation function"
    df::TDF #Union{Function,Nothing}
 
-   "x ids of the convolution (computed in `preprocess!` - itself at the beginning of `fit!`)"
-   #x_ids::Array{NTuple{NDPLUS1,Int32},1}
-   "y ids of the convolution (computed in `preprocess!` - itself at the beginning of `fit!`)"
-   #y_ids::Array{NTuple{NDPLUS1,Int32},1}
-   "w ids of the convolution (computed in `preprocess!` - itself at the beginning of `fit!`)"
-   #w_ids::Array{NTuple{NDPLUS2,Int32},1}
-
-   "A x-dims array of vectors of ids of y reached by the given x"
-   #x_to_y_ids::Array{Vector{NTuple{NDPLUS1,Int32}},NDPLUS1} # not needed
-   "A y-dims array of vectors of ids of x(s) contributing to the given y"
-   y_to_x_ids::Array{Vector{NTuple{NDPLUS1,Int64}},NDPLUS1}
-   
-
-
    @doc """
    $(TYPEDSIGNATURES)
 
@@ -66,10 +52,12 @@ struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Func
    * `padding`: Integer or 2-element tuple of tuples of the starting and ending padding across the various dimensions [def: `nothing`, i.e. set the padding required to keep out_size = in_size / stride ]
    * `f`:   Activation function. It should have a vector as input and produce a scalar as output [def: `maximum`]
    * `df`:  Derivative (gradient) of the activation function for the various inputs. [default: `nothing` (i.e. use AD)]
+   * `kernel_eltype`: Eltype of the output when the input is not made of floating point numbers [def: `Float64`]
 
 
    # Notes:
    - to retrieve the output size of the layer, use `size(PoolLayer[2])`. The output size on each dimension _d_ (except the last one that is given by `nchannels_out`) is given by the following formula (ceiled): `output_size[d] = 1 + (input_size[d]+2*padding[d]-kernel_size[d])/stride[d]`
+   - on GPUs, `f` must not allocate memory: use `maximum` or `mean` (whose derivatives are computed internally), or your own allocation-free functions with their allocation-free derivatives
    - differently from a ConvLayer, the pooling always applies on a single channel level, so that the output always has the same number of channels as the input. If you want to reduce the channels number either use a `ConvLayer` with the desired number of channels in output or use a `ReshaperLayer` to add a 1-element further dimension that will be treated as "channel" and choose the desired stride for the last pooling dimension (the one that was originally the channel dimension) 
    """
    function PoolingLayer(input_size,kernel_size,nchannels_in;
@@ -117,10 +105,7 @@ struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Func
       # Computation of out_size. Code from size() that we can't yet use
       output_size_with_nchout = ([1 + Int(floor((input_size[d]+padding_start[d]+padding_end[d]-kernel_size[d])/stride[d])) for d in 1:nD]...,nchannels_out)
       
-      #x_to_y_ids = [Vector{NTuple{nD+1,Int32}}() for i in CartesianIndices(input_size_with_nchin)] # not needed
-      y_to_x_ids = [Vector{NTuple{nD+1,Int64}}() for i in CartesianIndices(output_size_with_nchout)]
-
-      new{nD,nD+1,nD+2,typeof(f),typeof(df),kernel_eltype}(input_size_with_nchin,output_size_with_nchout,kernel_size_with_nchin_nchout,padding_start,padding_end,stride,nD,f,df,y_to_x_ids)
+      new{nD,nD+1,nD+2,typeof(f),typeof(df),kernel_eltype}(input_size_with_nchin,output_size_with_nchout,kernel_size_with_nchin_nchout,padding_start,padding_end,stride,nD,f,df)
    end
 end
 
@@ -142,120 +127,90 @@ function PoolingLayer(input_size_with_channel,kernel_size;
 end
 
 
-function preprocess!(layer::PoolingLayer{ND,NDPLUS1,NDPLUS2}) where {ND,NDPLUS1,NDPLUS2}
-   if layer.y_to_x_ids !=  [Vector{NTuple{NDPLUS1,Int32}}() for i in CartesianIndices((layer.output_size...,))]
-      return # layer already preprocessed
-   end
+# The pooling is computed by generic N-dimensional kernels (KernelAbstractions.jl), running on
+# the CPU or on the GPU where the data is. Each kernel instance computes a single element of its
+# output. The batch X has the records along the last dimension (input_size... × n records).
 
-   input_size, output_size = size(layer)
-   nchannels_in  = input_size[end]
-   convsize      = input_size[1:end-1]
-   ndims_conv    = ND
+"Ranges (on each dimension) of the input elements in the pooling window of the output element `o`"
+@inline _pool_window(o,ksz,stride,pad,isz) = ntuple(d -> max(1,(o[d]-1)*stride[d]+1-pad[d]):min(isz[d],(o[d]-1)*stride[d]+ksz[d]-pad[d]), length(o))
 
-   ksize = layer.kernel_size
-   ysize = output_size
-   #println(ysize)
-   
-   # preallocating temp variables
-   k_idx               = Array{Int32,1}(undef,NDPLUS2)
-   y_idx               = Array{Int32,1}(undef,NDPLUS1)
-   k_idx_conv          = Array{Int32,1}(undef,ND)
-   y_idx_conv          = Array{Int32,1}(undef,ND)
-   idx_x_source_padded = Array{Int32,1}(undef,ND)
-   checkstart          = Array{Bool,1}(undef,ND)
-   checkend            = Array{Bool,1}(undef,ND)
-   x_idx               = Array{Int32,1}(undef,NDPLUS1)
-
-   @inbounds for nch_in in 1:nchannels_in
-      #println("Processing in layer :", nch_in)
-      #@inbounds for nch_out in 1:nchannels_out
-         #println("- processing out layer :", nch_out)
-         @inbounds for k_idx_conv in CartesianIndices( ((ksize[1:end-2]...),) ) 
-            k_idx_conv = Tuple(k_idx_conv)
-            k_idx = (k_idx_conv...,nch_in,nch_in)
-            @inbounds for y_idx_conv in CartesianIndices( ((ysize[1:end-1]...),) )
-               y_idx_conv = Tuple(y_idx_conv)
-               y_idx      = (y_idx_conv...,nch_in)
-               #println("y_idx: ",y_idx)
-               #println("k_idx: ",k_idx)
-               #println("layer.stride: ",layer.stride)
-               #quit(1)
-               check = true
-               @inbounds for d in 1:ndims_conv
-                  idx_x_source_padded[d] = k_idx_conv[d] + (y_idx_conv[d] - 1 ) * layer.stride[d]
-                  checkstart[d] =  idx_x_source_padded[d] > layer.padding_start[d]
-                  checkend[d]   =  idx_x_source_padded[d] <=  layer.padding_start[d] .+ convsize[d]
-                  checkstart[d] && checkend[d] || begin check = false; break; end
-               end
-               check || continue
-               
-               @inbounds @simd  for d in 1:ndims_conv
-                  x_idx[d] = idx_x_source_padded[d] - layer.padding_start[d]
-               end
-               x_idx[ndims_conv+1] = nch_in
-               #println()
-               push!(layer.y_to_x_ids[y_idx...],((x_idx...,)))
-               #println("---")
-               #println("x_idx: ", x_idx)
-               #println("w_idx: ", w_idx)
-               #println("y_idx: ", y_idx)
-               #push!(layer.x_ids,((x_idx...,)))
-               #push!(layer.w_ids,w_idx)
-               #push!(layer.y_ids,y_idx)
-               #de_dx_ch_in[idx_x_source...] += dϵ_dz_ch_out[dy_idx...] * w_ch_in_out[w_idx...]
-            
-            end
-         end
-      #end
-   end
+@kernel function _pool_forward_kernel!(y, @Const(x), f, ksz, stride, pad, ::Val{ND}) where {ND}
+   I    = @index(Global, Cartesian)
+   o    = ntuple(d -> I[d], Val(ND))
+   c    = I[ND+1]
+   b    = I[ND+2]
+   isz  = ntuple(d -> size(x,d), Val(ND))
+   rngs = _pool_window(o,ksz,stride,pad,isz)
+   @inbounds y[I] = f(view(x,rngs...,c,b))
 end
 
+# dx[i...,c,b] = ∑_o g[o...,c,b] * ∂f(window(o))/∂x[i...,c,b] for the o whose window includes i
+# (`f::F` and `df::DF` force the specialisation on the functions, as they are only passed through to `_pool_dfx`)
+@kernel function _pool_backward_kernel!(dx, @Const(x), @Const(g), f::F, df::DF, ksz, stride, pad, ::Val{ND}) where {ND,F,DF}
+   I   = @index(Global, Cartesian)
+   i   = ntuple(d -> I[d], Val(ND))
+   c   = I[ND+1]
+   b   = I[ND+2]
+   isz = ntuple(d -> size(x,d), Val(ND))
+   osz = ntuple(d -> size(g,d), Val(ND))
+   olo = ntuple(d -> max(1,cld(i[d]+pad[d]-ksz[d],stride[d])+1), Val(ND))
+   ohi = ntuple(d -> min(osz[d],fld(i[d]+pad[d]-1,stride[d])+1), Val(ND))
+   acc = zero(eltype(dx))
+   for o in CartesianIndices(ntuple(d -> olo[d]:ohi[d], Val(ND)))
+      rngs = _pool_window(Tuple(o),ksz,stride,pad,isz)
+      j    = CartesianIndex(ntuple(d -> i[d]-first(rngs[d])+1, Val(ND)))
+      @inbounds acc += g[o,c,b] * _pool_dfx(f,df,view(x,rngs...,c,b),j)
+   end
+   @inbounds dx[I] = acc
+end
+
+"Derivative of f(w) with respect to the element at (Cartesian) position `j` of the window `w`"
+_pool_dfx(f,df,w,j) = df(w)[j]
+_pool_dfx(f,::Nothing,w,j) = gradient(f,collect(w))[1][j] # using AD
+@inline function _pool_dfx(::typeof(maximum),df,w,j)
+   # only the (first) maximum element has a non-zero derivative, as in `dmaximum`
+   jmax = first(CartesianIndices(w))
+   @inbounds for jj in CartesianIndices(w)
+      if w[jj] > w[jmax]
+         jmax = jj
+      end
+   end
+   return jmax == j ? one(eltype(w)) : zero(eltype(w))
+end
+@inline _pool_dfx(::typeof(mean),df,w,j) = one(eltype(w)) / length(w)
+
+"Eltype of the output of the pooling layer: the eltype of the input if it is a float, `WET` otherwise"
+_pool_eltype(::PoolingLayer{ND,NDPLUS1,NDPLUS2,TF,TDF,WET},X) where {ND,NDPLUS1,NDPLUS2,TF,TDF,WET} = eltype(X) <: AbstractFloat ? eltype(X) : WET
 
 """
 $(TYPEDSIGNATURES)
 
-Compute forward pass of a PoolingLayer
+Compute forward pass of a PoolingLayer for a batch of records (on the last dimension)
 
 """
-function forward(layer::PoolingLayer{ND,NDPLUS1,NDPLUS2,TF, TDF, WET},x) where {ND,NDPLUS1,NDPLUS2,TF, TDF, WET}
-   
-   _, output_size = size(layer)
-   y    = zeros(WET,output_size)
-   for y_idx in eachindex(y)
-      x_ids       = layer.y_to_x_ids[y_idx]
-      x_vals      = [x[idx...] for idx in x_ids]
-      y[y_idx] = layer.f(x_vals)
-   end
+function forward_batch(layer::PoolingLayer{ND},X) where {ND}
+   X = reshape(X,layer.input_size...,_nbatch(X))
+   y = similar(X,_pool_eltype(layer,X),(layer.output_size...,_nbatch(X)))
+   ksz = ntuple(d -> layer.kernel_size[d], Val(ND))
+   _pool_forward_kernel!(_backend(y))(y,X,layer.f,ksz,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND); ndrange=size(y))
    return y
 end
 
-function backward(layer::PoolingLayer{ND,NDPLUS1,NDPLUS2},x, next_gradient) where {ND,NDPLUS1,NDPLUS2}
-   de_dx     = zeros(layer.input_size...)
-   for y_idx in eachindex(next_gradient)
-      #println("----")
-      x_ids       = layer.y_to_x_ids[y_idx]
-      x_vals      = [x[idx...] for idx in x_ids]
-      df_val      = layer.df(x_vals)
-      #println("y_idx: ",y_idx)
-      #println("x_idx: ",x_ids)
-      #println("x_vals: ",x_vals)
-      #println("df_val: ",df_val) 
-      #println("next_gradient[y_idx]: ",next_gradient[y_idx]) 
-      for (i,x_idx) in enumerate(x_ids)
-         #println("- x_idx: ", x_idx)
-         de_dx[x_idx...] += next_gradient[y_idx] .* df_val[i]
-      end
-   end
-   return de_dx
+function backward_batch(layer::PoolingLayer{ND},X,next_gradient) where {ND}
+   X  = reshape(X,layer.input_size...,_nbatch(X))
+   g  = reshape(next_gradient,layer.output_size...,_nbatch(next_gradient))
+   dx = similar(g,promote_type(eltype(g),_pool_eltype(layer,X)),size(X))
+   ksz = ntuple(d -> layer.kernel_size[d], Val(ND))
+   _pool_backward_kernel!(_backend(dx))(dx,X,g,layer.f,layer.df,ksz,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND); ndrange=size(dx))
+   return dx
 end
-
 
 function get_params(layer::PoolingLayer)
     return Learnable(())
 end
 
 
-function get_gradient(layer::PoolingLayer{ND,NDPLUS1,NDPLUS2},x, next_gradient) where {ND,NDPLUS1,NDPLUS2}
+function get_gradient_batch(layer::PoolingLayer,X,next_gradient)
    return Learnable(()) 
 end
 

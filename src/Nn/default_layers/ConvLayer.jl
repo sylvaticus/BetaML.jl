@@ -16,17 +16,17 @@ If the input is a vector, use a [`ReshaperLayer`](@ref) in front.
 # Fields:
 $(TYPEDFIELDS)
 """
-struct ConvLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Function}, WET <: Number} <: AbstractLayer
+struct ConvLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Function}, WET <: Number, WT <: AbstractArray{WET,NDPLUS2}, BT <: AbstractVector{WET}} <: AbstractLayer
    "Input size (including nchannel_in as last dimension)"
    input_size::SVector{NDPLUS1,Int64}
    "Output size (including nchannel_out as last dimension)"
    output_size::SVector{NDPLUS1,Int64}
    "Weight tensor (aka \"filter\" or \"kernel\") with respect to the input from previous layer or data (kernel_size array augmented by the nchannels_in and nchannels_out dimensions)"
-   weight::Array{WET,NDPLUS2}
+   weight::WT
    "Whether to use (and learn) a bias weight [def: true]"
    usebias::Bool
    "Bias (nchannels_out array)"
-   bias::Array{WET,1}
+   bias::BT
    "Padding (initial)"
    padding_start::SVector{ND,Int64}
    "Padding (ending)"
@@ -39,17 +39,6 @@ struct ConvLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Functio
    f::TF
    "Derivative of the activation function"
    df::TDF
-
-   "x ids of the convolution (computed in `preprocess!` - itself at the beginning of `fit!`)"
-   x_ids::Vector{SVector{NDPLUS1,Int64}}
-   "y ids of the convolution (computed in `preprocess!` - itself at the beginning of `fit!`)"
-   y_ids::Vector{SVector{NDPLUS1,Int64}}
-   "w ids of the convolution (computed in `preprocess!` - itself at the beginning of `fit!`)"
-   w_ids::Vector{SVector{NDPLUS2,Int64}}
-   "A y-dims array of vectors of ids of x(s) contributing to the given y"
-   y_to_x_ids::Array{Vector{NTuple{NDPLUS1,Int64}},NDPLUS1}
-   "A y-dims array of vectors of corresponding w(s) contributing to the given y"
-   y_to_w_ids::Array{Vector{NTuple{NDPLUS2,Int64}},NDPLUS1}  
 
    @doc """
    $(TYPEDSIGNATURES)
@@ -141,11 +130,14 @@ struct ConvLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Functio
       out_size = ([1 + Int(floor((input_size[d]+padding_start[d]+padding_end[d]-size(kernel_init,d))/stride[d])) for d in 1:nD]...,nchannels_out)
       #println(size(layer.weight[1],2))
 
-      y_to_x_ids = [Vector{NTuple{nD+1,Int64}}() for i in CartesianIndices(out_size)]
-      y_to_w_ids = [Vector{NTuple{nD+2,Int64}}() for i in CartesianIndices(out_size)]
-
-      #println(nchannels_out)
-      new{nD,nD+1,nD+2,typeof(f),typeof(df),kernel_eltype}((input_size...,nchannels_in),out_size,kernel_init,usebias,bias_init,padding_start,padding_end,stride,nD,f,df,[],[],[],y_to_x_ids,y_to_w_ids)
+      weight = _dense(kernel_init,kernel_eltype)
+      bias   = _dense(bias_init,kernel_eltype)
+      new{nD,nD+1,nD+2,typeof(f),typeof(df),kernel_eltype,typeof(weight),typeof(bias)}((input_size...,nchannels_in),out_size,weight,usebias,bias,padding_start,padding_end,stride,nD,f,df)
+   end
+   # Constructor from the individual fields (used e.g. to move the layer to a GPU)
+   function ConvLayer(input_size::SVector,output_size::SVector,weight::AbstractArray,usebias::Bool,bias::AbstractVector,padding_start::SVector,padding_end::SVector,stride::SVector,ndims::Integer,f,df)
+      nD = length(stride)
+      new{nD,nD+1,nD+2,typeof(f),typeof(df),eltype(weight),typeof(weight),typeof(bias)}(input_size,output_size,weight,usebias,bias,padding_start,padding_end,stride,ndims,f,df)
    end
 end
 
@@ -179,201 +171,115 @@ function ConvLayer(input_size_with_channel,kernel_size,nchannels_out;
      return ConvLayer(input_size_with_channel[1:end-1],kernel_size,input_size_with_channel[end],nchannels_out; stride=stride,rng=rng,padding=padding, kernel_eltype = kernel_eltype,kernel_init=kernel_init,usebias=usebias,bias_init=bias_init,f=f,df=df)
 end
 
-function preprocess!(layer::ConvLayer{ND,NDPLUS1,NDPLUS2}) where {ND,NDPLUS1,NDPLUS2}
+# The convolution is computed by generic N-dimensional kernels (KernelAbstractions.jl), running
+# on the CPU or on the GPU where the layer weights are. Each kernel instance computes a single
+# element of its output, "gathering" all the contributions to it (so no atomic operations are
+# needed). The batch X has the records along the last dimension (input_size... × n records).
+# The valid ranges of the loop indices are computed in advance on each dimension, so that the
+# inner loops contain no bound checks.
 
-   if length(layer.x_ids) > 0
-      return # layer already preprocessed
+# z[o...,co,b] = bias[co] + ∑_{ci,k} w[k...,ci,co] * x[i...,ci,b], with i = (o-1)*stride+k-pad
+@kernel function _conv_forward_kernel!(z, @Const(x), @Const(w), @Const(bias), stride, pad, ::Val{ND}) where {ND}
+   I   = @index(Global, Cartesian)
+   o   = ntuple(d -> I[d], Val(ND))
+   co  = I[ND+1]
+   b   = I[ND+2]
+   ks  = ntuple(d -> max(1,1+pad[d]-(o[d]-1)*stride[d]):min(size(w,d),size(x,d)+pad[d]-(o[d]-1)*stride[d]), Val(ND))
+   acc = zero(eltype(z)) + bias[co]
+   @inbounds for ci in 1:size(w,ND+1), k in CartesianIndices(ks)
+      i    = ntuple(d -> (o[d]-1)*stride[d] + k[d] - pad[d], Val(ND))
+      acc += w[k,ci,co] * x[i...,ci,b]
    end
-
-   input_size, output_size = size(layer)
-   nchannels_out = output_size[end]
-   nchannels_in  = input_size[end]
-   convsize      = input_size[1:end-1]
-   ndims_conv    = ND
-
-   wsize = size(layer.weight)
-   ysize = output_size
-   #println(ysize)
-   
-   # preallocating temp variables
-   w_idx               = Array{Int64,1}(undef,NDPLUS2)
-   y_idx               = Array{Int64,1}(undef,NDPLUS1)
-   w_idx_conv          = Array{Int64,1}(undef,ND)
-   y_idx_conv          = Array{Int64,1}(undef,ND)
-   idx_x_source_padded = Array{Int64,1}(undef,ND)
-   checkstart          = Array{Bool,1}(undef,ND)
-   checkend            = Array{Bool,1}(undef,ND)
-   x_idx               = Array{Int64,1}(undef,NDPLUS1)
-
-   @inbounds for nch_in in 1:nchannels_in
-      #println("Processing in layer :", nch_in)
-      @inbounds for nch_out in 1:nchannels_out
-         #println("- processing out layer :", nch_out)
-         @inbounds for w_idx_conv in CartesianIndices( ((wsize[1:end-2]...),) ) 
-            w_idx_conv = Tuple(w_idx_conv)
-            w_idx = (w_idx_conv...,nch_in,nch_out)
-            @inbounds for y_idx_conv in CartesianIndices( ((ysize[1:end-1]...),) )
-               y_idx_conv = Tuple(y_idx_conv)
-               y_idx      = (y_idx_conv...,nch_out)
-               #println("y_idx: ",y_idx)
-               #println("w_idx: ",w_idx)
-               #println("layer.stride: ",layer.stride)
-               #quit(1)
-               check = true
-               @inbounds for d in 1:ndims_conv
-                  idx_x_source_padded[d] = w_idx_conv[d] + (y_idx_conv[d] - 1 ) * layer.stride[d]
-                  checkstart[d] =  idx_x_source_padded[d] > layer.padding_start[d]
-                  checkend[d]   =  idx_x_source_padded[d] <=  layer.padding_start[d] .+ convsize[d]
-                  checkstart[d] && checkend[d] || begin check = false; break; end
-               end
-               check || continue
-               
-               @inbounds @simd  for d in 1:ndims_conv
-                  x_idx[d] = idx_x_source_padded[d] - layer.padding_start[d]
-               end
-               x_idx[ndims_conv+1] = nch_in
-
-               #println("---")
-               #println("x_idx: ", x_idx)
-               #println("w_idx: ", w_idx)
-               #println("y_idx: ", y_idx)
-               push!(layer.x_ids,((x_idx...,)))
-               push!(layer.w_ids,w_idx)
-               push!(layer.y_ids,y_idx)
-               #println(x_idx)
-               #println(typeof(x_idx))
-               #println(y_idx)
-               #println(typeof(y_idx))
-               push!(layer.y_to_x_ids[y_idx...],(x_idx...,))
-               push!(layer.y_to_w_ids[y_idx...],(w_idx...,))
-               #de_dx_ch_in[idx_x_source...] += dϵ_dz_ch_out[dy_idx...] * w_ch_in_out[w_idx...]
-            end
-         end
-      end
-   end
+   @inbounds z[I] = acc
 end
 
-#=
-function _zComp!(y,layer::ConvLayer{ND,NDPLUS1,NDPLUS2},x) where {ND,NDPLUS1,NDPLUS2}
-   if ndims(x) == 1
-      reshape(x,size(layer)[1]) 
+# dx[i...,ci,b] = ∑_{co,o} w[k...,ci,co] * dz[o...,co,b], with k = i+pad-(o-1)*stride
+@kernel function _conv_dx_kernel!(dx, @Const(dz), @Const(w), stride, pad, ::Val{ND}) where {ND}
+   I   = @index(Global, Cartesian)
+   i   = ntuple(d -> I[d], Val(ND))
+   ci  = I[ND+1]
+   b   = I[ND+2]
+   os  = ntuple(d -> max(1,cld(i[d]+pad[d]-size(w,d),stride[d])+1):min(size(dz,d),fld(i[d]+pad[d]-1,stride[d])+1), Val(ND))
+   acc = zero(eltype(dx))
+   @inbounds for co in 1:size(w,ND+2), o in CartesianIndices(os)
+      k    = ntuple(d -> i[d] + pad[d] - (o[d]-1)*stride[d], Val(ND))
+      acc += w[k...,ci,co] * dz[o,co,b]
    end
-   for idx in 1:length(layer.y_ids)
-     @inbounds y[layer.y_ids[idx]...] += x[layer.x_ids[idx]...] * layer.weight[layer.w_ids[idx]...] 
-   end
-   if(layer.usebias)
-      output_size = size(y)
-      for ch_out in 1:output_size[end]
-         y_ch_out = selectdim(y,NDPLUS1,ch_out)
-         y_ch_out .+= layer.bias[ch_out]
-      end
-   end
-   return nothing
-end
-=#
-
-function _zComp!(y,layer::ConvLayer{ND,NDPLUS1,NDPLUS2,TF,TDF,WET},x) where {ND,NDPLUS1,NDPLUS2,TF,TDF,WET}
-   if ndims(x) == 1
-      reshape(x,size(layer)[1]) 
-   end
-   for y_idx in eachindex(y)
-      yi = zero(WET)   
-      n = length(layer.y_to_x_ids[y_idx])   
-      @inbounds for idx in 1:n
-         yi += x[layer.y_to_x_ids[y_idx][idx]...] * layer.weight[layer.y_to_w_ids[y_idx][idx]...]
-      end
-      y[y_idx] = yi
-   end
-   
-   if(layer.usebias)
-      output_size = size(y)
-      for ch_out in 1:output_size[end]
-         y_ch_out = selectdim(y,NDPLUS1,ch_out)
-         y_ch_out .+= layer.bias[ch_out]
-      end
-   end
-   
-   return nothing
+   @inbounds dx[I] = acc
 end
 
-
-function _dedxComp!(de_dx,layer::ConvLayer{ND,NDPLUS1,NDPLUS2},dϵ_dz) where {ND,NDPLUS1,NDPLUS2}
-   for idx in 1:length(layer.y_ids)
-      @inbounds de_dx[layer.x_ids[idx]...] += dϵ_dz[layer.y_ids[idx]...] * layer.weight[layer.w_ids[idx]...] 
+# dw[k...,ci,co] = ∑_{b,o} dz[o...,co,b] * x[i...,ci,b], with i = (o-1)*stride+k-pad
+@kernel function _conv_dw_kernel!(dw, @Const(dz), @Const(x), stride, pad, ::Val{ND}) where {ND}
+   I   = @index(Global, Cartesian)
+   k   = ntuple(d -> I[d], Val(ND))
+   ci  = I[ND+1]
+   co  = I[ND+2]
+   os  = ntuple(d -> max(1,cld(1+pad[d]-k[d],stride[d])+1):min(size(dz,d),fld(size(x,d)+pad[d]-k[d],stride[d])+1), Val(ND))
+   acc = zero(eltype(dw))
+   @inbounds for b in 1:size(x,ND+2), o in CartesianIndices(os)
+      i    = ntuple(d -> (o[d]-1)*stride[d] + k[d] - pad[d], Val(ND))
+      acc += dz[o,co,b] * x[i...,ci,b]
    end
-   return nothing
+   @inbounds dw[I] = acc
 end
 
-function _dedwComp!(de_dw,layer::ConvLayer{ND,NDPLUS1,NDPLUS2},dϵ_dz,x) where {ND,NDPLUS1,NDPLUS2}
-   for idx in 1:length(layer.y_ids)
-      @inbounds de_dw[layer.w_ids[idx]...] += dϵ_dz[layer.y_ids[idx]...] * x[layer.x_ids[idx]...] 
-   end
-   return nothing
+_convinput(layer::ConvLayer,X)  = reshape(X,layer.input_size...,_nbatch(X))
+_convoutput(layer::ConvLayer,X) = reshape(X,layer.output_size...,_nbatch(X))
+
+function _zComp(layer::ConvLayer{ND},X) where {ND}
+   z = similar(layer.weight,(layer.output_size...,_nbatch(X)))
+   _conv_forward_kernel!(_backend(z))(z,X,layer.weight,layer.bias,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND); ndrange=size(z))
+   return z
 end
 
-#= no advantages
-function _zComp!(y,x,w,bias,y_ids,x_ids,w_ids,usebias)
-   for idx in 1:length(y_ids)
-     @inbounds y[y_ids[idx]...] += x[x_ids[idx]...] * w[w_ids[idx]...] 
-   end
-   if(usebias)
-      output_size = size(y)
-      for ch_out in 1:output_size[end]
-         y_ch_out = selectdim(y,length(output_size),ch_out)
-         y_ch_out .+= bias[ch_out]
-      end
-   end
-   return nothing
+function _dϵ_dz(layer::ConvLayer,X,next_gradient)
+   df = _derivative(layer.f,layer.df)
+   return df.(_zComp(layer,X)) .* next_gradient
 end
 
-function _zComp!(y,layer::ConvLayer{2,3,4},x) # where {ND,NDPLUS1,NDPLUS2}
-   if ndims(x) == 1
-      reshape(x,size(layer)[1]) 
-   end
-   for idx in 1:length(layer.y_ids)
-      @inbounds y[layer.y_ids[idx][1],layer.y_ids[idx][2],layer.y_ids[idx][3]] +=
-           x[layer.x_ids[idx][1],layer.x_ids[idx][2],layer.x_ids[idx][3]] *
-        layer.weight[layer.w_ids[idx][1],layer.w_ids[idx][2],layer.w_ids[idx][3],layer.w_ids[idx][4]] 
-    end
-   if(layer.usebias)
-      output_size = size(y)
-      for ch_out in 1:output_size[end]
-         y_ch_out = selectdim(y,3,ch_out)
-         y_ch_out .+= layer.bias[ch_out]
-      end
-   end
-   return nothing
+function _dϵ_dx(layer::ConvLayer{ND},dϵ_dz) where {ND}
+   dx = similar(layer.weight,(layer.input_size...,_nbatch(dϵ_dz)))
+   _conv_dx_kernel!(_backend(dx))(dx,dϵ_dz,layer.weight,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND); ndrange=size(dx))
+   return dx
 end
-=#
+
+function _dϵ_dw(layer::ConvLayer{ND},dϵ_dz,X) where {ND}
+   dw = similar(layer.weight)
+   _conv_dw_kernel!(_backend(dw))(dw,dϵ_dz,X,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND); ndrange=size(dw))
+   if layer.usebias
+      dbias = vec(sum(dϵ_dz,dims=(ntuple(identity,ND)...,ND+2)))
+      return Learnable((dw,dbias))
+   else
+      return Learnable((dw,))
+   end
+end
 
 """
 $(TYPEDSIGNATURES)
 
-Compute forward pass of a ConvLayer
+Compute forward pass of a ConvLayer for a batch of records (on the last dimension)
 
 """
-function forward(layer::ConvLayer{ND,NDPLUS1,NDPLUS2,TF,TDF,WET},x) where {ND,NDPLUS1,NDPLUS2,TF,TDF,WET}
-   z = zeros(WET,size(layer)[2])
-   _zComp!(z,layer,x)
-   return layer.f.(z)
- end
-
-function backward(layer::ConvLayer{ND,NDPLUS1,NDPLUS2,TF,TDF,WET},x, next_gradient) where {ND,NDPLUS1,NDPLUS2,TF,TDF,WET}
-   _, output_size = size(layer)
-   z = zeros(WET,output_size)
-   _zComp!(z,layer,x)
-  
-   if layer.df != nothing
-      dfz = layer.df.(z)  
-   else
-      dfz =  layer.f'.(z) # using AD
-   end
-   dϵ_dz  = @turbo  dfz .* next_gradient
-   de_dx  = zeros(WET, layer.input_size...)
-   _dedxComp!(de_dx,layer,dϵ_dz)
-   return de_dx
+function forward_batch(layer::ConvLayer,X)
+   return layer.f.(_zComp(layer,_convinput(layer,X)))
 end
 
+function backward_batch(layer::ConvLayer,X,next_gradient)
+   dϵ_dz = _dϵ_dz(layer,_convinput(layer,X),_convoutput(layer,next_gradient))
+   return _dϵ_dx(layer,dϵ_dz)
+end
+
+function get_gradient_batch(layer::ConvLayer,X,next_gradient)
+   X     = _convinput(layer,X)
+   dϵ_dz = _dϵ_dz(layer,X,_convoutput(layer,next_gradient))
+   return _dϵ_dw(layer,dϵ_dz,X)
+end
+
+function backward_and_gradient_batch(layer::ConvLayer,X,next_gradient)
+   X     = _convinput(layer,X)
+   dϵ_dz = _dϵ_dz(layer,X,_convoutput(layer,next_gradient))
+   return (_dϵ_dx(layer,dϵ_dz),_dϵ_dw(layer,dϵ_dz,X))
+end
 
 function get_params(layer::ConvLayer)
   if layer.usebias
@@ -383,35 +289,6 @@ function get_params(layer::ConvLayer)
   end
 end
 
-
-function get_gradient(layer::ConvLayer{ND,NDPLUS1,NDPLUS2,TF,TDF,WET},x, next_gradient) where {ND,NDPLUS1,NDPLUS2,TF,TDF,WET}
-   _, output_size = size(layer)
-   z = zeros(WET, output_size)
-   _zComp!(z, layer,x)
-  
-   if layer.df != nothing
-      dfz = layer.df.(z)  
-   else
-      dfz =  layer.f'.(z) # using AD
-   end
-
-   dϵ_dz  = @turbo  dfz .* next_gradient
-   de_dw  = zeros(WET,size(layer.weight))
-
-   _dedwComp!(de_dw,layer,dϵ_dz,x)
-
-   if layer.usebias
-      dbias = zeros(WET,length(layer.bias))
-      for bias_idx in 1:length(layer.bias)
-         nchannel_out = bias_idx
-         dϵ_dz_nchannelOut = selectdim(dϵ_dz,NDPLUS1,nchannel_out)
-         dbias[bias_idx] = sum(dϵ_dz_nchannelOut)
-      end
-      return Learnable((de_dw,dbias))
-   else
-      return Learnable((de_dw,))
-   end
-end
 
 function set_params!(layer::ConvLayer,w)
    layer.weight                 .= w.data[1]

@@ -545,7 +545,7 @@ d2pooll = PoolingLayer((7,5),(4,3),3,stride=2)
 d2pool = PoolingLayer((4,4),(2,2),3,f=mean)
 x = reshape(1:(4*4*3),4,4,3)
 preprocess!(d2pool)
-@test d2pool.y_to_x_ids[2,2,2] == [(3,3,2),(4,3,2),(3,4,2),(4,4,2)]
+@test forward(d2pool,x)[2,2,2] == mean(x[3:4,3:4,2]) # the window of y[2,2,2] is x[3:4,3:4,2]
 y = forward(d2pool,x)
 @test y[1,2,1] == 11.5
 

@@ -19,9 +19,18 @@ Possible values are:
  - Imputation
  - MLJ
  - all
+
+The GPU support of the neural networks is tested by default with JLArrays, a CPU-based
+simulation of GPU arrays. To test it on a real GPU add the option `gpu_test_device=CUDA` (or
+`AMDGPU`), or set the environment variable BETAML_GPU_TEST_DEVICE, using an environment with
+the GPU package. The script `run_gpu_tests.jl` takes care of all this, e.g.:
+`$ julia test/run_gpu_tests.jl CUDA` (runs the Nn tests on a NVIDIA GPU)
 =#
 
-nArgs = length(ARGS)
+test_options = filter(a -> occursin("=",a), ARGS)  # options in the form `name=value`
+test_groups  = filter(a -> !occursin("=",a), ARGS) # test groups to run
+nArgs        = length(test_groups)
+GPU_TEST_DEVICE = get(Dict(split.(test_options,"=",limit=2)),"gpu_test_device",get(ENV,"BETAML_GPU_TEST_DEVICE","JLArrays"))
 
 if "all" in ARGS
     println("Running ALL tests available")
@@ -40,6 +49,7 @@ if "all" in ARGS || "Trees" in ARGS || nArgs == 0
 end
 if "all" in ARGS || "Nn" in ARGS || nArgs == 0
     include("Nn_tests.jl")
+    include("Nn_gpu_tests.jl") # batched API and GPU support (simulated with JLArrays)
 end
 if "all" in ARGS || "Perceptron" in ARGS || nArgs == 0
     include("Perceptron_tests.jl")

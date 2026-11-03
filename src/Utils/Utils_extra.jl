@@ -1,7 +1,7 @@
 
 @eval Utils begin
 
-export   AutoEncoder, AutoE_hp
+export   AutoEncoder, AutoE_hp, AutoE_options
 
 @force using ..Nn
 
@@ -49,6 +49,43 @@ Base.@kwdef mutable struct AutoE_hp <: BetaMLHyperParametersSet
   tunemethod::AutoTuneMethod                  = SuccessiveHalvingSearch(hpranges = Dict("epochs"=>[100,200,400],"batch_size"=>[8,16],"encoded_size"=>[0.2,0.3,0.5],"layers_size"=>[1.3,2.0,5.0,10.0,nothing]),multithreads=true)
 end
 
+"""
+$(TYPEDEF)
+
+Options for the AutoEncoder transformer (the same as [`BML_options`](@ref), plus `device`)
+
+## Parameters
+$(FIELDS)
+
+"""
+Base.@kwdef mutable struct AutoE_options <: BetaMLOptionsSet
+   "Cache the results of the fitting stage, as to allow predict(mod) [default: `true`]. Set it to `false` to save memory for large data."
+   cache::Bool = true
+   "An optional title and/or description for this model"
+   descr::String = "" 
+   "Option for hyper-parameters autotuning [def: `false`, i.e. no autotuning performed]. If activated, autotuning is performed on the first `fit!()` call. Control auto-tuning through the option `tunemethod` (see the model hyper-parameters)"
+   autotune::Bool = false
+   "The verbosity level to be used in training or prediction: `NONE`, `LOW`, `STD` [default], `HIGH` or `FULL`"
+   verbosity::Verbosity = STD
+   """
+   The strategy to apply in case of failure during the fitting of the underlying neural network (loss not decreasing) [def: "tryagain"].
+   See the option `onfail` of [`NeuralNetworkE_options`](@ref) for details.
+   """
+   onfail::String = "tryagain"
+   "The epoch at which to try the onfail strategy [def: `5`]"
+   fail_epoch::Int64 = 5
+   "The (relative) threshold to use for the onfail strategy [def: `0.01`]"
+   fail_threshold::Float64 = 0.01
+   "The maximum number of attempts to use for the tryagain strategy [def: `10`]"
+   fail_attempts::Int64 = 10
+   "Random Number Generator (see [`?FIXEDSEED`](@ref FIXEDSEED)) [default: `Random.GLOBAL_RNG`]"
+   rng::AbstractRNG = Random.GLOBAL_RNG
+   """
+   The device where to train the underlying neural network and compute the encodings/decodings [def: `:auto`, i.e. where the data is]. See the option `device` of [`NeuralNetworkE_options`](@ref) for details.
+   """
+   device::Union{Symbol,String,Nn.MLDataDevices.AbstractDevice} = :auto
+end
+
 Base.@kwdef mutable struct AutoEncoder_lp <: BetaMLLearnableParametersSet
    encoded_size_actual::Union{Int64,Nothing}                             = nothing
    fullnn::Union{NeuralNetworkEstimator,Nothing}                    = nothing
@@ -65,7 +102,7 @@ A neural network is trained to first transform the data (often "compress") to a 
 
 `predict(mod::AutoEncoder,x)` returns the encoded data, `inverse_predict(mod::AutoEncoder,xtransformed)` performs the decoding.
 
-For the parameters see [`AutoE_hp`](@ref) and [`BML_options`](@ref) 
+For the parameters see [`AutoE_hp`](@ref) and [`AutoE_options`](@ref) 
 
 # Notes:
 - AutoEncoder doesn't automatically scale the data. It is suggested to apply the [`Scaler`](@ref) model before running it. 
@@ -122,15 +159,15 @@ julia> hcat(x,x̂)
 """
 mutable struct AutoEncoder <: BetaMLUnsupervisedModel
     hpar::AutoE_hp
-    opt::BML_options
+    opt::AutoE_options
     par::Union{Nothing,AutoEncoder_lp}
-    cres::Union{Nothing,Matrix}
+    cres::Union{Nothing,AbstractMatrix}
     fitted::Bool
     info::Dict{String,Any}
 end
 
 function AutoEncoder(;kwargs...)
-    m = AutoEncoder(AutoE_hp(),BML_options(),AutoEncoder_lp(),nothing,false,Dict{Symbol,Any}())
+    m = AutoEncoder(AutoE_hp(),AutoE_options(),AutoEncoder_lp(),nothing,false,Dict{Symbol,Any}())
     thisobjfields  = fieldnames(nonmissingtype(typeof(m)))
     for (kw,kwv) in kwargs
        found = false
@@ -177,6 +214,7 @@ function fit!(m::AutoEncoder,X)
     verbosity   = m.opt.verbosity
     #cb          = m.opt.cb
     rng         = m.opt.rng
+    device      = m.opt.device
     fitted      = m.fitted
 
     (N,D) = size(X)
@@ -221,11 +259,13 @@ function fit!(m::AutoEncoder,X)
         else
             d_layers_actual = copy(d_layers)
         end
-        fullnn = NeuralNetworkEstimator(layers=[e_layers_actual...,d_layers_actual...],loss=loss,dloss=dloss,epochs=epochs,batch_size=batch_size,opt_alg=opt_alg,shuffle=shuffle,cache=cache,descr=descr,verbosity=verbosity,rng=rng )
+        fullnn = NeuralNetworkEstimator(layers=[e_layers_actual...,d_layers_actual...],loss=loss,dloss=dloss,epochs=epochs,batch_size=batch_size,opt_alg=opt_alg,shuffle=shuffle,cache=cache,descr=descr,verbosity=verbosity,rng=rng,
+                                        onfail=m.opt.onfail,fail_epoch=m.opt.fail_epoch,fail_threshold=m.opt.fail_threshold,fail_attempts=m.opt.fail_attempts)
         n_el = length(e_layers_actual)
         n_dl = length(d_layers_actual)
     end
 
+    fullnn.opt.device = device # also when re-fitting, in case the option has been changed
     x̂ =  fit!(fullnn,X,X)
 
     par                 = AutoEncoder_lp()
@@ -253,34 +293,44 @@ function fit!(m::AutoEncoder,X)
     m.info["nPar"]       = info(fullnn)["nPar"]
 
     if cache
-        xtemp = copy(X)
-        for el in fullnn.par.nnstruct.layers[1:m.par.n_el]
-            xtemp = vcat([forward(el,r) for r in eachrow(xtemp)]'...)  # TODO: for some layers the data is not a vector!
-        end
-        m.cres = xtemp|> makematrix
+        m.cres = _ae_subnet(fullnn,1:m.par.n_el,X) |> makematrix
     end
     m.fitted=true
     verbosity >= HIGH && println("Relative mean error of the encoded vs original data: $rme")
     return cache ? m.cres : nothing
 end   
 
-function predict(m::AutoEncoder,X)
-    xtemp = copy(X)
-    (N,D) = size(X)
+# Pass the data through a subset of the layers of the full (encoding + decoding) network
+function _ae_subnet(fullnn,layer_ids,X)
+    nn = fullnn.par.nnstruct
+    return predict(NN(nn.layers[layer_ids],nn.cf,nn.dcf,nn.trained,nn.name),X)
+end
 
-    #for r in eachrow(X)
-
-    for el in m.par.fullnn.par.nnstruct.layers[1:m.par.n_el]
-        xtemp = vcat([forward(el,r) for r in eachrow(xtemp)]'...) # TODO: for some layers the data is not a vector!
+# Put the network where to compute the predictions, as `predict(::NeuralNetworkEstimator,X)` does
+function _ae_place!(m::AutoEncoder,X)
+    fullnn = m.par.fullnn
+    fullnn.opt.device = m.opt.device
+    if Nn._device_spec(m.opt.device) === :auto
+        Nn._restore_saved_device!(fullnn)
+    else
+        delete!(fullnn.info,"device_at_save")
+        Nn._place_model!(fullnn.par.nnstruct,m.opt.device,X;verbosity=m.opt.verbosity)
     end
-    return xtemp|> makematrix
+end
+
+function predict(m::AutoEncoder,X)
+    _ae_place!(m,X)
+    return _ae_subnet(m.par.fullnn,1:m.par.n_el,X) |> makematrix
 end  
 function inverse_predict(m::AutoEncoder,X)
-    xtemp = copy(X)
-    for el in m.par.fullnn.par.nnstruct.layers[m.par.n_el+1:end]
-        xtemp = vcat([forward(el,r) for r in eachrow(xtemp)]'...)
-    end
-    return xtemp|> makematrix
+    _ae_place!(m,X)
+    return _ae_subnet(m.par.fullnn,m.par.n_el+1:length(m.par.fullnn.par.nnstruct.layers),X) |> makematrix
+end
+
+function Api._model_to_save(m::AutoEncoder)
+    (isnothing(m.par) || isnothing(m.par.fullnn)) && return m
+    par = AutoEncoder_lp(m.par.encoded_size_actual,Api._model_to_save(m.par.fullnn),m.par.n_el,m.par.n_dl)
+    return AutoEncoder(m.hpar,m.opt,par,isnothing(m.cres) ? nothing : Nn._tocpu(m.cres),m.fitted,m.info)
 end
 end
 

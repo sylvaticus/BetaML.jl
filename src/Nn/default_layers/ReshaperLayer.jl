@@ -38,19 +38,21 @@ struct ReshaperLayer{NDIN,NDOUT} <: AbstractLayer
 end
 
 
-function forward(layer::ReshaperLayer,x)
-  return reshape(x,layer.output_size...)
+# The batch X has the records along the last dimension
+
+function forward_batch(layer::ReshaperLayer,X)
+  return reshape(X,layer.output_size...,_nbatch(X))
 end
 
-function backward(layer::ReshaperLayer,x,next_gradient)
-   return reshape(next_gradient,layer.input_size...)
+function backward_batch(layer::ReshaperLayer,X,next_gradient)
+   return reshape(next_gradient,layer.input_size...,_nbatch(next_gradient))
 end
 
 function get_params(layer::ReshaperLayer)
   return Learnable(())
 end
 
-function get_gradient(layer::ReshaperLayer,x,next_gradient)
+function get_gradient_batch(layer::ReshaperLayer,X,next_gradient)
    return Learnable(())
 end
 

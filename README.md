@@ -188,7 +188,7 @@ Variable importance | [ShapML.jl](https://github.com/nredell/ShapML.jl)
 - Add RNN support and improve convolutional layers speed
 - Reinforcement learning (Markov decision processes)
 - Standardize data sampling in training
-- Add GPU
+- <del>Add GPU</del> (neural networks, any vendor)
 
 ## Contribute
 

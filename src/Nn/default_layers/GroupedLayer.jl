@@ -33,39 +33,37 @@ function _get_n_layers_weights(layer::GroupedLayer)
       return [length(get_params(l).data)  for l in layer.layers ]
 end
 
-function forward(layer::GroupedLayer,x)
-   nL = length(layer.layers)
-   isizes = [size(l)[1][1] for l in layer.layers] 
-   isizes_swapped = vcat(0,isizes)
-   return  vcat([forward(layer.layers[i],selectdim(x,1,sum(isizes_swapped[1:i])+1: sum(isizes_swapped[1:i+1]))) for i in 1:nL]...)
+# The batch X has the records along the columns. Each inner layer receives the rows (features)
+# of its own input and the outputs of the inner layers are stacked along the rows.
+
+"Ranges of the rows of the input (`dim=1`) or output (`dim=2`) of each inner layer"
+function _grouped_ranges(layer::GroupedLayer,dim)
+   sizes = [size(l)[dim][1] for l in layer.layers]
+   ends  = cumsum(sizes)
+   return [e-s+1:e for (s,e) in zip(sizes,ends)]
 end
 
-function backward(layer::GroupedLayer,x,next_gradient)
-   nL = length(layer.layers)
-   isizes = [size(l)[1][1] for l in layer.layers] 
-   isizes_swapped = vcat(0,isizes)
-   osizes = [size(l)[2][1] for l in layer.layers]
-   osizes_swapped = vcat(0,osizes)
-   return  vcat([backward(layer.layers[i], # todo: attention here if first layer has zero parameters !
-        selectdim(x,1,sum(isizes_swapped[1:i])+1 : sum(isizes_swapped[1:i+1])),
-        selectdim(next_gradient,1,sum(osizes_swapped[1:i])+1: sum(osizes_swapped[1:i+1]))
-      ) for i in 1:nL]...) # dϵ_dI   
+function forward_batch(layer::GroupedLayer,X)
+   X = _asmatrix(X)
+   return vcat([forward_batch(l,selectdim(X,1,r)) for (l,r) in zip(layer.layers,_grouped_ranges(layer,1))]...)
+end
+
+function backward_batch(layer::GroupedLayer,X,next_gradient)
+   X  = _asmatrix(X)
+   next_gradient = _asmatrix(next_gradient)
+   return vcat([backward_batch(l,selectdim(X,1,ri),selectdim(next_gradient,1,ro))
+                for (l,ri,ro) in zip(layer.layers,_grouped_ranges(layer,1),_grouped_ranges(layer,2))]...) # dϵ_dI
 end
 
 function get_params(layer::GroupedLayer)
   return Learnable((vcat([ [get_params(l).data...] for l in layer.layers]...)...,))
 end
 
-function get_gradient(layer::GroupedLayer,x,next_gradient)
-   nL = length(layer.layers)
-   isizes = [size(l)[1][1] for l in layer.layers] 
-   isizes_swapped = vcat(0,isizes)
-   osizes = [size(l)[2][1] for l in layer.layers]
-   osizes_swapped = vcat(0,osizes)
-   return  Learnable((vcat([ [get_gradient(layer.layers[i],
-         selectdim(x,1,sum(isizes_swapped[1:i])+1: sum(isizes_swapped[1:i+1])),
-         selectdim(next_gradient,1,sum(osizes_swapped[1:i])+1: sum(osizes_swapped[1:i+1]))
-      ).data...] for i in 1:nL]...)...,)) # [dϵ_dw]
+function get_gradient_batch(layer::GroupedLayer,X,next_gradient)
+   X  = _asmatrix(X)
+   next_gradient = _asmatrix(next_gradient)
+   return Learnable((vcat([ [get_gradient_batch(l,selectdim(X,1,ri),selectdim(next_gradient,1,ro)).data...]
+                for (l,ri,ro) in zip(layer.layers,_grouped_ranges(layer,1),_grouped_ranges(layer,2))]...)...,)) # [dϵ_dw]
 end
 
 function set_params!(layer::GroupedLayer,w)

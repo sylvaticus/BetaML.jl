@@ -86,6 +86,10 @@ Base.@kwdef mutable struct NeuralNetworkRegressor <: MMI.Deterministic
     "Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
     "
     rng::AbstractRNG = Random.GLOBAL_RNG
+    """
+    The device where to train the network and compute the predictions [def: `:auto`]: `:auto` (i.e. where the data is, the CPU for MLJ), `:cpu`, `:gpu` (the GPU of the backend package loaded, e.g. `using CUDA`) or a device object of the MLDataDevices.jl package (e.g. `CUDADevice()`). Predictions are always returned on the CPU.
+    """
+    device::Union{Symbol,String,MLDataDevices.AbstractDevice} = :auto
 end
 
 """
@@ -99,7 +103,7 @@ function MMI.fit(m::NeuralNetworkRegressor, verbosity, X, y)
     typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     ndims(y) > 1 && error("The label should have only 1 dimension. Use `MultitargetNeuralNetworkRegressor` or `NeuralNetworkClassifier` for multi-dimensional outputs.")
-    mi = BetaML.Nn.NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=verbosity)
+    mi = BetaML.Nn.NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=verbosity, device=m.device)
     fit!(mi,x,y)
     fitresults = mi
     cache      = nothing
@@ -203,6 +207,10 @@ Base.@kwdef mutable struct MultitargetNeuralNetworkRegressor <: MMI.Deterministi
     "Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
     "
     rng::AbstractRNG = Random.GLOBAL_RNG
+    """
+    The device where to train the network and compute the predictions [def: `:auto`]: `:auto` (i.e. where the data is, the CPU for MLJ), `:cpu`, `:gpu` (the GPU of the backend package loaded, e.g. `using CUDA`) or a device object of the MLDataDevices.jl package (e.g. `CUDADevice()`). Predictions are always returned on the CPU.
+    """
+    device::Union{Symbol,String,MLDataDevices.AbstractDevice} = :auto
 end
 """
 $(TYPEDSIGNATURES)
@@ -215,7 +223,7 @@ function MMI.fit(m::MultitargetNeuralNetworkRegressor, verbosity, X, y)
     typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
     ndims(y) > 1 || error("The label should have multiple dimensions. Use `NeuralNetworkRegressor` for single-dimensional outputs.")
-    mi = BetaML.Nn.NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=verbosity)
+    mi = BetaML.Nn.NeuralNetworkEstimator(;layers=m.layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=verbosity, device=m.device)
     BetaML.Api.fit!(mi,x,y)
     fitresults = mi
     cache      = nothing
@@ -319,6 +327,10 @@ Base.@kwdef mutable struct NeuralNetworkClassifier <: MMI.Probabilistic
     other_categories_name = nothing
     "Random Number Generator [default: `Random.GLOBAL_RNG`]"
     rng::AbstractRNG = Random.GLOBAL_RNG
+    """
+    The device where to train the network and compute the predictions [def: `:auto`]: `:auto` (i.e. where the data is, the CPU for MLJ), `:cpu`, `:gpu` (the GPU of the backend package loaded, e.g. `using CUDA`) or a device object of the MLDataDevices.jl package (e.g. `CUDADevice()`). Predictions are always returned on the CPU.
+    """
+    device::Union{Symbol,String,MLDataDevices.AbstractDevice} = :auto
 end
 
 """
@@ -353,7 +365,7 @@ function MMI.fit(m::NeuralNetworkClassifier, verbosity, X, y)
         layers = deepcopy(m.layers)
         push!(layers,BetaML.Nn.VectorFunctionLayer(nDy,f=BetaML.Utils.softmax))
     end
-    mi = BetaML.Nn.NeuralNetworkEstimator(;layers=layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=verbosity)
+    mi = BetaML.Nn.NeuralNetworkEstimator(;layers=layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, cache=false, descr=m.descr, cb=m.cb, rng=m.rng, verbosity=verbosity, device=m.device)
     BetaML.Api.fit!(mi,x,Y_oh)
     fitresults = (mi,ohmod)
     cache      = nothing

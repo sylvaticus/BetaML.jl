@@ -37,6 +37,16 @@ You can alternatively implement your own layer by defining a new type as subtype
 - `set_params!(layer,w)`
 - `size(layer)`
 
+The first three functions work on a single record. Training and prediction internally work on whole batches of records, calling the batched versions `forward_batch(layer,X)`, `backward_batch(layer,X,next_gradient)` and `get_gradient_batch(layer,X,next_gradient)`, whose default implementations simply loop over the records of the batch. Implement the batched versions instead of (or in addition to) the single-record ones to speed up your layer, as all the default layers do.
+
+# Running on GPUs
+
+Neural networks can be trained and used on GPUs of any vendor (NVIDIA, AMD, Apple, Intel). Just load the package of your GPU vendor (e.g. `using CUDA`, `using AMDGPU`, `using Metal` or `using oneAPI`) and either:
+- pass your data already on the GPU (e.g. `fit!(m,cu(X),cu(Y))`): with the default option `device=:auto` the network is trained where the data is, and the results are returned there;
+- or keep your data on the CPU and use the option `device=:gpu` of [`NeuralNetworkEstimator`](@ref): each batch is moved to the GPU for the computation, while the results are returned on the CPU.
+
+On GPUs, unless the data is already there with a different floating point type, the computations are performed in `Float32`. To run your own layers on GPUs, their `forward_batch`, `backward_batch` and `get_gradient_batch` functions must use array-level operations (and not loops over the individual elements of the arrays) and BetaML must be able to rebuild the layer with its arrays moved to the GPU. This is automatic if the layer has a constructor taking all its fields in order (like the default one), otherwise define `Adapt.adapt_structure(to,layer::MyLayer)` (see the Adapt.jl package).
+
 # Model fitting:
 
 - `fit!(nn,X,Y)`:  fitting function
@@ -59,6 +69,10 @@ module Nn
 
 using Random, LinearAlgebra, StaticArrays, LoopVectorization, Zygote, ProgressMeter, Reexport, DocStringExtensions
 import Distributions: Uniform
+import Statistics: mean
+import ForwardDiff, Adapt, Functors, MLDataDevices
+import KernelAbstractions as KA
+using KernelAbstractions: @kernel, @index, @Const
 
 using ForceImport
 @force using ..Api
@@ -71,6 +85,7 @@ import Base.show
 
 # module own functions
 export AbstractLayer, forward, backward, get_params, get_gradient, set_params!, size, preprocess! # layer API
+export forward_batch, backward_batch, get_gradient_batch # batched layer API
 #export forward_old, backward_old, get_gradient_old
 export DenseLayer, DenseNoBiasLayer, VectorFunctionLayer, ScalarFunctionLayer, ReplicatorLayer # Available layers
 export GroupedLayer
@@ -87,85 +102,44 @@ Learnable(data)
 
 Structure representing the learnable parameters of a layer or its gradient.
 
-The learnable parameters of a layer are given in the form of a N-tuple of Array{Float64,N2} where N2 can change (e.g. we can have a layer with the first parameter being a matrix, and the second one being a scalar).
+The learnable parameters of a layer are given in the form of a N-tuple of arrays of any dimension (e.g. we can have a layer with the first parameter being a matrix, and the second one being a vector). The arrays can be stored on any device (CPU or GPU).
 We wrap the tuple in its own structure a bit for some efficiency gain, but above all to define standard mathematical operations on the gradients without doing "type piracy" with respect to Base tuples.
+
+Operations with a scalar convert the scalar to the element type of the arrays, so that e.g. `Float32` parameters stay `Float32`.
 """
-mutable struct Learnable{ET}
-    #data::Union{Tuple{Vararg{Array{Float64,N} where N}},Vector{Tuple{Vararg{Array{Float64,N} where N}}}}
-    data::Tuple{Vararg{Array{ET,N} where N}}
-    function Learnable(data)
-        if data == ()
-             return new{Float64}(data)
-        else
-            return new{eltype(eltype(data))}(data)
-        end
-    end
+struct Learnable{T<:Tuple}
+    data::T
 end
-function +(items::Learnable...)
-  values = collect(items[1].data)
-  N = length(values)
-  @inbounds for item in items[2:end]
-       @inbounds  @simd for n in 1:N # @inbounds  @simd
-          values[n] += item.data[n]
-      end
-  end
-  return Learnable(Tuple(values))
-end
+Learnable(data::AbstractVector) = Learnable(Tuple(data))
+
+# Convert a scalar to the (floating point) eltype of an array, to avoid promoting the whole array (e.g. from Float32 to Float64 on a GPU)
+_eltyped(x::AbstractArray{T},sc::Number) where {T<:AbstractFloat} = convert(T,sc)
+_eltyped(x,sc::Number) = sc
+
++(item::Learnable) = item
++(item1::Learnable,item2::Learnable) = Learnable(map((x,y) -> x .+ y, item1.data, item2.data))
+-(item1::Learnable,item2::Learnable) = Learnable(map((x,y) -> x .- y, item1.data, item2.data))
+-(item1::Learnable,item2::Learnable,items::Learnable...) = -(-(item1,item2),items...)
+*(item1::Learnable,item2::Learnable) = Learnable(map((x,y) -> x .* y, item1.data, item2.data))
+/(item1::Learnable,item2::Learnable) = Learnable(map((x,y) -> x ./ y, item1.data, item2.data))
 sum(items::Learnable...)  = +(items...)
-function -(items::Learnable...)
-  values = collect(items[1].data)
-  N = length(values)
- @inbounds for item in items[2:end]
-       @inbounds @simd for n in 1:N # @simd
-          values[n] -= item.data[n]
-      end
-  end
-  return Learnable(Tuple(values))
-end
-
-function *(items::Learnable...)
-  values = collect(items[1].data)
-  N = length(values)
-  @inbounds for item in items[2:end]
-      @inbounds @simd for n in 1:N # @simd
-          values[n] = values[n] .* item.data[n]
-      end
-  end
-  return Learnable(Tuple(values))
-end
-+(item::Learnable,sc::Number) =  Learnable(Tuple([item.data[i] .+ sc for i in 1:length(item.data)]))
++(item::Learnable,sc::Number) = Learnable(map(x -> x .+ _eltyped(x,sc), item.data))
 +(sc::Number, item::Learnable) = +(item,sc)
--(item::Learnable,sc::Number) = Learnable(Tuple([item.data[i] .- sc for i in 1:length(item.data)]))
--(sc::Number, item::Learnable) = (-(item,sc)) * -1
-*(item::Learnable,sc::Number) = Learnable(item.data .* sc)
-*(sc::Number, item::Learnable) = Learnable(sc .* item.data)
-/(item::Learnable,sc::Number) = Learnable(item.data ./ sc)
-/(sc::Number,item::Learnable,) = Learnable(Tuple([sc ./ item.data[i] for i in 1:length(item.data)]))
-sqrt(item::Learnable) = Learnable(Tuple([sqrt.(item.data[i]) for i in 1:length(item.data)]))
-/(item1::Learnable,item2::Learnable) = Learnable(Tuple([item1.data[i] ./ item2.data[i] for i in 1:length(item1.data)]))
-
-
-
-#=
-# not needed ??
-function Base.iterate(iter::Learnable, state=(iter.data[1], 1))
-           element, count = state
-           if count > length(iter)
-               return nothing
-           elseif count == length(iter)
-               return (element, (iter.data[count], count + 1))
-           end
-           return (element, (iter.data[count+1], count + 1))
-end
-Base.length(iter::Learnable) = length(iter.data)
-#Base.eltype(iter::Learnable) = Int
-=#
+-(item::Learnable,sc::Number) = Learnable(map(x -> x .- _eltyped(x,sc), item.data))
+-(sc::Number, item::Learnable) = Learnable(map(x -> _eltyped(x,sc) .- x, item.data))
+*(item::Learnable,sc::Number) = Learnable(map(x -> x .* _eltyped(x,sc), item.data))
+*(sc::Number, item::Learnable) = *(item,sc)
+/(item::Learnable,sc::Number) = Learnable(map(x -> x ./ _eltyped(x,sc), item.data))
+/(sc::Number,item::Learnable) = Learnable(map(x -> _eltyped(x,sc) ./ x, item.data))
+sqrt(item::Learnable) = Learnable(map(x -> sqrt.(x), item.data))
 
 ## Skeleton for the layer functionality.
 # See nn_default_layers.jl for actual implementations
 
 abstract type AbstractLayer end
 abstract type RecursiveLayer <: AbstractLayer end
+
+include("Nn_devices.jl")
 
 
 include("default_layers/DenseLayer.jl")
@@ -178,6 +152,16 @@ include("default_layers/PoolingLayer.jl")
 include("default_layers/ReshaperLayer.jl")
 include("default_layers/RNNLayer.jl")
 
+# Single-record API. Layers implementing the batched API get these functions for free, as they
+# are computed by calling the batched functions on a batch with a single record.
+
+# true if `f` has a method specific for the layer type, i.e. not the generic `AbstractLayer` fallback
+function _implements(f,layer,nargs)
+    m = which(f,Tuple{typeof(layer),ntuple(_ -> Any,nargs-1)...})
+    return Base.unwrap_unionall(m.sig).parameters[2] !== AbstractLayer
+end
+_asbatch(x,shape) = reshape(x,shape...,1)
+
 """
     forward(layer,x)
 
@@ -189,9 +173,14 @@ Predict the output of the layer given the input
 
 # Return:
 - An Array{T,1} of the prediction (even for a scalar)
+
+# Notes:
+- For layers implementing [`forward_batch`](@ref) this is computed by calling it on a batch with a single record
 """
 function forward(layer::AbstractLayer,x)
- error("Not implemented for this kind of layer. Please implement `forward(layer,x)`.")
+    _implements(forward_batch,layer,2) || error("Not implemented for this kind of layer. Please implement `forward(layer,x)` (or `forward_batch(layer,X)`).")
+    (insize,outsize) = size(layer)
+    return reshape(forward_batch(layer,_asbatch(x,insize)),outsize...)
 end
 
 """
@@ -207,9 +196,13 @@ Compute backpropagation for this layer with respect to its inputs
 # Return:
 * The evaluated gradient of the loss with respect to this layer's inputs
 
+# Notes:
+- For layers implementing [`backward_batch`](@ref) this is computed by calling it on a batch with a single record
 """
 function backward(layer::AbstractLayer,x,next_gradient)
-    error("Not implemented for this kind of layer. Please implement `backward(layer,x,next_gradient)`.")
+    _implements(backward_batch,layer,3) || error("Not implemented for this kind of layer. Please implement `backward(layer,x,next_gradient)` (or `backward_batch(layer,X,next_gradient)`).")
+    (insize,outsize) = size(layer)
+    return reshape(backward_batch(layer,_asbatch(x,insize),_asbatch(next_gradient,outsize)),insize...)
 end
 
 """
@@ -239,10 +232,15 @@ Compute backpropagation for this layer with respect to the layer weights
 
 # Return:
 * The evaluated gradient of the loss with respect to this layer's trainable parameters as a tuple of matrices. It is up to you to decide how to organise this tuple, as long as you are consistent with the `get_params()` and `set_params()` functions. Note that starting from BetaML 0.2.2 this tuple needs to be wrapped in its `Learnable` type.
+
+# Notes:
+- For layers implementing [`get_gradient_batch`](@ref) this is computed by calling it on a batch with a single record
 """
 function get_gradient(layer::AbstractLayer,x,next_gradient)
-    error("Not implemented for this kind of layer. Please implement `get_gradient(layer,x,next_gradient)`.")
-  end
+    _implements(get_gradient_batch,layer,3) || error("Not implemented for this kind of layer. Please implement `get_gradient(layer,x,next_gradient)` (or `get_gradient_batch(layer,X,next_gradient)`).")
+    (insize,outsize) = size(layer)
+    return get_gradient_batch(layer,_asbatch(x,insize),_asbatch(next_gradient,outsize))
+end
 
 """
     set_params!(layer,w)
@@ -273,6 +271,80 @@ function size(layer::AbstractLayer)
     error("Not implemented for this kind of layer. Please implement `size(layer)`.")
 end
 
+# Batched API. Training and predictions use these functions. The default implementations loop
+# over the records calling the single-record functions. Layers can implement them with
+# array-level (vectorised) operations, which are much faster, especially on GPUs.
+
+"""
+    forward_batch(layer,X)
+
+Predict the output of the layer for a whole batch of records
+
+# Parameters:
+* `layer`: Worker layer
+* `X`:     Input to the layer, with the records along the last dimension (i.e. an array whose size is the input size of the layer augmented by the number of records)
+
+# Return:
+* The output of the layer, again with the records along the last dimension
+
+# Notes:
+* The default implementation calls `forward(layer,x)` for each record. Implement this function directly with array-level operations to speed up your layer.
+"""
+function forward_batch(layer::AbstractLayer,X)
+    return stack(forward(layer,x) for x in eachslice(X,dims=ndims(X)))
+end
+
+"""
+    backward_batch(layer,X,next_gradient)
+
+Compute backpropagation for this layer with respect to its inputs for a whole batch of records
+
+# Parameters:
+* `layer`:         Worker layer
+* `X`:             Input to the layer, with the records along the last dimension
+* `next_gradient`: Derivative of the overall loss with respect to the input of the next layer (output of this layer), with the records along the last dimension
+
+# Return:
+* The evaluated gradient of the loss with respect to this layer's inputs, with the records along the last dimension
+
+# Notes:
+* The default implementation calls `backward(layer,x,next_gradient)` for each record. Implement this function directly with array-level operations to speed up your layer.
+"""
+function backward_batch(layer::AbstractLayer,X,next_gradient)
+    return stack(backward(layer,x,g) for (x,g) in zip(eachslice(X,dims=ndims(X)),eachslice(next_gradient,dims=ndims(next_gradient))))
+end
+
+"""
+    get_gradient_batch(layer,X,next_gradient)
+
+Compute backpropagation for this layer with respect to the layer weights for a whole batch of records
+
+# Parameters:
+* `layer`:         Worker layer
+* `X`:             Input to the layer, with the records along the last dimension
+* `next_gradient`: Derivative of the overall loss with respect to the input of the next layer (output of this layer), with the records along the last dimension
+
+# Return:
+* The **sum** over the records of the batch of the gradients of the loss with respect to this layer's trainable parameters, wrapped in a `Learnable` object
+
+# Notes:
+* The default implementation sums `get_gradient(layer,x,next_gradient)` over the records. Implement this function directly with array-level operations to speed up your layer.
+"""
+function get_gradient_batch(layer::AbstractLayer,X,next_gradient)
+    return sum(get_gradient(layer,x,g) for (x,g) in zip(eachslice(X,dims=ndims(X)),eachslice(next_gradient,dims=ndims(next_gradient))))
+end
+
+"""
+    backward_and_gradient_batch(layer,X,next_gradient)
+
+Return both `backward_batch(layer,X,next_gradient)` and `get_gradient_batch(layer,X,next_gradient)`.
+
+Layers can implement this function to share the intermediate computations of the two (the default implementation just calls them both).
+"""
+function backward_and_gradient_batch(layer::AbstractLayer,X,next_gradient)
+    return (backward_batch(layer,X,next_gradient),get_gradient_batch(layer,X,next_gradient))
+end
+
 """
     get_nparams(layer)
 
@@ -281,12 +353,7 @@ Return the number of parameters of a layer.
 It doesn't need to be implemented by each layer type, as it uses get_params().
 """
 function get_nparams(layer::AbstractLayer)
-    pars = get_params(layer)
-    nP = 0
-    for p in pars.data
-        nP += *(size(p)...)
-    end
-    return nP
+    return sum(length,get_params(layer).data;init=0)
 end
 
 """
@@ -302,7 +369,7 @@ function random_init!(layer::AbstractLayer;rng=Random.GLOBAL_RNG)
         sizes = size(p)
         nP = *(sizes...)
         T = eltype(p)
-        p .= xavier_init(nP,nP,sizes;rng=rng,eltype=T)
+        copyto!(p,xavier_init(nP,nP,sizes;rng=rng,eltype=T)) # copyto! works also for parameters on GPU
     end
 end
 
@@ -331,7 +398,6 @@ $(TYPEDSIGNATURES)
 Preprocess the layer with information known at layer creation (i.e. no data info used)
 
 This function is used for some layers to cache some computation that doesn't require the data and it is called at the beginning of `fit!`.
-For example, it is used in ConvLayer to store the ids of the convolution.
 
 # Notes:
 - as it doesn't depend on data, it is not reset by `reset!`
@@ -384,6 +450,48 @@ function buildNetwork(layers,cf;dcf=match_known_derivatives(cf),name="Neural Net
 end
 
 
+# Internally the network works on batches of data with the records along the last dimension
+# ("features × records"), on the device where the network parameters are, while the user-facing
+# functions take and return data with the records along the first dimension ("records × features").
+
+"First learnable parameter array of the network (`nothing` for networks without parameters)"
+function _first_param(nn::NN)
+    for l in nn.layers
+        pars = get_params(l).data
+        isempty(pars) || return pars[1]
+    end
+    return nothing
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Prototype array (see `Nn_devices.jl`) of the device and eltype where the network computations take place, i.e. where its parameters are (or where the data `x` is for networks without parameters).
+"""
+function _compute_proto(nn::NN,x)
+    p = _first_param(nn)
+    isnothing(p) && return similar(x,float(eltype(x)),0)
+    return similar(p,eltype(p),0)
+end
+
+"Number of records processed at once when computing predictions or losses over a whole dataset"
+const _CHUNK_SIZE = 1024
+_chunks(n) = [i:min(i+_CHUNK_SIZE-1,n) for i in 1:_CHUNK_SIZE:n]
+
+"""
+Return the data `x` as a (records × features) matrix: a vector is considered a single record, unless the network has a single input (in which case each element is a record)
+"""
+_asrecords(nn::NN,x::AbstractMatrix) = x
+_asrecords(nn::NN,x::AbstractVector) = prod(size(nn.layers[1])[1]) == 1 ? makematrix(x) : reshape(x,1,:)
+
+"Forward pass of a batch `X` (features × records) through all the layers"
+function _forward(nn::NN,X)
+    for l in nn.layers
+        X = forward_batch(l,X)
+    end
+    return X
+end
+
 """
    predict(nn::NN,x)
 
@@ -391,24 +499,19 @@ Low-level network predictions. Use `predict(m::NeuralNetworkEstimator)` instead
 
 # Parameters:
 * `nn`:  Worker network
-* `x`:   Input to the network (n × d)
+* `x`:   Input to the network (n × d), or a single record (d)
+
+# Notes:
+* The computation happens on the device where the network parameters are, while the predictions are returned on the device where `x` is.
 """
 function predict(nn::NN,x)
-    #x = makematrix(x)
-    # get the output dimensions
-    n = size(x)[1]
     lastlayer_size = size(nn.layers[end])[2]
     length(lastlayer_size) == 1 || error("The last NN layer should always be a single dimension vector. Eventually use `ReshaperLayer` to reshape its output as a vector.")
-    d   = lastlayer_size[1]
-    out = zeros(eltype(x),n,d)
-    for i in 1:size(x)[1]
-        values = selectdim(x,1,i) # x[i,:]
-        for l in nn.layers
-            values = forward(l,values)
-        end
-        out[i,:] = values
-    end
-    return out
+    x     = _asrecords(nn,x)
+    proto = _compute_proto(nn,x)
+    outs  = [permutedims(_forward(nn,_to_device(proto,permutedims(x[c,:])))) for c in _chunks(size(x,1))]
+    out   = length(outs) == 1 ? outs[1] : reduce(vcat,outs)
+    return _to_device(similar(x,eltype(out),0),out)
 end
 
 """
@@ -422,14 +525,14 @@ Low level function that computes the avg. network loss on a test set (or a singl
 * `y`:   Label input (n) or (n x d)
 """
 function loss(nn::NN,x,y)
-    #x = makematrix(x) # TODO: check these two lines
-    y = makematrix(y)
-    (n,d) = size(x)
-    #(nn.trained || n == 1) ? "" : @warn "Seems you are trying to test a neural network that has not been tested. Use first `train!(nn,x,y)`"
-    ϵ = 0.0
-    for i in 1:n
-        ŷ = predict(nn,x[i,:]')[1,:]
-        ϵ += nn.cf(y[i,:],ŷ)
+    x     = _asrecords(nn,x)
+    y     = size(x,1) == 1 ? reshape(y,1,:) : makematrix(y)
+    n     = size(x,1)
+    proto = _compute_proto(nn,x)
+    ϵ     = 0.0
+    for c in _chunks(n)
+        ŷ  = permutedims(_forward(nn,_to_device(proto,permutedims(x[c,:]))))
+        ϵ += nn.cf(_to_device(proto,y[c,:]),ŷ)
     end
     return ϵ/n
 end
@@ -449,11 +552,57 @@ Retrieve current weights
   return [get_params(l) for l in nn.layers]
 end
 
+"""
+   _batch_gradient(nn,X,Y)
+
+Compute the gradient of the loss with respect to the weights, **summed** over the records of the batch
+
+# Parameters:
+* `nn`: Worker network
+* `X`:  Input to the network (d × n), on the device of the network parameters
+* `Y`:  Label input (dy × n), on the device of the network parameters
+
+# Notes:
+* The output is a vector of `Learnable` objects, one for each layer
+* The loss function and its derivative are computed with the records along the first dimension (n × dy), as documented in [`NeuralNetworkE_hp`](@ref)
+"""
+function _batch_gradient(nn::NN,X,Y)
+    nLayers = length(nn.layers)
+
+    # Step 1: Forward pass
+    forwardStack    = Vector{Any}(undef,nLayers+1)
+    forwardStack[1] = X
+    for (i,l) in enumerate(nn.layers)
+        forwardStack[i+1] = forward_batch(l,forwardStack[i])
+    end
+
+    # Step 2: Derivative of the loss with respect to the network output
+    y = permutedims(Y)
+    ŷ = permutedims(forwardStack[end])
+    if !isnothing(nn.dcf)
+        dϵ_dŷ = nn.dcf(y,ŷ)
+    else
+        dϵ_dŷ = gradient(nn.cf,y,ŷ)[2] # using AD from Zygote
+    end
+    next_gradient = permutedims(dϵ_dŷ)
+
+    # Step 3: Backpropagation pass, computing the gradient of the weights of each layer
+    dWs = Vector{Learnable}(undef,nLayers)
+    for lidx in nLayers:-1:1
+        l = nn.layers[lidx]
+        if lidx > 1
+            next_gradient, dWs[lidx] = backward_and_gradient_batch(l,forwardStack[lidx],next_gradient)
+        else # no need to backpropagate further than the first layer
+            dWs[lidx] = get_gradient_batch(l,forwardStack[lidx],next_gradient)
+        end
+    end
+    return dWs
+end
 
 """
    get_gradient(nn,x,y)
 
-Low level function that retrieves the current gradient of the weights (i.e. derivative of the cost with respect to the weights). Unexported in BetaML >= v0.9
+Low level function that retrieves the current gradient of the weights (i.e. derivative of the cost with respect to the weights) for a single record. Unexported in BetaML >= v0.9
 
 # Parameters:
 * `nn`: Worker network
@@ -464,72 +613,10 @@ Low level function that retrieves the current gradient of the weights (i.e. deri
 * The output is a vector of tuples of each layer's input weights and bias weights
 """
 function get_gradient(nn::NN,x::Union{T,AbstractArray{T,N1}},y::Union{T2,AbstractArray{T2,N2}}) where { T <: Number, T2 <: Number, N1, N2}
-
-  #x = makecolvector(x)
-  #y = makecolvector(y)
-
-  nLayers = length(nn.layers)
-
-  # Step 1: Forward pass
-  forwardStack = Vector{Array{Float64}}(undef,nLayers+1)
-
-  forwardStack[1] = x
-  @inbounds for (i,l) in enumerate(nn.layers)
-      #println(i)
-      forwardStack[i+1] = forward(l,forwardStack[i])
-  end
-
-  # Step 2: Backpropagation pass
-  backwardStack = Vector{Array{Float64}}(undef,nLayers+1)
-  if nn.dcf != nothing
-    backwardStack[end] = nn.dcf(y,forwardStack[end]) # adding dϵ_dHatY
-  else
-    backwardStack[end] = gradient(nn.cf,y,forwardStack[end])[2] # using AD from Zygote
-  end
-  @inbounds for lidx in nLayers:-1:1
-     l = nn.layers[lidx]
-     #println(lidx)
-     #println(l)
-     dϵ_do = backward(l,forwardStack[lidx],backwardStack[lidx+1])
-     backwardStack[lidx] = dϵ_do
-  end
-
-  # Step 3: Computing gradient of weights
-  dWs = Array{Learnable,1}(undef,nLayers)
-  @inbounds for lidx in 1:nLayers
-     dWs[lidx] = get_gradient(nn.layers[lidx],forwardStack[lidx],backwardStack[lidx+1])
-  end
-
-  return dWs
-end
-
-"""
-   get_batchgradient(nn,xbatch,ybatch)
-
-Retrieve the current gradient of the weights (i.e. derivative of the cost with respect to the weights)
-
-# Parameters:
-* `nn`:      Worker network
-* `xbatch`:  Input to the network (n,d)
-* `ybatch`:  Label input (n,d)
-
-#Notes:
-* The output is a vector of tuples of each layer's input weights and bias weights
-"""
-function get_batchgradient(nn,xbatch::AbstractArray{T,N1},ybatch::AbstractArray{T2,N2}) where {T <: Number, T2 <: Number, N1, N2}
-    #return [get_gradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:size(xbatch,1)]
-    bsize = size(xbatch,1)
-    gradients = Array{Vector{Learnable},1}(undef,bsize)
-    # Note: in Julia 1.6 somehow the multithreading is less efficient than in Julia 1.5
-    # Using @inbounds @simd results faster than using 4 threads, so reverting to it.
-    # But to keep following the evolution, as there seem to be some performance issues
-    # in Julia 1.6: https://discourse.julialang.org/t/drop-of-performances-with-julia-1-6-0-for-interpolationkernels/58085
-    # Maybe when that's solved it will be again more convenient to use multi-threading
-    #Threads.@threads
-    @inbounds  for j in 1:bsize # @simd
-       gradients[j] =  get_gradient(nn,xbatch[j,:],ybatch[j,:])
-    end
-    return gradients
+    x     = x isa Number ? [x] : x
+    y     = y isa Number ? [y] : y
+    proto = _compute_proto(nn,x)
+    return _batch_gradient(nn,_to_device(proto,reshape(x,:,1)),_to_device(proto,reshape(y,:,1)))
 end
 
 """
@@ -624,6 +711,9 @@ function fitting_info(nn,xbatch,ybatch,x,y;n,n_batches,epochs,epochs_ran,verbosi
    return false
 end
 
+"Return a copy on the CPU of the network parameters (e.g. to store them for each epoch)"
+_params_cpu_copy(nn::NN) = [Learnable(map(Array,p.data)) for p in get_params(nn)]
+
 """
    train!(nn,x,y;epochs,batch_size,sequential,opt_alg,verbosity,cb)
 
@@ -661,13 +751,14 @@ Low level function that trains a neural network with the given x,y data.
 - Both the callback function and the [`single_update!`](@ref) function of the optimisation algorithm can be used to stop the training algorithm, respectively returning `true` or `stop=true`.
 - The verbosity can be set to any of `NONE`,`LOW`,`STD`,`HIGH`,`FULL`.
 - The update is done computing the average gradient for each batch and then calling `single_update!` to let the optimisation algorithm perform the parameters update
+- The training takes place on the device (CPU or GPU) where the network parameters are, moving there each batch of data if needed
 """
 function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential=false, nepochs_ran=0,verbosity::Verbosity=STD, cb=fitting_info, onfail="tryagain", fail_epoch_ref=2,fail_epoch=5, fail_threshold=0.01,opt_alg::OptimisationAlgorithm=ADAM(),rng = Random.GLOBAL_RNG)#,   η=t -> 1/(1+t), λ=1, rShuffle=true, nMsgs=10, tol=0opt_alg::SD=SD())
     if verbosity > STD
         @codelocation
     end
-    #x = makematrix(x)
-    #y = makematrix(y)
+    x = makematrix(x)
+    y = makematrix(y)
 
     fail_epoch > fail_epoch_ref || error("fail_epoch ($fail_epoch) must be higher than fail_epoch_ref ($fail_epoch_ref) !")
 
@@ -678,10 +769,15 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
     if verbosity > NONE # Note that these are two "Verbosity type" objects. To compare with numbers use Int(NONE) > 1
         println("***\n*** Training $(nn.name) for $epochs epochs with algorithm $(typeof(opt_alg)).")
     end
+    # The computation happens where the network parameters are, with the records along the columns
+    proto     = _compute_proto(nn,x)
+    xt        = permutedims(x)
+    yt        = permutedims(y)
+
     ϵ_epoch_l = Inf
-    θ_epoch_l = get_params(nn)
+    θ_epoch_l = _params_cpu_copy(nn)
     ϵ_epoch   = loss(nn,x,y)
-    θ_epoch   = get_params(nn)
+    θ_epoch   = _params_cpu_copy(nn)
     ϵ_epochs  = Float64[]
     θ_epochs  = []
 
@@ -710,20 +806,11 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
        #    if (verbosity > STD) push!(θ_epochs,θ_epoch); end
        #end
        for (i,batch) in enumerate(batches)
-           xbatch = x[batch, :]
-           ybatch = y[batch, :]
+           xbatch = view(x,batch,:)
+           ybatch = view(y,batch,:)
            θ   = get_params(nn)
-           # remove @spawn and fetch (on next row) to get single thread code
-           # note that there is no random number issue here..
-           #gradients   = @spawn get_gradient(nn,xbatch,ybatch)
-           #sumGradient = sum(fetch(gradients))
-           gradients   = get_batchgradient(nn,xbatch,ybatch)
-           sumGradient = sum(gradients)
-
+           sumGradient = _batch_gradient(nn,_to_device(proto,xt[:,batch]),_to_device(proto,yt[:,batch]))
            ▽   = sumGradient / length(batch)
-           #▽   = gradDiv.(gradSum([get_gradient(nn,xbatch[j,:],ybatch[j,:]) for j in 1:batch_size]), batch_size)
-           #println("****foooo")
-           #println(▽)
 
            res = single_update!(θ,▽;n_epoch=t+nepochs_ran,n_batch=i,n_batches=n_batches,xbatch=xbatch,ybatch=ybatch,opt_alg=opt_alg)
            set_params!(nn,res.θ)
@@ -763,7 +850,7 @@ function train!(nn::NN,x,y; epochs=100, batch_size=min(size(x,1),32), sequential
        end
        if (verbosity > STD)
            θ_epoch_l = θ_epoch
-           θ_epoch = get_params(nn)
+           θ_epoch = _params_cpu_copy(nn)
            push!(θ_epochs,θ_epoch);
         end
     end # end of epoch
@@ -889,7 +976,7 @@ Base.@kwdef mutable struct NeuralNetworkE_hp <: BetaMLHyperParametersSet
     "Array of layer objects [def: `nothing`, i.e. basic network]. See `subtypes(BetaML.AbstractLayer)` for supported layers"
     layers::Union{Array{AbstractLayer,1},Nothing} = nothing
     """Loss (cost) function [def: `squared_cost`]
-    It must always assume y and ŷ as (n x d) matrices, possibly using `dropdims` inside.
+    It must always assume y and ŷ as (n x d) matrices, possibly using `dropdims` inside, and return the loss summed over the n records. Write it with array-level operations (e.g. broadcasting) for it to work also on GPUs.
     """
     loss::Union{Nothing,Function} = squared_cost
     "Derivative of the loss function [def: `dsquared_cost` if `loss==squared_cost`, `nothing` otherwise, i.e. use the derivative of the squared cost or autodiff]"
@@ -953,6 +1040,16 @@ Base.@kwdef mutable struct NeuralNetworkE_options
    fail_attempts::Int64 = 10
    "Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]"
    rng::AbstractRNG = Random.GLOBAL_RNG
+   """
+   The device where to train the network and compute the predictions [def: `:auto`]. Options are:
+   - `:auto`: use the device where the training data is (e.g. the GPU if `X` is a GPU array);
+   - `:cpu`: use the CPU;
+   - `:gpu`: use the GPU of the backend package loaded (e.g. `using CUDA`, `using AMDGPU`, `using Metal` or `using oneAPI`), moving each batch of data there if it is on the CPU;
+   - a device object of the MLDataDevices.jl package (e.g. `CUDADevice()`), to choose a specific GPU backend.
+   Predictions are always returned on the device of the input data. On GPUs the network parameters are converted to `Float32` (unless the data is already on the GPU with a different floating point type).
+   Models saved with [`model_save`](@ref) while on a GPU have their parameters saved on the CPU. With `device=:auto`, they are moved back to the same kind of GPU when used for predictions, if its package is loaded (otherwise they stay on the CPU).
+   """
+   device::Union{Symbol,String,MLDataDevices.AbstractDevice} = :auto
 end
 
 Base.@kwdef mutable struct NeuralNetworkEstimator_lp <: BetaMLLearnableParametersSet
@@ -1090,6 +1187,101 @@ function NeuralNetworkEstimator(;kwargs...)
     return m
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Return the prototype array (see `Nn_devices.jl`) of the device and eltype where to train the network `nn`, given the `device` option and the training data `X`.
+"""
+function _target_proto(nn::NN,device,X;verbosity=STD)
+    device = _device_spec(device)
+    p      = _first_param(nn)
+    tref   = if device === :cpu || device isa MLDataDevices.CPUDevice
+        nothing
+    elseif device === :auto
+        _iscpu(X) ? nothing : X
+    elseif device === :gpu
+        _device_ref(_gpu_device())
+    else
+        _device_ref(device)
+    end
+    if isnothing(tref) || _iscpu(tref)
+        T = isnothing(p) ? float(eltype(X)) : eltype(p)
+        return Vector{T}(undef,0)
+    end
+    if !isnothing(p) && _samedevice(p,tref)
+        T = eltype(p)                 # the network is already there
+    elseif _samedevice(X,tref) && eltype(X) <: AbstractFloat
+        T = eltype(X)                 # the user put the data on the GPU with this float type
+    else
+        T = Float32
+        if !isnothing(p) && eltype(p) != T && verbosity >= STD
+            @info "Converting the neural network parameters to Float32 to run on the GPU." maxlog=1
+        end
+    end
+    return similar(tref,T,0)
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Move (if needed) the network parameters to the device where to train the network, given the `device` option and the training data `X`.
+"""
+function _place_model!(nn::NN,device,X;verbosity=STD)
+    proto = _target_proto(nn,device,X;verbosity=verbosity)
+    p     = _first_param(nn)
+    if !isnothing(p) && !(_samedevice(p,proto) && eltype(p) == eltype(proto))
+        verbosity > STD && println("Moving the neural network parameters to the device of a `$(typeof(proto))` array.")
+        mover     = _DeviceMover(proto)
+        nn.layers = [_layer_to_device(mover,l) for l in nn.layers]
+    end
+    return nothing
+end
+
+# Before saving, move the parameters (and the optimiser state) on the CPU, as GPU arrays can't be saved
+_optalg_to_cpu(opt_alg::OptimisationAlgorithm) = opt_alg
+function _optalg_to_cpu(opt_alg::ADAM)
+    a2   = ADAM(η=opt_alg.η, λ=opt_alg.λ, β₁=opt_alg.β₁, β₂=opt_alg.β₂, ϵ=opt_alg.ϵ)
+    a2.m = [Learnable(map(_tocpu,l.data)) for l in opt_alg.m]
+    a2.v = [Learnable(map(_tocpu,l.data)) for l in opt_alg.v]
+    return a2
+end
+function Api._model_to_save(m::NeuralNetworkEstimator)
+    (isnothing(m.par) || isnothing(m.par.nnstruct)) && return m
+    nn = m.par.nnstruct
+    p  = _first_param(nn)
+    (isnothing(p) || _iscpu(p)) && return m
+    mover = _DeviceMover(Vector{eltype(p)}(undef,0))
+    nncpu = NN([_layer_to_device(mover,l) for l in nn.layers],nn.cf,nn.dcf,nn.trained,nn.name)
+    hpar  = NeuralNetworkE_hp(;(f => getfield(m.hpar,f) for f in fieldnames(NeuralNetworkE_hp))...)
+    hpar.opt_alg = _optalg_to_cpu(m.hpar.opt_alg)
+    cres  = isnothing(m.cres) ? nothing : _tocpu(m.cres)
+    info  = copy(m.info)
+    dname = _device_name(p)
+    isnothing(dname) || (info["device_at_save"] = dname) # to move the model back there when used
+    return NeuralNetworkEstimator(hpar,m.opt,NeuralNetworkEstimator_lp(nncpu),cres,m.fitted,info)
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Move back to the GPU a model saved (on the CPU) with [`model_save`](@ref) while it was on a GPU, if that kind of GPU is available. Otherwise the model stays on the CPU.
+"""
+function _restore_saved_device!(m::NeuralNetworkEstimator)
+    dname = pop!(m.info,"device_at_save",nothing)
+    isnothing(dname) && return nothing
+    p = _first_param(m.par.nnstruct)
+    (isnothing(p) || !_iscpu(p)) && return nothing
+    D = _device_type(dname)
+    if !isnothing(D) && _device_available(D)
+        mover = _DeviceMover(similar(_device_ref(D()),eltype(p),0))
+        m.par.nnstruct.layers = [_layer_to_device(mover,l) for l in m.par.nnstruct.layers]
+        m.opt.verbosity > STD && println("Moving the neural network parameters back to the $(dname.type) GPU where the model was saved from.")
+    elseif m.opt.verbosity >= STD
+        @info "The model was saved from a $(dname.type) GPU, but this is not available (load the package of the GPU vendor, e.g. `using CUDA`, to use it). Using the CPU."
+    end
+    return nothing
+end
+
 function fit!(m::NeuralNetworkEstimator,X,Y)
     
     (m.fitted) || autotune!(m,(X,Y))
@@ -1122,8 +1314,9 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
     if !fitted
         if layers == nothing
             # let's see if y is continuous, all positives or all in [0,1] in order to choose the last layer accordingly
-            allPos   = all(Y .>= 0.0)
-            allSum1  = all(sum(Y,dims=2) .≈ 1.0)
+            Ycpu     = _tocpu(Y)
+            allPos   = all(Ycpu .>= 0.0)
+            allSum1  = all(sum(Ycpu,dims=2) .≈ 1.0)
             allProbs = allPos && allSum1  && nDy >1
             if nDy == 1 || allProbs
                 innerSize = (nD <= 4) ? Int(round(nD*2)) : Int(round(nD*1.5))
@@ -1177,6 +1370,8 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
 
 
     nnstruct = m.par.nnstruct
+    delete!(m.info,"device_at_save") # where to train is decided by the device option and the data
+    _place_model!(nnstruct,m.opt.device,X;verbosity=verbosity)
     out = ()
     for a in 1:fail_attempts
         out = train!(nnstruct,X,Y; epochs=epochs, batch_size=batch_size, sequential=!shuffle, verbosity=verbosity, cb=cb, opt_alg=opt_alg,nepochs_ran=m.info["nepochs_ran"],onfail=onfail,fail_epoch_ref=fail_epoch_ref,fail_epoch=fail_epoch,fail_threshold=fail_threshold,rng = rng)
@@ -1217,6 +1412,14 @@ function fit!(m::NeuralNetworkEstimator,X,Y)
 end
 
 function predict(m::NeuralNetworkEstimator,X)
+    # With `device=:auto` predictions are computed where the network has been trained (moving
+    # back to the GPU a model saved from there), otherwise on the device requested
+    if _device_spec(m.opt.device) === :auto
+        _restore_saved_device!(m)
+    else
+        delete!(m.info,"device_at_save")
+        _place_model!(m.par.nnstruct,m.opt.device,X;verbosity=m.opt.verbosity)
+    end
     ŷ        = predict(m.par.nnstruct,X)
     nn_osize = size(m.par.nnstruct.layers[end])[2][1]
     if ndims(ŷ) > 1 && nn_osize == 1

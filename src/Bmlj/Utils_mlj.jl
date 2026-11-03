@@ -128,6 +128,10 @@ Base.@kwdef mutable struct AutoEncoder <: MMI.Unsupervised
     "Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
     "
     rng::AbstractRNG = Random.GLOBAL_RNG
+    """
+    The device where to train the underlying neural network and compute the encodings [def: `:auto`]: `:auto` (i.e. where the data is, the CPU for MLJ), `:cpu`, `:gpu` (the GPU of the backend package loaded, e.g. `using CUDA`) or a device object of the MLDataDevices.jl package (e.g. `CUDADevice()`). Results are always returned on the CPU.
+    """
+    device::Union{Symbol,String,MLDataDevices.AbstractDevice} = :auto
 end
 
 """
@@ -141,7 +145,7 @@ function MMI.fit(m::AutoEncoder, verbosity, X)
     typeof(verbosity) <: Integer || error("Verbosity must be an integer. Current \"steps\" are 0, 1, 2 and 3.")  
     verbosity = mljverbosity_to_betaml_verbosity(verbosity)
    
-    mi = BetaML.Utils.AutoEncoder(;encoded_size=m.encoded_size,layers_size=m.layers_size,e_layers=m.e_layers,d_layers=m.d_layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, tunemethod=m.tunemethod, cache=false, descr=m.descr, rng=m.rng, verbosity=verbosity)
+    mi = BetaML.Utils.AutoEncoder(;encoded_size=m.encoded_size,layers_size=m.layers_size,e_layers=m.e_layers,d_layers=m.d_layers,loss=m.loss, dloss=m.dloss, epochs=m.epochs, batch_size=m.batch_size, opt_alg=m.opt_alg,shuffle=m.shuffle, tunemethod=m.tunemethod, cache=false, descr=m.descr, rng=m.rng, verbosity=verbosity, device=m.device)
     Api.fit!(mi,x)
     fitresults = mi
     cache      = nothing

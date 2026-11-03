@@ -61,15 +61,18 @@ end
 
 # Used as neural network loss function
 """
-   crossentropy(y,ŷ; weight)
+   crossentropy(y,ŷ; weight)
 
 Compute the (weighted) cross-entropy between the predicted and the sampled probability distributions.
 
 To be used in classification problems.
 
+`y` and `ŷ` can be vectors (a single record) or (n × d) matrices (one record per row), in which case the cross-entropy is summed over the records. The optional `weight` (a scalar or a vector/matrix broadcastable with `y`) weights the different classes [def: `1`].
 """
-crossentropy(y,ŷ ; weight = ones(eltype(y),length(y)))  = -sum(y .* log.(ŷ .+ 1e-15) .* weight)
-dcrossentropy(y,ŷ; weight = ones(eltype(y),length(y))) = - y .* weight ./ (ŷ .+ 1e-15)
+crossentropy(y,ŷ ; weight = 1)  = -sum(y .* log.(ŷ .+ _ϵcrossentropy(ŷ)) .* weight)
+dcrossentropy(y,ŷ; weight = 1) = - y .* weight ./ (ŷ .+ _ϵcrossentropy(ŷ))
+# small number to avoid log(0), with the same eltype of ŷ (e.g. to keep Float32 computations on GPUs)
+_ϵcrossentropy(ŷ) = convert(float(eltype(ŷ)),1e-15)
 
 """
     kl_divergence(distribution1,distribution2,base2=true)

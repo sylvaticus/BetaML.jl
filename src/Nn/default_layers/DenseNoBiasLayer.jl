@@ -11,8 +11,8 @@ Representation of a layer without bias in the network
 * `f`:  Activation function
 * `df`: Derivative of the activation function
 """
-struct DenseNoBiasLayer{TF <: Function, TDF <: Union{Nothing,Function}, WET <: Number} <: AbstractLayer
-     w::Array{WET,2}
+struct DenseNoBiasLayer{TF <: Function, TDF <: Union{Nothing,Function}, WET <: Number, WT <: AbstractMatrix{WET}} <: AbstractLayer
+     w::WT
      f::TF
      df::TDF
      @doc """
@@ -37,69 +37,46 @@ struct DenseNoBiasLayer{TF <: Function, TDF <: Union{Nothing,Function}, WET <: N
            w  = xavier_init(nₗ,n,rng=rng,eltype=w_eltype),
            f=identity,df=match_known_derivatives(f))
       # To be sure w is a matrix and wb a column vector..
-      w  = reshape(w,n,nₗ)
-      return new{typeof(f),typeof(df),w_eltype}(w,f,df)
+      w  = _dense(reshape(w,n,nₗ),w_eltype)
+      return new{typeof(f),typeof(df),w_eltype,typeof(w)}(w,f,df)
+     end
+     # Constructor from the individual fields (used e.g. to move the layer to a GPU)
+     function DenseNoBiasLayer(w::AbstractMatrix,f,df)
+        return new{typeof(f),typeof(df),eltype(w),typeof(w)}(w,f,df)
      end
 end
 
-function _zComp(layer::DenseNoBiasLayer,x)
-    w  = layer.w
-    z  = zeros(eltype(x),size(w,1))
-    @inbounds for n in axes(w,1)
-        zn = zero(eltype(x))
-        @turbo for nl in axes(x,1)
-            zn += w[n,nl] * x[nl]
-        end
-        z[n]  = zn
-    end
-    return z
+# The batch X has the records along the columns (nₗ × n records)
+
+"Compute the derivative of the loss with respect to the layer's linear outputs (z = w * x)"
+function _dϵ_dz(layer::DenseNoBiasLayer,X,next_gradient)
+   df = _derivative(layer.f,layer.df)
+   return df.(layer.w * X) .* next_gradient
 end
 
-function _zComp!(z,layer::DenseNoBiasLayer{TF,DTF,WET},x) where {TF, DTF, WET}
-   @inbounds for n in axes(layer.w,1)
-      zn = zero(WET)
-      @turbo for nl in axes(x,1)
-         zn += layer.w[n,nl] * x[nl]
-      end
-      z[n] += zn
-   end
-   return nothing
+function forward_batch(layer::DenseNoBiasLayer,X)
+   return layer.f.(layer.w * _asmatrix(X))
 end
 
-function forward(layer::DenseNoBiasLayer{TF,DTF,WET},x) where {TF, DTF, WET}
-  z = zeros(WET,size(layer)[2][1])
-  _zComp!(z,layer,x)
-  return layer.f.(z)
+function backward_batch(layer::DenseNoBiasLayer,X,next_gradient)
+   dϵ_dz = _dϵ_dz(layer,_asmatrix(X),_asmatrix(next_gradient))
+   return layer.w' * dϵ_dz
 end
 
-function backward(layer::DenseNoBiasLayer{TF,DTF,WET},x,next_gradient) where {TF, DTF, WET}
-   z = zeros(WET,size(layer)[2][1])
-   _zComp!(z,layer,x)
-   if layer.df != nothing
-      dfz = layer.df.(z) 
-   else
-      dfz = layer.f'.(z)  # using AD
-   end
-   dϵ_dz = @turbo dfz .* next_gradient
-   dϵ_dI = @turbo layer.w' * dϵ_dz
-   return dϵ_dI
+function get_gradient_batch(layer::DenseNoBiasLayer,X,next_gradient)
+   X     = _asmatrix(X)
+   dϵ_dz = _dϵ_dz(layer,X,_asmatrix(next_gradient))
+   return Learnable((dϵ_dz * X',))
+end
+
+function backward_and_gradient_batch(layer::DenseNoBiasLayer,X,next_gradient)
+   X     = _asmatrix(X)
+   dϵ_dz = _dϵ_dz(layer,X,_asmatrix(next_gradient))
+   return (layer.w' * dϵ_dz, Learnable((dϵ_dz * X',)))
 end
 
 function get_params(layer::DenseNoBiasLayer)
   return Learnable((layer.w,))
-end
-
-function get_gradient(layer::DenseNoBiasLayer{TF,DTF,WET},x,next_gradient) where {TF, DTF, WET}
-   z = zeros(WET,size(layer)[2][1])
-   _zComp!(z,layer,x)
-   if layer.df != nothing
-      dfz = layer.df.(z)
-   else
-      dfz = layer.f'.(z) # using AD
-   end
-   dϵ_dz = @turbo dfz .* next_gradient
-   dϵ_dw = @turbo dϵ_dz * x'
-   return Learnable((dϵ_dw,))
 end
 
 function set_params!(layer::DenseNoBiasLayer,w)
