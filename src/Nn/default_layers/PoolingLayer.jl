@@ -57,7 +57,8 @@ struct PoolingLayer{ND,NDPLUS1,NDPLUS2,TF <: Function, TDF <: Union{Nothing,Func
 
    # Notes:
    - to retrieve the output size of the layer, use `size(PoolLayer[2])`. The output size on each dimension _d_ (except the last one that is given by `nchannels_out`) is given by the following formula (ceiled): `output_size[d] = 1 + (input_size[d]+2*padding[d]-kernel_size[d])/stride[d]`
-   - on GPUs, `f` must not allocate memory: use `maximum` or `mean` (whose derivatives are computed internally), or your own allocation-free functions with their allocation-free derivatives
+   - on GPUs only `f=maximum` and `f=mean` are supported (their derivatives are computed directly within the GPU kernel), while other functions work only on the CPU. For other pooling functions on GPUs, use a [`VectorFunctionLayer`](@ref) with `batched=true` (see its documentation)
+   - a 1-dimensional pooling of `nₗ` nodes over windows of `k` nodes moving one node at a time, as done by [`pool1d`](@ref), is obtained with `PoolingLayer(nₗ,k,1,stride=1,padding=0,f=f)`. The output has a further singleton "channel" dimension (`size(layer) == ((nₗ,1),(nₗ-k+1,1))`), that the following dense layers simply ignore
    - differently from a ConvLayer, the pooling always applies on a single channel level, so that the output always has the same number of channels as the input. If you want to reduce the channels number either use a `ConvLayer` with the desired number of channels in output or use a `ReshaperLayer` to add a 1-element further dimension that will be treated as "channel" and choose the desired stride for the last pooling dimension (the one that was originally the channel dimension) 
    """
    function PoolingLayer(input_size,kernel_size,nchannels_in;

@@ -146,6 +146,25 @@ dwjac = sum(BetaML.autojacobian(wt -> fvw(x,wt),w)' * g for (x,g) in zip(eachcol
 check_layer(lrecw,X,G)
 check_layer(lbatw,X,G)
 
+# Pooling on GPUs, as documented in `pool1d`: PoolingLayer for maximum/mean, batched VectorFunctionLayer otherwise
+n, k = 8, 3
+X = rand(rng,n,1,B); G = randn(rng,n-k+1,1,B)
+for f in (maximum,mean)
+    lpool1d = VectorFunctionLayer(n,f = x -> pool1d(x,k,f=f))
+    lpool   = PoolingLayer(n,k,1,stride=1,padding=0,f=f)
+    @test size(lpool) == ((n,1),(n-k+1,1))
+    @test forward_batch(lpool,X)[:,1,:] ≈ forward_batch(lpool1d,X[:,1,:])
+    @test backward_batch(lpool,X,G)[:,1,:] ≈ backward_batch(lpool1d,X[:,1,:],G[:,1,:])
+    check_layer(lpool,X,G)
+end
+rmspool(X) = sqrt.(sum(X[i:end-k+i,:].^2 for i in 1:k) ./ k)
+lrms    = VectorFunctionLayer(n,f=rmspool,batched=true)
+lrmsref = VectorFunctionLayer(n,f = x -> pool1d(x,k,f = w -> sqrt(mean(w.^2))))
+@test size(lrms) == ((n,),(n-k+1,))
+@test forward_batch(lrms,X[:,1,:]) ≈ forward_batch(lrmsref,X[:,1,:])
+@test backward_batch(lrms,X[:,1,:],G[:,1,:]) ≈ backward_batch(lrmsref,X[:,1,:],G[:,1,:])
+check_layer(lrms,X[:,1,:],G[:,1,:])
+
 # Convolution vs a direct (brute force) computation
 l  = ConvLayer((5,4),(3,2),2,3,stride=(2,1),padding=((1,0),(1,1)),rng=copy(TESTRNG))
 X  = randn(copy(TESTRNG),5,4,2,B)

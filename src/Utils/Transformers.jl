@@ -33,7 +33,11 @@ dplu(x;α=0.1,c=one(x)) = ( ( x >= (α*(x+c)-c)  &&  x <= (α*(x+c)+c) ) ? one(x
 Apply function `f` to rolling poolsize contiguous (in 1d) neurons.
 
 Applicable to `VectorFunctionLayer`, e.g. `layer2  = VectorFunctionLayer(nₗ,f=(x->pool1d(x,4,f=mean))`
-**Attention**: to apply this function as activation function in a neural network you will need Julia version >= 1.6, otherwise you may experience a segmentation fault (see [this bug report](https://github.com/FluxML/Zygote.jl/issues/943))
+
+# Notes:
+- In a `VectorFunctionLayer`, `pool1d` is computed record by record on the CPU (also when the data is on a GPU). For faster layers that also run on GPUs:
+  - with `f=maximum` or `f=mean`, use instead `PoolingLayer(nₗ,poolsize,1,stride=1,padding=0,f=f)`, that gives the same results (its output has a further singleton "channel" dimension, that dense layers just ignore);
+  - with other functions, use a `VectorFunctionLayer` with `batched=true` and a function that works on a whole batch (one record per column) using array slices, e.g. for a root-mean-square pooling: `VectorFunctionLayer(nₗ,f=X -> sqrt.(sum(X[i:end-poolsize+i,:].^2 for i in 1:poolsize) ./ poolsize),batched=true)`.
 """
 pool1d(x,poolsize=3;f=mean) = [f(x[i:i+poolsize-1]) for i in 1:length(x)-poolsize+1] # we may try to use CartesianIndices/LinearIndices for a n-dimensional generalisation
 

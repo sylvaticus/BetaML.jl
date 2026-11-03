@@ -67,7 +67,8 @@ struct VectorFunctionLayer{N, TF <: Function, TDFX <: Union{Nothing,Function}, T
      * `rng`: Random Number Generator (see [`FIXEDSEED`](@ref)) [default: `Random.GLOBAL_RNG`]
      # Notes:
      - If the derivative is provided, it should return the gradient as a (n,n) matrix (i.e. the Jacobian) and it is computed record by record. Otherwise the derivatives are computed by AD (with Zygote), on the whole batch if `batched=true`
-     - With `batched=true` (and no derivative provided) the layer is computed with array-level operations on the whole batch, so it is much faster and it can run on GPUs (if `f` is written with array-level operations, e.g. broadcasting). Otherwise the computation is performed record by record on the CPU (except for `softmax`, that is always computed on the whole batch)
+     - With `batched=true` (and no derivative provided) the layer is computed with array-level operations on the whole batch, so it is much faster and it can run on GPUs (if `f` is written with array-level operations, e.g. broadcasting, sums and array slices, and not with loops over the individual elements). Otherwise the computation is performed record by record on the CPU (except for `softmax`, that is always computed on the whole batch)
+     - Pooling functions with a sliding window can be written for whole batches using array slices, e.g. a root-mean-square pooling over windows of `k` nodes: `VectorFunctionLayer(nₗ,f=X -> sqrt.(sum(X[i:end-k+i,:].^2 for i in 1:k) ./ k),batched=true)`. For `maximum` and `mean` pooling use instead [`PoolingLayer`](@ref)
      - To avoid recomputing the activation function just to determine its output size,
        we compute the output size once here in the layer constructor by calling the
        activation function with `dummyDataToTestOutputSize`. Feel free to change

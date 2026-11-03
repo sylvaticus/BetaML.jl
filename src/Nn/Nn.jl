@@ -47,6 +47,11 @@ Neural networks can be trained and used on GPUs of any vendor (NVIDIA, AMD, Appl
 
 On GPUs, unless the data is already there with a different floating point type, the computations are performed in `Float32`. To run your own layers on GPUs, their `forward_batch`, `backward_batch` and `get_gradient_batch` functions must use array-level operations (and not loops over the individual elements of the arrays) and BetaML must be able to rebuild the layer with its arrays moved to the GPU. This is automatic if the layer has a constructor taking all its fields in order (like the default one), otherwise define `Adapt.adapt_structure(to,layer::MyLayer)` (see the Adapt.jl package).
 
+Most default layers run entirely on GPUs. The exceptions, that still work with data on GPUs but compute record by record on the CPU, are:
+- `VectorFunctionLayer` with functions other than `softmax`, unless the function can work on a whole batch and the layer is created with `batched=true`;
+- `PoolingLayer` with functions other than `maximum` and `mean`.
+In particular, for pooling on GPUs use `PoolingLayer` with `f=maximum` or `f=mean` (e.g. `PoolingLayer(nₗ,k,1,stride=1,padding=0,f=mean)` is the equivalent of `pool1d(x,k,f=mean)`), or a `VectorFunctionLayer` with `batched=true` and a pooling function working on whole batches with array slices (see the documentation of `VectorFunctionLayer`).
+
 # Model fitting:
 
 - `fit!(nn,X,Y)`:  fitting function
