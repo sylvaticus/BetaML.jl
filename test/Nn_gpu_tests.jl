@@ -337,10 +337,49 @@ ael    = model_load("test.jld2","aegpu")
 @test ael.par.fullnn.par.nnstruct.layers[1].w isa DevArray{Float64} # ...and moved back to the GPU when used
 
 println("Testing MLJ interface with the device option...")
+# The MLJ models take the data as tables (on the CPU) and return the predictions on the CPU, while the
+# training and the predictions are computed on the device given by their `device` hyperparameter
 import MLJBase
-X, y  = MLJBase.@load_boston
-model = BetaML.Bmlj.NeuralNetworkRegressor(rng=copy(TESTRNG),device=testdevice(),epochs=10)
-(fitresult, cache, report) = MLJBase.fit(model, 0, X, y)
-yhat  = MLJBase.predict(model, fitresult, X)
-@test yhat isa Vector{Float32}
-@test fitresult.par.nnstruct.layers[1].w isa DevArray{Float32}
+onCPU(a) = a isa Array || a isa AbstractVector{<:MLJBase.UnivariateFinite}
+"Predictions of the MLJ model `M` trained on the CPU (to compare with those obtained on the GPU)"
+function mlj_cpu_predictions(M,X,y;kwargs...)
+    mach = MLJBase.machine(M(;device=:cpu,kwargs...),X,y)
+    MLJBase.fit!(mach,verbosity=0)
+    return MLJBase.predict(mach,X)
+end
+X, y = MLJBase.@load_boston
+
+model = BetaML.Bmlj.NeuralNetworkRegressor(rng=copy(TESTRNG),device=testdevice(),epochs=20)
+mach  = MLJBase.machine(model,X,y)
+MLJBase.fit!(mach,verbosity=0)
+ŷ     = MLJBase.predict(mach,X)
+@test ŷ isa Vector{Float32}
+@test MLJBase.fitted_params(mach).fitresult.par.nnstruct.layers[1].w isa DevArray{Float32}
+@test relative_mean_error(mlj_cpu_predictions(BetaML.Bmlj.NeuralNetworkRegressor,X,y,rng=copy(TESTRNG),epochs=20),ŷ) < 1e-3
+
+Y     = hcat(y,2 .* y)
+model = BetaML.Bmlj.MultitargetNeuralNetworkRegressor(rng=copy(TESTRNG),device=testdevice(),epochs=20)
+mach  = MLJBase.machine(model,X,Y)
+MLJBase.fit!(mach,verbosity=0)
+Ŷ     = MLJBase.predict(mach,X)
+@test Ŷ isa Matrix{Float32} && size(Ŷ) == size(Y)
+@test MLJBase.fitted_params(mach).fitresult.par.nnstruct.layers[1].w isa DevArray{Float32}
+@test relative_mean_error(mlj_cpu_predictions(BetaML.Bmlj.MultitargetNeuralNetworkRegressor,X,Y,rng=copy(TESTRNG),epochs=20),Ŷ) < 1e-3
+
+Xiris, yiris = MLJBase.@load_iris
+model = BetaML.Bmlj.NeuralNetworkClassifier(rng=copy(TESTRNG),device=testdevice(),epochs=100)
+mach  = MLJBase.machine(model,Xiris,yiris)
+MLJBase.fit!(mach,verbosity=0)
+ŷ     = MLJBase.predict(mach,Xiris)
+@test onCPU(ŷ)
+@test MLJBase.fitted_params(mach).fitresult[1].par.nnstruct.layers[1].w isa DevArray{Float32}
+@test sum(MLJBase.mode.(ŷ) .== yiris)/length(yiris) > 0.9
+
+model = BetaML.Bmlj.AutoEncoder(rng=copy(TESTRNG),device=testdevice(),encoded_size=3,epochs=20)
+mach  = MLJBase.machine(model,X)
+MLJBase.fit!(mach,verbosity=0)
+Xe    = MLJBase.transform(mach,X)
+X̂     = MLJBase.inverse_transform(mach,Xe)
+@test onCPU(Xe) && size(Xe) == (size(MLJBase.matrix(X),1),3)
+@test onCPU(X̂) && size(X̂) == size(MLJBase.matrix(X))
+@test MLJBase.fitted_params(mach).fitresult.par.fullnn.par.nnstruct.layers[1].w isa DevArray{Float32}
