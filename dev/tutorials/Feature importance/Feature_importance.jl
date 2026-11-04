@@ -2,9 +2,9 @@
 
 # Often we want to understand the contribution of the different variables (x columns) to the prediction accuracy of a black-box machine learning model.
 # To this end, BetaML 0.12 introduces [`FeatureRanker`](@ref), a flexible variable ranking estimator that employs multiple variable importance metrics. 
-# `FeatureRanker` helps to determine the importance of features in predictions from any black-box machine learning model (not necessarily the BetaML suit), internally using cross-validation to assess the quality of the predictions (`metric="mda"`), or the contribution of the variable to the variance of the predictions (`metric="sobol"`), with or without a given variable.
+# `FeatureRanker` helps to determine the importance of features in predictions from any black-box machine learning model (not necessarily the BetaML suite), internally using cross-validation to assess the quality of the predictions (`metric="mda"`), or the contribution of the variable to the variance of the predictions (`metric="sobol"`), with or without a given variable.
 
-# By default, it ranks variables (columns) in a single pass without retraining on each one. However, it is possible to specify the model to use multiple passes (where on each pass the less important variable is permuted). This helps to assess importance in the presence of highly correlated variables.
+# By default, it ranks variables (columns) in a single pass without retraining on each one. However, it is possible to specify the model to use multiple passes (where on each pass the least important variable is permuted). This helps to assess importance in the presence of highly correlated variables.
 # While the default strategy is to simply (temporarily) permute the "test" variable and predict the modified data set, it is possible to refit the model to be evaluated on each variable ("permute and relearn"), of course at a much higher computational cost.
 # However, if the ML model to be evaluated supports ignoring variables during prediction (as BetaML tree models do), it is possible to specify the keyword argument for such an option in the target model prediction function and avoid refitting.
 
@@ -22,7 +22,7 @@ Random.seed!(123)
 # ## Example with synthetic data
 
 # In this example, we generate a dataset of 5 random variables, where `x1` is the most important in determining `y`, `x2` is somewhat less important, `x3` has interaction effects with `x1`, while `x4` and `x5` do not contribute at all to the calculation of `y`.
-# We also add `x6` as a highly correlated variable to `x1`, but note that `x4` also does not contribute to `y`:
+# We also add `x6` as a highly correlated variable to `x1`, but note that `x6` also does not contribute to `y`:
 
 N     = 2000
 xa    = rand(Uniform(0.0,10.0),N,5)
@@ -30,17 +30,17 @@ xb    = xa[:,1] .* rand.(Normal(1,0.5))
 x     = hcat(xa,xb)  
 y     = [10*r[1]-r[2]+0.1*r[3]*r[1] for r in eachrow(x) ];
 
-# Aside of `y`, that is numerical, we create also a categorical version to test classification and a further one-hot version to test neural networks models that, for classification tasks, work using one-hot encoded variables:
+# Aside from `y`, which is numerical, we also create a categorical version to test classification and a further one-hot version to test neural network models that, for classification tasks, work using one-hot encoded variables:
 
 ysort = sort(y)
 ycat  = [(i < ysort[Int(round(N/3))]) ?  "c" :  ( (i < ysort[Int(round(2*N/3))]) ? "a" : "b")  for i in y]
 yoh    = fit!(OneHotEncoder(),ycat);
 
-# We run this example using a Random Forest regressor. The BetaML `RandomForestEstimator` model supports a `predict` function with the option to ignore specific dimensions. This allow us to "test" the various variables without retraining the model:
+# We run this example using a Random Forest regressor. The BetaML `RandomForestEstimator` model supports a `predict` function with the option to ignore specific dimensions. This allows us to "test" the various variables without retraining the model:
 
 fr = FeatureRanker(model=RandomForestEstimator(),nsplits=5,nrepeats=1,recursive=false,metric="mda",ignore_dims_keyword="ignore_dims")
 
-# We can now fit the `FeatureRanker` to our data. Note that, as for the other BetaML models, `fit!` by default returns the predictions, in this case the ranking, avoiding a separate `predict` call. The returned raking goes from the lowest to the most important variable, according to the given metric.
+# We can now fit the `FeatureRanker` to our data. Note that, as for the other BetaML models, `fit!` by default returns the predictions, in this case the ranking, avoiding a separate `predict` call. The returned ranking goes from the least to the most important variable, according to the given metric.
 rank = fit!(fr,x,y) 
 
 # As expected, the ranking shows `x1` as the most important variable. Let's look in detail at the metrics that we can obtain by querying the model with `info(fr)`:
@@ -53,7 +53,7 @@ loss_fullmodel     = info(fr)["loss_all_cols"]
 loss_fullmodel_sd  = info(fr)["loss_all_cols_sd"]
 ntrials_per_metric = info(fr)["ntrials_per_metric"]
 
-# Since we choosed `mda` as the reported metric, we must have that the reported rank is equal to the sortperm of `loss_by_col`:
+# Since we chose `mda` as the reported metric, we must have that the reported rank is equal to the sortperm of `loss_by_col`:
 
 sortperm(loss_by_col) == rank
 
@@ -65,13 +65,13 @@ bar(string.(sortperm(sobol_by_col)),sobol_by_col[sortperm(sobol_by_col)],label="
 
 # As we can see from the graphs, the model did a good job of identifying the first variable as the most important one, ignoring the others and even giving a very low importance to the correlated one.
 
-# ### Comparision with the Shapley values
+# ### Comparison with the Shapley values
 
-# For Shapley values we need first to have a trained model
+# For Shapley values we first need to have a trained model
 m = RandomForestEstimator()
 fit!(m,x,y);
 
-# We need then to wrap the predict function, accounting with the fact that BetaML models works with standard arrays, while `ShapML` assume data in DataFrame format:
+# We need then to wrap the predict function, accounting for the fact that BetaML models work with standard arrays, while `ShapML` assumes data in DataFrame format:
 function predict_function(model, data)
   data_pred = DataFrame(y_pred = BetaML.predict(model, Matrix(data)))
   return data_pred
@@ -91,7 +91,7 @@ data_shap = ShapML.shap(explain = explain,
                         sample_size = sample_size,
                         seed = 1
                         );
-# We aggregate the Shape values by feature and plot:
+# We aggregate the Shapley values by feature and plot:
 shap_aggregated =combine(groupby(data_shap,[:feature_name])) do subdf 
             (mean_effect = mean(abs.(subdf.shap_effect)), std = std(abs.(subdf.shap_effect)), n = size(subdf,1)  )
 end    
@@ -99,7 +99,7 @@ shap_values = shap_aggregated.mean_effect
 
 bar(string.(sortperm(shap_values)),shap_values[sortperm(shap_values)],label="Shapley values by col", yerror=quantile(Normal(1,0),0.975) .* (shap_aggregated.std[sortperm(shap_values)]./ sqrt.(shap_aggregated.n)))
 
-# Note that the output using the Sobol index and the Shapley values are very similar. This shoudn't come as a surprice, as the two metrics are related.
+# Note that the outputs using the Sobol index and the Shapley values are very similar. This shouldn't come as a surprise, as the two metrics are related.
 
 # ### Classifications
 
@@ -112,9 +112,9 @@ rank = fit!(fr,x,ycat)
 fr = FeatureRanker(model=NeuralNetworkEstimator(verbosity=NONE),nsplits=3,nrepeats=1,recursive=false,metric="sobol",refit=false)
 rank = fit!(fr,x,yoh) 
 
-# ## Determinant of house prices in the Boston alrea
+# ## Determinants of house prices in the Boston area
 
-# We start this example by first loading the data from a CSV file and splitting the data in features and labels:
+# We start this example by first loading the data from a CSV file and splitting the data into features and labels:
 #src dataURL = "https://archive.ics.uci.edu/ml/machine-learning-databases/housing/housing.data"
 #src data    = @pipe HTTP.get(dataURL).body |> CSV.File(_, delim=' ', header=false, ignorerepeated=true) |> DataFrame
 data = CSV.File(joinpath(@__DIR__,"data","housing.data"), delim=' ', header=false, ignorerepeated=true) |> DataFrame
@@ -136,7 +136,7 @@ var_names = [
 ]
 y_name = "MEDV" ;# Median value of owner-occupied homes in $1000's
 
-# Our features are a set of 13 explanatory variables, while the label that we want to estimate is the average housing prices:
+# Our features are a set of 13 explanatory variables, while the label that we want to estimate is the median housing price:
 x = Matrix(data[:,1:13])
 y = data[:,14];
 

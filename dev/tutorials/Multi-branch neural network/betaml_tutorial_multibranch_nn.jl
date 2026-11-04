@@ -48,7 +48,7 @@ Y         = rand(StableRNG(seed+30),N)
 
 # ![Neural Network model](imgs/multibranch_nn.png)
 # 
-# In the figure above, each circle represents a multi-neuron layer, with the number of neurons (output dimensions) written inside. Dotted circles are `RreplicatorLayer`s, which simply "pass through" the information to the next layer.
+# In the figure above, each circle represents a multi-neuron layer, with the number of neurons (output dimensions) written inside. Dotted circles are `ReplicatorLayer`s, which simply "pass through" the information to the next layer.
 # Red layers represent the layers responsible for the final step in encoding the information for a given branch. Subsequent layers will use this encoded information (i.e. decode it) to finally provide the prediction for the branch.  
 # We create a first branch for the soil variables, a second for the climate variables and finally a third for the other variables. We merge the soil and climate branches in layer 4 and the resulting branch and the other variables branch in layer 6. Finally, the single neuron layer 8 provides the prediction.
 #         
@@ -92,7 +92,7 @@ m      = NeuralNetworkEstimator(layers=layers,opt_alg=ADAM(),epochs=100,rng=copy
 
 # ## Fitting the model 
 println(now(), " ", "- model fitting..." )  #src
-# We are now ready to fit the model to the data. By default BetaML models return directly the predictions of the trained data as the output of the fitting call, so there is no need to separate call `predict(m,X)`. 
+# We are now ready to fit the model to the data. By default BetaML models directly return the predictions of the trained data as the output of the fitting call, so there is no need to separately call `predict(m,X)`. 
 Ŷ      = fit!(m,X,Y)
 
 # ## Model quality assessment
@@ -101,9 +101,9 @@ println(now(), " ", "- assessing the model quality..." )  #src
 rme    = relative_mean_error(Y,Ŷ)
 @test rme <0.1 #src
 
-# Of course we know there is no actual relation here between the X and The Y, as both are randomly generated, the result above just tell us that the network has been able to find a path between the X and Y that has been used for training, but we hope that in the real application this learned path represent a true, general relation beteen the inputs and the outputs.
+# Of course we know there is no actual relation here between the X and the Y, as both are randomly generated, the result above just tells us that the network has been able to find a path between the X and Y that has been used for training, but we hope that in the real application this learned path represents a true, general relation between the inputs and the outputs.
 
-# Finally we can also plot Y again Ŷ and visualize how the average loss reduced along the training:
+# Finally we can also plot Y against Ŷ and visualize how the average loss decreased during the training:
 scatter(Y,Ŷ,xlabel="vol observed",ylabel="vol estimated",label=nothing,title="Est vs. obs volumes")
 
 #-
