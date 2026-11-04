@@ -128,27 +128,41 @@ function PoolingLayer(input_size_with_channel,kernel_size;
 end
 
 
-# The pooling is computed by generic N-dimensional kernels (KernelAbstractions.jl), running on
-# the CPU or on the GPU where the data is. Each kernel instance computes a single element of its
-# output. The batch X has the records along the last dimension (input_size... × n records).
+# The pooling is computed element by element, with generic N-dimensional functions that run on
+# the CPU or on the GPU where the data is (see `_compute_elements!`). The batch X has the records
+# along the last dimension (input_size... × n records).
 
 "Ranges (on each dimension) of the input elements in the pooling window of the output element `o`"
 @inline _pool_window(o,ksz,stride,pad,isz) = ntuple(d -> max(1,(o[d]-1)*stride[d]+1-pad[d]):min(isz[d],(o[d]-1)*stride[d]+ksz[d]-pad[d]), length(o))
 
-@kernel function _pool_forward_kernel!(y, @Const(x), f, ksz, stride, pad, ::Val{ND}) where {ND}
-   I    = @index(Global, Cartesian)
+"Apply the pooling function `f` to the window `w` (with explicit loops for `maximum` and `mean`, that work on GPUs)"
+_pool_f(f,w) = f(w)
+@inline function _pool_f(::typeof(maximum),w)
+   m = @inbounds w[first(CartesianIndices(w))]
+   @inbounds for j in CartesianIndices(w)
+      m = ifelse(w[j] > m, w[j], m)
+   end
+   return m
+end
+@inline function _pool_f(::typeof(mean),w)
+   s = zero(eltype(w))
+   @inbounds for j in CartesianIndices(w)
+      s += w[j]
+   end
+   return s / length(w)
+end
+
+@inline function _pool_forward_el(I, x, f, ksz, stride, pad, ::Val{ND}) where {ND}
    o    = ntuple(d -> I[d], Val(ND))
    c    = I[ND+1]
    b    = I[ND+2]
    isz  = ntuple(d -> size(x,d), Val(ND))
    rngs = _pool_window(o,ksz,stride,pad,isz)
-   @inbounds y[I] = f(view(x,rngs...,c,b))
+   return _pool_f(f,view(x,rngs...,c,b))
 end
 
 # dx[i...,c,b] = ∑_o g[o...,c,b] * ∂f(window(o))/∂x[i...,c,b] for the o whose window includes i
-# (`f::F` and `df::DF` force the specialisation on the functions, as they are only passed through to `_pool_dfx`)
-@kernel function _pool_backward_kernel!(dx, @Const(x), @Const(g), f::F, df::DF, ksz, stride, pad, ::Val{ND}) where {ND,F,DF}
-   I   = @index(Global, Cartesian)
+@inline function _pool_backward_el(I, x, g, f, df, ksz, stride, pad, ::Val{ND}) where {ND}
    i   = ntuple(d -> I[d], Val(ND))
    c   = I[ND+1]
    b   = I[ND+2]
@@ -156,13 +170,13 @@ end
    osz = ntuple(d -> size(g,d), Val(ND))
    olo = ntuple(d -> max(1,cld(i[d]+pad[d]-ksz[d],stride[d])+1), Val(ND))
    ohi = ntuple(d -> min(osz[d],fld(i[d]+pad[d]-1,stride[d])+1), Val(ND))
-   acc = zero(eltype(dx))
+   acc = zero(eltype(g))*zero(float(eltype(x)))
    for o in CartesianIndices(ntuple(d -> olo[d]:ohi[d], Val(ND)))
       rngs = _pool_window(Tuple(o),ksz,stride,pad,isz)
       j    = CartesianIndex(ntuple(d -> i[d]-first(rngs[d])+1, Val(ND)))
       @inbounds acc += g[o,c,b] * _pool_dfx(f,df,view(x,rngs...,c,b),j)
    end
-   @inbounds dx[I] = acc
+   return acc
 end
 
 "Derivative of f(w) with respect to the element at (Cartesian) position `j` of the window `w`"
@@ -193,8 +207,7 @@ function forward_batch(layer::PoolingLayer{ND},X) where {ND}
    X = reshape(X,layer.input_size...,_nbatch(X))
    y = similar(X,_pool_eltype(layer,X),(layer.output_size...,_nbatch(X)))
    ksz = ntuple(d -> layer.kernel_size[d], Val(ND))
-   _pool_forward_kernel!(_backend(y))(y,X,layer.f,ksz,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND); ndrange=size(y))
-   return y
+   return _compute_elements!(y,_pool_forward_el,(X,layer.f,ksz,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND)))
 end
 
 function backward_batch(layer::PoolingLayer{ND},X,next_gradient) where {ND}
@@ -202,8 +215,7 @@ function backward_batch(layer::PoolingLayer{ND},X,next_gradient) where {ND}
    g  = reshape(next_gradient,layer.output_size...,_nbatch(next_gradient))
    dx = similar(g,promote_type(eltype(g),_pool_eltype(layer,X)),size(X))
    ksz = ntuple(d -> layer.kernel_size[d], Val(ND))
-   _pool_backward_kernel!(_backend(dx))(dx,X,g,layer.f,layer.df,ksz,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND); ndrange=size(dx))
-   return dx
+   return _compute_elements!(dx,_pool_backward_el,(X,g,layer.f,layer.df,ksz,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND)))
 end
 
 function get_params(layer::PoolingLayer)

@@ -171,56 +171,53 @@ function ConvLayer(input_size_with_channel,kernel_size,nchannels_out;
      return ConvLayer(input_size_with_channel[1:end-1],kernel_size,input_size_with_channel[end],nchannels_out; stride=stride,rng=rng,padding=padding, kernel_eltype = kernel_eltype,kernel_init=kernel_init,usebias=usebias,bias_init=bias_init,f=f,df=df)
 end
 
-# The convolution is computed by generic N-dimensional kernels (KernelAbstractions.jl), running
-# on the CPU or on the GPU where the layer weights are. Each kernel instance computes a single
-# element of its output, "gathering" all the contributions to it (so no atomic operations are
-# needed). The batch X has the records along the last dimension (input_size... × n records).
+# The convolution is computed element by element, with generic N-dimensional functions that run
+# on the CPU or on the GPU where the layer weights are (see `_compute_elements!`). Each element
+# of the output "gathers" all the contributions to it (so no atomic operations are needed).
+# The batch X has the records along the last dimension (input_size... × n records).
 # The valid ranges of the loop indices are computed in advance on each dimension, so that the
 # inner loops contain no bound checks.
 
 # z[o...,co,b] = bias[co] + ∑_{ci,k} w[k...,ci,co] * x[i...,ci,b], with i = (o-1)*stride+k-pad
-@kernel function _conv_forward_kernel!(z, @Const(x), @Const(w), @Const(bias), stride, pad, ::Val{ND}) where {ND}
-   I   = @index(Global, Cartesian)
+@inline function _conv_forward_el(I, x, w, bias, stride, pad, ::Val{ND}) where {ND}
    o   = ntuple(d -> I[d], Val(ND))
    co  = I[ND+1]
    b   = I[ND+2]
    ks  = ntuple(d -> max(1,1+pad[d]-(o[d]-1)*stride[d]):min(size(w,d),size(x,d)+pad[d]-(o[d]-1)*stride[d]), Val(ND))
-   acc = zero(eltype(z)) + bias[co]
+   acc = @inbounds bias[co] + zero(eltype(w))*zero(eltype(x))
    @inbounds for ci in 1:size(w,ND+1), k in CartesianIndices(ks)
       i    = ntuple(d -> (o[d]-1)*stride[d] + k[d] - pad[d], Val(ND))
       acc += w[k,ci,co] * x[i...,ci,b]
    end
-   @inbounds z[I] = acc
+   return acc
 end
 
 # dx[i...,ci,b] = ∑_{co,o} w[k...,ci,co] * dz[o...,co,b], with k = i+pad-(o-1)*stride
-@kernel function _conv_dx_kernel!(dx, @Const(dz), @Const(w), stride, pad, ::Val{ND}) where {ND}
-   I   = @index(Global, Cartesian)
+@inline function _conv_dx_el(I, dz, w, stride, pad, ::Val{ND}) where {ND}
    i   = ntuple(d -> I[d], Val(ND))
    ci  = I[ND+1]
    b   = I[ND+2]
    os  = ntuple(d -> max(1,cld(i[d]+pad[d]-size(w,d),stride[d])+1):min(size(dz,d),fld(i[d]+pad[d]-1,stride[d])+1), Val(ND))
-   acc = zero(eltype(dx))
+   acc = zero(eltype(w))*zero(eltype(dz))
    @inbounds for co in 1:size(w,ND+2), o in CartesianIndices(os)
       k    = ntuple(d -> i[d] + pad[d] - (o[d]-1)*stride[d], Val(ND))
       acc += w[k...,ci,co] * dz[o,co,b]
    end
-   @inbounds dx[I] = acc
+   return acc
 end
 
 # dw[k...,ci,co] = ∑_{b,o} dz[o...,co,b] * x[i...,ci,b], with i = (o-1)*stride+k-pad
-@kernel function _conv_dw_kernel!(dw, @Const(dz), @Const(x), stride, pad, ::Val{ND}) where {ND}
-   I   = @index(Global, Cartesian)
+@inline function _conv_dw_el(I, dz, x, stride, pad, ::Val{ND}) where {ND}
    k   = ntuple(d -> I[d], Val(ND))
    ci  = I[ND+1]
    co  = I[ND+2]
    os  = ntuple(d -> max(1,cld(1+pad[d]-k[d],stride[d])+1):min(size(dz,d),fld(size(x,d)+pad[d]-k[d],stride[d])+1), Val(ND))
-   acc = zero(eltype(dw))
+   acc = zero(eltype(dz))*zero(eltype(x))
    @inbounds for b in 1:size(x,ND+2), o in CartesianIndices(os)
       i    = ntuple(d -> (o[d]-1)*stride[d] + k[d] - pad[d], Val(ND))
       acc += dz[o,co,b] * x[i...,ci,b]
    end
-   @inbounds dw[I] = acc
+   return acc
 end
 
 _convinput(layer::ConvLayer,X)  = reshape(X,layer.input_size...,_nbatch(X))
@@ -228,8 +225,7 @@ _convoutput(layer::ConvLayer,X) = reshape(X,layer.output_size...,_nbatch(X))
 
 function _zComp(layer::ConvLayer{ND},X) where {ND}
    z = similar(layer.weight,(layer.output_size...,_nbatch(X)))
-   _conv_forward_kernel!(_backend(z))(z,X,layer.weight,layer.bias,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND); ndrange=size(z))
-   return z
+   return _compute_elements!(z,_conv_forward_el,(X,layer.weight,layer.bias,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND)))
 end
 
 function _dϵ_dz(layer::ConvLayer,X,next_gradient)
@@ -239,13 +235,12 @@ end
 
 function _dϵ_dx(layer::ConvLayer{ND},dϵ_dz) where {ND}
    dx = similar(layer.weight,(layer.input_size...,_nbatch(dϵ_dz)))
-   _conv_dx_kernel!(_backend(dx))(dx,dϵ_dz,layer.weight,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND); ndrange=size(dx))
-   return dx
+   return _compute_elements!(dx,_conv_dx_el,(dϵ_dz,layer.weight,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND)))
 end
 
 function _dϵ_dw(layer::ConvLayer{ND},dϵ_dz,X) where {ND}
    dw = similar(layer.weight)
-   _conv_dw_kernel!(_backend(dw))(dw,dϵ_dz,X,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND); ndrange=size(dw))
+   _compute_elements!(dw,_conv_dw_el,(dϵ_dz,X,Tuple(layer.stride),Tuple(layer.padding_start),Val(ND)))
    if layer.usebias
       dbias = vec(sum(dϵ_dz,dims=(ntuple(identity,ND)...,ND+2)))
       return Learnable((dw,dbias))

@@ -77,7 +77,7 @@ import Distributions: Uniform
 import Statistics: mean
 import ForwardDiff, Adapt, Functors, MLDataDevices
 import KernelAbstractions as KA
-using KernelAbstractions: @kernel, @index, @Const
+using KernelAbstractions: @kernel, @index
 
 using ForceImport
 @force using ..Api

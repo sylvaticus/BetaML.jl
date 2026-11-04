@@ -330,7 +330,7 @@ Allows saving one or more BetaML models (whether fitted or not), optionally spec
 - `kwargs`: model objects to be saved, optionally associated with a different name to save them with (e.g. `mod1Name=mod1,mod2`)  
 # Notes:
 - If an object with the given name already exists in the destination JLD2 file it will be overwritten.
-- Models whose parameters are on a GPU are saved with their parameters moved to the CPU. Neural networks with the option `device=:auto` are moved back to the same kind of GPU when used for predictions, if its package is loaded (see the `device` option of [`NeuralNetworkEstimator`](@ref)).
+- Models whose parameters are on a GPU are saved with their parameters moved to the CPU. Neural networks with the option `device=:auto` are moved back to the same kind of GPU when used for predictions, if its package is loaded (see the `device` option of [`NeuralNetworkEstimator`](@ref BetaML.Nn.NeuralNetworkEstimator)).
 - If the file exists, but it is not a JLD2 file and the option `overwrite_file` is set to `false`, an error will be raised.
 - Use the semicolon `;` to separate the filename from the model(s) to save
 - For further options see the documentation of the [`JLD2`](https://juliaio.github.io/JLD2.jl/stable/) package

@@ -151,6 +151,39 @@ function _device_type(name)
     return nothing
 end
 
+# Element-wise computation of arrays. On GPUs it is done by a KernelAbstractions kernel, on the CPU
+# by plain (multi-threaded) Julia loops. This way on the CPU any function can be used (since
+# KernelAbstractions 0.10 also CPU kernels are compiled like GPU ones, with the same restrictions).
+
+@kernel function _elementwise_kernel!(out, elfun::F, args) where {F}
+    I = @index(Global, Cartesian)
+    @inbounds out[I] = elfun(I,args...)
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Set each element `I` of the array `out` to `elfun(I,args...)` and return `out`.
+
+`elfun` must work on the device of `out` (on GPUs: no memory allocations, no dynamic dispatch).
+"""
+function _compute_elements!(out,elfun::F,args::Tuple) where {F}
+    if _iscpu(out)
+        if Threads.nthreads() > 1 && length(out) >= 1024 # multi-threading pays off only on large arrays
+            Threads.@threads for I in CartesianIndices(out)
+                @inbounds out[I] = elfun(I,args...)
+            end
+        else
+            @inbounds for I in CartesianIndices(out)
+                out[I] = elfun(I,args...)
+            end
+        end
+    else
+        _elementwise_kernel!(_backend(out))(out,elfun,args; ndrange=size(out))
+    end
+    return out
+end
+
 # Helpers for the batched computations of the layers
 
 "Number of records of a batch (records are on the last dimension)"
