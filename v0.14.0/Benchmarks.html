@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Benchmarks · BetaML.jl Documentation</title><meta name="title" content="Benchmarks · BetaML.jl Documentation"/><meta property="og:title" content="Benchmarks · BetaML.jl Documentation"/><meta property="twitter:title" content="Benchmarks · BetaML.jl Documentation"/><meta name="description" content="Documentation for BetaML.jl Documentation."/><meta property="og:description" content="Documentation for BetaML.jl Documentation."/><meta property="twitter:description" content="Documentation for BetaML.jl Documentation."/><script async src="https://www.googletagmanager.com/gtag/js?id=G-JYKX8QY5JW"></script><script>  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-JYKX8QY5JW', {'page_path': location.pathname + location.search + location.hash});
+</script><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.63.2/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="search_index.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="index.html"><img src="assets/logo.png" alt="BetaML.jl Documentation logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="index.html">BetaML.jl Documentation</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="index.html">Index</a></li><li><span class="tocitem">Tutorial</span><ul><li><a class="tocitem" href="tutorials/Betaml_tutorial_getting_started.html">Getting started</a></li><li><input class="collapse-toggle" id="menuitem-2-2" type="checkbox"/><label class="tocitem" for="menuitem-2-2"><span class="docs-label">Classification - cars</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Classification - cars/betaml_tutorial_classification_cars.html">A classification task when labels are known - determining the country of origin of cars given the cars&#39; characteristics</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-3" type="checkbox"/><label class="tocitem" for="menuitem-2-3"><span class="docs-label">Regression - bike sharing</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Regression - bike sharing/betaml_tutorial_regression_sharingBikes.html">A regression task: the prediction of  bike  sharing demand</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-4" type="checkbox"/><label class="tocitem" for="menuitem-2-4"><span class="docs-label">Clustering - Iris</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Clustering - Iris/betaml_tutorial_cluster_iris.html">A clustering task: the prediction of  plant species from floral measures (the iris dataset)</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-5" type="checkbox"/><label class="tocitem" for="menuitem-2-5"><span class="docs-label">Multi-branch neural network</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Multi-branch neural network/betaml_tutorial_multibranch_nn.html">A deep neural network with multi-branch architecture</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-2-6" type="checkbox"/><label class="tocitem" for="menuitem-2-6"><span class="docs-label">Feature importance</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="tutorials/Feature importance/Feature_importance.html">Understanding variable importance in black-box machine learning models</a></li></ul></li></ul></li><li><span class="tocitem">API (Reference manual)</span><ul><li><input class="collapse-toggle" id="menuitem-3-1" type="checkbox"/><label class="tocitem" for="menuitem-3-1"><span class="docs-label">API V2 (current)</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="Api_v2_user.html">Introduction for user</a></li><li><input class="collapse-toggle" id="menuitem-3-1-2" type="checkbox"/><label class="tocitem" for="menuitem-3-1-2"><span class="docs-label">For developers</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="Api_v2_developer.html">API implementation</a></li><li><a class="tocitem" href="StyleGuide_templates.html">Style guide</a></li></ul></li><li><a class="tocitem" href="Api.html">The Api module</a></li></ul></li><li><a class="tocitem" href="Perceptron.html">Perceptron</a></li><li><a class="tocitem" href="Trees.html">Trees</a></li><li><a class="tocitem" href="Nn.html">Nn</a></li><li><a class="tocitem" href="Clustering.html">Clustering</a></li><li><a class="tocitem" href="GMM.html">GMM</a></li><li><a class="tocitem" href="Imputation.html">Imputation</a></li><li><a class="tocitem" href="Utils.html">Utils</a></li></ul></li><li><a class="tocitem" href="MLJ_interface.html">MLJ interface</a></li><li class="is-active"><a class="tocitem" href="Benchmarks.html">Benchmarks</a><ul class="internal"><li><a class="tocitem" href="#Setup"><span>Setup</span></a></li><li><a class="tocitem" href="#Regression"><span>Regression</span></a></li><li><a class="tocitem" href="#Classification"><span>Classification</span></a></li><li><a class="tocitem" href="#Clustering"><span>Clustering</span></a></li><li><a class="tocitem" href="#Neural-networks-on-CPU-and-GPU"><span>Neural networks on CPU and GPU</span></a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href="Benchmarks.html">Benchmarks</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="Benchmarks.html">Benchmarks</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/sylvaticus/BetaML.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/sylvaticus/BetaML.jl/blob/main/docs/src/Benchmarks.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="benchmarks"><a class="docs-heading-anchor" href="#benchmarks">BetaML Benchmarks</a><a id="benchmarks-1"></a><a class="docs-heading-anchor-permalink" href="#benchmarks" title="Permalink"></a></h1><p>This page reports some basic benchmarks of BetaML models, together with those of other leading Julia packages for the same tasks. It aims to check for regressions across BetaML versions and to give an idea of the relative performances of the packages, not to be a rigorous comparison.</p><div class="admonition is-info" id="Note-3e3f352a40ad508c"><header class="admonition-header">Note<a class="admonition-anchor" href="#Note-3e3f352a40ad508c" title="Permalink"></a></header><div class="admonition-body"><p>This page is not computed when the documentation is built: it is written by the script <code>docs/benchmarks/run_benchmarks.jl</code> (see the instructions within it), run on the machine described below. As the times depend on the machine, compare them only within the same version of this page.</p></div></div><h2 id="Setup"><a class="docs-heading-anchor" href="#Setup">Setup</a><a id="Setup-1"></a><a class="docs-heading-anchor-permalink" href="#Setup" title="Permalink"></a></h2><ul><li>Date: 2026-11-04</li><li>Julia: v1.13.1, 22 thread(s)</li><li>CPU: Intel(R) Core(TM) Ultra 7 165H</li><li>GPU: NVIDIA RTX 2000 Ada Generation Laptop GPU</li><li>Packages: BetaML v0.13.1, Flux v0.16.15, DecisionTree v0.12.4, Clustering v0.15.8, GaussianMixtures v0.3.14, CUDA v6.5.1</li></ul><p>All benchmarks share this setup. Unless otherwise noted, times, memory and allocations refer to the training of the model on the whole dataset and are medians over several runs (measured with <a href="https://github.com/JuliaCI/BenchmarkTools.jl">BenchmarkTools.jl</a>), while the scores are means and standard deviations over a 10-folds cross-validation. We tried to match the hyperparameters of the other packages to the BetaML default ones, but differences remain, and they may explain in part the different performances and scores.</p><pre><code class="language-julia hljs">using Random, Statistics, DelimitedFiles, Logging
+using DataFrames, DataStructures, BenchmarkTools, StableRNGs
+using BetaML
+import DecisionTree, Flux, Clustering, GaussianMixtures
+
+TESTRNG = StableRNG(123)
+DATADIR = joinpath(@__DIR__,&quot;..&quot;,&quot;..&quot;,&quot;test&quot;,&quot;data&quot;)
+
+&quot;Median time (s), memory (MiB) and allocations of `f()`&quot;
+function bmark(f)
+    b = @benchmark $f() samples=10 seconds=60 evals=1
+    return (median(b.times)/1e9, b.memory/2^20, b.allocs)
+end
+
+&quot;Mean and standard deviation of the (train,test) scores returned by `f(traindata,testdata,rng)` over a 10-folds cross-validation of `data`&quot;
+function cv_scores(f,data)
+    sampler = KFold(nsplits=10,rng=copy(TESTRNG))
+    scores  = cross_validation(f,data,sampler,return_statistics=false)
+    train   = [s[1] for s in scores]
+    test    = [s[2] for s in scores]
+    return (mean(train),std(train),mean(test),std(test))
+end</code></pre><h2 id="Regression"><a class="docs-heading-anchor" href="#Regression">Regression</a><a id="Regression-1"></a><a class="docs-heading-anchor-permalink" href="#Regression" title="Permalink"></a></h2><p>A simple regression over 500 points with 4 features and <code>y = 2x₁ - x₂ + x₃²</code>. The score is the relative mean error.</p><pre><code class="language-julia hljs">n      = 500
+seeds  = rand(copy(TESTRNG),n)
+x      = vcat([[s*2 (s-3)^2 s/2 0.2-s] for s in seeds]...)
+y      = [r[1]*2-r[2]+r[3]^2 for r in eachrow(x)]
+results = DataFrame(model=String[],time_s=Float64[],memory_MiB=Float64[],allocs=Int[],
+                    rme_train=Float64[],rme_train_std=Float64[],rme_test=Float64[],rme_test_std=Float64[])
+
+## BetaML models
+bml_models = OrderedDict(&quot;DT&quot; =&gt; DecisionTreeEstimator(rng=copy(TESTRNG),verbosity=NONE),
+                         &quot;RF&quot; =&gt; RandomForestEstimator(rng=copy(TESTRNG),verbosity=NONE),
+                         &quot;NN&quot; =&gt; NeuralNetworkEstimator(rng=copy(TESTRNG),verbosity=NONE))
+for (name,m) in bml_models
+    perf   = bmark(() -&gt; fit!(deepcopy(m),x,y))
+    scores = cv_scores([x,y]) do (xtrain,ytrain),(xtest,ytest),rng
+        m2 = deepcopy(m)
+        fit!(m2,xtrain,ytrain)
+        (relative_mean_error(ytrain,predict(m2,xtrain)), relative_mean_error(ytest,predict(m2,xtest)))
+    end
+    push!(results,[name,perf...,scores...])
+end
+
+## DecisionTree.jl models
+dt_models = OrderedDict(&quot;DT (DecisionTree.jl)&quot; =&gt; DecisionTree.DecisionTreeRegressor(rng=copy(TESTRNG)),
+                        &quot;RF (DecisionTree.jl)&quot; =&gt; DecisionTree.RandomForestRegressor(n_trees=30,partial_sampling=1.0,rng=copy(TESTRNG)))
+for (name,m) in dt_models
+    perf   = bmark(() -&gt; DecisionTree.fit!(deepcopy(m),x,y))
+    scores = cv_scores([x,y]) do (xtrain,ytrain),(xtest,ytest),rng
+        m2 = deepcopy(m)
+        DecisionTree.fit!(m2,xtrain,ytrain)
+        (relative_mean_error(ytrain,DecisionTree.predict(m2,xtrain)), relative_mean_error(ytest,DecisionTree.predict(m2,xtest)))
+    end
+    push!(results,[name,perf...,scores...])
+end
+
+## Flux neural network (same structure, batch size and number of epochs as the BetaML default one)
+function flux_regressor(x,y;epochs=200)
+    Random.seed!(123)
+    model     = Flux.Chain(Flux.Dense(4=&gt;8,Flux.relu),Flux.Dense(8=&gt;8,Flux.relu),Flux.Dense(8=&gt;1))
+    loader    = Flux.DataLoader((Float32.(permutedims(x)),Float32.(permutedims(y))),batchsize=16,shuffle=true)
+    opt_state = Flux.setup(Flux.Adam(),model)
+    for e in 1:epochs
+        Flux.train!((m,xb,yb) -&gt; Flux.mse(m(xb),yb),model,loader,opt_state)
+    end
+    return model
+end
+flux_predict(model,x) = vec(model(Float32.(permutedims(x))))
+
+perf   = bmark(() -&gt; flux_regressor(x,y))
+scores = cv_scores([x,y]) do (xtrain,ytrain),(xtest,ytest),rng
+    model = flux_regressor(xtrain,ytrain)
+    (relative_mean_error(ytrain,flux_predict(model,xtrain)), relative_mean_error(ytest,flux_predict(model,xtest)))
+end
+push!(results,[&quot;NN (Flux.jl)&quot;,perf...,scores...])
+
+results</code></pre><p>Results:</p><table><tr><th style="text-align: left">model</th><th style="text-align: right">time_s</th><th style="text-align: right">memory_MiB</th><th style="text-align: right">allocs</th><th style="text-align: right">rme_train</th><th style="text-align: right">rme<em>train</em>std</th><th style="text-align: right">rme_test</th><th style="text-align: right">rme<em>test</em>std</th></tr><tr><td style="text-align: left">DT</td><td style="text-align: right">0.004473</td><td style="text-align: right">3.784</td><td style="text-align: right">42066</td><td style="text-align: right">0.0007237</td><td style="text-align: right">2.766e-05</td><td style="text-align: right">0.005161</td><td style="text-align: right">0.0006102</td></tr><tr><td style="text-align: left">RF</td><td style="text-align: right">0.0284</td><td style="text-align: right">68.83</td><td style="text-align: right">944881</td><td style="text-align: right">0.001241</td><td style="text-align: right">4.599e-05</td><td style="text-align: right">0.003096</td><td style="text-align: right">0.0004249</td></tr><tr><td style="text-align: left">NN</td><td style="text-align: right">0.103</td><td style="text-align: right">248.5</td><td style="text-align: right">2345521</td><td style="text-align: right">0.001173</td><td style="text-align: right">5.529e-05</td><td style="text-align: right">0.001195</td><td style="text-align: right">0.0002459</td></tr><tr><td style="text-align: left">DT (DecisionTree.jl)</td><td style="text-align: right">0.0001026</td><td style="text-align: right">0.06716</td><td style="text-align: right">682</td><td style="text-align: right">0.006484</td><td style="text-align: right">0.0002145</td><td style="text-align: right">0.008784</td><td style="text-align: right">0.001354</td></tr><tr><td style="text-align: left">RF (DecisionTree.jl)</td><td style="text-align: right">0.0005902</td><td style="text-align: right">2.533</td><td style="text-align: right">19359</td><td style="text-align: right">0.002697</td><td style="text-align: right">0.0001087</td><td style="text-align: right">0.00386</td><td style="text-align: right">0.000828</td></tr><tr><td style="text-align: left">NN (Flux.jl)</td><td style="text-align: right">0.4456</td><td style="text-align: right">268.9</td><td style="text-align: right">2807148</td><td style="text-align: right">0.002658</td><td style="text-align: right">5.282e-05</td><td style="text-align: right">0.002654</td><td style="text-align: right">0.0003244</td></tr></table><h2 id="Classification"><a class="docs-heading-anchor" href="#Classification">Classification</a><a id="Classification-1"></a><a class="docs-heading-anchor-permalink" href="#Classification" title="Permalink"></a></h2><p>A binary diagnostic classification of breast cancer (569 records, 30 features) from the <a href="https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic">Wisconsin Breast Cancer Database</a>. The score is the accuracy.</p><pre><code class="language-julia hljs">bcancer = readdlm(joinpath(DATADIR,&quot;breast_wisconsin&quot;,&quot;wdbc.data&quot;),&#39;,&#39;)
+x       = fit!(Scaler(),convert(Matrix{Float64},bcancer[:,3:end]))
+y       = convert(Vector{String},bcancer[:,2])
+ohm     = OneHotEncoder()
+yoh     = fit!(ohm,y)
+results = DataFrame(model=String[],time_s=Float64[],memory_MiB=Float64[],allocs=Int[],
+                    acc_train=Float64[],acc_train_std=Float64[],acc_test=Float64[],acc_test_std=Float64[])
+
+## BetaML models (the neural network is trained with the one-hot encoded labels)
+bml_models = OrderedDict(&quot;DT&quot;    =&gt; DecisionTreeEstimator(rng=copy(TESTRNG),verbosity=NONE),
+                         &quot;RF&quot;    =&gt; RandomForestEstimator(rng=copy(TESTRNG),verbosity=NONE),
+                         &quot;NN&quot;    =&gt; NeuralNetworkEstimator(rng=copy(TESTRNG),verbosity=NONE),
+                         &quot;Perc&quot;  =&gt; PerceptronClassifier(rng=copy(TESTRNG),verbosity=NONE),
+                         &quot;KPerc&quot; =&gt; KernelPerceptronClassifier(rng=copy(TESTRNG),verbosity=NONE),
+                         &quot;Peg&quot;   =&gt; PegasosClassifier(rng=copy(TESTRNG),verbosity=NONE))
+for (name,m) in bml_models
+    isnn   = name == &quot;NN&quot;
+    perf   = bmark(() -&gt; fit!(deepcopy(m),x,isnn ? yoh : y))
+    scores = cv_scores([x,y,yoh]) do (xtrain,ytrain,yohtrain),(xtest,ytest,yohtest),rng
+        m2 = deepcopy(m)
+        fit!(m2,xtrain,isnn ? yohtrain : ytrain)
+        if isnn
+            (accuracy(mode(yohtrain),mode(predict(m2,xtrain))), accuracy(mode(yohtest),mode(predict(m2,xtest))))
+        else
+            (accuracy(ytrain,predict(m2,xtrain)), accuracy(ytest,predict(m2,xtest)))
+        end
+    end
+    push!(results,[name,perf...,scores...])
+end
+
+## DecisionTree.jl models
+dt_models = OrderedDict(&quot;DT (DecisionTree.jl)&quot; =&gt; DecisionTree.DecisionTreeClassifier(rng=copy(TESTRNG)),
+                        &quot;RF (DecisionTree.jl)&quot; =&gt; DecisionTree.RandomForestClassifier(n_trees=30,partial_sampling=1.0,rng=copy(TESTRNG)))
+for (name,m) in dt_models
+    perf   = bmark(() -&gt; DecisionTree.fit!(deepcopy(m),x,y))
+    scores = cv_scores([x,y]) do (xtrain,ytrain),(xtest,ytest),rng
+        m2 = deepcopy(m)
+        DecisionTree.fit!(m2,xtrain,ytrain)
+        (accuracy(ytrain,DecisionTree.predict(m2,xtrain)), accuracy(ytest,DecisionTree.predict(m2,xtest)))
+    end
+    push!(results,[name,perf...,scores...])
+end
+
+## Flux neural network
+function flux_classifier(x,yoh;epochs=200)
+    Random.seed!(123)
+    model     = Flux.Chain(Flux.Dense(30=&gt;45,Flux.relu),Flux.Dense(45=&gt;45,Flux.relu),Flux.Dense(45=&gt;2))
+    loader    = Flux.DataLoader((Float32.(permutedims(x)),Float32.(permutedims(yoh))),batchsize=16,shuffle=true)
+    opt_state = Flux.setup(Flux.Adam(),model)
+    for e in 1:epochs
+        Flux.train!((m,xb,yb) -&gt; Flux.logitcrossentropy(m(xb),yb),model,loader,opt_state)
+    end
+    return model
+end
+flux_predict(model,x) = Flux.onecold(model(Float32.(permutedims(x)))) # column of the predicted class
+
+perf   = bmark(() -&gt; flux_classifier(x,yoh))
+scores = cv_scores([x,yoh]) do (xtrain,yohtrain),(xtest,yohtest),rng
+    model = flux_classifier(xtrain,yohtrain)
+    (accuracy(mode(yohtrain),flux_predict(model,xtrain)), accuracy(mode(yohtest),flux_predict(model,xtest)))
+end
+push!(results,[&quot;NN (Flux.jl)&quot;,perf...,scores...])
+
+results</code></pre><p>Results:</p><table><tr><th style="text-align: left">model</th><th style="text-align: right">time_s</th><th style="text-align: right">memory_MiB</th><th style="text-align: right">allocs</th><th style="text-align: right">acc_train</th><th style="text-align: right">acc<em>train</em>std</th><th style="text-align: right">acc_test</th><th style="text-align: right">acc<em>test</em>std</th></tr><tr><td style="text-align: left">DT</td><td style="text-align: right">0.4138</td><td style="text-align: right">120.5</td><td style="text-align: right">814248</td><td style="text-align: right">0.9992</td><td style="text-align: right">0.001887</td><td style="text-align: right">0.9104</td><td style="text-align: right">0.02664</td></tr><tr><td style="text-align: left">RF</td><td style="text-align: right">0.1861</td><td style="text-align: right">443.9</td><td style="text-align: right">2766313</td><td style="text-align: right">0.9996</td><td style="text-align: right">0.0008227</td><td style="text-align: right">0.9613</td><td style="text-align: right">0.02452</td></tr><tr><td style="text-align: left">NN</td><td style="text-align: right">1.173</td><td style="text-align: right">3634</td><td style="text-align: right">3908317</td><td style="text-align: right">0.9994</td><td style="text-align: right">0.0009434</td><td style="text-align: right">0.9719</td><td style="text-align: right">0.02059</td></tr><tr><td style="text-align: left">Perc</td><td style="text-align: right">0.05606</td><td style="text-align: right">299.7</td><td style="text-align: right">670927</td><td style="text-align: right">0.99</td><td style="text-align: right">0.005782</td><td style="text-align: right">0.9579</td><td style="text-align: right">0.02368</td></tr><tr><td style="text-align: left">KPerc</td><td style="text-align: right">1.005</td><td style="text-align: right">1227</td><td style="text-align: right">13629781</td><td style="text-align: right">1</td><td style="text-align: right">0</td><td style="text-align: right">0.9404</td><td style="text-align: right">0.03329</td></tr><tr><td style="text-align: left">Peg</td><td style="text-align: right">0.1215</td><td style="text-align: right">519.2</td><td style="text-align: right">2185128</td><td style="text-align: right">0.9408</td><td style="text-align: right">0.01851</td><td style="text-align: right">0.9386</td><td style="text-align: right">0.03122</td></tr><tr><td style="text-align: left">DT (DecisionTree.jl)</td><td style="text-align: right">0.004519</td><td style="text-align: right">0.05252</td><td style="text-align: right">308</td><td style="text-align: right">1</td><td style="text-align: right">0</td><td style="text-align: right">0.9263</td><td style="text-align: right">0.04586</td></tr><tr><td style="text-align: left">RF (DecisionTree.jl)</td><td style="text-align: right">0.002506</td><td style="text-align: right">5.727</td><td style="text-align: right">8771</td><td style="text-align: right">1</td><td style="text-align: right">0</td><td style="text-align: right">0.9648</td><td style="text-align: right">0.02339</td></tr><tr><td style="text-align: left">NN (Flux.jl)</td><td style="text-align: right">0.5796</td><td style="text-align: right">549.6</td><td style="text-align: right">4041958</td><td style="text-align: right">1</td><td style="text-align: right">0</td><td style="text-align: right">0.9719</td><td style="text-align: right">0.01695</td></tr></table><h2 id="Clustering"><a class="docs-heading-anchor" href="#Clustering">Clustering</a><a id="Clustering-1"></a><a class="docs-heading-anchor-permalink" href="#Clustering" title="Permalink"></a></h2><p>Clustering of the <a href="https://en.wikipedia.org/wiki/Iris_flower_data_set">iris dataset</a> (150 records, 4 features) in 3 clusters. The algorithms use only the features, while the species are used only to compute the accuracy of the clusters (<code>acc</code>, with the best matching between clusters and species). We also report the silhouette score (<code>sil</code>) of the clusters. The scores are computed on the training subsets of the cross-validation.</p><pre><code class="language-julia hljs">iris     = readdlm(joinpath(DATADIR,&quot;iris_shuffled.csv&quot;),&#39;,&#39;,skipstart=1)
+x        = convert(Array{Float64,2},iris[:,1:4])
+ystrings = convert(Array{String,1},iris[:,5])
+y        = fit!(OrdinalEncoder(categories=unique(ystrings)),ystrings)
+results  = DataFrame(model=String[],time_s=Float64[],memory_MiB=Float64[],allocs=Int[],
+                     acc=Float64[],acc_std=Float64[],sil=Float64[],sil_std=Float64[])
+
+## The functions returning the cluster of each record, for BetaML and the other packages
+cl_functions = OrderedDict(
+    &quot;KMeans&quot;                    =&gt; x -&gt; fit!(KMeansClusterer(n_classes=3,rng=copy(TESTRNG),verbosity=NONE),x),
+    &quot;KMedoids&quot;                  =&gt; x -&gt; fit!(KMedoidsClusterer(n_classes=3,rng=copy(TESTRNG),verbosity=NONE),x),
+    &quot;GMM&quot;                       =&gt; x -&gt; mode(fit!(GaussianMixtureClusterer(n_classes=3,rng=copy(TESTRNG),verbosity=NONE),x)),
+    &quot;KMeans (Clustering.jl)&quot;    =&gt; x -&gt; Clustering.kmeans(permutedims(x),3).assignments,
+    &quot;KMedoids (Clustering.jl)&quot;  =&gt; x -&gt; Clustering.kmedoids(pairwise(x),3).assignments,
+    &quot;HC (Clustering.jl)&quot;        =&gt; x -&gt; Clustering.cutree(Clustering.hclust(pairwise(x)),k=3),
+    &quot;DBSCAN (Clustering.jl)&quot;    =&gt; x -&gt; Clustering.dbscan(permutedims(x),0.8).assignments,
+    &quot;GMM (GaussianMixtures.jl)&quot; =&gt; x -&gt; mode(GaussianMixtures.gmmposterior(GaussianMixtures.GMM(3,x),x)[1]),
+)
+for (name,f) in cl_functions
+    Random.seed!(123)
+    with_logger(NullLogger()) do # GaussianMixtures.jl is quite verbose
+        perf   = bmark(() -&gt; f(x))
+        scores = cv_scores([x,y]) do (xtrain,ytrain),(xtest,ytest),rng
+            ŷtrain = f(xtrain)
+            (accuracy(ytrain,ŷtrain,ignorelabels=true), mean(silhouette(pairwise(xtrain),ŷtrain)))
+        end
+        push!(results,[name,perf...,scores...])
+    end
+end
+
+results</code></pre><p>Results:</p><table><tr><th style="text-align: left">model</th><th style="text-align: right">time_s</th><th style="text-align: right">memory_MiB</th><th style="text-align: right">allocs</th><th style="text-align: right">acc</th><th style="text-align: right">acc_std</th><th style="text-align: right">sil</th><th style="text-align: right">sil_std</th></tr><tr><td style="text-align: left">KMeans</td><td style="text-align: right">0.0001862</td><td style="text-align: right">0.4304</td><td style="text-align: right">9207</td><td style="text-align: right">0.8911</td><td style="text-align: right">0.008589</td><td style="text-align: right">0.5523</td><td style="text-align: right">0.009396</td></tr><tr><td style="text-align: left">KMedoids</td><td style="text-align: right">0.003025</td><td style="text-align: right">12.28</td><td style="text-align: right">268000</td><td style="text-align: right">0.9022</td><td style="text-align: right">0.0163</td><td style="text-align: right">0.541</td><td style="text-align: right">0.01404</td></tr><tr><td style="text-align: left">GMM</td><td style="text-align: right">0.00468</td><td style="text-align: right">15.97</td><td style="text-align: right">342850</td><td style="text-align: right">0.9148</td><td style="text-align: right">0.01889</td><td style="text-align: right">0.5437</td><td style="text-align: right">0.01411</td></tr><tr><td style="text-align: left">KMeans (Clustering.jl)</td><td style="text-align: right">2.415e-05</td><td style="text-align: right">0.02069</td><td style="text-align: right">58</td><td style="text-align: right">0.8911</td><td style="text-align: right">0.007847</td><td style="text-align: right">0.5509</td><td style="text-align: right">0.01001</td></tr><tr><td style="text-align: left">KMedoids (Clustering.jl)</td><td style="text-align: right">0.002078</td><td style="text-align: right">3.465</td><td style="text-align: right">101993</td><td style="text-align: right">0.7911</td><td style="text-align: right">0.1738</td><td style="text-align: right">0.5316</td><td style="text-align: right">0.0184</td></tr><tr><td style="text-align: left">HC (Clustering.jl)</td><td style="text-align: right">0.002183</td><td style="text-align: right">3.708</td><td style="text-align: right">102274</td><td style="text-align: right">0.68</td><td style="text-align: right">0.009106</td><td style="text-align: right">0.5107</td><td style="text-align: right">0.01048</td></tr><tr><td style="text-align: left">DBSCAN (Clustering.jl)</td><td style="text-align: right">9.637e-05</td><td style="text-align: right">0.1847</td><td style="text-align: right">1143</td><td style="text-align: right">0.68</td><td style="text-align: right">0.009106</td><td style="text-align: right">0.5107</td><td style="text-align: right">0.01048</td></tr><tr><td style="text-align: left">GMM (GaussianMixtures.jl)</td><td style="text-align: right">0.000189</td><td style="text-align: right">0.3131</td><td style="text-align: right">2432</td><td style="text-align: right">0.9081</td><td style="text-align: right">0.0153</td><td style="text-align: right">0.5491</td><td style="text-align: right">0.01512</td></tr></table><h2 id="Neural-networks-on-CPU-and-GPU"><a class="docs-heading-anchor" href="#Neural-networks-on-CPU-and-GPU">Neural networks on CPU and GPU</a><a id="Neural-networks-on-CPU-and-GPU-1"></a><a class="docs-heading-anchor-permalink" href="#Neural-networks-on-CPU-and-GPU" title="Permalink"></a></h2><p>BetaML and Flux neural networks trained on the CPU and on a NVIDIA GPU (with <a href="https://github.com/JuliaGPU/CUDA.jl">CUDA.jl</a>), with the same network structure, data (in <code>Float32</code>), optimisation algorithm (ADAM) and batch size. The times refer to the training only, with the data already on the device and excluding the compilation, and are measured on a single run. The scores are computed on a test set.</p><ul><li>Dense network: a regression of 25000 records with 50 features, with two inner layers of 256 neurons, trained for 5 epochs. The score is the relative mean error.</li><li>Convolutional network: the classification of the 70000 images of the <a href="https://en.wikipedia.org/wiki/MNIST_database">MNIST</a> handwritten digits (60000 used for training), with the network of the <a href="https://github.com/sylvaticus/BetaML.jl/blob/main/docs/src/tutorials/Image%20recognition/Image_recognition.jl">Image recognition tutorial</a>, trained for 2 epochs. The score is the accuracy.</li></ul><pre><code class="language-julia hljs">using CUDA, cuDNN # cuDNN is needed by Flux for the convolutional layers on GPU
+import MLDatasets
+ENV[&quot;DATADEPS_ALWAYS_ACCEPT&quot;] = true # to download MNIST without being asked
+results = DataFrame(task=String[],model=String[],device=String[],time_s=Float64[],score=Float64[])
+
+## Dense network
+n, D, epochs, bs = 25_000, 50, 5, 256
+x = rand(copy(TESTRNG),Float32,n,D)
+y = [sum(r[1:10].^2) - sum(r[11:20]) + sum(sin.(3 .* r[21:50])) for r in eachrow(x)]
+((xtrain,xtest),(ytrain,ytest)) = partition([x,y],[0.8,0.2],rng=copy(TESTRNG))
+
+function betaml_dense(x,y;epochs)
+    layers = [DenseLayer(D,256,f=relu,w_eltype=Float32,rng=copy(TESTRNG)),
+              DenseLayer(256,256,f=relu,w_eltype=Float32,rng=copy(TESTRNG)),
+              DenseLayer(256,1,w_eltype=Float32,rng=copy(TESTRNG))]
+    m = NeuralNetworkEstimator(layers=layers,epochs=epochs,batch_size=bs,opt_alg=ADAM(),cache=false,
+                               onfail=&quot;continue&quot;,verbosity=NONE,rng=copy(TESTRNG))
+    fit!(m,x,y) # with the default `device=:auto` the network is trained where the data is
+    return m
+end
+function flux_dense(x,y;epochs)
+    Random.seed!(123)
+    dev       = CUDA.functional() &amp;&amp; x isa CuArray ? Flux.gpu_device() : Flux.cpu_device()
+    model     = Flux.Chain(Flux.Dense(D=&gt;256,Flux.relu),Flux.Dense(256=&gt;256,Flux.relu),Flux.Dense(256=&gt;1)) |&gt; dev
+    loader    = Flux.DataLoader((permutedims(x),permutedims(y)),batchsize=bs,shuffle=true)
+    opt_state = Flux.setup(Flux.Adam(),model)
+    for e in 1:epochs
+        Flux.train!((m,xb,yb) -&gt; Flux.mse(m(xb),yb),model,loader,opt_state)
+    end
+    return model
+end
+
+## Convolutional network (MNIST)
+function load_mnist(split)
+    x, y = MLDatasets.MNIST(split=split)[:]
+    x    = permutedims(x,(2,1,3))                       # 28×28 images (rows × columns) × records
+    return reshape(Float32.(x),28*28,size(x,3))&#39;, y    # BetaML: records × features
+end
+xmtrain, ymtrain = load_mnist(:train)
+xmtest,  ymtest  = load_mnist(:test)
+ymtrain_oh       = Float32.(fit!(OneHotEncoder(categories=collect(0:9)),ymtrain))
+mepochs, mbs     = 2, 128
+
+function betaml_conv(x,y;epochs)
+    l1 = ReshaperLayer((28*28,1),(28,28,1))
+    l2 = ConvLayer(size(l1)[2],(5,5),8,stride=2,f=relu,kernel_eltype=Float32,rng=copy(TESTRNG))
+    l3 = ConvLayer(size(l2)[2],(3,3),16,stride=2,f=relu,kernel_eltype=Float32,rng=copy(TESTRNG))
+    l4 = ConvLayer(size(l3)[2],(3,3),32,stride=2,f=relu,kernel_eltype=Float32,rng=copy(TESTRNG))
+    l5 = ConvLayer(size(l4)[2],(3,3),32,stride=2,f=relu,kernel_eltype=Float32,rng=copy(TESTRNG))
+    l6 = PoolingLayer(size(l5)[2],(2,2),stride=(2,2),f=mean)
+    l7 = ReshaperLayer(size(l6)[2])
+    l8 = DenseLayer(size(l7)[2][1],10,w_eltype=Float32,rng=copy(TESTRNG))
+    l9 = VectorFunctionLayer(10,f=softmax)
+    m  = NeuralNetworkEstimator(layers=[l1,l2,l3,l4,l5,l6,l7,l8,l9],loss=crossentropy,epochs=epochs,batch_size=mbs,
+                                opt_alg=ADAM(),cache=false,onfail=&quot;continue&quot;,verbosity=NONE,rng=copy(TESTRNG))
+    fit!(m,x,y)
+    return m
+end
+function flux_conv(x,y;epochs)
+    Random.seed!(123)
+    dev   = CUDA.functional() &amp;&amp; x isa CuArray ? Flux.gpu_device() : Flux.cpu_device()
+    model = Flux.Chain(Flux.Conv((5,5),1=&gt;8,pad=2,stride=2,Flux.relu),Flux.Conv((3,3),8=&gt;16,pad=1,stride=2,Flux.relu),
+                       Flux.Conv((3,3),16=&gt;32,pad=1,stride=2,Flux.relu),Flux.Conv((3,3),32=&gt;32,pad=1,stride=2,Flux.relu),
+                       Flux.GlobalMeanPool(),Flux.flatten,Flux.Dense(32=&gt;10),Flux.softmax) |&gt; dev
+    loader    = Flux.DataLoader((reshape(permutedims(x),28,28,1,:),permutedims(y)),batchsize=mbs,shuffle=true)
+    opt_state = Flux.setup(Flux.Adam(),model)
+    for e in 1:epochs
+        Flux.train!((m,xb,yb) -&gt; Flux.crossentropy(m(xb),yb),model,loader,opt_state)
+    end
+    return model
+end
+flux_conv_predict(model,x) = model(reshape(permutedims(x),28,28,1,:))
+
+## Running the benchmarks on each device
+devices = CUDA.functional() ? [&quot;CPU&quot;,&quot;GPU&quot;] : [&quot;CPU&quot;]
+sync()  = CUDA.functional() &amp;&amp; CUDA.synchronize() # GPU operations are asynchronous
+todevice(device,a) = device == &quot;GPU&quot; ? CuArray(collect(a)) : collect(a)
+for device in devices
+    dx(a) = todevice(device,a)
+    xtr, ytr, xte   = dx(xtrain), dx(ytrain), dx(xtest)
+    xmtr, ymtr, xmte = dx(xmtrain), dx(ymtrain_oh), dx(xmtest)
+    ## warm up (compilation)
+    betaml_dense(xtr[1:1000,:],ytr[1:1000],epochs=1); flux_dense(xtr[1:1000,:],ytr[1:1000],epochs=1)
+    betaml_conv(xmtr[1:1000,:],ymtr[1:1000,:],epochs=1); flux_conv(xmtr[1:1000,:],ymtr[1:1000,:],epochs=1)
+    ## dense network
+    t = @elapsed (m = betaml_dense(xtr,ytr,epochs=epochs); sync())
+    push!(results,[&quot;Dense&quot;,&quot;BetaML&quot;,device,t,relative_mean_error(ytest,Array(predict(m,xte)))])
+    t = @elapsed (m = flux_dense(xtr,ytr,epochs=epochs); sync())
+    push!(results,[&quot;Dense&quot;,&quot;Flux.jl&quot;,device,t,relative_mean_error(ytest,vec(Array(m(permutedims(xte)))))])
+    ## convolutional network
+    t = @elapsed (m = betaml_conv(xmtr,ymtr,epochs=mepochs); sync())
+    push!(results,[&quot;Convolutional (MNIST)&quot;,&quot;BetaML&quot;,device,t,accuracy(ymtest .+ 1,mode(Array(predict(m,xmte))))])
+    t = @elapsed (m = flux_conv(xmtr,ymtr,epochs=mepochs); sync())
+    push!(results,[&quot;Convolutional (MNIST)&quot;,&quot;Flux.jl&quot;,device,t,accuracy(ymtest .+ 1,Flux.onecold(Array(flux_conv_predict(m,xmte))))])
+end
+
+CUDA.functional() || @warn &quot;No functional CUDA GPU found: only the CPU benchmarks have been run.&quot;
+results</code></pre><p>Results:</p><table><tr><th style="text-align: left">task</th><th style="text-align: left">model</th><th style="text-align: left">device</th><th style="text-align: right">time_s</th><th style="text-align: right">score</th></tr><tr><td style="text-align: left">Dense</td><td style="text-align: left">BetaML</td><td style="text-align: left">CPU</td><td style="text-align: right">1.491</td><td style="text-align: right">0.07991</td></tr><tr><td style="text-align: left">Dense</td><td style="text-align: left">Flux.jl</td><td style="text-align: left">CPU</td><td style="text-align: right">0.9485</td><td style="text-align: right">0.08164</td></tr><tr><td style="text-align: left">Convolutional (MNIST)</td><td style="text-align: left">BetaML</td><td style="text-align: left">CPU</td><td style="text-align: right">29.56</td><td style="text-align: right">0.9462</td></tr><tr><td style="text-align: left">Convolutional (MNIST)</td><td style="text-align: left">Flux.jl</td><td style="text-align: left">CPU</td><td style="text-align: right">11.12</td><td style="text-align: right">0.9515</td></tr><tr><td style="text-align: left">Dense</td><td style="text-align: left">BetaML</td><td style="text-align: left">GPU</td><td style="text-align: right">0.4544</td><td style="text-align: right">0.07979</td></tr><tr><td style="text-align: left">Dense</td><td style="text-align: left">Flux.jl</td><td style="text-align: left">GPU</td><td style="text-align: right">0.3436</td><td style="text-align: right">0.08164</td></tr><tr><td style="text-align: left">Convolutional (MNIST)</td><td style="text-align: left">BetaML</td><td style="text-align: left">GPU</td><td style="text-align: right">9.285</td><td style="text-align: right">0.9456</td></tr><tr><td style="text-align: left">Convolutional (MNIST)</td><td style="text-align: left">Flux.jl</td><td style="text-align: left">GPU</td><td style="text-align: right">1.37</td><td style="text-align: right">0.9524</td></tr></table></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="MLJ_interface.html">« MLJ interface</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Wednesday 4 November 2026 16:55">Wednesday 4 November 2026</span>. Using Julia version 1.13.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
