@@ -30,7 +30,7 @@ Each module is documented on the links below (you can also use the inline Julia 
 
 - [**`BetaML.Perceptron`**](@ref BetaML.Perceptron): The Perceptron, Kernel Perceptron and Pegasos classification algorithms;
 - [**`BetaML.Trees`**](@ref BetaML.Trees): The Decision Trees and Random Forests algorithms for classification or regression (with missing values supported);
-- [**`BetaML.Nn`**](@ref BetaML.Nn): Implementation of Artificial Neural Networks;
+- [**`BetaML.Nn`**](@ref BetaML.Nn): Implementation of Artificial Neural Networks (with GPU support);
 - [**`BetaML.Clustering`**](@ref BetaML.Clustering): (hard) Clustering algorithms (K-Means, K-Medoids)
 - [**`BetaML.GMM`**](@ref BetaML.GMM): Various algorithms (Clustering, regressor, missing imputation / collaborative filtering / recommendation systems) that use a Generative (Gaussian) mixture model (probabilistic) fitter, fitted using an EM algorithm;
 - [**`BetaML.Imputation`**](@ref BetaML.Imputation): Imputation algorithms;

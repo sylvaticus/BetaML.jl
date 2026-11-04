@@ -1067,7 +1067,7 @@ end
 
 A "feedforward" (but also multi-branch) neural network (supervised).
 
-For the parameters see [`NeuralNetworkE_hp`](@ref) and for the training options [`NeuralNetworkE_options`](@ref) (we have a few more options for this specific estimator).
+For the parameters see [`NeuralNetworkE_hp`](@ref) and for the training options [`NeuralNetworkE_options`](@ref) (we have a few more options for this specific estimator, in particular the device where to run the computation, e.g. `:cpu` or `:gpu`).
 
 # Notes:
 - data must be numerical
