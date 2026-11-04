@@ -108,7 +108,8 @@ l1   = DenseLayer(4,10,f=relu) # The activation function is `ReLU`
 l2   = DenseLayer(10,3)        # The activation function is `identity` by default
 l3   = VectorFunctionLayer(3,f=softmax) # Add a (parameterless) layer whose activation function (`softmax` in this case) is applied to all its nodes at once
 mynn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=crossentropy,descr="Multinomial logistic regression Model Sepal", batch_size=2, epochs=200) # Build the NN and use the cross-entropy as error function.
-# Alternatively, switch to hyperparameter auto-tuning with `autotune=true` instead of specifying `batch_size` and `epochs` manually
+# By default the device follows where the data is. Use `device=:gpu` to force computation to the GPU
+# Instead of specifying `batch_size` and `epochs` manually you can switch to hyperparameter auto-tuning with `autotune=true` 
 
 # Train the model (using the ADAM optimizer by default)
 res = fit!(mynn,fit!(Scaler(),xtrain),ytrain_oh) # Fit the model to the (scaled) data
@@ -213,7 +214,7 @@ scatter(ytest,ŷtest,xlabel="Actual",ylabel="Estimated",label=nothing,title="Es
 
 - **Further examples**
 
-Finally, you may want to have a look at the ["test" folder](https://github.com/sylvaticus/BetaML.jl/tree/master/test). While the primary objective of the scripts under the "test" folder is to provide automatic testing of the BetaML toolkit, they can also be used to see how functions should be called, as virtually all functions provided by BetaML are tested there.
+Finally, you may want to have a look at the ["test" folder](https://github.com/sylvaticus/BetaML.jl/tree/main/test). While the primary objective of the scripts under the "test" folder is to provide automatic testing of the BetaML toolkit, they can also be used to see how functions should be called, as virtually all functions provided by BetaML are tested there.
 
 ## Benchmarks
 

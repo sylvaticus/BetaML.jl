@@ -18,7 +18,7 @@ The **Beta Machine Learning Toolkit** is a package including many algorithms and
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://sylvaticus.github.io/BetaML.jl/dev)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.02849/status.svg)](https://doi.org/10.21105/joss.02849)
 [![Build status](https://github.com/sylvaticus/BetaML.jl/workflows/CI/badge.svg)](https://github.com/sylvaticus/BetaML.jl/actions)
-[![codecov.io](http://codecov.io/github/sylvaticus/BetaML.jl/coverage.svg?branch=master)](http://codecov.io/github/sylvaticus/BetaML.jl?branch=master)
+[![codecov.io](http://codecov.io/github/sylvaticus/BetaML.jl/coverage.svg?branch=main)](http://codecov.io/github/sylvaticus/BetaML.jl?branch=main)
 
 Currently the following models are available:
 
@@ -90,7 +90,10 @@ y_oh     = fit!(ohmod,y)
 l1   = DenseLayer(4,10,f=relu) # The activation function is `ReLU`
 l2   = DenseLayer(10,3)        # The activation function is `identity` by default
 l3   = VectorFunctionLayer(3,f=softmax) # Add a (parameterless) layer whose activation function (`softmax` in this case) is applied to all its nodes at once
-mynn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=crossentropy,descr="Multinomial logistic regression Model Sepal", batch_size=2, epochs=200) # Build the NN and use the cross-entropy as error function. Switch to auto-tuning with `autotune=true`
+# Build the NN and use the cross-entropy as error function.
+# - hint 1: switch to auto-tuning with `autotune=true`
+# - hint 2: by default the device follows where the data is. Use `device=:gpu` to force computation to the GPU
+mynn = NeuralNetworkEstimator(layers=[l1,l2,l3],loss=crossentropy,descr="Multinomial logistic regression Model Sepal", batch_size=2, epochs=200) 
 
 # Train the model (using the ADAM optimizer by default)
 res = fit!(mynn,fit!(Scaler(),xtrain),ytrain_oh) # Fit the model to the (scaled) data
@@ -157,7 +160,7 @@ heatmap(info(cm)["categories"],info(cm)["categories"],info(cm)["normalised_score
 
 Further examples, with more models and more advanced techniques in order to improve predictions, are provided in the documentation tutorial.
 Basic examples in Python and R are given [here](https://sylvaticus.github.io/BetaML.jl/stable/tutorials/Betaml_tutorial_getting_started.html#using_betaml_from_other_languages).
-Very "micro" examples of usage of the various functions can also be studied in the unit-tests available in the [`test`](https://github.com/sylvaticus/BetaML.jl/tree/master/test) folder. 
+Very "micro" examples of usage of the various functions can also be studied in the unit-tests available in the [`test`](https://github.com/sylvaticus/BetaML.jl/tree/main/test) folder. 
 
 
 ## Limitations and alternative packages

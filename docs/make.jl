@@ -172,9 +172,9 @@ makedocs(sitename="BetaML.jl Documentation",
               "Utils"                    => "Utils.md",
             ],
             "MLJ interface"            => "MLJ_interface.md",
-#            "Benchmarks"               => "Benchmarks.md", #TODO: until https://github.com/IanButterworth/SystemBenchmark.jl/issues/64 is solved
+            "Benchmarks"               => "Benchmarks.md", # static page, written by docs/benchmarks/run_benchmarks.jl
          ],
-         format = Documenter.HTML(prettyurls = false, analytics = "G-JYKX8QY5JW"),
+         format = Documenter.HTML(prettyurls = false, analytics = "G-JYKX8QY5JW", edit_link = "main"),
          warnonly = true,
          #strict = true,
          #doctest = false,
@@ -183,4 +183,5 @@ makedocs(sitename="BetaML.jl Documentation",
 println("Starting deploying the documentation...")
 deploydocs(
     repo = "github.com/sylvaticus/BetaML.jl.git",
+    devbranch = "main",
 )

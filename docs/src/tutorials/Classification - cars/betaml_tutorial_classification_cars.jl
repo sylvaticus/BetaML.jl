@@ -210,7 +210,7 @@ ls   = 50 # number of neurons in the inner layer
 l1   = DenseLayer(D,ls,f=relu,rng=copy(AFIXEDRNG))
 l2   = DenseLayer(ls,nCl,f=relu,rng=copy(AFIXEDRNG))
 
-# For a classification task, the last layer is a [`VectorFunctionLayer`](@ref) that has no learnable parameters but whose activation function is applied to the ensemble of the neurons, rather than individually on each neuron. In particular, for classification we pass the [`softmax`](@ref) function whose output has the same size as the input (i.e. the number of classes to predict), but we can use the `VectorFunctionLayer` with any function, including the [`pool1d`](@ref) function to create a "pooling" layer (using maximum, mean or whatever other sub-function we pass to `pool1d`)
+# For a classification task, the last layer is a [`VectorFunctionLayer`](@ref) that has no learnable parameters but whose activation function is applied to the ensemble of the neurons, rather than individually on each neuron. In particular, for classification we pass the [`softmax`](@ref) function whose output has the same size as the input (i.e. the number of classes to predict), but we can use the `VectorFunctionLayer` with any function. For example, for a "pooling" layer we could use the [`pool1d`](@ref) function (although for pooling with maximum or mean the [`PoolingLayer`](@ref) is more efficient)
 
 l3   = VectorFunctionLayer(nCl,f=softmax) ## Add a (parameterless) layer whose activation function (softmax in this case) is applied to all its nodes at once
 
@@ -252,12 +252,13 @@ println(now(), " ", "- Flux.jl..." )  #src
 
 # As we did for Random Forests, we compare BetaML neural networks with the leading package for deep learning in Julia, [`Flux.jl`](https://github.com/FluxML/Flux.jl). 
 
-# In Flux the input must be in the form (fields, observations), so we transpose our original matrices
-xtrainT, ytrain_ohT = transpose.([xtrain, ytrain_oh])
-xtestT, ytest_ohT   = transpose.([xtest, ytest_oh])
+# In Flux the input must be in the form (fields, observations), so we transpose our original matrices. We also convert the features to `Float32`, the type of the Flux model parameters:
+xtrainT, ytrain_ohT = Float32.(permutedims(xtrain)), permutedims(ytrain_oh)
+xtestT, ytest_ohT   = Float32.(permutedims(xtest)), permutedims(ytest_oh)
 
 
-# We define the Flux neural network model in a similar way to BetaML and load it with data, we train it, predict and measure the accuracies on the training and the test sets:
+# We define the Flux neural network model in a similar way to BetaML and load it with data, we train it, predict and measure the accuracies on the training and the test sets.
+# We use the "explicit" Flux API: the loss function takes the model as its first argument, and the state of the optimisation algorithm is set up once, before the training loop, with `Flux.setup`:
 
 #src function poolForFlux(x,wsize=5)
 #src     hcat([pool1d(x[:,i],wsize;f=maximum) for i in 1:size(x,2)]...)
@@ -265,13 +266,11 @@ xtestT, ytest_ohT   = transpose.([xtest, ytest_oh])
 # We fix the random seed for Flux, although you may still get different results depending on the number of threads used... this is a problem we solve in BetaML by creating a master seed and then reseeding with it each parallel computation.
 Random.seed!(seed)
 
-l1         = Flux.Dense(D,ls,Flux.relu)
-l2         = Flux.Dense(ls,nCl,Flux.relu)
-Flux_nn    = Flux.Chain(l1,l2)
-fluxloss(x, y) = Flux.logitcrossentropy(Flux_nn(x), y)
-ps         = Flux.params(Flux_nn)
-nndata     = Flux.Data.DataLoader((xtrainT, ytrain_ohT),shuffle=true)
-begin for i in 1:500  Flux.train!(fluxloss, ps, nndata, Flux.ADAM()) end end
+Flux_nn    = Flux.Chain(Flux.Dense(D,ls,Flux.relu),Flux.Dense(ls,nCl,Flux.relu))
+fluxloss(m, x, y) = Flux.logitcrossentropy(m(x), y)
+opt_state  = Flux.setup(Flux.Adam(), Flux_nn)
+nndata     = Flux.DataLoader((xtrainT, ytrain_ohT),shuffle=true)
+for i in 1:500  Flux.train!(fluxloss, Flux_nn, nndata, opt_state) end
 ŷtrain     = Flux.onecold(Flux_nn(xtrainT),1:3)
 ŷtest      = Flux.onecold(Flux_nn(xtestT),1:3)
 trainAccuracy, testAccuracy   = accuracy.([ytrain,ytest],[ŷtrain,ŷtest])
@@ -279,13 +278,13 @@ trainAccuracy, testAccuracy   = accuracy.([ytrain,ytest],[ŷtrain,ŷtest])
 
 push!(results,["NN (Flux.jl)",trainAccuracy,testAccuracy]);
 
-#src 0.9384615384615385, 0.7283950617283951
-# While the train accuracy is comparable to that of BetaML, the test accuracy is slightly lower (see the summary table at the end of this tutorial).
+#src 0.9723076923076923, 0.7160493827160493
+# The train accuracy is similar to or higher than that of BetaML, while the test accuracy is similar or slightly lower (see the summary table at the end of this tutorial).
 
 @test testAccuracy > 0.65 #src
 
 #src # However the time is again lower than BetaML, even if here for "just" a factor 2
-#src # @btime begin for i in 1:500 Flux.train!(loss, ps, nndata, Flux.ADAM()) end end;
+#src # @btime begin for i in 1:500 Flux.train!(fluxloss, Flux_nn, nndata, opt_state) end end;
 #src # 5.665 s (8943640 allocations: 1.07 GiB)
 
 # ## Perceptron-like classifiers.
@@ -325,17 +324,17 @@ println(results)
 
 # If you clone the BetaML repository and run this tutorial changing the `seed` set at its beginning, you should obtain results similar to the ones below.
 
-# Model accuracies on my machine with seeds 123, 1000 and 10000 respectively
+# Model accuracies with seeds 123, 1000 and 10000 respectively (obtained with Julia 1.10, other Julia versions may give slightly different results)
 
-# | model                 | train 1   |  test 1  | train 2  |  test 2  |  train 3 |  test 3  |  
-# | --------------------- | --------- | -------- | -------- | -------- | -------- | -------- |
-# | RF                    |  0.996923 | 0.765432 | 1.000000 | 0.802469 | 1.000000 | 0.888889 |
-# | RF (DecisionTrees.jl) |  0.975385 | 0.765432 | 0.984615 | 0.777778 | 0.975385 | 0.864198 |
-# | NN                    |  0.886154 | 0.728395 | 0.916923 | 0.827160 | 0.895385 | 0.876543 |
-# | NN (Flux.jl)          |  0.793846 | 0.654321 | 0.938462 | 0.790123 | 0.935385 | 0.851852 |
-# | Perceptron            |  0.778462 | 0.703704 | 0.720000 | 0.753086 | 0.670769 | 0.654321 |
-# | KernelPerceptronClassifier      |  0.987692 | 0.703704 | 0.978462 | 0.777778 | 0.944615 | 0.827160 |
-# | Pegasos               |  0.732308 | 0.703704 | 0.633846 | 0.753086 | 0.575385 | 0.654321 |
+# | model                      | train 1   |  test 1  | train 2  |  test 2  |  train 3 |  test 3  |  
+# | -------------------------- | --------- | -------- | -------- | -------- | -------- | -------- |
+# | RF                         |  0.996923 | 0.753086 | 0.996923 | 0.839506 | 0.996923 | 0.876543 |
+# | RF (DecisionTrees.jl)      |  0.981538 | 0.765432 | 0.984615 | 0.777778 | 0.975385 | 0.864198 |
+# | NN                         |  0.907692 | 0.740741 | 0.926154 | 0.814815 | 0.910769 | 0.851852 |
+# | NN (Flux.jl)               |  0.972308 | 0.716049 | 0.916923 | 0.802469 | 0.966154 | 0.851852 |
+# | Perceptron                 |  0.763077 | 0.691358 | 0.729231 | 0.666667 | 0.683077 | 0.814815 |
+# | KernelPerceptronClassifier |  0.969231 | 0.740741 | 0.981538 | 0.765432 | 0.984615 | 0.814815 |
+# | Pegasos                    |  0.689231 | 0.592593 | 0.630769 | 0.666667 | 0.587692 | 0.777778 |
 
 # We warn that this table just provides a rough idea of the various algorithms' performances. Indeed there is a large amount of stochasticity both in the sampling of the data used for training/testing and in the initial settings of the parameters of the algorithm. For a statistically significant comparison we would have to repeat the analysis with multiple samplings (e.g. by cross-validation, see the [clustering tutorial](@ref clustering_tutorial) for an example) and initial random parameters.
 

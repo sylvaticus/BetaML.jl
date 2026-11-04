@@ -333,7 +333,7 @@ D               = size(xtrain,2)
 
 candidate_structures = [
         [DenseLayer(D,k,f=relu,df=drelu,rng=copy(AFIXEDRNG)),     # Activation function is ReLU, its derivative is drelu
-         DenseLayer(k,k,f=identity,df=identity,rng=copy(AFIXEDRNG)), # This is the hidden layer we want to test various sizes
+         DenseLayer(k,k,f=identity,df=didentity,rng=copy(AFIXEDRNG)), # This is the hidden layer we want to test various sizes
          DenseLayer(k,1,f=relu,df=drelu,rng=copy(AFIXEDRNG))] for k in 5:2:10]
 
 # Note that specifying the derivatives of the activation functions (and of the loss function that we'll see in a moment) is totally optional, as without them BetaML will use [`Zygote.jl`](https://github.com/FluxML/Zygote.jl) for automatic differentiation.
@@ -356,7 +356,7 @@ nnm = NeuralNetworkEstimator(loss=squared_cost, descr="Bike sharing regression m
 #src ŷtrain_scaled         = fit!(nnm2,xtrain_scaled,ytrain_scaled)
 #src ŷtrain                = ŷtrain_scaled .* 1000
 #src ŷtest                 = @pipe predict(nnm2,xtest_scaled) .* 1000 |> dropdims(_,dims=2)
-#src (rme_train, rme_test) = relative_mean_error.([ŷtrain,ŷtest],[ytrain,ytest]) #0.041, 0.236
+#src (rme_train, rme_test) = relative_mean_error.([ytrain,ytest],[ŷtrain,ŷtest]) #0.041, 0.236
 
 #-
 
@@ -374,12 +374,12 @@ ŷtrain_scaled = fit!(nnm,xtrain_scaled,ytrain_scaled)
 ŷtrain = ŷtrain_scaled .* 1000 
 ŷtest  = predict(nnm,xtest_scaled) .* 1000
 #-
-(rme_train, rme_test) = relative_mean_error.([ŷtrain,ŷtest],[ytrain,ytest])
+(rme_train, rme_test) = relative_mean_error.([ytrain,ytest],[ŷtrain,ŷtest])
 push!(results,["NN",rme_train,rme_test]);
 
-#src 0.134, 0.149
+#src 0.094, 0.227
 
-# The error is much lower. Let's plot our predictions:
+# The test error is lower than the one of the DecisionTree.jl random forest, while compared with the BetaML random forest it is higher or lower depending on the random seed (see the table at the end of this tutorial). Let's plot our predictions:
 @test rme_test < 0.35 #src
 
 # Again, we can start by plotting the estimated vs the observed value:
@@ -412,17 +412,21 @@ opt_epochs     = hp_opt.epochs
 # We fix the default random number generator so that the Flux example gives a reproducible output
 Random.seed!(seed)
 
+# Flux works with the observations along the columns and its layers have `Float32` parameters, so we transpose the data and convert it to `Float32`:
+xtrainf, ytrainf = Float32.(permutedims(xtrain_scaled)), Float32.(permutedims(ytrain_scaled))
+xtestf           = Float32.(permutedims(xtest_scaled))
+
 # We define the Flux neural network model and load it with data...
 l1         = Flux.Dense(D,opt_size,Flux.relu)
 l2         = Flux.Dense(opt_size,opt_size,identity)
 l3         = Flux.Dense(opt_size,1,Flux.relu)
 Flux_nn    = Flux.Chain(l1,l2,l3)
 fluxloss(m,x, y) = Flux.mse(m(x), y)
-nndata     = Flux.MLUtils.DataLoader((xtrain_scaled', ytrain_scaled'), batchsize=opt_batch_size,shuffle=true)
-opt        = Flux.setup(Flux.ADAM(0.001, (0.9, 0.8)), Flux_nn)
+nndata     = Flux.DataLoader((xtrainf, ytrainf), batchsize=opt_batch_size,shuffle=true)
+opt        = Flux.setup(Flux.Adam(0.001, (0.9, 0.8)), Flux_nn)
 
 #src Flux_nn2   = deepcopy(Flux_nn)      ## A copy for the time benchmarking
-#src opt = Flux.setup(Flux.ADAM(0.001, (0.9, 0.8)), Flux_nn2)  ## A copy for the time benchmarking
+#src opt = Flux.setup(Flux.Adam(0.001, (0.9, 0.8)), Flux_nn2)  ## A copy for the time benchmarking
 
 
 # We do the training of the Flux model...
@@ -439,13 +443,13 @@ opt        = Flux.setup(Flux.ADAM(0.001, (0.9, 0.8)), Flux_nn)
 #src # On this small example the speed of Flux is of the same order as BetaML (the actual difference seems to depend on the specific RNG seed and hardware), however I suspect that Flux scales much better with larger networks and/or data.
 
 # We obtain the predictions...
-ŷtrainf = @pipe Flux_nn(xtrain_scaled')' .* 1000;
-ŷtestf  = @pipe Flux_nn(xtest_scaled')'  .* 1000;
+ŷtrainf = Flux_nn(xtrainf)' .* 1000;
+ŷtestf  = Flux_nn(xtestf)'  .* 1000;
 
 # ..and we compute the mean relative errors..
-(rme_train, rme_test) = relative_mean_error.([ŷtrainf,ŷtestf],[ytrain,ytest])
+(rme_train, rme_test) = relative_mean_error.([ytrain,ytest],[ŷtrainf,ŷtestf])
 push!(results,["NN (Flux.jl)",rme_train,rme_test]);
-#src 0.102, 0.171
+#src 0.083, 0.183
 # .. finding an error not significantly different from the one obtained from BetaML.Nn.
 
 #-
@@ -496,7 +500,7 @@ ŷtrainGMM_unscaled = fit!(m,xtrain_scaled,ytrain_scaled)
 ŷtrainGMM = ŷtrainGMM_unscaled .* 1000;
 ŷtestGMM  = predict(m,xtest_scaled)  .* 1000;
 
-(rme_train, rme_test) = relative_mean_error.([ŷtrainGMM,ŷtestGMM],[ytrain,ytest])
+(rme_train, rme_test) = relative_mean_error.([ytrain,ytest],[ŷtrainGMM,ŷtestGMM])
 push!(results,["GMM",rme_train,rme_test]);
 
 # ## Summary
@@ -505,18 +509,18 @@ push!(results,["GMM",rme_train,rme_test]);
 
 println(results)
 
-# You may ask how stable these results are. How much do they depend on the specific RNG seed? We re-evaluated the whole script a couple of times, changing the random seeds (to `1000` and `10000`):
+# You may ask how stable these results are. How much do they depend on the specific RNG seed? We re-evaluated the whole script a couple of times, changing the random seeds (to `1000` and `10000`, obtained with Julia 1.10, other Julia versions may give slightly different results):
 
-# | Model                | Train rme1 | Test rme1 | Train rme2 | Test rme2 | Train rme3 | Test rme3 | 
-# |:-------------------- |:----------:|:---------:|:----------:|:---------:|:----------:|:---------:|
-# | DT                   | 0.1366960  | 0.154720  | 0.0233044  | 0.249329  | 0.0621571  | 0.161657  |
-# | RF                   | 0.0421267  | 0.180186  | 0.0535776  | 0.136920  | 0.0386144  | 0.141606  |
-# | RF (DecisionTree.jl) | 0.0230439  | 0.235823  | 0.0801040  | 0.243822  | 0.0168764  | 0.219011  |
-# | NN                   | 0.1604000  | 0.169952  | 0.1091330  | 0.121496  | 0.1481440  | 0.150458  | 
-# | NN (Flux.jl)         | 0.0931161  | 0.166228  | 0.0920796  | 0.167047  | 0.0907810  | 0.122469  | 
-# | GaussianMixtureRegressor*       | 0.1432800  | 0.293891  | 0.1380340  | 0.295470  | 0.1477570  | 0.284567  |
+# | Model                     | Train rme1 | Test rme1 | Train rme2 | Test rme2 | Train rme3 | Test rme3 | 
+# |:------------------------- |:----------:|:---------:|:----------:|:---------:|:----------:|:---------:|
+# | DT                        | 0.0213416  | 0.172881  | 0.0507250  | 0.143607  | 0.1270030  | 0.148203  |
+# | RF                        | 0.0557363  | 0.177997  | 0.0507030  | 0.138829  | 0.0408240  | 0.145779  |
+# | RF (DecisionTree.jl)      | 0.0098861  | 0.252646  | 0.0145270  | 0.221290  | 0.0266340  | 0.219570  |
+# | NN                        | 0.0944757  | 0.226690  | 0.0877910  | 0.116039  | 0.0949880  | 0.149912  | 
+# | NN (Flux.jl)              | 0.0826919  | 0.182983  | 0.1227420  | 0.191399  | 0.0923670  | 0.130626  | 
+# | GaussianMixtureRegressor* | 0.2161440  | 0.243844  | 0.2161440  | 0.243844  | 0.2161440  | 0.243844  |
 
-# * GMM is a deterministic model, the variations are due to the different random sampling in choosing the best hyperparameters
+# * GMM is a deterministic model, and here its results don't depend on the random seed
 
 # Neural networks can be more precise than random forest models, but are more computationally expensive (and tricky to set up). When we compare BetaML with the algorithm-specific leading packages, we find similar results in terms of accuracy, but often the leading packages are better optimised and run more efficiently (but sometimes at the cost of being less versatile).
 # GMM-based regressors are very computationally cheap and a good compromise if accuracy can be traded off for performance.
