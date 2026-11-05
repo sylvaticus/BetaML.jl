@@ -508,15 +508,21 @@ Low-level network predictions. Use `predict(m::NeuralNetworkEstimator)` instead
 
 # Notes:
 * The computation happens on the device where the network parameters are, while the predictions are returned on the device where `x` is.
+* The records are processed in chunks, each moved back to the device of `x` as soon as it is computed, so that the computation device (e.g. a GPU) never holds more than one chunk of predictions at a time.
 """
 function predict(nn::NN,x)
     lastlayer_size = size(nn.layers[end])[2]
     length(lastlayer_size) == 1 || error("The last NN layer should always be a single dimension vector. Eventually use `ReshaperLayer` to reshape its output as a vector.")
     x     = _asrecords(nn,x)
+    n     = size(x,1)
     proto = _compute_proto(nn,x)
-    outs  = [permutedims(_forward(nn,_to_device(proto,permutedims(x[c,:])))) for c in _chunks(size(x,1))]
-    out   = length(outs) == 1 ? outs[1] : reduce(vcat,outs)
-    return _to_device(similar(x,eltype(out),0),out)
+    out   = nothing
+    for c in _chunks(n)
+        ŷc = permutedims(_forward(nn,_to_device(proto,permutedims(x[c,:]))))
+        isnothing(out) && (out = similar(x,eltype(ŷc),n,size(ŷc,2)))
+        out[c,:] = _to_device(similar(out,eltype(ŷc),0),ŷc)
+    end
+    return out
 end
 
 """
